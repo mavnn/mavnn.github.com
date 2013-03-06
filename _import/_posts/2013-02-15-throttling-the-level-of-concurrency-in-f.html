@@ -1,0 +1,12 @@
+---
+permalink: /throttling-the-level-of-concurrency-in-f/index.html
+layout: post
+title: Throttling the level of concurrency in F#
+published: true
+categories:
+- 15below
+- fake
+- fsharp
+- programming
+---
+<div>Async.Parallel |&gt; Async.RunSynchronously is great for running a load of stuff in parallel in F#, as long as you don&#39;t mind them all running at the same time.</div><p /><div>Often, though, you want to map across a sequence and run functions on the elements in parallel, but with a limit to how many are being processed concurrently. Whether you&#39;re doing something CPU heavy and there&#39;s no point running more than the number of processors on the box, or whether you know that you&#39;ll swamp a remote server if you just dump all of your connections on it at once, this issue comes up surprisingly often.</div> <p /><div>As a first stab, you might be tempted to do something like this (if you think like I do):</div><p /><div><script src="https://gist.github.com/4961072.js"></script><br /> </div><p /><div>In a word: don&#39;t. The contention in the Semaphore make this enormously inefficient with even a few hundred tasks.</div><p /><div>In the end, the simplest  implementation I could come up with that didn&#39;t involve dragging in external dependencies was the following:</div> <p /><div><script src="https://gist.github.com/4961056.js"></script><br /></div><p /><div>If anyone has a simpler implementation, leave a comment and let me know!</div> 

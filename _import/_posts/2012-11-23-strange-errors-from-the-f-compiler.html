@@ -1,0 +1,9 @@
+---
+permalink: /strange-errors-from-the-f-compiler/index.html
+layout: post
+title: Strange errors from the F# compiler
+published: true
+categories:
+- fsharp
+---
+I found a new error, yesterday:<p /><div>    <i class="" style="font-style: normal; background-color: rgb(245,245,245); font-family: Menlo,Bitstream Vera Sans Mono,Courier New,Courier,monospace; font-size: 12px; line-height: 16.78333282470703px; color: rgb(196,112,3);">error FS0192: internal error: null: GetTRefType</i></div> <p /><div>It showed up when I tried to run a .fsx script that referenced NuGet.Core 2.1.0, but only when the script was run on Windows Server 2008 R2. Windows 7 x64? No problems. Windows Server 2003/8 x86? No problems.<br /> </div><p /><div>2008 R2? Bam. Every time.</div><p /><div>A bit of trial of error discovered two things:</div><p /><div>The error went away if I referenced NuGet.Core 2.2.0 alpha 4<br /></div><p /><div>And the minimal error case is pretty minimal:</div><p /><div><script src="https://gist.github.com/4136322.js"></script></div><p /><div>Looking at the NuGet.Core source ( <a href="http://nuget.codeplex.com/SourceControl/changeset/view/5b6d7e16b19c#src%2fCore%2fSemanticVersion.cs">http://nuget.codeplex.com/SourceControl/changeset/view/5b6d7e16b19c#src%2fCore%2fSemanticVersion.cs</a> ) the only thing that might be a relevant change that I can see is a simplification of some custom GetHashCode logic.</div> <p /><div>Raising the interesting question of why there is custom GetHashCode logic in the first place, and how the heck did they get it to cause internal F# compiler errors anyway? And why did it only fail on that one specific version of Windows?</div> <p /><div>All very strange. Hopefully 2.2.0 will be a full release before we want to start using this technique for in our production code! </div>

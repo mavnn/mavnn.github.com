@@ -1,0 +1,45 @@
+---
+permalink: /corrected-error-handling-computational-expres/index.html
+layout: post
+title: Corrected Error Handling Computational Expression
+published: true
+categories:
+- 15below
+- fsharp
+- Programming
+---
+<p>I&rsquo;ve been wanting to write code like this in F#, and know that any
+exceptions within a bound expression in an audit { } block will not
+only get caught, but that an external auditing service will get
+notified that the operation has failed.</p>
+
+<p><script src="https://gist.github.com/4565937.js"></script></p>
+
+<p>Unfortunately, it turns out my code in my post on error handling
+( <a href="http://blog.mavnn.co.uk/playing-with-error-handling-strategies">http://blog.mavnn.co.uk/playing-with-error-handling-strategies</a> ) was
+flawed in its ability to handle errors. The irony has not escaped me.</p>
+
+<p>The issue is with the eager evaluation of arguments to the TryFinally
+method of the builder. If it takes you a while to work out what that
+means, don&rsquo;t worry: it took me about 2 days to wrap my head round it
+and work out how to correct the code to make it behave as I would have
+expected.</p>
+
+<p>To make things work correctly, the type returned by the computational
+expression pretty much has to be a deferred function of some kind.</p>
+
+<p>So, the Interface, now renamed IAuditBuilder, gains a couple of helper
+functions and becomes:</p>
+
+<p><script src="https://gist.github.com/4565812.js"></script></p>
+
+<p>The implementation of the TestAuditBuilder (only logs to console on
+error) becomes:</p>
+
+<p><script src="https://gist.github.com/4565838.js"></script></p>
+
+<p>So: many thanks to Johann Deneux for patiently pointing out to me what
+the flaw in the original code was. I hope this example of a lazy
+computational expression is useful to other starting out down this
+rabbit hole of monadic weirdness. At least the resulting code looks
+pretty nice and readable now that the builder is fixed.</p>

@@ -1,0 +1,12 @@
+---
+permalink: /in-which-our-intrepid-author-de-sugars-a-mona/index.html
+layout: post
+title: In Which Our Intrepid Author De-sugars a Monad by Hand
+published: true
+categories:
+- 15below
+- fsharp
+- programming
+---
+<p>In my previous post ( <a href="http://blog.mavnn.co.uk/playing-with-error-handling-strategies">http://blog.mavnn.co.uk/playing-with-error-handling-strategies</a> ), Johann Deneux asked me whether my implementation of TryFinally actually worked. <p /> TD;LR: It works. But thank you Johann for making me check!</p>
+<p>Editted TD;LR: It's broken, but not for the reason I thought. See the comments for details, and corrected code here&nbsp;<a href="http://blog.mavnn.co.uk/corrected-error-handling-computational-expres">http://blog.mavnn.co.uk/corrected-error-handling-computational-expres</a><p /> This gave me a bit of a pause, as it's actually an implementation I took from another source. One I trust, but it was still embarrassing to realise I couldn't answer this question with full confidence as I didn't quite understand the code myself. <p /> In the end (especially given I'm planning to actually use this code in production at some point), I decided to go the whole hog and de-sugar a couple of simple versions of the computational expression. <p /> So, first, the audit monad as used in my example code from the last post with just a simple let binding: <p /> <script src="https://gist.github.com/4550342.js"></script><p /> This raised my confidence slightly - the code I'd written did what I expected. But, what happened when I tried to bind a disposable resource using use! rather than let!? Time for the moment of truth: <p /> <script src="https://gist.github.com/4550496.js"></script><p /> So there you have it. The code does actually behave as expected, protecting the use of the disposable resource and ensuring it's disposal. And I can breath easy that my code is doing what I thought it should be. Hopefully this will also serve as a useful example for anyone else starting out on the happy road of using computational expressions.</p>

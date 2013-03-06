@@ -1,0 +1,32 @@
+---
+permalink: /fake-part-2-build-and-test/index.html
+layout: post
+title: ! 'Fake Part 2: Build and test'
+published: true
+categories:
+- 15below
+- fake
+- fsharp
+---
+<p>The introduction to this series can be found at <a href="http://blog.mavnn.co.uk/getting-started-with-fake-an-introduction-tag">http://blog.mavnn.co.uk/getting-started-with-fake-an-introduction-tag</a> or just check out my Fake tag.</p>
+<p><strong>The scenario</strong></p>
+<p>So, you've written your brave new F# 3.0 solution, and now you want to build, test and package it with a shared build setup between your CI environment (which, of course, doesn't have Visual Studio installed) and your developer's machines.</p>
+<p><span style="font-size: 13px;">Hopefully this will walk you through most of the potential pitfalls you might find along the way.</span></p>
+<p><span style="font-size: 13px;">This post has been written using an actual build.fsx script that we use for a utility project at <a href="http://15below.com" title="15below" target="_blank">15below</a>. We're hiring, so if you're interested in this kind of thing, drop me a line.</span></p>
+<p><strong><span style="font-size: 13px;">Set up</span></strong></p>
+<p><span style="font-size: 13px;">There is no installer for the F# 3 compiler, so we're going to be playing some games to support building on a TeamCity build agent without VS 2012 installed.</span></p>
+<p><span style="font-size: 13px;">The script assumes a few things about your repository:</span></p>
+<p>&nbsp;</p>
+<ul>
+<li><span style="font-size: 13px;">a tools directory with the same NuGet and FSharp directories as at <a href="https://github.com/fsharp/FAKE/tree/develop/tools">https://github.com/fsharp/FAKE/tree/develop/tools</a> (basically a recent nuget.exe in one, and a recent build of the open source F# compiler project in the other)</span></li>
+<li><span style="font-size: 13px;">a tools/FAKE directory with a recent build of FAKE (I prefer to have a known version checked into git, but you can read instructions on how to bootstrap it via nuget at <a href="http://www.navision-blog.de/blog/2009/04/01/getting-started-with-fake-a-f-sharp-make-tool/)">http://www.navision-blog.de/blog/2009/04/01/getting-started-with-fake-a-f-sha...</a></span></li>
+</ul>
+<p>&nbsp;</p>
+<p><span style="font-size: 13px;">From here on down is just a heavily commented build.fsx file. I was going to use FSharp.Formatting to nicely format this, but unfortunately the combination of FSharp.Formatting itself and Posterous have defeated me. Something to play with more at a later date.</span></p>
+<p><span style="font-size: 13px;"><script src="https://gist.github.com/4944580.js"></script></span></p>
+<p><span style="font-size: 13px;">Hopefully this example will give you a start on using FAKE in real projects.</span></p>
+<p><span style="font-size: 13px;">In future posts I'd like to address some of the more esoteric bits and pieces we've been using FAKE for, such as building Octopus deployment packages, running integration tests (with full setup and database deployment) and running unit tests in parallel. Stay tuned...</span></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>

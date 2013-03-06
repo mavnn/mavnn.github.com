@@ -1,0 +1,28 @@
+---
+permalink: /a-short-interlude-into-adaptive-polling-tag-f/index.html
+layout: post
+title: A short interlude into adaptive polling
+published: true
+categories:
+- 15below
+- fsharp
+- killTheConfig
+- Programming
+---
+<span style="font-family: arial,sans-serif; font-size: 13px;">Your windows service is watching an email inbox.</span><p /> <span style="font-family: arial,sans-serif; font-size: 13px;">How often should it poll?</span><p /><span style="font-family: arial,sans-serif; font-size: 13px;">Once every 5 minutes? Every 10? Then of course you realise that it should be different for every customer... or maybe every mailbox. You need more config!</span>
+<p />
+<div>Or not.<p /><span style="font-family: arial,sans-serif; font-size: 13px;">The real answer, of course, is something completely different: it&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">should poll a lot when a lot of emails are arriving, and not very much&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">when they aren't.</span><p /> <span style="font-family: arial,sans-serif; font-size: 13px;">It took a lot longer than it should have done to get my maths brain&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">back on, but with the help of my wife I eventually settled on this&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">code for deciding the intervals between polls:</span><p /> 
+<div><script src="https://gist.github.com/4595744.js"></script></div>
+<p />
+<div>The 'i' in this function is the number of times we've polled since the last time a new email was received (if one is received, we reset i to 0).</div>
+<p />
+<div>If you plot this out on a graph, you get something that looks like this:</div>
+<p />
+<div><img src="http://www.wolframalpha.com/share/img?i=d41d8cd98f00b204e9800998ecf8427ehd954rh40i&amp;f=HBQTQYZYGY4TOM3CGRSGMMBWGAYDCM3DGYZGMOBWGFRDANDCMUZAaaaa" alt="" /></div>
+<p />
+<div>(You can play with the shape of the graph at Wolfram|Alpha if you're feeling really geeky :) -&nbsp;<a href="http://www.wolframalpha.com/share/clip?f=d41d8cd98f00b204e9800998ecf8427ehd954rh40i">http://www.wolframalpha.com/share/clip?f=d41d8cd98f00b204e9800998ecf8427ehd954rh40i</a>&nbsp;).</div>
+<p />
+<div>This gives us very aggressive polling for the first few minutes after discovering an email, then dropping off rapidly to close to the one every ten minutes mark that I decided was a reasonable background polling rate.</div>
+<p />
+<div>It's not truly adaptive in the machine learning sense, but it gives a very good first cut that is an awful lot better than any fixed value could be.</div>
+</div>

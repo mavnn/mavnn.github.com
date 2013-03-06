@@ -1,0 +1,15 @@
+---
+permalink: /representing-easynetq-message-subscriptions-a/index.html
+layout: post
+title: Representing EasyNetQ Message Subscriptions as Blocking Queues
+published: true
+categories:
+- fsharp
+- Programming
+---
+<p><span style="color: #222222; font-family: arial, sans-serif;">EasyNetQ (</span><a href="https://github.com/mikehadlow/EasyNetQ" target="_blank" style="color: #1155cc; font-family: arial, sans-serif;">https://github.com/mikehadlow/EasyNetQ</a><span style="color: #222222; font-family: arial, sans-serif;">) is a simple wrapper for RabbitMq that allows you to trivially send and receive plain .net objects over the wire (as long as they can be serialized). It handles all the details of setting up exchanges and queues for you, and as long as your use case fits its (deliberately) simple pattern it's very convenient.</span></p>
+<div style="color: #222222; font-family: arial, sans-serif;">Unfortunately, if you want to use it in a more functional landscape (*cough* from F# *cough*), the fact that it exposes subscriptions via registering a callback is not the ideal interface. In these situations, it's much easier to handle (and reason about) a lazy infinite sequence of messages that you can then handle however you want, including in the simplest case just sitting on the sequence in a small tail call recursive function.</div>
+<div style="color: #222222; font-family: arial, sans-serif;">So EasyFQ was born. Weighing in at a mighty 16 lines of F# code, it contains one function: SeqSubscibe&lt;'a&gt; :&nbsp;(IBus -&gt; string -&gt; seq&lt;'a&gt;).</div>
+<div style="color: #222222; font-family: arial, sans-serif;">There's a .fsx with example usage in the GitHub repository:&nbsp;<a href="https://github.com/michael-newton-15below/EasyFQ" target="_blank" style="color: #1155cc;">https://github.com/michael-newton-15below/EasyFQ</a></div>
+<div style="color: #222222; font-family: arial, sans-serif;">I suppose the next step is to pester Mike into making it a Nuget package under the EasyNetQ umbrella...</div>
+<p>&nbsp;</p>

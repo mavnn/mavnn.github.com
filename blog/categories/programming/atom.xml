@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: programming | Mavnn's blog]]></title>
+  <link href="http://blog.mavnn.co.uk/blog/categories/programming/atom.xml" rel="self"/>
+  <link href="http://blog.mavnn.co.uk/"/>
+  <updated>2013-07-09T17:17:17+01:00</updated>
+  <id>http://blog.mavnn.co.uk/</id>
+  <author>
+    <name><![CDATA[mavnn]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Coding Hygiene: Moving from project references to NuGet dependencies]]></title>
+    <link href="http://blog.mavnn.co.uk/coding-hygiene-moving-from-project-references-to-nuget-dependencies/"/>
+    <updated>2013-03-08T17:08:00+00:00</updated>
+    <id>http://blog.mavnn.co.uk/coding-hygiene-moving-from-project-references-to-nuget-dependencies</id>
+    <content type="html"><![CDATA[<p>So, first post with the new blogging engine. Let's see how it goes.</p>
+
+<p>Our code base at <a href="http://15below.com">15below</a> started it's life a fair
+while ago, well before any form of .NET package management became
+practical. Because of that, we ended up building a lot of code in
+'lockstep' with project references in code as there was no sensible way
+of taking versioned binary dependencies.</p>
+
+<p>That's fine and all, but it encourages bad code hygiene: rather than
+having sharply defined contracts between components, if you've got them
+all open in the same solution it becomes far too tempting to just nudge
+changes around as it's convenient at the time. Changes can infect other
+pieces of code, and the power of automatic refactoring across the entire
+solution becomes intoxicating.</p>
+
+<p>The result? It becomes very hard to do incremental builds (or
+deployments, for that matter). This in turn makes for a long feed back
+cycle between making a change, and being able to see it rolled out to a
+testing environment.</p>
+
+<p>So as part of the ongoing refactoring that any long lived code base needs to
+keep it maintainable and under control, we've embarked on the process of
+splitting our code down into more logically separated repositories that
+reference each other via NuGet. This will require us to start being much
+more disciplined in our <a href="http://semver.org">semantic versioning</a> than we
+have been in the past, but will also allow us to build and deploy
+incrementally and massively reduce our feed back times.</p>
+
+<p>As part of splitting out the first logical division (I'd like to say
+<a href="http://en.wikipedia.org/wiki/Domain-driven_design">domain</a> but we're
+not there yet!), I created the new repository and got the included
+assemblies up and building on TeamCity. It was only then (stupidly) that
+I realised that we had several hundred project references to these
+assemblies in our code. There was no way I was going to update them all
+by hand, so after a few hours development we now have a script for
+idempotently updating a project reference in a [cs|vb|fs]proj file to a
+NuGet reference. It does require you to do one update manually first;
+especially with assemblies that are strongly signed, I chickened out of
+trying to generate the reference nodes that needed to be added
+automatically. The script also makes sure that you end up with a
+packages.config file with the project that includes the new dependency.</p>
+
+<p>It should be noted that this script has only seen minimal testing, was
+coded up for one time use and does not come with a warranty of any kind!
+Use at your own risk, and once you understand what it's doing. But for
+all that, I hope you find it useful.</p>
+
+<p>```</p>
+
+<h1>r "System.Xml.Linq"</h1>
+
+<h1>r "tools\FAKE\FakeLib.dll"</h1>
+
+<p>open System.IO
+open System.Xml
+open System.Xml.Linq
+open System.Xml.XPath
+open Fake</p>
+
+<p>// You'll want to replace these values...
+let nugetId = "my.package.id"
+let refName = "my.ref.name"
+let packageNode = XElement.Parse """<package id="my.package.id" version="1.0.0.6" targetFramework="net40" />"""
+let refXml =</p>
+
+<pre><code>"""
+&lt;Reference Include="my.ref.name"&gt;
+  &lt;HintPath&gt;..\..\packages\my.package.id.1.0.0.6\lib\net40\my.ref.name.dll&lt;/HintPath&gt;
+  &lt;Private&gt;True&lt;/Private&gt;
+&lt;/Reference&gt;
+"""
+</code></pre>
+
+<p>let hintPathFromRoot =
+@"packages\my.package.id.1.0.0.6\lib\net40\my.ref.name.dll"
+let sourceRoot = "C:\WhereIKeepMyRepo"</p>
+
+<p>// You should be able to leave the rest alone
+let ns = "http://schemas.microsoft.com/developer/msbuild/2003"
+let nsm = new XmlNamespaceManager(new NameTable())
+nsm.AddNamespace("ns", ns)
+let nugetPath = sourceRoot @@ "tools" @@ "NuGet" @@ "NuGet.exe"</p>
+
+<p>let HasProjectReference (projDoc : XDocument) refName =</p>
+
+<pre><code>projDoc.Root.XPathSelectElements("//ns:ProjectReference[ns:Name='" + refName + "']", nsm)
+|&gt; Seq.length
+|&gt; (&lt;) 0
+</code></pre>
+
+<p>let GetProjectReference (projDoc : XDocument) refName =</p>
+
+<pre><code>projDoc.Root.XPathSelectElement("//ns:ProjectReference[ns:Name='" + refName + "']", nsm)
+</code></pre>
+
+<p>let DeleteProjectReference refName (projFile : string) =</p>
+
+<pre><code>let projDoc = XDocument.Load(projFile)
+if HasProjectReference projDoc refName then
+    let ref = GetProjectReference projDoc refName
+    ref.Remove()
+    projDoc.Save(projFile)
+</code></pre>
+
+<p>let HasReference (projDoc : XDocument) refName =</p>
+
+<pre><code>projDoc.Root.XPathSelectElements("//ns:Reference[@Include='" + refName + "']", nsm)
+|&gt; Seq.append &lt;| projDoc.Root.XPathSelectElements("//ns:Reference[@Include[starts-with(., '" + refName + ",')]]", nsm)
+|&gt; Seq.tryPick (fun e -&gt; Some e)
+</code></pre>
+
+<p>let FirstReference (projDoc : XDocument) =</p>
+
+<pre><code>projDoc.Root.XPathSelectElements("//ns:Reference", nsm)
+|&gt; Seq.head
+</code></pre>
+
+<p>let GetHintPath hintPathFromRoot root projFile =</p>
+
+<pre><code>let rootDir = DirectoryInfo(root)
+let projDir = DirectoryInfo(Path.GetDirectoryName(projFile))
+let rec dirDiff (rootDir : DirectoryInfo) (currentDir : DirectoryInfo) levels =
+    if rootDir.FullName = currentDir.FullName then
+        levels
+    else
+        dirDiff rootDir (currentDir.Parent) (levels + 1)
+hintPathFromRoot::[for _ in 1..(dirDiff rootDir projDir 0) -&gt; ".."]
+|&gt; List.rev
+|&gt; List.fold (@@) "."
+</code></pre>
+
+<p>let UpdateHintPath projFile =</p>
+
+<pre><code>let ref = XElement.Parse(refXml)
+let xs = XNamespace.Get(ns)
+let el = ref.XPathSelectElement("//HintPath")
+el.SetValue (GetHintPath hintPathFromRoot sourceRoot projFile)
+for node in ref.DescendantsAndSelf() do
+    node.Name &lt;- xs + node.Name.LocalName
+ref
+</code></pre>
+
+<p>let EnsureReference refName (projFile : string) =</p>
+
+<pre><code>let doc = XDocument.Load(projFile)
+match HasReference doc refName with
+| Some el -&gt; el.Remove()
+| None -&gt; ()
+let el = FirstReference doc
+el.AddBeforeSelf(UpdateHintPath projFile)
+doc.Save(projFile)
+</code></pre>
+
+<p>type PackageFile =</p>
+
+<pre><code>| Exists of string
+| Missing of string
+</code></pre>
+
+<p>let GetPackagesDotConfig projFile =</p>
+
+<pre><code>let dir = Path.GetDirectoryName(projFile)
+let path = dir @@ "packages.config"
+if File.Exists(path) then
+    Exists path
+else
+    Missing path
+</code></pre>
+
+<p>let HasPackageReference (doc : XDocument) nugetId =</p>
+
+<pre><code>doc.XPathSelectElements("//package[@id = '" + nugetId + "']")
+|&gt; Seq.length
+|&gt; (&lt;) 0
+</code></pre>
+
+<p>let EnsurePackagesDotConfigHasPackage nugetId projFile =</p>
+
+<pre><code>let doc, path =
+    match GetPackagesDotConfig projFile with
+    | Missing path -&gt;
+        XDocument.Parse("&lt;packages /&gt;"), path
+    | Exists path -&gt;
+        XDocument.Load(path), path
+if not &lt;| HasPackageReference doc nugetId then
+    doc.Root.XPathSelectElement("/packages").Add(packageNode)
+    doc.Save path
+</code></pre>
+
+<p>let UpdateProj (projFile : string) =</p>
+
+<pre><code>if HasProjectReference (XDocument.Load(projFile)) refName then
+    DeleteProjectReference refName projFile
+    EnsureReference refName projFile
+    EnsurePackagesDotConfigHasPackage nugetId projFile
+</code></pre>
+
+<p>!+ (@"<strong>*.csproj")
+++ (@"</strong>*.fsproj")
+++ (@"***.vbproj")
+|> Scan
+|> Seq.map (fun proj -> printfn "Updating %s" proj; proj)
+|> Seq.iter UpdateProj
+```</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Throttling the level of concurrency in F#]]></title>
+    <link href="http://blog.mavnn.co.uk/throttling-the-level-of-concurrency-in-f/index.html"/>
+    <updated>2013-02-15T00:00:00+00:00</updated>
+    <id>http://blog.mavnn.co.uk/throttling-the-level-of-concurrency-in-f/throttling-the-level-of-concurrency-in-f</id>
+    <content type="html"><![CDATA[<div>Async.Parallel |&gt; Async.RunSynchronously is great for running a load of stuff in parallel in F#, as long as you don&#39;t mind them all running at the same time.</div>
+
+
+<p /><div>Often, though, you want to map across a sequence and run functions on the elements in parallel, but with a limit to how many are being processed concurrently. Whether you&#39;re doing something CPU heavy and there&#39;s no point running more than the number of processors on the box, or whether you know that you&#39;ll swamp a remote server if you just dump all of your connections on it at once, this issue comes up surprisingly often.</div> <p /><div>As a first stab, you might be tempted to do something like this (if you think like I do):</div><p /><div><script src="https://gist.github.com/4961072.js"></script><br /> </div><p /><div>In a word: don&#39;t. The contention in the Semaphore make this enormously inefficient with even a few hundred tasks.</div><p /><div>In the end, the simplest  implementation I could come up with that didn&#39;t involve dragging in external dependencies was the following:</div> <p /><div><script src="https://gist.github.com/4961056.js"></script><br /></div><p /><div>If anyone has a simpler implementation, leave a comment and let me know!</div> 
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[In Which Our Intrepid Author De-sugars a Monad by Hand]]></title>
+    <link href="http://blog.mavnn.co.uk/in-which-our-intrepid-author-de-sugars-a-mona/index.html"/>
+    <updated>2013-01-16T00:00:00+00:00</updated>
+    <id>http://blog.mavnn.co.uk/in-which-our-intrepid-author-de-sugars-a-mona/in-which-our-intrepid-author-de-sugars-a-mona</id>
+    <content type="html"><![CDATA[<p>In my previous post ( <a href="http://blog.mavnn.co.uk/playing-with-error-handling-strategies">http://blog.mavnn.co.uk/playing-with-error-handling-strategies</a> ), Johann Deneux asked me whether my implementation of TryFinally actually worked. <p /> TD;LR: It works. But thank you Johann for making me check!</p>
+<p>Editted TD;LR: It's broken, but not for the reason I thought. See the comments for details, and corrected code here&nbsp;<a href="http://blog.mavnn.co.uk/corrected-error-handling-computational-expres">http://blog.mavnn.co.uk/corrected-error-handling-computational-expres</a><p /> This gave me a bit of a pause, as it's actually an implementation I took from another source. One I trust, but it was still embarrassing to realise I couldn't answer this question with full confidence as I didn't quite understand the code myself. <p /> In the end (especially given I'm planning to actually use this code in production at some point), I decided to go the whole hog and de-sugar a couple of simple versions of the computational expression. <p /> So, first, the audit monad as used in my example code from the last post with just a simple let binding: <p /> <script src="https://gist.github.com/4550342.js"></script><p /> This raised my confidence slightly - the code I'd written did what I expected. But, what happened when I tried to bind a disposable resource using use! rather than let!? Time for the moment of truth: <p /> <script src="https://gist.github.com/4550496.js"></script><p /> So there you have it. The code does actually behave as expected, protecting the use of the disposable resource and ensuring it's disposal. And I can breath easy that my code is doing what I thought it should be. Hopefully this will also serve as a useful example for anyone else starting out on the happy road of using computational expressions.</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Playing with error handling strategies]]></title>
+    <link href="http://blog.mavnn.co.uk/playing-with-error-handling-strategies/index.html"/>
+    <updated>2013-01-14T00:00:00+00:00</updated>
+    <id>http://blog.mavnn.co.uk/playing-with-error-handling-strategies/playing-with-error-handling-strategies</id>
+    <content type="html"><![CDATA[<p>Taking a break from Fake for a moment (I'll get back to it, I promise!) <p /> Note: this post assumes a basic understanding of computation expressions in F#; if you're looking for a primer on them,&nbsp;<a href="http://en.wikibooks.org/wiki/F_Sharp_Programming/Computation_Expressions">http://en.wikibooks.org/wiki/F_Sharp_Programming/Computation_Expressions</a> <br />is a good place to start.</p>
+<p>Note 2: the code in this post is actually broken if you use a use! or try finally block within your audit block. Check out&nbsp;<a href="http://blog.mavnn.co.uk/corrected-error-handling-computational-expres" style="font-size: 13px;">http://blog.mavnn.co.uk/corrected-error-handling-computational-expres</a>&nbsp;for the corrected code.</p>
+<p><br />I had a series of small services I needed to add error handling to today to polish them up from nice clean prototype to production ready status. <p /> Thinking about the joys of re-implementing the same error handling strategy in each of them, it occurred to me that this was exactly the kind of thing that computational expressions were built for. But my requirements went a bit further than just log the error and continue: each of these services contain critical locations where if a error occurred, we didn't just want it logged locally, but we wanted (in some cases) an alert sent to a remote auditing* server. <p /> Of course, mocking out the auditing service for testing is a bit of a pain in the backside, and how auditing is achieved shouldn't really be the responsibility of these services anyway. <p /> So, I decided to experiment with a builder interface. <p /> Meet the IErrorHandlerBuilder interface: <p /> <script src="https://gist.github.com/4533440.js"></script><p /> Should look awfully familiar if you've recently checked out the msdn page on computational expressions: <a href="http://msdn.microsoft.com/en-us/library/dd233182.aspx">http://msdn.microsoft.com/en-us/library/dd233182.aspx</a> (except, you know, mine has the right signatures; that might want to be fixed at some point). <p /> How do we use it? <p /> Well, first we need an implementation. In fact, let's have two. Our first candidate, the AuditBuilder, takes an unhealthy number of dependencies that (in turn) take an unhealthy number of dependencies that you almost certainly want to supply from an IoC container. <p /> <script src="https://gist.github.com/4533554.js"></script><p /> What does it do? Well, basically if any bound function throws it logs the error via log4net and our in house audit server and then returns None. Otherwise it returns Some result from the computation. Obviously, if a computation further up the chain has already thrown we already have a None and we just pass it along. TryFinally and Using are implemented to make sure that you can still use disposable resources as you would expect within the expression. <p /> Our second candidate is the TestErrorBuilder: <p /> <script src="https://gist.github.com/4533560.js"></script><p /> This is almost identical to the implementation above, except that it takes no dependencies at all and if there is an error it just logs to the console via printfn. Very useful for debugging - you might even want a unit test version that logs nothing, depending on your unit tests. <p /> And now, our preparation is complete. How do we use our new toy, you ask? <p /> Something like this: <p /> <script src="https://gist.github.com/4533619.js"></script><p /> This little service persists interesting email messages to a document store, and sends the contents back to you when you request them. If an email is not persisted, or a request for an email fails, we want a remote alert to be triggered in production. Both the persist and content requests are handled as RabbitMq messages (using the EasyNetQ client). <p /> So in the message handler callbacks, declare an audit { } block and let! bind our message. Then we simply pass that bound message on to a handling function or object and return the resulting value, safe in the knowledge that our hosting program will have supplied an appropriate IErrorHandlerBuilder for our current purposes. The beauty of all of this is that the service object does not need to know what the error handling strategy is, and the objects/functions doing the work do not need to worry about error handling at all. <p /> This technique is especially useful in situations where you are making use of asynchronous programming techniques such as agents and you really don't want a single failure taking out your whole agent or async expression. If for some reason it's important to your code what the error is, as well as knowing it's been handled, it would be easy to modify this technique to return a Choice or custom MaybeError discriminated union that you could pull the exception out of later. <p /> It would also be helpful for managing things like SQL connections with multiple retry attempts: for testing you may not want that kind of complexity and you could pass in a simpler strategy builder, while testing your robust, multiple retry computational builder for use in actual deployed environments (test or production). <p /> And, of course, just knowing that builder interfaces are possible raises up a whole new world of possibilities. <p /> As always, I tend to write about stuff that is fresh and new to me (i.e. not fully considered and maybe fatally flawed). Comments and suggestions welcome. <p /> * To avoid any confusion, I should note that the word audit is used loosely in this blog post, with a meaning more related to a namespace within our code than the normal meaning of the word 'audit'.</p>
+
+]]></content>
+  </entry>
+  
+</feed>

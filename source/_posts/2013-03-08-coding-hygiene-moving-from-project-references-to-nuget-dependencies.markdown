@@ -56,7 +56,7 @@ coded up for one time use and does not come with a warranty of any kind!
 Use at your own risk, and once you understand what it's doing. But for
 all that, I hope you find it useful.
 
-``` fsharp
+```
 #r "System.Xml.Linq"
 #r "tools\FAKE\FakeLib.dll"
 open System.IO

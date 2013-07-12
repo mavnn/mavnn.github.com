@@ -1,0 +1,529 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>FsCheck - Breaking your code in new and exciting ways - Mavnn's blog</title>
+  <meta name="author" content="mavnn">
+
+  
+  <meta name="description" content="FsCheck is a property based testing library for .net. Based on QuickCheck and scalacheck it can be easily called from any .net language. But what is &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://blog.mavnn.co.uk/fscheck-breaking-your-code-in-new-and-exciting-ways">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Mavnn's blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-37561687-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mavnn's blog</a></h1>
+  
+    <h2>Stuff from my brain</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:blog.mavnn.co.uk" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">FsCheck - Breaking Your Code in New and Exciting Ways</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-07-12T11:55:00+01:00" pubdate data-updated="true">Jul 12<span>th</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p><a href="https://github.com/fsharp/FsCheck">FsCheck</a> is a property based testing library for .net. Based on <a href="http://book.realworldhaskell.org/read/testing-and-quality-assurance.html">QuickCheck</a> and <a href="https://github.com/rickynils/scalacheck">scalacheck</a> it can be easily called from any .net language.</p>
+
+<p>But what is property based testing? It&rsquo;s a technique that allows us to define &lsquo;properties&rsquo; for our code, and then let the library try and find input values that break these properties. Let&rsquo;s take an example and see what happens.</p>
+
+<h3>The Brief</h3>
+
+<p>I&rsquo;ve been tasked with writing the backend of a public facing endpoint. Customers can pass user defined input into the endpoint, and we&rsquo;ll add it to their &lsquo;booking&rsquo;. Once they have called the service once with any particular input, we should ignore any further calls with the same value.</p>
+
+<p>Previous architectural decisions mean that we are storing the bookings as XML documents.</p>
+
+<p>(Why yes, I do know this is slightly contrived. Thank you for asking. Hopefully though, you should begin to see similarities to real scenarios you&rsquo;ve coded against.)</p>
+
+<h3>What can we get out of this?</h3>
+
+<p>Well, as well as any normal exploratory unit tests we may decide to write (which I&rsquo;ll ignore for this article to keep things succinct) we can determine a few properties that should always hold true in the brief above:</p>
+
+<ul>
+<li>Repeatedly calling the code with the same input xml document and the same input text should always give us the same result. I.E., the code should be idempotent.</li>
+<li>Our code should never remove nodes from the XML. The result document will always be the same or longer than the original.</li>
+<li>The input is supplied by the customer. It&rsquo;s about as trust worthy as a hungry stoat on speed.</li>
+</ul>
+
+
+<h3>Let&rsquo;s get started</h3>
+
+<p>Let&rsquo;s start off with the core &lsquo;business logic&rsquo; function of this code. We&rsquo;ll ignore for this post how the input gets to the function, and how the document is persisted. It&rsquo;s signature (F# style) will be:</p>
+
+<pre><code>val AddEnhancement :
+  xDoc:System.Xml.Linq.XDocument -&gt; input:string -&gt; System.Xml.Linq.XDocument
+</code></pre>
+
+<p>After referencing <code>System.Xml</code> and <code>System.Xml.Linq</code>, our first, very naive, attempt at the implementation looks like this:</p>
+
+<div><script src='https://gist.github.com/5983701.js?file=Part1.fs'></script>
+<noscript><pre><code>let AddEnhancement (xDoc : XDocument) (input : string) =
+    xDoc.Root.Add(XElement(XName.Get &quot;Enhancement&quot;, input))
+    xDoc</code></pre></noscript></div>
+
+
+<p>We know this isn&rsquo;t right &ndash; it&rsquo;s blatantly not idempotent. So let&rsquo;s try and get our failing test.</p>
+
+<p>Although FsCheck does expose a set of NUnit plugin attributes, for this blog post I&rsquo;m just going to run the tests via a console app. So; add a new F# console app to your solution, add references to <code>System.Xml</code>, <code>System.Xml.Linq</code> and your library project then grab FsCheck (it&rsquo;s on NuGet) and we&rsquo;ll see what we can do.</p>
+
+<p>First, we&rsquo;ll need to add a property that we want to test. A property is simply a function that takes a data type FsCheck knows how to generate, and returns a bool. FsCheck knows how to generate strings, so our idempotence property looks something like this:</p>
+
+<div><script src='https://gist.github.com/5983701.js?file=Part2.fs'></script>
+<noscript><pre><code>open FsCheck
+open DevEd.FsCheck
+open System.Xml.Linq
+
+let baseDoc = &quot;&lt;root /&gt;&quot;
+
+let ``Add enhancement must be idompotent`` input =
+    let xml1 = XDocument.Parse baseDoc
+    let xml2 = XDocument.Parse baseDoc
+    (AddEnhancement xml1 input).ToString() =
+        (AddEnhancement (AddEnhancement xml2 input) input).ToString()</code></pre></noscript></div>
+
+
+<p>Looking good. How do we run it? Just add this to the end of the file:</p>
+
+<div><script src='https://gist.github.com/5983701.js?file=Part3.fs'></script>
+<noscript><pre><code>Check.Quick ``Add enhancement must be idompotent``
+
+System.Console.ReadLine() |&gt; ignore</code></pre></noscript></div>
+
+
+<p>And hey presto:</p>
+
+<p><img src="/images/FsCheck1.png" alt="&quot;&quot; broke my code :(" /></p>
+
+<p>Failing test. Interestingly (and if you check the documents, not coincidently), FsCheck has found the &lsquo;simplest&rsquo; possible failure case: <code>""</code>. Of course, it was helped on this occasion by the fact it was also the first input it tried.</p>
+
+<p>So; let&rsquo;s add some checking to <code>AddEnhancement</code> to make sure we don&rsquo;t re-add the same input more than once.</p>
+
+<div><script src='https://gist.github.com/5983701.js?file=Part4.fs'></script>
+<noscript><pre><code>let AddEnhancement (xDoc : XDocument) (input : string) =
+    if 
+        xDoc.Root.Elements(XName.Get &quot;Enhancement&quot;)
+        |&gt; Seq.exists (fun e -&gt; e.Value = input)
+        |&gt; not then
+            xDoc.Root.Add(XElement(XName.Get &quot;Enhancement&quot;, input))
+    xDoc
+</code></pre></noscript></div>
+
+
+<p>And re-run the test and&hellip; oops.</p>
+
+<div><script src='https://gist.github.com/5983701.js?file=Part5.txt'></script>
+<noscript><pre><code>System.ArgumentException was unhandled by user code
+  HResult=-2147024809
+  Message=' ', hexadecimal value 0x18, is an invalid character.
+  Source=System.Xml
+  StackTrace:
+       at System.Xml.XmlEncodedRawTextWriter.InvalidXmlChar(Int32 ch, Char* pDst, Boolean entitize)
+       at System.Xml.XmlEncodedRawTextWriter.WriteElementTextBlock(Char* pSrc, Char* pSrcEnd)
+       at System.Xml.XmlEncodedRawTextWriter.WriteString(String text)
+       at System.Xml.XmlEncodedRawTextWriterIndent.WriteString(String text)
+       at System.Xml.XmlWellFormedWriter.WriteString(String text)
+       at System.Xml.Linq.ElementWriter.WriteElement(XElement e)
+       at System.Xml.Linq.XElement.WriteTo(XmlWriter writer)
+       at System.Xml.Linq.XContainer.WriteContentTo(XmlWriter writer)
+       at System.Xml.Linq.XNode.GetXmlString(SaveOptions o)
+       at System.Xml.Linq.XNode.ToString()
+       at Program.Add enhancement must be idompotent(String input) in C:\Users\michael.newton\documents\visual studio 2012\Projects\DevEd.FsCheck\TestRunner\Program.fs:line 10
+       at Program.clo@13.Invoke(String input) in C:\Users\michael.newton\documents\visual studio 2012\Projects\DevEd.FsCheck\TestRunner\Program.fs:line 13
+       at FsCheck.Testable.evaluate[a,b](FSharpFunc`2 body, a a)
+  InnerException: 
+</code></pre></noscript></div>
+
+
+<p>And this is where the full power of FsCheck starts becoming apparent. I know my input is untrusted, so I&rsquo;ve told it to generate <em>any</em> string. And it believed me, and has created an input string that breaks <code>System.Xml.XmlEncodedRawTextWriter.WriteElementTextBlock</code>. This is not a unit test I would have thought to write myself, as I&rsquo;d managed to miss that the fact that <a href="http://blog.mark-mclaren.info/2007/02/invalid-xml-characters-when-valid-utf8_5873.html">not all utf-8 characters are valid in utf-8 encoded xml</a>. In fact, it took me more than a few minutes to work out why it was throwing.</p>
+
+<p>At this point FsCheck has revealed to us that our initial brief is actually incomplete; we&rsquo;ve told the customer that we&rsquo;re willing to accept utf-8 strings as input, but our storage mechanism doesn&rsquo;t support all utf-8 strings. To even get FsCheck to run, we&rsquo;ll have to decide on an error handling strategy &ndash; and importantly, it will have to be a strategy that still fulfils the initial properties specified (unless we decide that what we&rsquo;ve discovered so fundamentally breaks our initial assumptions that they need to be re-visited).</p>
+
+<p>This is a toy project so I&rsquo;m going to bail slightly on this one: I&rsquo;m going to assume that invalid values just add an error node with a &lsquo;cleaned&rsquo; version of the input which could then be reviewed by a human at a later date. This has the advantage that it still fulfils all of our properties above.</p>
+
+<p>Fortunately for us, in .NET 4.0 and above there is a function in the <code>System.Xml</code> namespace called `XmlConvert.IsXmlChar&#8217; which does roughly what you would expect from the name. Let&rsquo;s add an invalid character filter, and an active pattern to tell us if any characters have been removed:</p>
+
+<div><script src='https://gist.github.com/5983701.js?file=Part6.fs'></script>
+<noscript><pre><code>let filterInvalidChars (input : string) =
+    input
+    |&gt; Seq.filter (fun c -&gt; XmlConvert.IsXmlChar c)
+    |&gt; Seq.map string
+    |&gt; String.concat &quot;&quot;    
+
+let (|ValidXml|InvalidXml|) str =
+    let filtered = filterInvalidChars str
+    if String.length filtered = String.length str then
+        ValidXml str
+    else
+        InvalidXml filtered
+</code></pre></noscript></div>
+
+
+<p>Now we can amend <code>AddEnhancement</code> to add enhancement nodes for valid XML text or an error node for sanitized invalid XML text:</p>
+
+<div><script src='https://gist.github.com/5983701.js?file=Part7.fs'></script>
+<noscript><pre><code>let AddEnhancement (xDoc : XDocument) (input : string) =
+    match input with
+    | ValidXml text -&gt;
+        if xDoc.Root.Elements(XName.Get &quot;Enhancement&quot;) |&gt; Seq.exists(fun enhance -&gt; enhance.Value = text) then
+            None
+        else
+            Some &lt;| XElement(XName.Get &quot;Enhancement&quot;, text)
+    | InvalidXml text -&gt;
+        if xDoc.Root.Elements(XName.Get &quot;Error&quot;) |&gt; Seq.exists(fun error -&gt; error.Value = text) then
+            None
+        else
+            Some &lt;| XElement(XName.Get &quot;Error&quot;, text)</code></pre></noscript></div>
+
+
+<p>And when we run FsCheck again:</p>
+
+<p><img src="/images/FsCheck2.png" alt="Hurrah!" /></p>
+
+<p>Excellent stuff.</p>
+
+<p>As a bonus extra, I&rsquo;ve included below a somewhat expanded version of the test code. Remember I said that FsCheck already knows how to generate strings? Unfortunately it doesn&rsquo;t know how to generate XML out of the box, but I was pleasantly surprised how quick and easy it was to write a naive XML generator. It generates <a href="https://gist.github.com/mavnn/5976004#file-example-xml">XML like this</a>. Also, check out the <code>CheckAll</code> function used at the end which allows you to build and run &lsquo;property classes&rsquo; to group families of properties together.</p>
+
+<p>And, of course, per the specification, it checks that the 3rd property above holds true (that adding enhancements never reduces the size of the document).</p>
+
+<div><script src='https://gist.github.com/5983701.js?file=Part8.fs'></script>
+<noscript><pre><code>module FsCheck.Examples.Tests
+
+open FsCheck
+open DevEd.FsCheck
+open System.Xml.Linq
+
+let baseDocText = &quot;&quot;&quot;&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;root /&gt;
+&quot;&quot;&quot;
+
+type XmlTree = 
+    | NodeName of string
+    | Container of string * List&lt;XmlTree&gt;
+
+let nodeNames = 
+    [&quot;myNode&quot;;
+     &quot;myOtherNode&quot;;
+     &quot;someDifferentNode&quot;]
+
+let tree = 
+    let rec tree' s = 
+        match s with
+        | 0 -&gt; Gen.map NodeName (Gen.elements nodeNames)
+        | n when n &gt; 0 -&gt; 
+            let subtrees = 
+                Gen.sized &lt;| fun s -&gt; 
+                    Gen.resize (s
+                                |&gt; float
+                                |&gt; sqrt
+                                |&gt; int) (Gen.listOf(tree'(n / 2)))
+            Gen.oneof 
+                [Gen.map NodeName (Gen.elements nodeNames);
+                 
+                 Gen.map2 (fun name contents -&gt; Container(name, contents)) 
+                     (Gen.elements nodeNames) subtrees]
+        | _ -&gt; invalidArg &quot;s&quot; &quot;Size most be positive.&quot;
+    Gen.sized tree'
+
+let treeToXDoc xmlTree = 
+    let rec inner currentNode children = 
+        let childMatch child = 
+            match child with
+            | NodeName name -&gt; XElement(XName.Get name)
+            | Container(name, contents) -&gt; 
+                let element = XElement(XName.Get name)
+                inner element contents
+        currentNode.Add(List.map childMatch children |&gt; List.toArray)
+        currentNode
+    match xmlTree with
+    | NodeName name -&gt; XDocument(XElement(XName.Get name))
+    | Container(name, contents) -&gt; 
+        let doc = XDocument(XElement(XName.Get name))
+        inner doc.Root contents |&gt; ignore
+        doc
+
+type XmlGenerator() = 
+    static member XmlTree() = 
+        { new Arbitrary&lt;XmlTree&gt;() with
+              member x.Generator = tree
+              member x.Shrinker t = 
+                  match t with
+                  | NodeName _ -&gt; Seq.empty
+                  | Container(name, contents) -&gt; 
+                      match contents with
+                      | [] -&gt; seq { yield NodeName name }
+                      | c -&gt; 
+                          seq { 
+                              for n in c -&gt; n } }
+
+type XmlUpdaterProperties() = 
+    static member ``AddEnhancement is idempotent``(data : string) = 
+        ((AddEnhancement &lt;| AddEnhancement (XDocument.Parse baseDocText) data) data)
+            .ToString() = (AddEnhancement (XDocument.Parse baseDocText) data)
+            .ToString()
+    static member ``AddEnhancement is idempotent on different xml structures``(xmlDoc : XmlTree, 
+                                                                           data : string) = 
+        (AddEnhancement (treeToXDoc xmlDoc) data).ToString() = (AddEnhancement (AddEnhancement (treeToXDoc xmlDoc) data) data)
+            .ToString()
+    static member ``AddEnhancement never reduces the number of nodes`` (xmlDoc : XmlTree, data : string) =
+        Seq.length ((treeToXDoc xmlDoc).DescendantNodes()) = Seq.length ((AddEnhancement (treeToXDoc xmlDoc) data).DescendantNodes())
+
+Arb.register&lt;XmlGenerator&gt;() |&gt; ignore
+Check.QuickAll&lt;XmlUpdaterProperties&gt;()
+System.Console.ReadLine() |&gt; ignore</code></pre></noscript></div>
+
+
+<p>Thanks for reading this far. If you want to play yourself, a full copy of the example code is <a href="https://github.com/mavnn/DevEd.FsCheck">on GitHub</a> with an MIT license.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">mavnn</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-07-12T11:55:00+01:00" pubdate data-updated="true">Jul 12<span>th</span>, 2013</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/fsharp/'>fsharp</a>, <a class='category' href='/blog/categories/programming/'>programming</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://blog.mavnn.co.uk/fscheck-breaking-your-code-in-new-and-exciting-ways/" data-via="mavnn" data-counturl="http://blog.mavnn.co.uk/fscheck-breaking-your-code-in-new-and-exciting-ways/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/useful-find-a-decent-windows-console/" title="Previous Post: Useful find: a decent Windows console">&laquo; Useful find: a decent Windows console</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/fscheck-breaking-your-code-in-new-and-exciting-ways/">FsCheck - Breaking Your Code in New and Exciting Ways</a>
+      </li>
+    
+      <li class="post">
+        <a href="/useful-find-a-decent-windows-console/">Useful Find: A Decent Windows Console</a>
+      </li>
+    
+      <li class="post">
+        <a href="/coding-hygiene-moving-from-project-references-to-nuget-dependencies/">Coding Hygiene: Moving From Project References to NuGet Dependencies</a>
+      </li>
+    
+      <li class="post">
+        <a href="/throttling-the-level-of-concurrency-in-f/index.html">Throttling the Level of Concurrency in F#</a>
+      </li>
+    
+      <li class="post">
+        <a href="/fake-part-2-build-and-test/index.html">Fake Part 2: Build and Test</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/mavnn">@mavnn</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'mavnn',
+            count: 3,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - mavnn -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mavnn';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://blog.mavnn.co.uk/fscheck-breaking-your-code-in-new-and-exciting-ways/';
+        var disqus_url = 'http://blog.mavnn.co.uk/fscheck-breaking-your-code-in-new-and-exciting-ways/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

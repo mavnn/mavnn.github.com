@@ -4,7 +4,7 @@
   <title><![CDATA[Category: programming | Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/blog/categories/programming/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2013-07-09T17:17:17+01:00</updated>
+  <updated>2013-07-12T13:54:18+01:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -14,22 +14,280 @@
 
   
   <entry>
+    <title type="html"><![CDATA[FsCheck - Breaking your code in new and exciting ways]]></title>
+    <link href="http://blog.mavnn.co.uk/fscheck-breaking-your-code-in-new-and-exciting-ways/"/>
+    <updated>2013-07-12T11:55:00+01:00</updated>
+    <id>http://blog.mavnn.co.uk/fscheck-breaking-your-code-in-new-and-exciting-ways</id>
+    <content type="html"><![CDATA[<p><a href="https://github.com/fsharp/FsCheck">FsCheck</a> is a property based testing library for .net. Based on <a href="http://book.realworldhaskell.org/read/testing-and-quality-assurance.html">QuickCheck</a> and <a href="https://github.com/rickynils/scalacheck">scalacheck</a> it can be easily called from any .net language.</p>
+
+<p>But what is property based testing? It&rsquo;s a technique that allows us to define &lsquo;properties&rsquo; for our code, and then let the library try and find input values that break these properties. Let&rsquo;s take an example and see what happens.</p>
+
+<h3>The Brief</h3>
+
+<p>I&rsquo;ve been tasked with writing the backend of a public facing endpoint. Customers can pass user defined input into the endpoint, and we&rsquo;ll add it to their &lsquo;booking&rsquo;. Once they have called the service once with any particular input, we should ignore any further calls with the same value.</p>
+
+<p>Previous architectural decisions mean that we are storing the bookings as XML documents.</p>
+
+<p>(Why yes, I do know this is slightly contrived. Thank you for asking. Hopefully though, you should begin to see similarities to real scenarios you&rsquo;ve coded against.)</p>
+
+<h3>What can we get out of this?</h3>
+
+<p>Well, as well as any normal exploratory unit tests we may decide to write (which I&rsquo;ll ignore for this article to keep things succinct) we can determine a few properties that should always hold true in the brief above:</p>
+
+<ul>
+<li>Repeatedly calling the code with the same input xml document and the same input text should always give us the same result. I.E., the code should be idempotent.</li>
+<li>Our code should never remove nodes from the XML. The result document will always be the same or longer than the original.</li>
+<li>The input is supplied by the customer. It&rsquo;s about as trust worthy as a hungry stoat on speed.</li>
+</ul>
+
+
+<h3>Let&rsquo;s get started</h3>
+
+<p>Let&rsquo;s start off with the core &lsquo;business logic&rsquo; function of this code. We&rsquo;ll ignore for this post how the input gets to the function, and how the document is persisted. It&rsquo;s signature (F# style) will be:</p>
+
+<pre><code>val AddEnhancement :
+  xDoc:System.Xml.Linq.XDocument -&gt; input:string -&gt; System.Xml.Linq.XDocument
+</code></pre>
+
+<p>After referencing <code>System.Xml</code> and <code>System.Xml.Linq</code>, our first, very naive, attempt at the implementation looks like this:</p>
+
+<p><div><script src='https://gist.github.com/5983701.js?file=Part1.fs'></script>
+<noscript><pre><code>let AddEnhancement (xDoc : XDocument) (input : string) =
+    xDoc.Root.Add(XElement(XName.Get &quot;Enhancement&quot;, input))
+    xDoc</code></pre></noscript></div>
+</p>
+
+<p>We know this isn&rsquo;t right &ndash; it&rsquo;s blatantly not idempotent. So let&rsquo;s try and get our failing test.</p>
+
+<p>Although FsCheck does expose a set of NUnit plugin attributes, for this blog post I&rsquo;m just going to run the tests via a console app. So; add a new F# console app to your solution, add references to <code>System.Xml</code>, <code>System.Xml.Linq</code> and your library project then grab FsCheck (it&rsquo;s on NuGet) and we&rsquo;ll see what we can do.</p>
+
+<p>First, we&rsquo;ll need to add a property that we want to test. A property is simply a function that takes a data type FsCheck knows how to generate, and returns a bool. FsCheck knows how to generate strings, so our idempotence property looks something like this:</p>
+
+<p><div><script src='https://gist.github.com/5983701.js?file=Part2.fs'></script>
+<noscript><pre><code>open FsCheck
+open DevEd.FsCheck
+open System.Xml.Linq
+
+let baseDoc = &quot;&lt;root /&gt;&quot;
+
+let ``Add enhancement must be idompotent`` input =
+    let xml1 = XDocument.Parse baseDoc
+    let xml2 = XDocument.Parse baseDoc
+    (AddEnhancement xml1 input).ToString() =
+        (AddEnhancement (AddEnhancement xml2 input) input).ToString()</code></pre></noscript></div>
+</p>
+
+<p>Looking good. How do we run it? Just add this to the end of the file:</p>
+
+<p><div><script src='https://gist.github.com/5983701.js?file=Part3.fs'></script>
+<noscript><pre><code>Check.Quick ``Add enhancement must be idompotent``
+
+System.Console.ReadLine() |&gt; ignore</code></pre></noscript></div>
+</p>
+
+<p>And hey presto:</p>
+
+<p><img src="/images/FsCheck1.png" alt="&quot;&quot; broke my code :(" /></p>
+
+<p>Failing test. Interestingly (and if you check the documents, not coincidently), FsCheck has found the &lsquo;simplest&rsquo; possible failure case: <code>""</code>. Of course, it was helped on this occasion by the fact it was also the first input it tried.</p>
+
+<p>So; let&rsquo;s add some checking to <code>AddEnhancement</code> to make sure we don&rsquo;t re-add the same input more than once.</p>
+
+<p><div><script src='https://gist.github.com/5983701.js?file=Part4.fs'></script>
+<noscript><pre><code>let AddEnhancement (xDoc : XDocument) (input : string) =
+    if 
+        xDoc.Root.Elements(XName.Get &quot;Enhancement&quot;)
+        |&gt; Seq.exists (fun e -&gt; e.Value = input)
+        |&gt; not then
+            xDoc.Root.Add(XElement(XName.Get &quot;Enhancement&quot;, input))
+    xDoc
+</code></pre></noscript></div>
+</p>
+
+<p>And re-run the test and&hellip; oops.</p>
+
+<p><div><script src='https://gist.github.com/5983701.js?file=Part5.txt'></script>
+<noscript><pre><code>System.ArgumentException was unhandled by user code
+  HResult=-2147024809
+  Message=' ', hexadecimal value 0x18, is an invalid character.
+  Source=System.Xml
+  StackTrace:
+       at System.Xml.XmlEncodedRawTextWriter.InvalidXmlChar(Int32 ch, Char* pDst, Boolean entitize)
+       at System.Xml.XmlEncodedRawTextWriter.WriteElementTextBlock(Char* pSrc, Char* pSrcEnd)
+       at System.Xml.XmlEncodedRawTextWriter.WriteString(String text)
+       at System.Xml.XmlEncodedRawTextWriterIndent.WriteString(String text)
+       at System.Xml.XmlWellFormedWriter.WriteString(String text)
+       at System.Xml.Linq.ElementWriter.WriteElement(XElement e)
+       at System.Xml.Linq.XElement.WriteTo(XmlWriter writer)
+       at System.Xml.Linq.XContainer.WriteContentTo(XmlWriter writer)
+       at System.Xml.Linq.XNode.GetXmlString(SaveOptions o)
+       at System.Xml.Linq.XNode.ToString()
+       at Program.Add enhancement must be idompotent(String input) in C:\Users\michael.newton\documents\visual studio 2012\Projects\DevEd.FsCheck\TestRunner\Program.fs:line 10
+       at Program.clo@13.Invoke(String input) in C:\Users\michael.newton\documents\visual studio 2012\Projects\DevEd.FsCheck\TestRunner\Program.fs:line 13
+       at FsCheck.Testable.evaluate[a,b](FSharpFunc`2 body, a a)
+  InnerException: 
+</code></pre></noscript></div>
+</p>
+
+<p>And this is where the full power of FsCheck starts becoming apparent. I know my input is untrusted, so I&rsquo;ve told it to generate <em>any</em> string. And it believed me, and has created an input string that breaks <code>System.Xml.XmlEncodedRawTextWriter.WriteElementTextBlock</code>. This is not a unit test I would have thought to write myself, as I&rsquo;d managed to miss that the fact that <a href="http://blog.mark-mclaren.info/2007/02/invalid-xml-characters-when-valid-utf8_5873.html">not all utf-8 characters are valid in utf-8 encoded xml</a>. In fact, it took me more than a few minutes to work out why it was throwing.</p>
+
+<p>At this point FsCheck has revealed to us that our initial brief is actually incomplete; we&rsquo;ve told the customer that we&rsquo;re willing to accept utf-8 strings as input, but our storage mechanism doesn&rsquo;t support all utf-8 strings. To even get FsCheck to run, we&rsquo;ll have to decide on an error handling strategy &ndash; and importantly, it will have to be a strategy that still fulfils the initial properties specified (unless we decide that what we&rsquo;ve discovered so fundamentally breaks our initial assumptions that they need to be re-visited).</p>
+
+<p>This is a toy project so I&rsquo;m going to bail slightly on this one: I&rsquo;m going to assume that invalid values just add an error node with a &lsquo;cleaned&rsquo; version of the input which could then be reviewed by a human at a later date. This has the advantage that it still fulfils all of our properties above.</p>
+
+<p>Fortunately for us, in .NET 4.0 and above there is a function in the <code>System.Xml</code> namespace called `XmlConvert.IsXmlChar' which does roughly what you would expect from the name. Let&rsquo;s add an invalid character filter, and an active pattern to tell us if any characters have been removed:</p>
+
+<p><div><script src='https://gist.github.com/5983701.js?file=Part6.fs'></script>
+<noscript><pre><code>let filterInvalidChars (input : string) =
+    input
+    |&gt; Seq.filter (fun c -&gt; XmlConvert.IsXmlChar c)
+    |&gt; Seq.map string
+    |&gt; String.concat &quot;&quot;    
+
+let (|ValidXml|InvalidXml|) str =
+    let filtered = filterInvalidChars str
+    if String.length filtered = String.length str then
+        ValidXml str
+    else
+        InvalidXml filtered
+</code></pre></noscript></div>
+</p>
+
+<p>Now we can amend <code>AddEnhancement</code> to add enhancement nodes for valid XML text or an error node for sanitized invalid XML text:</p>
+
+<p><div><script src='https://gist.github.com/5983701.js?file=Part7.fs'></script>
+<noscript><pre><code>let AddEnhancement (xDoc : XDocument) (input : string) =
+    match input with
+    | ValidXml text -&gt;
+        if xDoc.Root.Elements(XName.Get &quot;Enhancement&quot;) |&gt; Seq.exists(fun enhance -&gt; enhance.Value = text) then
+            None
+        else
+            Some &lt;| XElement(XName.Get &quot;Enhancement&quot;, text)
+    | InvalidXml text -&gt;
+        if xDoc.Root.Elements(XName.Get &quot;Error&quot;) |&gt; Seq.exists(fun error -&gt; error.Value = text) then
+            None
+        else
+            Some &lt;| XElement(XName.Get &quot;Error&quot;, text)</code></pre></noscript></div>
+</p>
+
+<p>And when we run FsCheck again:</p>
+
+<p><img src="/images/FsCheck2.png" alt="Hurrah!" /></p>
+
+<p>Excellent stuff.</p>
+
+<p>As a bonus extra, I&rsquo;ve included below a somewhat expanded version of the test code. Remember I said that FsCheck already knows how to generate strings? Unfortunately it doesn&rsquo;t know how to generate XML out of the box, but I was pleasantly surprised how quick and easy it was to write a naive XML generator. It generates <a href="https://gist.github.com/mavnn/5976004#file-example-xml">XML like this</a>. Also, check out the <code>CheckAll</code> function used at the end which allows you to build and run &lsquo;property classes&rsquo; to group families of properties together.</p>
+
+<p>And, of course, per the specification, it checks that the 3rd property above holds true (that adding enhancements never reduces the size of the document).</p>
+
+<p><div><script src='https://gist.github.com/5983701.js?file=Part8.fs'></script>
+<noscript><pre><code>module FsCheck.Examples.Tests
+
+open FsCheck
+open DevEd.FsCheck
+open System.Xml.Linq
+
+let baseDocText = &quot;&quot;&quot;&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;root /&gt;
+&quot;&quot;&quot;
+
+type XmlTree = 
+    | NodeName of string
+    | Container of string * List&lt;XmlTree&gt;
+
+let nodeNames = 
+    [&quot;myNode&quot;;
+     &quot;myOtherNode&quot;;
+     &quot;someDifferentNode&quot;]
+
+let tree = 
+    let rec tree' s = 
+        match s with
+        | 0 -&gt; Gen.map NodeName (Gen.elements nodeNames)
+        | n when n &gt; 0 -&gt; 
+            let subtrees = 
+                Gen.sized &lt;| fun s -&gt; 
+                    Gen.resize (s
+                                |&gt; float
+                                |&gt; sqrt
+                                |&gt; int) (Gen.listOf(tree'(n / 2)))
+            Gen.oneof 
+                [Gen.map NodeName (Gen.elements nodeNames);
+                 
+                 Gen.map2 (fun name contents -&gt; Container(name, contents)) 
+                     (Gen.elements nodeNames) subtrees]
+        | _ -&gt; invalidArg &quot;s&quot; &quot;Size most be positive.&quot;
+    Gen.sized tree'
+
+let treeToXDoc xmlTree = 
+    let rec inner currentNode children = 
+        let childMatch child = 
+            match child with
+            | NodeName name -&gt; XElement(XName.Get name)
+            | Container(name, contents) -&gt; 
+                let element = XElement(XName.Get name)
+                inner element contents
+        currentNode.Add(List.map childMatch children |&gt; List.toArray)
+        currentNode
+    match xmlTree with
+    | NodeName name -&gt; XDocument(XElement(XName.Get name))
+    | Container(name, contents) -&gt; 
+        let doc = XDocument(XElement(XName.Get name))
+        inner doc.Root contents |&gt; ignore
+        doc
+
+type XmlGenerator() = 
+    static member XmlTree() = 
+        { new Arbitrary&lt;XmlTree&gt;() with
+              member x.Generator = tree
+              member x.Shrinker t = 
+                  match t with
+                  | NodeName _ -&gt; Seq.empty
+                  | Container(name, contents) -&gt; 
+                      match contents with
+                      | [] -&gt; seq { yield NodeName name }
+                      | c -&gt; 
+                          seq { 
+                              for n in c -&gt; n } }
+
+type XmlUpdaterProperties() = 
+    static member ``AddEnhancement is idempotent``(data : string) = 
+        ((AddEnhancement &lt;| AddEnhancement (XDocument.Parse baseDocText) data) data)
+            .ToString() = (AddEnhancement (XDocument.Parse baseDocText) data)
+            .ToString()
+    static member ``AddEnhancement is idempotent on different xml structures``(xmlDoc : XmlTree, 
+                                                                           data : string) = 
+        (AddEnhancement (treeToXDoc xmlDoc) data).ToString() = (AddEnhancement (AddEnhancement (treeToXDoc xmlDoc) data) data)
+            .ToString()
+    static member ``AddEnhancement never reduces the number of nodes`` (xmlDoc : XmlTree, data : string) =
+        Seq.length ((treeToXDoc xmlDoc).DescendantNodes()) = Seq.length ((AddEnhancement (treeToXDoc xmlDoc) data).DescendantNodes())
+
+Arb.register&lt;XmlGenerator&gt;() |&gt; ignore
+Check.QuickAll&lt;XmlUpdaterProperties&gt;()
+System.Console.ReadLine() |&gt; ignore</code></pre></noscript></div>
+</p>
+
+<p>Thanks for reading this far. If you want to play yourself, a full copy of the example code is <a href="https://github.com/mavnn/DevEd.FsCheck">on GitHub</a> with an MIT license.</p>
+]]></content>
+  </entry>
+  
+  <entry>
     <title type="html"><![CDATA[Coding Hygiene: Moving from project references to NuGet dependencies]]></title>
     <link href="http://blog.mavnn.co.uk/coding-hygiene-moving-from-project-references-to-nuget-dependencies/"/>
     <updated>2013-03-08T17:08:00+00:00</updated>
     <id>http://blog.mavnn.co.uk/coding-hygiene-moving-from-project-references-to-nuget-dependencies</id>
-    <content type="html"><![CDATA[<p>So, first post with the new blogging engine. Let's see how it goes.</p>
+    <content type="html"><![CDATA[<p>So, first post with the new blogging engine. Let&rsquo;s see how it goes.</p>
 
-<p>Our code base at <a href="http://15below.com">15below</a> started it's life a fair
+<p>Our code base at <a href="http://15below.com">15below</a> started it&rsquo;s life a fair
 while ago, well before any form of .NET package management became
 practical. Because of that, we ended up building a lot of code in
-'lockstep' with project references in code as there was no sensible way
+&lsquo;lockstep&rsquo; with project references in code as there was no sensible way
 of taking versioned binary dependencies.</p>
 
-<p>That's fine and all, but it encourages bad code hygiene: rather than
-having sharply defined contracts between components, if you've got them
+<p>That&rsquo;s fine and all, but it encourages bad code hygiene: rather than
+having sharply defined contracts between components, if you&rsquo;ve got them
 all open in the same solution it becomes far too tempting to just nudge
-changes around as it's convenient at the time. Changes can infect other
+changes around as it&rsquo;s convenient at the time. Changes can infect other
 pieces of code, and the power of automatic refactoring across the entire
 solution becomes intoxicating.</p>
 
@@ -39,15 +297,15 @@ cycle between making a change, and being able to see it rolled out to a
 testing environment.</p>
 
 <p>So as part of the ongoing refactoring that any long lived code base needs to
-keep it maintainable and under control, we've embarked on the process of
+keep it maintainable and under control, we&rsquo;ve embarked on the process of
 splitting our code down into more logically separated repositories that
 reference each other via NuGet. This will require us to start being much
 more disciplined in our <a href="http://semver.org">semantic versioning</a> than we
 have been in the past, but will also allow us to build and deploy
 incrementally and massively reduce our feed back times.</p>
 
-<p>As part of splitting out the first logical division (I'd like to say
-<a href="http://en.wikipedia.org/wiki/Domain-driven_design">domain</a> but we're
+<p>As part of splitting out the first logical division (I&rsquo;d like to say
+<a href="http://en.wikipedia.org/wiki/Domain-driven_design">domain</a> but we&rsquo;re
 not there yet!), I created the new repository and got the included
 assemblies up and building on TeamCity. It was only then (stupidly) that
 I realised that we had several hundred project references to these
@@ -62,166 +320,12 @@ packages.config file with the project that includes the new dependency.</p>
 
 <p>It should be noted that this script has only seen minimal testing, was
 coded up for one time use and does not come with a warranty of any kind!
-Use at your own risk, and once you understand what it's doing. But for
+Use at your own risk, and once you understand what it&rsquo;s doing. But for
 all that, I hope you find it useful.</p>
 
-<p>```</p>
-
-<h1>r "System.Xml.Linq"</h1>
-
-<h1>r "tools\FAKE\FakeLib.dll"</h1>
-
-<p>open System.IO
-open System.Xml
-open System.Xml.Linq
-open System.Xml.XPath
-open Fake</p>
-
-<p>// You'll want to replace these values...
-let nugetId = "my.package.id"
-let refName = "my.ref.name"
-let packageNode = XElement.Parse """<package id="my.package.id" version="1.0.0.6" targetFramework="net40" />"""
-let refXml =</p>
-
-<pre><code>"""
-&lt;Reference Include="my.ref.name"&gt;
-  &lt;HintPath&gt;..\..\packages\my.package.id.1.0.0.6\lib\net40\my.ref.name.dll&lt;/HintPath&gt;
-  &lt;Private&gt;True&lt;/Private&gt;
-&lt;/Reference&gt;
-"""
-</code></pre>
-
-<p>let hintPathFromRoot =
-@"packages\my.package.id.1.0.0.6\lib\net40\my.ref.name.dll"
-let sourceRoot = "C:\WhereIKeepMyRepo"</p>
-
-<p>// You should be able to leave the rest alone
-let ns = "http://schemas.microsoft.com/developer/msbuild/2003"
-let nsm = new XmlNamespaceManager(new NameTable())
-nsm.AddNamespace("ns", ns)
-let nugetPath = sourceRoot @@ "tools" @@ "NuGet" @@ "NuGet.exe"</p>
-
-<p>let HasProjectReference (projDoc : XDocument) refName =</p>
-
-<pre><code>projDoc.Root.XPathSelectElements("//ns:ProjectReference[ns:Name='" + refName + "']", nsm)
-|&gt; Seq.length
-|&gt; (&lt;) 0
-</code></pre>
-
-<p>let GetProjectReference (projDoc : XDocument) refName =</p>
-
-<pre><code>projDoc.Root.XPathSelectElement("//ns:ProjectReference[ns:Name='" + refName + "']", nsm)
-</code></pre>
-
-<p>let DeleteProjectReference refName (projFile : string) =</p>
-
-<pre><code>let projDoc = XDocument.Load(projFile)
-if HasProjectReference projDoc refName then
-    let ref = GetProjectReference projDoc refName
-    ref.Remove()
-    projDoc.Save(projFile)
-</code></pre>
-
-<p>let HasReference (projDoc : XDocument) refName =</p>
-
-<pre><code>projDoc.Root.XPathSelectElements("//ns:Reference[@Include='" + refName + "']", nsm)
-|&gt; Seq.append &lt;| projDoc.Root.XPathSelectElements("//ns:Reference[@Include[starts-with(., '" + refName + ",')]]", nsm)
-|&gt; Seq.tryPick (fun e -&gt; Some e)
-</code></pre>
-
-<p>let FirstReference (projDoc : XDocument) =</p>
-
-<pre><code>projDoc.Root.XPathSelectElements("//ns:Reference", nsm)
-|&gt; Seq.head
-</code></pre>
-
-<p>let GetHintPath hintPathFromRoot root projFile =</p>
-
-<pre><code>let rootDir = DirectoryInfo(root)
-let projDir = DirectoryInfo(Path.GetDirectoryName(projFile))
-let rec dirDiff (rootDir : DirectoryInfo) (currentDir : DirectoryInfo) levels =
-    if rootDir.FullName = currentDir.FullName then
-        levels
-    else
-        dirDiff rootDir (currentDir.Parent) (levels + 1)
-hintPathFromRoot::[for _ in 1..(dirDiff rootDir projDir 0) -&gt; ".."]
-|&gt; List.rev
-|&gt; List.fold (@@) "."
-</code></pre>
-
-<p>let UpdateHintPath projFile =</p>
-
-<pre><code>let ref = XElement.Parse(refXml)
-let xs = XNamespace.Get(ns)
-let el = ref.XPathSelectElement("//HintPath")
-el.SetValue (GetHintPath hintPathFromRoot sourceRoot projFile)
-for node in ref.DescendantsAndSelf() do
-    node.Name &lt;- xs + node.Name.LocalName
-ref
-</code></pre>
-
-<p>let EnsureReference refName (projFile : string) =</p>
-
-<pre><code>let doc = XDocument.Load(projFile)
-match HasReference doc refName with
-| Some el -&gt; el.Remove()
-| None -&gt; ()
-let el = FirstReference doc
-el.AddBeforeSelf(UpdateHintPath projFile)
-doc.Save(projFile)
-</code></pre>
-
-<p>type PackageFile =</p>
-
-<pre><code>| Exists of string
-| Missing of string
-</code></pre>
-
-<p>let GetPackagesDotConfig projFile =</p>
-
-<pre><code>let dir = Path.GetDirectoryName(projFile)
-let path = dir @@ "packages.config"
-if File.Exists(path) then
-    Exists path
-else
-    Missing path
-</code></pre>
-
-<p>let HasPackageReference (doc : XDocument) nugetId =</p>
-
-<pre><code>doc.XPathSelectElements("//package[@id = '" + nugetId + "']")
-|&gt; Seq.length
-|&gt; (&lt;) 0
-</code></pre>
-
-<p>let EnsurePackagesDotConfigHasPackage nugetId projFile =</p>
-
-<pre><code>let doc, path =
-    match GetPackagesDotConfig projFile with
-    | Missing path -&gt;
-        XDocument.Parse("&lt;packages /&gt;"), path
-    | Exists path -&gt;
-        XDocument.Load(path), path
-if not &lt;| HasPackageReference doc nugetId then
-    doc.Root.XPathSelectElement("/packages").Add(packageNode)
-    doc.Save path
-</code></pre>
-
-<p>let UpdateProj (projFile : string) =</p>
-
-<pre><code>if HasProjectReference (XDocument.Load(projFile)) refName then
-    DeleteProjectReference refName projFile
-    EnsureReference refName projFile
-    EnsurePackagesDotConfigHasPackage nugetId projFile
-</code></pre>
-
-<p>!+ (@"<strong>*.csproj")
-++ (@"</strong>*.fsproj")
-++ (@"***.vbproj")
-|> Scan
-|> Seq.map (fun proj -> printfn "Updating %s" proj; proj)
-|> Seq.iter UpdateProj
-```</p>
+<p><div><script src='https://gist.github.com/5983379.js'></script>
+<noscript><pre><code></code></pre></noscript></div>
+</p>
 ]]></content>
   </entry>
   
@@ -233,8 +337,7 @@ if not &lt;| HasPackageReference doc nugetId then
     <content type="html"><![CDATA[<div>Async.Parallel |&gt; Async.RunSynchronously is great for running a load of stuff in parallel in F#, as long as you don&#39;t mind them all running at the same time.</div>
 
 
-<p /><div>Often, though, you want to map across a sequence and run functions on the elements in parallel, but with a limit to how many are being processed concurrently. Whether you&#39;re doing something CPU heavy and there&#39;s no point running more than the number of processors on the box, or whether you know that you&#39;ll swamp a remote server if you just dump all of your connections on it at once, this issue comes up surprisingly often.</div> <p /><div>As a first stab, you might be tempted to do something like this (if you think like I do):</div><p /><div><script src="https://gist.github.com/4961072.js"></script><br /> </div><p /><div>In a word: don&#39;t. The contention in the Semaphore make this enormously inefficient with even a few hundred tasks.</div><p /><div>In the end, the simplest  implementation I could come up with that didn&#39;t involve dragging in external dependencies was the following:</div> <p /><div><script src="https://gist.github.com/4961056.js"></script><br /></div><p /><div>If anyone has a simpler implementation, leave a comment and let me know!</div> 
-
+<p><p /><div>Often, though, you want to map across a sequence and run functions on the elements in parallel, but with a limit to how many are being processed concurrently. Whether you&#39;re doing something CPU heavy and there&#39;s no point running more than the number of processors on the box, or whether you know that you&#39;ll swamp a remote server if you just dump all of your connections on it at once, this issue comes up surprisingly often.</div> <p /><div>As a first stab, you might be tempted to do something like this (if you think like I do):</div><p /><div><script src="https://gist.github.com/4961072.js"></script><br /> </div><p /><div>In a word: don&#39;t. The contention in the Semaphore make this enormously inefficient with even a few hundred tasks.</div><p /><div>In the end, the simplest  implementation I could come up with that didn&#39;t involve dragging in external dependencies was the following:</div> <p /><div><script src="https://gist.github.com/4961056.js"></script><br /></div><p /><div>If anyone has a simpler implementation, leave a comment and let me know!</div></p>
 ]]></content>
   </entry>
   
@@ -243,9 +346,8 @@ if not &lt;| HasPackageReference doc nugetId then
     <link href="http://blog.mavnn.co.uk/in-which-our-intrepid-author-de-sugars-a-mona/index.html"/>
     <updated>2013-01-16T00:00:00+00:00</updated>
     <id>http://blog.mavnn.co.uk/in-which-our-intrepid-author-de-sugars-a-mona/in-which-our-intrepid-author-de-sugars-a-mona</id>
-    <content type="html"><![CDATA[<p>In my previous post ( <a href="http://blog.mavnn.co.uk/playing-with-error-handling-strategies">http://blog.mavnn.co.uk/playing-with-error-handling-strategies</a> ), Johann Deneux asked me whether my implementation of TryFinally actually worked. <p /> TD;LR: It works. But thank you Johann for making me check!</p>
-<p>Editted TD;LR: It's broken, but not for the reason I thought. See the comments for details, and corrected code here&nbsp;<a href="http://blog.mavnn.co.uk/corrected-error-handling-computational-expres">http://blog.mavnn.co.uk/corrected-error-handling-computational-expres</a><p /> This gave me a bit of a pause, as it's actually an implementation I took from another source. One I trust, but it was still embarrassing to realise I couldn't answer this question with full confidence as I didn't quite understand the code myself. <p /> In the end (especially given I'm planning to actually use this code in production at some point), I decided to go the whole hog and de-sugar a couple of simple versions of the computational expression. <p /> So, first, the audit monad as used in my example code from the last post with just a simple let binding: <p /> <script src="https://gist.github.com/4550342.js"></script><p /> This raised my confidence slightly - the code I'd written did what I expected. But, what happened when I tried to bind a disposable resource using use! rather than let!? Time for the moment of truth: <p /> <script src="https://gist.github.com/4550496.js"></script><p /> So there you have it. The code does actually behave as expected, protecting the use of the disposable resource and ensuring it's disposal. And I can breath easy that my code is doing what I thought it should be. Hopefully this will also serve as a useful example for anyone else starting out on the happy road of using computational expressions.</p>
-
+    <content type="html"><![CDATA[<p><p>In my previous post ( <a href="http://blog.mavnn.co.uk/playing-with-error-handling-strategies"><a href="http://blog.mavnn.co.uk/playing-with-error-handling-strategies">http://blog.mavnn.co.uk/playing-with-error-handling-strategies</a></a> ), Johann Deneux asked me whether my implementation of TryFinally actually worked. <p /> TD;LR: It works. But thank you Johann for making me check!</p>
+<p>Editted TD;LR: It&rsquo;s broken, but not for the reason I thought. See the comments for details, and corrected code here&nbsp;<a href="http://blog.mavnn.co.uk/corrected-error-handling-computational-expres"><a href="http://blog.mavnn.co.uk/corrected-error-handling-computational-expres">http://blog.mavnn.co.uk/corrected-error-handling-computational-expres</a></a><p /> This gave me a bit of a pause, as it&rsquo;s actually an implementation I took from another source. One I trust, but it was still embarrassing to realise I couldn&rsquo;t answer this question with full confidence as I didn&rsquo;t quite understand the code myself. <p /> In the end (especially given I&rsquo;m planning to actually use this code in production at some point), I decided to go the whole hog and de-sugar a couple of simple versions of the computational expression. <p /> So, first, the audit monad as used in my example code from the last post with just a simple let binding: <p /> <script src="https://gist.github.com/4550342.js"></script><p /> This raised my confidence slightly &ndash; the code I&rsquo;d written did what I expected. But, what happened when I tried to bind a disposable resource using use! rather than let!? Time for the moment of truth: <p /> <script src="https://gist.github.com/4550496.js"></script><p /> So there you have it. The code does actually behave as expected, protecting the use of the disposable resource and ensuring it&rsquo;s disposal. And I can breath easy that my code is doing what I thought it should be. Hopefully this will also serve as a useful example for anyone else starting out on the happy road of using computational expressions.</p></p>
 ]]></content>
   </entry>
   
@@ -254,10 +356,9 @@ if not &lt;| HasPackageReference doc nugetId then
     <link href="http://blog.mavnn.co.uk/playing-with-error-handling-strategies/index.html"/>
     <updated>2013-01-14T00:00:00+00:00</updated>
     <id>http://blog.mavnn.co.uk/playing-with-error-handling-strategies/playing-with-error-handling-strategies</id>
-    <content type="html"><![CDATA[<p>Taking a break from Fake for a moment (I'll get back to it, I promise!) <p /> Note: this post assumes a basic understanding of computation expressions in F#; if you're looking for a primer on them,&nbsp;<a href="http://en.wikibooks.org/wiki/F_Sharp_Programming/Computation_Expressions">http://en.wikibooks.org/wiki/F_Sharp_Programming/Computation_Expressions</a> <br />is a good place to start.</p>
-<p>Note 2: the code in this post is actually broken if you use a use! or try finally block within your audit block. Check out&nbsp;<a href="http://blog.mavnn.co.uk/corrected-error-handling-computational-expres" style="font-size: 13px;">http://blog.mavnn.co.uk/corrected-error-handling-computational-expres</a>&nbsp;for the corrected code.</p>
-<p><br />I had a series of small services I needed to add error handling to today to polish them up from nice clean prototype to production ready status. <p /> Thinking about the joys of re-implementing the same error handling strategy in each of them, it occurred to me that this was exactly the kind of thing that computational expressions were built for. But my requirements went a bit further than just log the error and continue: each of these services contain critical locations where if a error occurred, we didn't just want it logged locally, but we wanted (in some cases) an alert sent to a remote auditing* server. <p /> Of course, mocking out the auditing service for testing is a bit of a pain in the backside, and how auditing is achieved shouldn't really be the responsibility of these services anyway. <p /> So, I decided to experiment with a builder interface. <p /> Meet the IErrorHandlerBuilder interface: <p /> <script src="https://gist.github.com/4533440.js"></script><p /> Should look awfully familiar if you've recently checked out the msdn page on computational expressions: <a href="http://msdn.microsoft.com/en-us/library/dd233182.aspx">http://msdn.microsoft.com/en-us/library/dd233182.aspx</a> (except, you know, mine has the right signatures; that might want to be fixed at some point). <p /> How do we use it? <p /> Well, first we need an implementation. In fact, let's have two. Our first candidate, the AuditBuilder, takes an unhealthy number of dependencies that (in turn) take an unhealthy number of dependencies that you almost certainly want to supply from an IoC container. <p /> <script src="https://gist.github.com/4533554.js"></script><p /> What does it do? Well, basically if any bound function throws it logs the error via log4net and our in house audit server and then returns None. Otherwise it returns Some result from the computation. Obviously, if a computation further up the chain has already thrown we already have a None and we just pass it along. TryFinally and Using are implemented to make sure that you can still use disposable resources as you would expect within the expression. <p /> Our second candidate is the TestErrorBuilder: <p /> <script src="https://gist.github.com/4533560.js"></script><p /> This is almost identical to the implementation above, except that it takes no dependencies at all and if there is an error it just logs to the console via printfn. Very useful for debugging - you might even want a unit test version that logs nothing, depending on your unit tests. <p /> And now, our preparation is complete. How do we use our new toy, you ask? <p /> Something like this: <p /> <script src="https://gist.github.com/4533619.js"></script><p /> This little service persists interesting email messages to a document store, and sends the contents back to you when you request them. If an email is not persisted, or a request for an email fails, we want a remote alert to be triggered in production. Both the persist and content requests are handled as RabbitMq messages (using the EasyNetQ client). <p /> So in the message handler callbacks, declare an audit { } block and let! bind our message. Then we simply pass that bound message on to a handling function or object and return the resulting value, safe in the knowledge that our hosting program will have supplied an appropriate IErrorHandlerBuilder for our current purposes. The beauty of all of this is that the service object does not need to know what the error handling strategy is, and the objects/functions doing the work do not need to worry about error handling at all. <p /> This technique is especially useful in situations where you are making use of asynchronous programming techniques such as agents and you really don't want a single failure taking out your whole agent or async expression. If for some reason it's important to your code what the error is, as well as knowing it's been handled, it would be easy to modify this technique to return a Choice or custom MaybeError discriminated union that you could pull the exception out of later. <p /> It would also be helpful for managing things like SQL connections with multiple retry attempts: for testing you may not want that kind of complexity and you could pass in a simpler strategy builder, while testing your robust, multiple retry computational builder for use in actual deployed environments (test or production). <p /> And, of course, just knowing that builder interfaces are possible raises up a whole new world of possibilities. <p /> As always, I tend to write about stuff that is fresh and new to me (i.e. not fully considered and maybe fatally flawed). Comments and suggestions welcome. <p /> * To avoid any confusion, I should note that the word audit is used loosely in this blog post, with a meaning more related to a namespace within our code than the normal meaning of the word 'audit'.</p>
-
+    <content type="html"><![CDATA[<p><p>Taking a break from Fake for a moment (I&rsquo;ll get back to it, I promise!) <p /> Note: this post assumes a basic understanding of computation expressions in F#; if you&rsquo;re looking for a primer on them,&nbsp;<a href="http://en.wikibooks.org/wiki/F_Sharp_Programming/Computation_Expressions"><a href="http://en.wikibooks.org/wiki/F_Sharp_Programming/Computation_Expressions">http://en.wikibooks.org/wiki/F_Sharp_Programming/Computation_Expressions</a></a> <br />is a good place to start.</p>
+<p>Note 2: the code in this post is actually broken if you use a use! or try finally block within your audit block. Check out&nbsp;<a href="http://blog.mavnn.co.uk/corrected-error-handling-computational-expres" style="font-size: 13px;"><a href="http://blog.mavnn.co.uk/corrected-error-handling-computational-expres">http://blog.mavnn.co.uk/corrected-error-handling-computational-expres</a></a>&nbsp;for the corrected code.</p>
+<p><br />I had a series of small services I needed to add error handling to today to polish them up from nice clean prototype to production ready status. <p /> Thinking about the joys of re-implementing the same error handling strategy in each of them, it occurred to me that this was exactly the kind of thing that computational expressions were built for. But my requirements went a bit further than just log the error and continue: each of these services contain critical locations where if a error occurred, we didn&rsquo;t just want it logged locally, but we wanted (in some cases) an alert sent to a remote auditing* server. <p /> Of course, mocking out the auditing service for testing is a bit of a pain in the backside, and how auditing is achieved shouldn&rsquo;t really be the responsibility of these services anyway. <p /> So, I decided to experiment with a builder interface. <p /> Meet the IErrorHandlerBuilder interface: <p /> <script src="https://gist.github.com/4533440.js"></script><p /> Should look awfully familiar if you&rsquo;ve recently checked out the msdn page on computational expressions: <a href="http://msdn.microsoft.com/en-us/library/dd233182.aspx"><a href="http://msdn.microsoft.com/en-us/library/dd233182.aspx">http://msdn.microsoft.com/en-us/library/dd233182.aspx</a></a> (except, you know, mine has the right signatures; that might want to be fixed at some point). <p /> How do we use it? <p /> Well, first we need an implementation. In fact, let&rsquo;s have two. Our first candidate, the AuditBuilder, takes an unhealthy number of dependencies that (in turn) take an unhealthy number of dependencies that you almost certainly want to supply from an IoC container. <p /> <script src="https://gist.github.com/4533554.js"></script><p /> What does it do? Well, basically if any bound function throws it logs the error via log4net and our in house audit server and then returns None. Otherwise it returns Some result from the computation. Obviously, if a computation further up the chain has already thrown we already have a None and we just pass it along. TryFinally and Using are implemented to make sure that you can still use disposable resources as you would expect within the expression. <p /> Our second candidate is the TestErrorBuilder: <p /> <script src="https://gist.github.com/4533560.js"></script><p /> This is almost identical to the implementation above, except that it takes no dependencies at all and if there is an error it just logs to the console via printfn. Very useful for debugging &ndash; you might even want a unit test version that logs nothing, depending on your unit tests. <p /> And now, our preparation is complete. How do we use our new toy, you ask? <p /> Something like this: <p /> <script src="https://gist.github.com/4533619.js"></script><p /> This little service persists interesting email messages to a document store, and sends the contents back to you when you request them. If an email is not persisted, or a request for an email fails, we want a remote alert to be triggered in production. Both the persist and content requests are handled as RabbitMq messages (using the EasyNetQ client). <p /> So in the message handler callbacks, declare an audit { } block and let! bind our message. Then we simply pass that bound message on to a handling function or object and return the resulting value, safe in the knowledge that our hosting program will have supplied an appropriate IErrorHandlerBuilder for our current purposes. The beauty of all of this is that the service object does not need to know what the error handling strategy is, and the objects/functions doing the work do not need to worry about error handling at all. <p /> This technique is especially useful in situations where you are making use of asynchronous programming techniques such as agents and you really don&rsquo;t want a single failure taking out your whole agent or async expression. If for some reason it&rsquo;s important to your code what the error is, as well as knowing it&rsquo;s been handled, it would be easy to modify this technique to return a Choice or custom MaybeError discriminated union that you could pull the exception out of later. <p /> It would also be helpful for managing things like SQL connections with multiple retry attempts: for testing you may not want that kind of complexity and you could pass in a simpler strategy builder, while testing your robust, multiple retry computational builder for use in actual deployed environments (test or production). <p /> And, of course, just knowing that builder interfaces are possible raises up a whole new world of possibilities. <p /> As always, I tend to write about stuff that is fresh and new to me (i.e. not fully considered and maybe fatally flawed). Comments and suggestions welcome. <p /> * To avoid any confusion, I should note that the word audit is used loosely in this blog post, with a meaning more related to a namespace within our code than the normal meaning of the word &lsquo;audit&rsquo;.</p></p>
 ]]></content>
   </entry>
   

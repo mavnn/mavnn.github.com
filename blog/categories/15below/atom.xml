@@ -4,7 +4,7 @@
   <title><![CDATA[Category: 15below | Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/blog/categories/15below/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2013-07-09T17:17:17+01:00</updated>
+  <updated>2013-07-12T13:54:18+01:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -18,18 +18,18 @@
     <link href="http://blog.mavnn.co.uk/coding-hygiene-moving-from-project-references-to-nuget-dependencies/"/>
     <updated>2013-03-08T17:08:00+00:00</updated>
     <id>http://blog.mavnn.co.uk/coding-hygiene-moving-from-project-references-to-nuget-dependencies</id>
-    <content type="html"><![CDATA[<p>So, first post with the new blogging engine. Let's see how it goes.</p>
+    <content type="html"><![CDATA[<p>So, first post with the new blogging engine. Let&rsquo;s see how it goes.</p>
 
-<p>Our code base at <a href="http://15below.com">15below</a> started it's life a fair
+<p>Our code base at <a href="http://15below.com">15below</a> started it&rsquo;s life a fair
 while ago, well before any form of .NET package management became
 practical. Because of that, we ended up building a lot of code in
-'lockstep' with project references in code as there was no sensible way
+&lsquo;lockstep&rsquo; with project references in code as there was no sensible way
 of taking versioned binary dependencies.</p>
 
-<p>That's fine and all, but it encourages bad code hygiene: rather than
-having sharply defined contracts between components, if you've got them
+<p>That&rsquo;s fine and all, but it encourages bad code hygiene: rather than
+having sharply defined contracts between components, if you&rsquo;ve got them
 all open in the same solution it becomes far too tempting to just nudge
-changes around as it's convenient at the time. Changes can infect other
+changes around as it&rsquo;s convenient at the time. Changes can infect other
 pieces of code, and the power of automatic refactoring across the entire
 solution becomes intoxicating.</p>
 
@@ -39,15 +39,15 @@ cycle between making a change, and being able to see it rolled out to a
 testing environment.</p>
 
 <p>So as part of the ongoing refactoring that any long lived code base needs to
-keep it maintainable and under control, we've embarked on the process of
+keep it maintainable and under control, we&rsquo;ve embarked on the process of
 splitting our code down into more logically separated repositories that
 reference each other via NuGet. This will require us to start being much
 more disciplined in our <a href="http://semver.org">semantic versioning</a> than we
 have been in the past, but will also allow us to build and deploy
 incrementally and massively reduce our feed back times.</p>
 
-<p>As part of splitting out the first logical division (I'd like to say
-<a href="http://en.wikipedia.org/wiki/Domain-driven_design">domain</a> but we're
+<p>As part of splitting out the first logical division (I&rsquo;d like to say
+<a href="http://en.wikipedia.org/wiki/Domain-driven_design">domain</a> but we&rsquo;re
 not there yet!), I created the new repository and got the included
 assemblies up and building on TeamCity. It was only then (stupidly) that
 I realised that we had several hundred project references to these
@@ -62,166 +62,12 @@ packages.config file with the project that includes the new dependency.</p>
 
 <p>It should be noted that this script has only seen minimal testing, was
 coded up for one time use and does not come with a warranty of any kind!
-Use at your own risk, and once you understand what it's doing. But for
+Use at your own risk, and once you understand what it&rsquo;s doing. But for
 all that, I hope you find it useful.</p>
 
-<p>```</p>
-
-<h1>r "System.Xml.Linq"</h1>
-
-<h1>r "tools\FAKE\FakeLib.dll"</h1>
-
-<p>open System.IO
-open System.Xml
-open System.Xml.Linq
-open System.Xml.XPath
-open Fake</p>
-
-<p>// You'll want to replace these values...
-let nugetId = "my.package.id"
-let refName = "my.ref.name"
-let packageNode = XElement.Parse """<package id="my.package.id" version="1.0.0.6" targetFramework="net40" />"""
-let refXml =</p>
-
-<pre><code>"""
-&lt;Reference Include="my.ref.name"&gt;
-  &lt;HintPath&gt;..\..\packages\my.package.id.1.0.0.6\lib\net40\my.ref.name.dll&lt;/HintPath&gt;
-  &lt;Private&gt;True&lt;/Private&gt;
-&lt;/Reference&gt;
-"""
-</code></pre>
-
-<p>let hintPathFromRoot =
-@"packages\my.package.id.1.0.0.6\lib\net40\my.ref.name.dll"
-let sourceRoot = "C:\WhereIKeepMyRepo"</p>
-
-<p>// You should be able to leave the rest alone
-let ns = "http://schemas.microsoft.com/developer/msbuild/2003"
-let nsm = new XmlNamespaceManager(new NameTable())
-nsm.AddNamespace("ns", ns)
-let nugetPath = sourceRoot @@ "tools" @@ "NuGet" @@ "NuGet.exe"</p>
-
-<p>let HasProjectReference (projDoc : XDocument) refName =</p>
-
-<pre><code>projDoc.Root.XPathSelectElements("//ns:ProjectReference[ns:Name='" + refName + "']", nsm)
-|&gt; Seq.length
-|&gt; (&lt;) 0
-</code></pre>
-
-<p>let GetProjectReference (projDoc : XDocument) refName =</p>
-
-<pre><code>projDoc.Root.XPathSelectElement("//ns:ProjectReference[ns:Name='" + refName + "']", nsm)
-</code></pre>
-
-<p>let DeleteProjectReference refName (projFile : string) =</p>
-
-<pre><code>let projDoc = XDocument.Load(projFile)
-if HasProjectReference projDoc refName then
-    let ref = GetProjectReference projDoc refName
-    ref.Remove()
-    projDoc.Save(projFile)
-</code></pre>
-
-<p>let HasReference (projDoc : XDocument) refName =</p>
-
-<pre><code>projDoc.Root.XPathSelectElements("//ns:Reference[@Include='" + refName + "']", nsm)
-|&gt; Seq.append &lt;| projDoc.Root.XPathSelectElements("//ns:Reference[@Include[starts-with(., '" + refName + ",')]]", nsm)
-|&gt; Seq.tryPick (fun e -&gt; Some e)
-</code></pre>
-
-<p>let FirstReference (projDoc : XDocument) =</p>
-
-<pre><code>projDoc.Root.XPathSelectElements("//ns:Reference", nsm)
-|&gt; Seq.head
-</code></pre>
-
-<p>let GetHintPath hintPathFromRoot root projFile =</p>
-
-<pre><code>let rootDir = DirectoryInfo(root)
-let projDir = DirectoryInfo(Path.GetDirectoryName(projFile))
-let rec dirDiff (rootDir : DirectoryInfo) (currentDir : DirectoryInfo) levels =
-    if rootDir.FullName = currentDir.FullName then
-        levels
-    else
-        dirDiff rootDir (currentDir.Parent) (levels + 1)
-hintPathFromRoot::[for _ in 1..(dirDiff rootDir projDir 0) -&gt; ".."]
-|&gt; List.rev
-|&gt; List.fold (@@) "."
-</code></pre>
-
-<p>let UpdateHintPath projFile =</p>
-
-<pre><code>let ref = XElement.Parse(refXml)
-let xs = XNamespace.Get(ns)
-let el = ref.XPathSelectElement("//HintPath")
-el.SetValue (GetHintPath hintPathFromRoot sourceRoot projFile)
-for node in ref.DescendantsAndSelf() do
-    node.Name &lt;- xs + node.Name.LocalName
-ref
-</code></pre>
-
-<p>let EnsureReference refName (projFile : string) =</p>
-
-<pre><code>let doc = XDocument.Load(projFile)
-match HasReference doc refName with
-| Some el -&gt; el.Remove()
-| None -&gt; ()
-let el = FirstReference doc
-el.AddBeforeSelf(UpdateHintPath projFile)
-doc.Save(projFile)
-</code></pre>
-
-<p>type PackageFile =</p>
-
-<pre><code>| Exists of string
-| Missing of string
-</code></pre>
-
-<p>let GetPackagesDotConfig projFile =</p>
-
-<pre><code>let dir = Path.GetDirectoryName(projFile)
-let path = dir @@ "packages.config"
-if File.Exists(path) then
-    Exists path
-else
-    Missing path
-</code></pre>
-
-<p>let HasPackageReference (doc : XDocument) nugetId =</p>
-
-<pre><code>doc.XPathSelectElements("//package[@id = '" + nugetId + "']")
-|&gt; Seq.length
-|&gt; (&lt;) 0
-</code></pre>
-
-<p>let EnsurePackagesDotConfigHasPackage nugetId projFile =</p>
-
-<pre><code>let doc, path =
-    match GetPackagesDotConfig projFile with
-    | Missing path -&gt;
-        XDocument.Parse("&lt;packages /&gt;"), path
-    | Exists path -&gt;
-        XDocument.Load(path), path
-if not &lt;| HasPackageReference doc nugetId then
-    doc.Root.XPathSelectElement("/packages").Add(packageNode)
-    doc.Save path
-</code></pre>
-
-<p>let UpdateProj (projFile : string) =</p>
-
-<pre><code>if HasProjectReference (XDocument.Load(projFile)) refName then
-    DeleteProjectReference refName projFile
-    EnsureReference refName projFile
-    EnsurePackagesDotConfigHasPackage nugetId projFile
-</code></pre>
-
-<p>!+ (@"<strong>*.csproj")
-++ (@"</strong>*.fsproj")
-++ (@"***.vbproj")
-|> Scan
-|> Seq.map (fun proj -> printfn "Updating %s" proj; proj)
-|> Seq.iter UpdateProj
-```</p>
+<p><div><script src='https://gist.github.com/5983379.js'></script>
+<noscript><pre><code></code></pre></noscript></div>
+</p>
 ]]></content>
   </entry>
   
@@ -233,8 +79,7 @@ if not &lt;| HasPackageReference doc nugetId then
     <content type="html"><![CDATA[<div>Async.Parallel |&gt; Async.RunSynchronously is great for running a load of stuff in parallel in F#, as long as you don&#39;t mind them all running at the same time.</div>
 
 
-<p /><div>Often, though, you want to map across a sequence and run functions on the elements in parallel, but with a limit to how many are being processed concurrently. Whether you&#39;re doing something CPU heavy and there&#39;s no point running more than the number of processors on the box, or whether you know that you&#39;ll swamp a remote server if you just dump all of your connections on it at once, this issue comes up surprisingly often.</div> <p /><div>As a first stab, you might be tempted to do something like this (if you think like I do):</div><p /><div><script src="https://gist.github.com/4961072.js"></script><br /> </div><p /><div>In a word: don&#39;t. The contention in the Semaphore make this enormously inefficient with even a few hundred tasks.</div><p /><div>In the end, the simplest  implementation I could come up with that didn&#39;t involve dragging in external dependencies was the following:</div> <p /><div><script src="https://gist.github.com/4961056.js"></script><br /></div><p /><div>If anyone has a simpler implementation, leave a comment and let me know!</div> 
-
+<p><p /><div>Often, though, you want to map across a sequence and run functions on the elements in parallel, but with a limit to how many are being processed concurrently. Whether you&#39;re doing something CPU heavy and there&#39;s no point running more than the number of processors on the box, or whether you know that you&#39;ll swamp a remote server if you just dump all of your connections on it at once, this issue comes up surprisingly often.</div> <p /><div>As a first stab, you might be tempted to do something like this (if you think like I do):</div><p /><div><script src="https://gist.github.com/4961072.js"></script><br /> </div><p /><div>In a word: don&#39;t. The contention in the Semaphore make this enormously inefficient with even a few hundred tasks.</div><p /><div>In the end, the simplest  implementation I could come up with that didn&#39;t involve dragging in external dependencies was the following:</div> <p /><div><script src="https://gist.github.com/4961056.js"></script><br /></div><p /><div>If anyone has a simpler implementation, leave a comment and let me know!</div></p>
 ]]></content>
   </entry>
   
@@ -310,25 +155,24 @@ if not &lt;| HasPackageReference doc nugetId then
     <link href="http://blog.mavnn.co.uk/a-short-interlude-into-adaptive-polling-tag-f/index.html"/>
     <updated>2013-01-22T00:00:00+00:00</updated>
     <id>http://blog.mavnn.co.uk/a-short-interlude-into-adaptive-polling-tag-f/a-short-interlude-into-adaptive-polling-tag-f</id>
-    <content type="html"><![CDATA[<p><span style="font-family: arial,sans-serif; font-size: 13px;">Your windows service is watching an email inbox.</span><p /> <span style="font-family: arial,sans-serif; font-size: 13px;">How often should it poll?</span><p /><span style="font-family: arial,sans-serif; font-size: 13px;">Once every 5 minutes? Every 10? Then of course you realise that it should be different for every customer... or maybe every mailbox. You need more config!</span></p>
+    <content type="html"><![CDATA[<p><span style="font-family: arial,sans-serif; font-size: 13px;">Your windows service is watching an email inbox.</span><p /> <span style="font-family: arial,sans-serif; font-size: 13px;">How often should it poll?</span><p /><span style="font-family: arial,sans-serif; font-size: 13px;">Once every 5 minutes? Every 10? Then of course you realise that it should be different for every customer&hellip; or maybe every mailbox. You need more config!</span></p>
 
-<p />
-<div>Or not.<p /><span style="font-family: arial,sans-serif; font-size: 13px;">The real answer, of course, is something completely different: it&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">should poll a lot when a lot of emails are arriving, and not very much&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">when they aren't.</span><p /> <span style="font-family: arial,sans-serif; font-size: 13px;">It took a lot longer than it should have done to get my maths brain&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">back on, but with the help of my wife I eventually settled on this&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">code for deciding the intervals between polls:</span><p /> 
+<p><p />
+<div>Or not.<p /><span style="font-family: arial,sans-serif; font-size: 13px;">The real answer, of course, is something completely different: it&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">should poll a lot when a lot of emails are arriving, and not very much&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">when they aren&rsquo;t.</span><p /> <span style="font-family: arial,sans-serif; font-size: 13px;">It took a lot longer than it should have done to get my maths brain&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">back on, but with the help of my wife I eventually settled on this&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">code for deciding the intervals between polls:</span><p />
 <div><script src="https://gist.github.com/4595744.js"></script></div>
 <p />
-<div>The 'i' in this function is the number of times we've polled since the last time a new email was received (if one is received, we reset i to 0).</div>
+<div>The &lsquo;i&rsquo; in this function is the number of times we&rsquo;ve polled since the last time a new email was received (if one is received, we reset i to 0).</div>
 <p />
 <div>If you plot this out on a graph, you get something that looks like this:</div>
 <p />
 <div><img src="http://www.wolframalpha.com/share/img?i=d41d8cd98f00b204e9800998ecf8427ehd954rh40i&amp;f=HBQTQYZYGY4TOM3CGRSGMMBWGAYDCM3DGYZGMOBWGFRDANDCMUZAaaaa" alt="" /></div>
 <p />
-<div>(You can play with the shape of the graph at Wolfram|Alpha if you're feeling really geeky :) -&nbsp;<a href="http://www.wolframalpha.com/share/clip?f=d41d8cd98f00b204e9800998ecf8427ehd954rh40i">http://www.wolframalpha.com/share/clip?f=d41d8cd98f00b204e9800998ecf8427ehd954rh40i</a>&nbsp;).</div>
+<div>(You can play with the shape of the graph at Wolfram|Alpha if you&rsquo;re feeling really geeky :) &ndash;&nbsp;<a href="http://www.wolframalpha.com/share/clip?f=d41d8cd98f00b204e9800998ecf8427ehd954rh40i"><a href="http://www.wolframalpha.com/share/clip?f=d41d8cd98f00b204e9800998ecf8427ehd954rh40i">http://www.wolframalpha.com/share/clip?f=d41d8cd98f00b204e9800998ecf8427ehd954rh40i</a></a>&nbsp;).</div>
 <p />
 <div>This gives us very aggressive polling for the first few minutes after discovering an email, then dropping off rapidly to close to the one every ten minutes mark that I decided was a reasonable background polling rate.</div>
 <p />
-<div>It's not truly adaptive in the machine learning sense, but it gives a very good first cut that is an awful lot better than any fixed value could be.</div>
-</div>
-
+<div>It&rsquo;s not truly adaptive in the machine learning sense, but it gives a very good first cut that is an awful lot better than any fixed value could be.</div>
+</div></p>
 ]]></content>
   </entry>
   

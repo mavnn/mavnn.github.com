@@ -4,7 +4,7 @@
   <title><![CDATA[Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2013-07-09T17:17:17+01:00</updated>
+  <updated>2013-07-12T13:54:18+01:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -14,18 +14,276 @@
 
   
   <entry>
+    <title type="html"><![CDATA[FsCheck - Breaking your code in new and exciting ways]]></title>
+    <link href="http://blog.mavnn.co.uk/fscheck-breaking-your-code-in-new-and-exciting-ways/"/>
+    <updated>2013-07-12T11:55:00+01:00</updated>
+    <id>http://blog.mavnn.co.uk/fscheck-breaking-your-code-in-new-and-exciting-ways</id>
+    <content type="html"><![CDATA[<p><a href="https://github.com/fsharp/FsCheck">FsCheck</a> is a property based testing library for .net. Based on <a href="http://book.realworldhaskell.org/read/testing-and-quality-assurance.html">QuickCheck</a> and <a href="https://github.com/rickynils/scalacheck">scalacheck</a> it can be easily called from any .net language.</p>
+
+<p>But what is property based testing? It&rsquo;s a technique that allows us to define &lsquo;properties&rsquo; for our code, and then let the library try and find input values that break these properties. Let&rsquo;s take an example and see what happens.</p>
+
+<h3>The Brief</h3>
+
+<p>I&rsquo;ve been tasked with writing the backend of a public facing endpoint. Customers can pass user defined input into the endpoint, and we&rsquo;ll add it to their &lsquo;booking&rsquo;. Once they have called the service once with any particular input, we should ignore any further calls with the same value.</p>
+
+<p>Previous architectural decisions mean that we are storing the bookings as XML documents.</p>
+
+<p>(Why yes, I do know this is slightly contrived. Thank you for asking. Hopefully though, you should begin to see similarities to real scenarios you&rsquo;ve coded against.)</p>
+
+<h3>What can we get out of this?</h3>
+
+<p>Well, as well as any normal exploratory unit tests we may decide to write (which I&rsquo;ll ignore for this article to keep things succinct) we can determine a few properties that should always hold true in the brief above:</p>
+
+<ul>
+<li>Repeatedly calling the code with the same input xml document and the same input text should always give us the same result. I.E., the code should be idempotent.</li>
+<li>Our code should never remove nodes from the XML. The result document will always be the same or longer than the original.</li>
+<li>The input is supplied by the customer. It&rsquo;s about as trust worthy as a hungry stoat on speed.</li>
+</ul>
+
+
+<h3>Let&rsquo;s get started</h3>
+
+<p>Let&rsquo;s start off with the core &lsquo;business logic&rsquo; function of this code. We&rsquo;ll ignore for this post how the input gets to the function, and how the document is persisted. It&rsquo;s signature (F# style) will be:</p>
+
+<pre><code>val AddEnhancement :
+  xDoc:System.Xml.Linq.XDocument -&gt; input:string -&gt; System.Xml.Linq.XDocument
+</code></pre>
+
+<p>After referencing <code>System.Xml</code> and <code>System.Xml.Linq</code>, our first, very naive, attempt at the implementation looks like this:</p>
+
+<div><script src='https://gist.github.com/5983701.js?file=Part1.fs'></script>
+<noscript><pre><code>let AddEnhancement (xDoc : XDocument) (input : string) =
+    xDoc.Root.Add(XElement(XName.Get &quot;Enhancement&quot;, input))
+    xDoc</code></pre></noscript></div>
+
+
+<p>We know this isn&rsquo;t right &ndash; it&rsquo;s blatantly not idempotent. So let&rsquo;s try and get our failing test.</p>
+
+<p>Although FsCheck does expose a set of NUnit plugin attributes, for this blog post I&rsquo;m just going to run the tests via a console app. So; add a new F# console app to your solution, add references to <code>System.Xml</code>, <code>System.Xml.Linq</code> and your library project then grab FsCheck (it&rsquo;s on NuGet) and we&rsquo;ll see what we can do.</p>
+
+<p>First, we&rsquo;ll need to add a property that we want to test. A property is simply a function that takes a data type FsCheck knows how to generate, and returns a bool. FsCheck knows how to generate strings, so our idempotence property looks something like this:</p>
+
+<div><script src='https://gist.github.com/5983701.js?file=Part2.fs'></script>
+<noscript><pre><code>open FsCheck
+open DevEd.FsCheck
+open System.Xml.Linq
+
+let baseDoc = &quot;&lt;root /&gt;&quot;
+
+let ``Add enhancement must be idompotent`` input =
+    let xml1 = XDocument.Parse baseDoc
+    let xml2 = XDocument.Parse baseDoc
+    (AddEnhancement xml1 input).ToString() =
+        (AddEnhancement (AddEnhancement xml2 input) input).ToString()</code></pre></noscript></div>
+
+
+<p>Looking good. How do we run it? Just add this to the end of the file:</p>
+
+<div><script src='https://gist.github.com/5983701.js?file=Part3.fs'></script>
+<noscript><pre><code>Check.Quick ``Add enhancement must be idompotent``
+
+System.Console.ReadLine() |&gt; ignore</code></pre></noscript></div>
+
+
+<p>And hey presto:</p>
+
+<p><img src="http://blog.mavnn.co.uk/images/FsCheck1.png" alt="&quot;&quot; broke my code :(" /></p>
+
+<p>Failing test. Interestingly (and if you check the documents, not coincidently), FsCheck has found the &lsquo;simplest&rsquo; possible failure case: <code>""</code>. Of course, it was helped on this occasion by the fact it was also the first input it tried.</p>
+
+<p>So; let&rsquo;s add some checking to <code>AddEnhancement</code> to make sure we don&rsquo;t re-add the same input more than once.</p>
+
+<div><script src='https://gist.github.com/5983701.js?file=Part4.fs'></script>
+<noscript><pre><code>let AddEnhancement (xDoc : XDocument) (input : string) =
+    if 
+        xDoc.Root.Elements(XName.Get &quot;Enhancement&quot;)
+        |&gt; Seq.exists (fun e -&gt; e.Value = input)
+        |&gt; not then
+            xDoc.Root.Add(XElement(XName.Get &quot;Enhancement&quot;, input))
+    xDoc
+</code></pre></noscript></div>
+
+
+<p>And re-run the test and&hellip; oops.</p>
+
+<div><script src='https://gist.github.com/5983701.js?file=Part5.txt'></script>
+<noscript><pre><code>System.ArgumentException was unhandled by user code
+  HResult=-2147024809
+  Message=' ', hexadecimal value 0x18, is an invalid character.
+  Source=System.Xml
+  StackTrace:
+       at System.Xml.XmlEncodedRawTextWriter.InvalidXmlChar(Int32 ch, Char* pDst, Boolean entitize)
+       at System.Xml.XmlEncodedRawTextWriter.WriteElementTextBlock(Char* pSrc, Char* pSrcEnd)
+       at System.Xml.XmlEncodedRawTextWriter.WriteString(String text)
+       at System.Xml.XmlEncodedRawTextWriterIndent.WriteString(String text)
+       at System.Xml.XmlWellFormedWriter.WriteString(String text)
+       at System.Xml.Linq.ElementWriter.WriteElement(XElement e)
+       at System.Xml.Linq.XElement.WriteTo(XmlWriter writer)
+       at System.Xml.Linq.XContainer.WriteContentTo(XmlWriter writer)
+       at System.Xml.Linq.XNode.GetXmlString(SaveOptions o)
+       at System.Xml.Linq.XNode.ToString()
+       at Program.Add enhancement must be idompotent(String input) in C:\Users\michael.newton\documents\visual studio 2012\Projects\DevEd.FsCheck\TestRunner\Program.fs:line 10
+       at Program.clo@13.Invoke(String input) in C:\Users\michael.newton\documents\visual studio 2012\Projects\DevEd.FsCheck\TestRunner\Program.fs:line 13
+       at FsCheck.Testable.evaluate[a,b](FSharpFunc`2 body, a a)
+  InnerException: 
+</code></pre></noscript></div>
+
+
+<p>And this is where the full power of FsCheck starts becoming apparent. I know my input is untrusted, so I&rsquo;ve told it to generate <em>any</em> string. And it believed me, and has created an input string that breaks <code>System.Xml.XmlEncodedRawTextWriter.WriteElementTextBlock</code>. This is not a unit test I would have thought to write myself, as I&rsquo;d managed to miss that the fact that <a href="http://blog.mark-mclaren.info/2007/02/invalid-xml-characters-when-valid-utf8_5873.html">not all utf-8 characters are valid in utf-8 encoded xml</a>. In fact, it took me more than a few minutes to work out why it was throwing.</p>
+
+<p>At this point FsCheck has revealed to us that our initial brief is actually incomplete; we&rsquo;ve told the customer that we&rsquo;re willing to accept utf-8 strings as input, but our storage mechanism doesn&rsquo;t support all utf-8 strings. To even get FsCheck to run, we&rsquo;ll have to decide on an error handling strategy &ndash; and importantly, it will have to be a strategy that still fulfils the initial properties specified (unless we decide that what we&rsquo;ve discovered so fundamentally breaks our initial assumptions that they need to be re-visited).</p>
+
+<p>This is a toy project so I&rsquo;m going to bail slightly on this one: I&rsquo;m going to assume that invalid values just add an error node with a &lsquo;cleaned&rsquo; version of the input which could then be reviewed by a human at a later date. This has the advantage that it still fulfils all of our properties above.</p>
+
+<p>Fortunately for us, in .NET 4.0 and above there is a function in the <code>System.Xml</code> namespace called `XmlConvert.IsXmlChar&#8217; which does roughly what you would expect from the name. Let&rsquo;s add an invalid character filter, and an active pattern to tell us if any characters have been removed:</p>
+
+<div><script src='https://gist.github.com/5983701.js?file=Part6.fs'></script>
+<noscript><pre><code>let filterInvalidChars (input : string) =
+    input
+    |&gt; Seq.filter (fun c -&gt; XmlConvert.IsXmlChar c)
+    |&gt; Seq.map string
+    |&gt; String.concat &quot;&quot;    
+
+let (|ValidXml|InvalidXml|) str =
+    let filtered = filterInvalidChars str
+    if String.length filtered = String.length str then
+        ValidXml str
+    else
+        InvalidXml filtered
+</code></pre></noscript></div>
+
+
+<p>Now we can amend <code>AddEnhancement</code> to add enhancement nodes for valid XML text or an error node for sanitized invalid XML text:</p>
+
+<div><script src='https://gist.github.com/5983701.js?file=Part7.fs'></script>
+<noscript><pre><code>let AddEnhancement (xDoc : XDocument) (input : string) =
+    match input with
+    | ValidXml text -&gt;
+        if xDoc.Root.Elements(XName.Get &quot;Enhancement&quot;) |&gt; Seq.exists(fun enhance -&gt; enhance.Value = text) then
+            None
+        else
+            Some &lt;| XElement(XName.Get &quot;Enhancement&quot;, text)
+    | InvalidXml text -&gt;
+        if xDoc.Root.Elements(XName.Get &quot;Error&quot;) |&gt; Seq.exists(fun error -&gt; error.Value = text) then
+            None
+        else
+            Some &lt;| XElement(XName.Get &quot;Error&quot;, text)</code></pre></noscript></div>
+
+
+<p>And when we run FsCheck again:</p>
+
+<p><img src="http://blog.mavnn.co.uk/images/FsCheck2.png" alt="Hurrah!" /></p>
+
+<p>Excellent stuff.</p>
+
+<p>As a bonus extra, I&rsquo;ve included below a somewhat expanded version of the test code. Remember I said that FsCheck already knows how to generate strings? Unfortunately it doesn&rsquo;t know how to generate XML out of the box, but I was pleasantly surprised how quick and easy it was to write a naive XML generator. It generates <a href="https://gist.github.com/mavnn/5976004#file-example-xml">XML like this</a>. Also, check out the <code>CheckAll</code> function used at the end which allows you to build and run &lsquo;property classes&rsquo; to group families of properties together.</p>
+
+<p>And, of course, per the specification, it checks that the 3rd property above holds true (that adding enhancements never reduces the size of the document).</p>
+
+<div><script src='https://gist.github.com/5983701.js?file=Part8.fs'></script>
+<noscript><pre><code>module FsCheck.Examples.Tests
+
+open FsCheck
+open DevEd.FsCheck
+open System.Xml.Linq
+
+let baseDocText = &quot;&quot;&quot;&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;root /&gt;
+&quot;&quot;&quot;
+
+type XmlTree = 
+    | NodeName of string
+    | Container of string * List&lt;XmlTree&gt;
+
+let nodeNames = 
+    [&quot;myNode&quot;;
+     &quot;myOtherNode&quot;;
+     &quot;someDifferentNode&quot;]
+
+let tree = 
+    let rec tree' s = 
+        match s with
+        | 0 -&gt; Gen.map NodeName (Gen.elements nodeNames)
+        | n when n &gt; 0 -&gt; 
+            let subtrees = 
+                Gen.sized &lt;| fun s -&gt; 
+                    Gen.resize (s
+                                |&gt; float
+                                |&gt; sqrt
+                                |&gt; int) (Gen.listOf(tree'(n / 2)))
+            Gen.oneof 
+                [Gen.map NodeName (Gen.elements nodeNames);
+                 
+                 Gen.map2 (fun name contents -&gt; Container(name, contents)) 
+                     (Gen.elements nodeNames) subtrees]
+        | _ -&gt; invalidArg &quot;s&quot; &quot;Size most be positive.&quot;
+    Gen.sized tree'
+
+let treeToXDoc xmlTree = 
+    let rec inner currentNode children = 
+        let childMatch child = 
+            match child with
+            | NodeName name -&gt; XElement(XName.Get name)
+            | Container(name, contents) -&gt; 
+                let element = XElement(XName.Get name)
+                inner element contents
+        currentNode.Add(List.map childMatch children |&gt; List.toArray)
+        currentNode
+    match xmlTree with
+    | NodeName name -&gt; XDocument(XElement(XName.Get name))
+    | Container(name, contents) -&gt; 
+        let doc = XDocument(XElement(XName.Get name))
+        inner doc.Root contents |&gt; ignore
+        doc
+
+type XmlGenerator() = 
+    static member XmlTree() = 
+        { new Arbitrary&lt;XmlTree&gt;() with
+              member x.Generator = tree
+              member x.Shrinker t = 
+                  match t with
+                  | NodeName _ -&gt; Seq.empty
+                  | Container(name, contents) -&gt; 
+                      match contents with
+                      | [] -&gt; seq { yield NodeName name }
+                      | c -&gt; 
+                          seq { 
+                              for n in c -&gt; n } }
+
+type XmlUpdaterProperties() = 
+    static member ``AddEnhancement is idempotent``(data : string) = 
+        ((AddEnhancement &lt;| AddEnhancement (XDocument.Parse baseDocText) data) data)
+            .ToString() = (AddEnhancement (XDocument.Parse baseDocText) data)
+            .ToString()
+    static member ``AddEnhancement is idempotent on different xml structures``(xmlDoc : XmlTree, 
+                                                                           data : string) = 
+        (AddEnhancement (treeToXDoc xmlDoc) data).ToString() = (AddEnhancement (AddEnhancement (treeToXDoc xmlDoc) data) data)
+            .ToString()
+    static member ``AddEnhancement never reduces the number of nodes`` (xmlDoc : XmlTree, data : string) =
+        Seq.length ((treeToXDoc xmlDoc).DescendantNodes()) = Seq.length ((AddEnhancement (treeToXDoc xmlDoc) data).DescendantNodes())
+
+Arb.register&lt;XmlGenerator&gt;() |&gt; ignore
+Check.QuickAll&lt;XmlUpdaterProperties&gt;()
+System.Console.ReadLine() |&gt; ignore</code></pre></noscript></div>
+
+
+<p>Thanks for reading this far. If you want to play yourself, a full copy of the example code is <a href="https://github.com/mavnn/DevEd.FsCheck">on GitHub</a> with an MIT license.</p>
+]]></content>
+  </entry>
+  
+  <entry>
     <title type="html"><![CDATA[Useful find: a decent Windows console]]></title>
     <link href="http://blog.mavnn.co.uk/useful-find-a-decent-windows-console/"/>
     <updated>2013-07-09T16:12:00+01:00</updated>
     <id>http://blog.mavnn.co.uk/useful-find-a-decent-windows-console</id>
     <content type="html"><![CDATA[<p>New machine, new Octopress set up. On Windows, no less.</p>
 
-<p>So let&#8217;s hope a blog post actually appears!</p>
+<p>So let&rsquo;s hope a blog post actually appears!</p>
 
-<p>Just in case it does, I&#8217;ll include a useful piece of side
-info - a actually decent Windows console called ConEmu.</p>
+<p>Just in case it does, I&rsquo;ll include a useful piece of side
+info &ndash; a actually decent Windows console called ConEmu.</p>
 
-<p>I&#8217;ll leave you with <a href="http://www.hanselman.com/blog/ConEmuTheWindowsTerminalConsolePromptWeveBeenWaitingFor.aspx">Scott Hanselman&#8217;s excellent review</a>.</p>
+<p>I&rsquo;ll leave you with <a href="http://www.hanselman.com/blog/ConEmuTheWindowsTerminalConsolePromptWeveBeenWaitingFor.aspx">Scott Hanselman&rsquo;s excellent review</a>.</p>
 ]]></content>
   </entry>
   
@@ -34,18 +292,18 @@ info - a actually decent Windows console called ConEmu.</p>
     <link href="http://blog.mavnn.co.uk/coding-hygiene-moving-from-project-references-to-nuget-dependencies/"/>
     <updated>2013-03-08T17:08:00+00:00</updated>
     <id>http://blog.mavnn.co.uk/coding-hygiene-moving-from-project-references-to-nuget-dependencies</id>
-    <content type="html"><![CDATA[<p>So, first post with the new blogging engine. Let&#8217;s see how it goes.</p>
+    <content type="html"><![CDATA[<p>So, first post with the new blogging engine. Let&rsquo;s see how it goes.</p>
 
-<p>Our code base at <a href="http://15below.com">15below</a> started it&#8217;s life a fair
+<p>Our code base at <a href="http://15below.com">15below</a> started it&rsquo;s life a fair
 while ago, well before any form of .NET package management became
 practical. Because of that, we ended up building a lot of code in
-&#8216;lockstep&#8217; with project references in code as there was no sensible way
+&lsquo;lockstep&rsquo; with project references in code as there was no sensible way
 of taking versioned binary dependencies.</p>
 
-<p>That&#8217;s fine and all, but it encourages bad code hygiene: rather than
-having sharply defined contracts between components, if you&#8217;ve got them
+<p>That&rsquo;s fine and all, but it encourages bad code hygiene: rather than
+having sharply defined contracts between components, if you&rsquo;ve got them
 all open in the same solution it becomes far too tempting to just nudge
-changes around as it&#8217;s convenient at the time. Changes can infect other
+changes around as it&rsquo;s convenient at the time. Changes can infect other
 pieces of code, and the power of automatic refactoring across the entire
 solution becomes intoxicating.</p>
 
@@ -55,15 +313,15 @@ cycle between making a change, and being able to see it rolled out to a
 testing environment.</p>
 
 <p>So as part of the ongoing refactoring that any long lived code base needs to
-keep it maintainable and under control, we&#8217;ve embarked on the process of
+keep it maintainable and under control, we&rsquo;ve embarked on the process of
 splitting our code down into more logically separated repositories that
 reference each other via NuGet. This will require us to start being much
 more disciplined in our <a href="http://semver.org">semantic versioning</a> than we
 have been in the past, but will also allow us to build and deploy
 incrementally and massively reduce our feed back times.</p>
 
-<p>As part of splitting out the first logical division (I&#8217;d like to say
-<a href="http://en.wikipedia.org/wiki/Domain-driven_design">domain</a> but we&#8217;re
+<p>As part of splitting out the first logical division (I&rsquo;d like to say
+<a href="http://en.wikipedia.org/wiki/Domain-driven_design">domain</a> but we&rsquo;re
 not there yet!), I created the new repository and got the included
 assemblies up and building on TeamCity. It was only then (stupidly) that
 I realised that we had several hundred project references to these
@@ -78,255 +336,13 @@ packages.config file with the project that includes the new dependency.</p>
 
 <p>It should be noted that this script has only seen minimal testing, was
 coded up for one time use and does not come with a warranty of any kind!
-Use at your own risk, and once you understand what it&#8217;s doing. But for
+Use at your own risk, and once you understand what it&rsquo;s doing. But for
 all that, I hope you find it useful.</p>
 
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-<span class='line-number'>41</span>
-<span class='line-number'>42</span>
-<span class='line-number'>43</span>
-<span class='line-number'>44</span>
-<span class='line-number'>45</span>
-<span class='line-number'>46</span>
-<span class='line-number'>47</span>
-<span class='line-number'>48</span>
-<span class='line-number'>49</span>
-<span class='line-number'>50</span>
-<span class='line-number'>51</span>
-<span class='line-number'>52</span>
-<span class='line-number'>53</span>
-<span class='line-number'>54</span>
-<span class='line-number'>55</span>
-<span class='line-number'>56</span>
-<span class='line-number'>57</span>
-<span class='line-number'>58</span>
-<span class='line-number'>59</span>
-<span class='line-number'>60</span>
-<span class='line-number'>61</span>
-<span class='line-number'>62</span>
-<span class='line-number'>63</span>
-<span class='line-number'>64</span>
-<span class='line-number'>65</span>
-<span class='line-number'>66</span>
-<span class='line-number'>67</span>
-<span class='line-number'>68</span>
-<span class='line-number'>69</span>
-<span class='line-number'>70</span>
-<span class='line-number'>71</span>
-<span class='line-number'>72</span>
-<span class='line-number'>73</span>
-<span class='line-number'>74</span>
-<span class='line-number'>75</span>
-<span class='line-number'>76</span>
-<span class='line-number'>77</span>
-<span class='line-number'>78</span>
-<span class='line-number'>79</span>
-<span class='line-number'>80</span>
-<span class='line-number'>81</span>
-<span class='line-number'>82</span>
-<span class='line-number'>83</span>
-<span class='line-number'>84</span>
-<span class='line-number'>85</span>
-<span class='line-number'>86</span>
-<span class='line-number'>87</span>
-<span class='line-number'>88</span>
-<span class='line-number'>89</span>
-<span class='line-number'>90</span>
-<span class='line-number'>91</span>
-<span class='line-number'>92</span>
-<span class='line-number'>93</span>
-<span class='line-number'>94</span>
-<span class='line-number'>95</span>
-<span class='line-number'>96</span>
-<span class='line-number'>97</span>
-<span class='line-number'>98</span>
-<span class='line-number'>99</span>
-<span class='line-number'>100</span>
-<span class='line-number'>101</span>
-<span class='line-number'>102</span>
-<span class='line-number'>103</span>
-<span class='line-number'>104</span>
-<span class='line-number'>105</span>
-<span class='line-number'>106</span>
-<span class='line-number'>107</span>
-<span class='line-number'>108</span>
-<span class='line-number'>109</span>
-<span class='line-number'>110</span>
-<span class='line-number'>111</span>
-<span class='line-number'>112</span>
-<span class='line-number'>113</span>
-<span class='line-number'>114</span>
-<span class='line-number'>115</span>
-<span class='line-number'>116</span>
-<span class='line-number'>117</span>
-<span class='line-number'>118</span>
-<span class='line-number'>119</span>
-<span class='line-number'>120</span>
-<span class='line-number'>121</span>
-<span class='line-number'>122</span>
-<span class='line-number'>123</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>#r "System.Xml.Linq"
-</span><span class='line'>#r "tools\FAKE\FakeLib.dll"
-</span><span class='line'>open System.IO
-</span><span class='line'>open System.Xml
-</span><span class='line'>open System.Xml.Linq
-</span><span class='line'>open System.Xml.XPath
-</span><span class='line'>open Fake
-</span><span class='line'>
-</span><span class='line'>// You'll want to replace these values...
-</span><span class='line'>let nugetId = "my.package.id"
-</span><span class='line'>let refName = "my.ref.name"
-</span><span class='line'>let packageNode = XElement.Parse """&lt;package id="my.package.id" version="1.0.0.6" targetFramework="net40" /&gt;"""
-</span><span class='line'>let refXml =
-</span><span class='line'>    """
-</span><span class='line'>    &lt;Reference Include="my.ref.name"&gt;
-</span><span class='line'>      &lt;HintPath&gt;..\..\packages\my.package.id.1.0.0.6\lib\net40\my.ref.name.dll&lt;/HintPath&gt;
-</span><span class='line'>      &lt;Private&gt;True&lt;/Private&gt;
-</span><span class='line'>    &lt;/Reference&gt;
-</span><span class='line'>    """
-</span><span class='line'>let hintPathFromRoot =
-</span><span class='line'>@"packages\my.package.id.1.0.0.6\lib\net40\my.ref.name.dll"
-</span><span class='line'>let sourceRoot = "C:\WhereIKeepMyRepo"
-</span><span class='line'>
-</span><span class='line'>// You should be able to leave the rest alone
-</span><span class='line'>let ns = "http://schemas.microsoft.com/developer/msbuild/2003"
-</span><span class='line'>let nsm = new XmlNamespaceManager(new NameTable())
-</span><span class='line'>nsm.AddNamespace("ns", ns)
-</span><span class='line'>let nugetPath = sourceRoot @@ "tools" @@ "NuGet" @@ "NuGet.exe"
-</span><span class='line'>
-</span><span class='line'>let HasProjectReference (projDoc : XDocument) refName =
-</span><span class='line'>    projDoc.Root.XPathSelectElements("//ns:ProjectReference[ns:Name='" + refName + "']", nsm)
-</span><span class='line'>    |&gt; Seq.length
-</span><span class='line'>    |&gt; (&lt;) 0
-</span><span class='line'>
-</span><span class='line'>let GetProjectReference (projDoc : XDocument) refName =
-</span><span class='line'>    projDoc.Root.XPathSelectElement("//ns:ProjectReference[ns:Name='" + refName + "']", nsm)
-</span><span class='line'>
-</span><span class='line'>let DeleteProjectReference refName (projFile : string) =
-</span><span class='line'>    let projDoc = XDocument.Load(projFile)
-</span><span class='line'>    if HasProjectReference projDoc refName then
-</span><span class='line'>        let ref = GetProjectReference projDoc refName
-</span><span class='line'>        ref.Remove()
-</span><span class='line'>        projDoc.Save(projFile)
-</span><span class='line'>
-</span><span class='line'>let HasReference (projDoc : XDocument) refName =
-</span><span class='line'>    projDoc.Root.XPathSelectElements("//ns:Reference[@Include='" + refName + "']", nsm)
-</span><span class='line'>    |&gt; Seq.append &lt;| projDoc.Root.XPathSelectElements("//ns:Reference[@Include[starts-with(., '" + refName + ",')]]", nsm)
-</span><span class='line'>    |&gt; Seq.tryPick (fun e -&gt; Some e)
-</span><span class='line'>
-</span><span class='line'>let FirstReference (projDoc : XDocument) =
-</span><span class='line'>    projDoc.Root.XPathSelectElements("//ns:Reference", nsm)
-</span><span class='line'>    |&gt; Seq.head
-</span><span class='line'>
-</span><span class='line'>let GetHintPath hintPathFromRoot root projFile =
-</span><span class='line'>    let rootDir = DirectoryInfo(root)
-</span><span class='line'>    let projDir = DirectoryInfo(Path.GetDirectoryName(projFile))
-</span><span class='line'>    let rec dirDiff (rootDir : DirectoryInfo) (currentDir : DirectoryInfo) levels =
-</span><span class='line'>        if rootDir.FullName = currentDir.FullName then
-</span><span class='line'>            levels
-</span><span class='line'>        else
-</span><span class='line'>            dirDiff rootDir (currentDir.Parent) (levels + 1)
-</span><span class='line'>    hintPathFromRoot::[for _ in 1..(dirDiff rootDir projDir 0) -&gt; ".."]
-</span><span class='line'>    |&gt; List.rev
-</span><span class='line'>    |&gt; List.fold (@@) "."
-</span><span class='line'>
-</span><span class='line'>let UpdateHintPath projFile =
-</span><span class='line'>    let ref = XElement.Parse(refXml)
-</span><span class='line'>    let xs = XNamespace.Get(ns)
-</span><span class='line'>    let el = ref.XPathSelectElement("//HintPath")
-</span><span class='line'>    el.SetValue (GetHintPath hintPathFromRoot sourceRoot projFile)
-</span><span class='line'>    for node in ref.DescendantsAndSelf() do
-</span><span class='line'>        node.Name &lt;- xs + node.Name.LocalName
-</span><span class='line'>    ref
-</span><span class='line'>
-</span><span class='line'>let EnsureReference refName (projFile : string) =
-</span><span class='line'>    let doc = XDocument.Load(projFile)
-</span><span class='line'>    match HasReference doc refName with
-</span><span class='line'>    | Some el -&gt; el.Remove()
-</span><span class='line'>    | None -&gt; ()
-</span><span class='line'>    let el = FirstReference doc
-</span><span class='line'>    el.AddBeforeSelf(UpdateHintPath projFile)
-</span><span class='line'>    doc.Save(projFile)
-</span><span class='line'>
-</span><span class='line'>type PackageFile =
-</span><span class='line'>    | Exists of string
-</span><span class='line'>    | Missing of string
-</span><span class='line'>
-</span><span class='line'>let GetPackagesDotConfig projFile =
-</span><span class='line'>    let dir = Path.GetDirectoryName(projFile)
-</span><span class='line'>    let path = dir @@ "packages.config"
-</span><span class='line'>    if File.Exists(path) then
-</span><span class='line'>        Exists path
-</span><span class='line'>    else
-</span><span class='line'>        Missing path
-</span><span class='line'>
-</span><span class='line'>let HasPackageReference (doc : XDocument) nugetId =
-</span><span class='line'>    doc.XPathSelectElements("//package[@id = '" + nugetId + "']")
-</span><span class='line'>    |&gt; Seq.length
-</span><span class='line'>    |&gt; (&lt;) 0
-</span><span class='line'>
-</span><span class='line'>let EnsurePackagesDotConfigHasPackage nugetId projFile =
-</span><span class='line'>    let doc, path =
-</span><span class='line'>        match GetPackagesDotConfig projFile with
-</span><span class='line'>        | Missing path -&gt;
-</span><span class='line'>            XDocument.Parse("&lt;packages /&gt;"), path
-</span><span class='line'>        | Exists path -&gt;
-</span><span class='line'>            XDocument.Load(path), path
-</span><span class='line'>    if not &lt;| HasPackageReference doc nugetId then
-</span><span class='line'>        doc.Root.XPathSelectElement("/packages").Add(packageNode)
-</span><span class='line'>        doc.Save path
-</span><span class='line'>
-</span><span class='line'>let UpdateProj (projFile : string) =
-</span><span class='line'>    if HasProjectReference (XDocument.Load(projFile)) refName then
-</span><span class='line'>        DeleteProjectReference refName projFile
-</span><span class='line'>        EnsureReference refName projFile
-</span><span class='line'>        EnsurePackagesDotConfigHasPackage nugetId projFile
-</span><span class='line'>
-</span><span class='line'>!+ (@"**\*.csproj")
-</span><span class='line'>++ (@"**\*.fsproj")
-</span><span class='line'>++ (@"**\*.vbproj")
-</span><span class='line'>|&gt; Scan
-</span><span class='line'>|&gt; Seq.map (fun proj -&gt; printfn "Updating %s" proj; proj)
-</span><span class='line'>|&gt; Seq.iter UpdateProj</span></code></pre></td></tr></table></div></figure>
+<div><script src='https://gist.github.com/5983379.js'></script>
+<noscript><pre><code></code></pre></noscript></div>
+
+
 
 ]]></content>
   </entry>
@@ -663,15 +679,6 @@ source, with all the niceties like intellisense that you would want.</p>
     <updated>2012-10-04T00:00:00+01:00</updated>
     <id>http://blog.mavnn.co.uk/stress-testing-easynetq-services-with-f/stress-testing-easynetq-services-with-f</id>
     <content type="html"><![CDATA[<div>Having recently moved one of our (<a href="http://15below.com">http://15below.com</a>) infrastructure services from using MSMQs to RabbitMq (via using EasyNetQ: <a href="https://github.com/mikehadlow/EasyNetQ">https://github.com/mikehadlow/EasyNetQ</a>), I then wanted to run it through some simple stress tests. One of the reasons for this is that the old service used to time out on messages regularly, leaving them in a dead letter queue and requiring us to write the &#39;DeadLetterProcessor&#39; (a complete service in it&#39;s own right) to deal with the time outs.</div> <p /><div>74 lines of F# later, I was hitting the service with 40,000 requests spread across 4 parallel processes.</div><br /><div><script src="https://gist.github.com/3832369.js"></script></div> <p /><div>And the results: 18 seconds to process the lot, with no time outs or losses. Requests were going in faster than the service could process them, but Rabbit was admirably handling that side of things, and with the new setup multiple copies of the service would automatically round robin requests if that was ever needed.</div> <p /><div>Adious, DeadLetterProcessor: it was nice deleting you&#8230;</div>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[GPL Munitions]]></title>
-    <link href="http://blog.mavnn.co.uk/gpl-munitions/index.html"/>
-    <updated>2012-06-12T00:00:00+01:00</updated>
-    <id>http://blog.mavnn.co.uk/gpl-munitions/gpl-munitions</id>
-    <content type="html"><![CDATA[<p>Awesome discussion on the finer points of whether having a Linux based cruise missile launched at you entitles you to a copy of the source code running on it.</p> <p>And whether commando raids are a valid form of delivery&#8230;</p> <p>&#39;US Navy buys Linux to guide drone fleet (The Register) [LWN.net]&#39;</p> <p><a href="http://lwn.net/Articles/501536/">http://lwn.net/Articles/501536/</a></p>
 ]]></content>
   </entry>
   

@@ -9,7 +9,7 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="So, first post with the new blogging engine. Let&#8217;s see how it goes. Our code base at 15below started it&#8217;s life a fair
+  <meta name="description" content="So, first post with the new blogging engine. Let&rsquo;s see how it goes. Our code base at 15below started it&rsquo;s life a fair
 while ago, well &hellip;">
   
 
@@ -19,17 +19,18 @@ while ago, well &hellip;">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://blog.mavnn.co.uk/coding-hygiene-moving-from-project-references-to-nuget-dependencies/">
+  <link rel="canonical" href="http://blog.mavnn.co.uk/coding-hygiene-moving-from-project-references-to-nuget-dependencies">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="Mavnn's blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
   <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
 <link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
 <link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
 
-  <script src="/javascripts/modernizr-2.0.js"></script>
-  <script src="/javascripts/ender.js"></script>
-  <script src="/javascripts/octopress.js" type="text/javascript"></script>
   
   <script type="text/javascript">
     var _gaq = _gaq || [];
@@ -103,18 +104,18 @@ while ago, well &hellip;">
   </header>
 
 
-<div class="entry-content"><p>So, first post with the new blogging engine. Let&#8217;s see how it goes.</p>
+<div class="entry-content"><p>So, first post with the new blogging engine. Let&rsquo;s see how it goes.</p>
 
-<p>Our code base at <a href="http://15below.com">15below</a> started it&#8217;s life a fair
+<p>Our code base at <a href="http://15below.com">15below</a> started it&rsquo;s life a fair
 while ago, well before any form of .NET package management became
 practical. Because of that, we ended up building a lot of code in
-&#8216;lockstep&#8217; with project references in code as there was no sensible way
+&lsquo;lockstep&rsquo; with project references in code as there was no sensible way
 of taking versioned binary dependencies.</p>
 
-<p>That&#8217;s fine and all, but it encourages bad code hygiene: rather than
-having sharply defined contracts between components, if you&#8217;ve got them
+<p>That&rsquo;s fine and all, but it encourages bad code hygiene: rather than
+having sharply defined contracts between components, if you&rsquo;ve got them
 all open in the same solution it becomes far too tempting to just nudge
-changes around as it&#8217;s convenient at the time. Changes can infect other
+changes around as it&rsquo;s convenient at the time. Changes can infect other
 pieces of code, and the power of automatic refactoring across the entire
 solution becomes intoxicating.</p>
 
@@ -124,15 +125,15 @@ cycle between making a change, and being able to see it rolled out to a
 testing environment.</p>
 
 <p>So as part of the ongoing refactoring that any long lived code base needs to
-keep it maintainable and under control, we&#8217;ve embarked on the process of
+keep it maintainable and under control, we&rsquo;ve embarked on the process of
 splitting our code down into more logically separated repositories that
 reference each other via NuGet. This will require us to start being much
 more disciplined in our <a href="http://semver.org">semantic versioning</a> than we
 have been in the past, but will also allow us to build and deploy
 incrementally and massively reduce our feed back times.</p>
 
-<p>As part of splitting out the first logical division (I&#8217;d like to say
-<a href="http://en.wikipedia.org/wiki/Domain-driven_design">domain</a> but we&#8217;re
+<p>As part of splitting out the first logical division (I&rsquo;d like to say
+<a href="http://en.wikipedia.org/wiki/Domain-driven_design">domain</a> but we&rsquo;re
 not there yet!), I created the new repository and got the included
 assemblies up and building on TeamCity. It was only then (stupidly) that
 I realised that we had several hundred project references to these
@@ -147,255 +148,13 @@ packages.config file with the project that includes the new dependency.</p>
 
 <p>It should be noted that this script has only seen minimal testing, was
 coded up for one time use and does not come with a warranty of any kind!
-Use at your own risk, and once you understand what it&#8217;s doing. But for
+Use at your own risk, and once you understand what it&rsquo;s doing. But for
 all that, I hope you find it useful.</p>
 
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-<span class='line-number'>41</span>
-<span class='line-number'>42</span>
-<span class='line-number'>43</span>
-<span class='line-number'>44</span>
-<span class='line-number'>45</span>
-<span class='line-number'>46</span>
-<span class='line-number'>47</span>
-<span class='line-number'>48</span>
-<span class='line-number'>49</span>
-<span class='line-number'>50</span>
-<span class='line-number'>51</span>
-<span class='line-number'>52</span>
-<span class='line-number'>53</span>
-<span class='line-number'>54</span>
-<span class='line-number'>55</span>
-<span class='line-number'>56</span>
-<span class='line-number'>57</span>
-<span class='line-number'>58</span>
-<span class='line-number'>59</span>
-<span class='line-number'>60</span>
-<span class='line-number'>61</span>
-<span class='line-number'>62</span>
-<span class='line-number'>63</span>
-<span class='line-number'>64</span>
-<span class='line-number'>65</span>
-<span class='line-number'>66</span>
-<span class='line-number'>67</span>
-<span class='line-number'>68</span>
-<span class='line-number'>69</span>
-<span class='line-number'>70</span>
-<span class='line-number'>71</span>
-<span class='line-number'>72</span>
-<span class='line-number'>73</span>
-<span class='line-number'>74</span>
-<span class='line-number'>75</span>
-<span class='line-number'>76</span>
-<span class='line-number'>77</span>
-<span class='line-number'>78</span>
-<span class='line-number'>79</span>
-<span class='line-number'>80</span>
-<span class='line-number'>81</span>
-<span class='line-number'>82</span>
-<span class='line-number'>83</span>
-<span class='line-number'>84</span>
-<span class='line-number'>85</span>
-<span class='line-number'>86</span>
-<span class='line-number'>87</span>
-<span class='line-number'>88</span>
-<span class='line-number'>89</span>
-<span class='line-number'>90</span>
-<span class='line-number'>91</span>
-<span class='line-number'>92</span>
-<span class='line-number'>93</span>
-<span class='line-number'>94</span>
-<span class='line-number'>95</span>
-<span class='line-number'>96</span>
-<span class='line-number'>97</span>
-<span class='line-number'>98</span>
-<span class='line-number'>99</span>
-<span class='line-number'>100</span>
-<span class='line-number'>101</span>
-<span class='line-number'>102</span>
-<span class='line-number'>103</span>
-<span class='line-number'>104</span>
-<span class='line-number'>105</span>
-<span class='line-number'>106</span>
-<span class='line-number'>107</span>
-<span class='line-number'>108</span>
-<span class='line-number'>109</span>
-<span class='line-number'>110</span>
-<span class='line-number'>111</span>
-<span class='line-number'>112</span>
-<span class='line-number'>113</span>
-<span class='line-number'>114</span>
-<span class='line-number'>115</span>
-<span class='line-number'>116</span>
-<span class='line-number'>117</span>
-<span class='line-number'>118</span>
-<span class='line-number'>119</span>
-<span class='line-number'>120</span>
-<span class='line-number'>121</span>
-<span class='line-number'>122</span>
-<span class='line-number'>123</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>#r "System.Xml.Linq"
-</span><span class='line'>#r "tools\FAKE\FakeLib.dll"
-</span><span class='line'>open System.IO
-</span><span class='line'>open System.Xml
-</span><span class='line'>open System.Xml.Linq
-</span><span class='line'>open System.Xml.XPath
-</span><span class='line'>open Fake
-</span><span class='line'>
-</span><span class='line'>// You'll want to replace these values...
-</span><span class='line'>let nugetId = "my.package.id"
-</span><span class='line'>let refName = "my.ref.name"
-</span><span class='line'>let packageNode = XElement.Parse """&lt;package id="my.package.id" version="1.0.0.6" targetFramework="net40" /&gt;"""
-</span><span class='line'>let refXml =
-</span><span class='line'>    """
-</span><span class='line'>    &lt;Reference Include="my.ref.name"&gt;
-</span><span class='line'>      &lt;HintPath&gt;..\..\packages\my.package.id.1.0.0.6\lib\net40\my.ref.name.dll&lt;/HintPath&gt;
-</span><span class='line'>      &lt;Private&gt;True&lt;/Private&gt;
-</span><span class='line'>    &lt;/Reference&gt;
-</span><span class='line'>    """
-</span><span class='line'>let hintPathFromRoot =
-</span><span class='line'>@"packages\my.package.id.1.0.0.6\lib\net40\my.ref.name.dll"
-</span><span class='line'>let sourceRoot = "C:\WhereIKeepMyRepo"
-</span><span class='line'>
-</span><span class='line'>// You should be able to leave the rest alone
-</span><span class='line'>let ns = "http://schemas.microsoft.com/developer/msbuild/2003"
-</span><span class='line'>let nsm = new XmlNamespaceManager(new NameTable())
-</span><span class='line'>nsm.AddNamespace("ns", ns)
-</span><span class='line'>let nugetPath = sourceRoot @@ "tools" @@ "NuGet" @@ "NuGet.exe"
-</span><span class='line'>
-</span><span class='line'>let HasProjectReference (projDoc : XDocument) refName =
-</span><span class='line'>    projDoc.Root.XPathSelectElements("//ns:ProjectReference[ns:Name='" + refName + "']", nsm)
-</span><span class='line'>    |&gt; Seq.length
-</span><span class='line'>    |&gt; (&lt;) 0
-</span><span class='line'>
-</span><span class='line'>let GetProjectReference (projDoc : XDocument) refName =
-</span><span class='line'>    projDoc.Root.XPathSelectElement("//ns:ProjectReference[ns:Name='" + refName + "']", nsm)
-</span><span class='line'>
-</span><span class='line'>let DeleteProjectReference refName (projFile : string) =
-</span><span class='line'>    let projDoc = XDocument.Load(projFile)
-</span><span class='line'>    if HasProjectReference projDoc refName then
-</span><span class='line'>        let ref = GetProjectReference projDoc refName
-</span><span class='line'>        ref.Remove()
-</span><span class='line'>        projDoc.Save(projFile)
-</span><span class='line'>
-</span><span class='line'>let HasReference (projDoc : XDocument) refName =
-</span><span class='line'>    projDoc.Root.XPathSelectElements("//ns:Reference[@Include='" + refName + "']", nsm)
-</span><span class='line'>    |&gt; Seq.append &lt;| projDoc.Root.XPathSelectElements("//ns:Reference[@Include[starts-with(., '" + refName + ",')]]", nsm)
-</span><span class='line'>    |&gt; Seq.tryPick (fun e -&gt; Some e)
-</span><span class='line'>
-</span><span class='line'>let FirstReference (projDoc : XDocument) =
-</span><span class='line'>    projDoc.Root.XPathSelectElements("//ns:Reference", nsm)
-</span><span class='line'>    |&gt; Seq.head
-</span><span class='line'>
-</span><span class='line'>let GetHintPath hintPathFromRoot root projFile =
-</span><span class='line'>    let rootDir = DirectoryInfo(root)
-</span><span class='line'>    let projDir = DirectoryInfo(Path.GetDirectoryName(projFile))
-</span><span class='line'>    let rec dirDiff (rootDir : DirectoryInfo) (currentDir : DirectoryInfo) levels =
-</span><span class='line'>        if rootDir.FullName = currentDir.FullName then
-</span><span class='line'>            levels
-</span><span class='line'>        else
-</span><span class='line'>            dirDiff rootDir (currentDir.Parent) (levels + 1)
-</span><span class='line'>    hintPathFromRoot::[for _ in 1..(dirDiff rootDir projDir 0) -&gt; ".."]
-</span><span class='line'>    |&gt; List.rev
-</span><span class='line'>    |&gt; List.fold (@@) "."
-</span><span class='line'>
-</span><span class='line'>let UpdateHintPath projFile =
-</span><span class='line'>    let ref = XElement.Parse(refXml)
-</span><span class='line'>    let xs = XNamespace.Get(ns)
-</span><span class='line'>    let el = ref.XPathSelectElement("//HintPath")
-</span><span class='line'>    el.SetValue (GetHintPath hintPathFromRoot sourceRoot projFile)
-</span><span class='line'>    for node in ref.DescendantsAndSelf() do
-</span><span class='line'>        node.Name &lt;- xs + node.Name.LocalName
-</span><span class='line'>    ref
-</span><span class='line'>
-</span><span class='line'>let EnsureReference refName (projFile : string) =
-</span><span class='line'>    let doc = XDocument.Load(projFile)
-</span><span class='line'>    match HasReference doc refName with
-</span><span class='line'>    | Some el -&gt; el.Remove()
-</span><span class='line'>    | None -&gt; ()
-</span><span class='line'>    let el = FirstReference doc
-</span><span class='line'>    el.AddBeforeSelf(UpdateHintPath projFile)
-</span><span class='line'>    doc.Save(projFile)
-</span><span class='line'>
-</span><span class='line'>type PackageFile =
-</span><span class='line'>    | Exists of string
-</span><span class='line'>    | Missing of string
-</span><span class='line'>
-</span><span class='line'>let GetPackagesDotConfig projFile =
-</span><span class='line'>    let dir = Path.GetDirectoryName(projFile)
-</span><span class='line'>    let path = dir @@ "packages.config"
-</span><span class='line'>    if File.Exists(path) then
-</span><span class='line'>        Exists path
-</span><span class='line'>    else
-</span><span class='line'>        Missing path
-</span><span class='line'>
-</span><span class='line'>let HasPackageReference (doc : XDocument) nugetId =
-</span><span class='line'>    doc.XPathSelectElements("//package[@id = '" + nugetId + "']")
-</span><span class='line'>    |&gt; Seq.length
-</span><span class='line'>    |&gt; (&lt;) 0
-</span><span class='line'>
-</span><span class='line'>let EnsurePackagesDotConfigHasPackage nugetId projFile =
-</span><span class='line'>    let doc, path =
-</span><span class='line'>        match GetPackagesDotConfig projFile with
-</span><span class='line'>        | Missing path -&gt;
-</span><span class='line'>            XDocument.Parse("&lt;packages /&gt;"), path
-</span><span class='line'>        | Exists path -&gt;
-</span><span class='line'>            XDocument.Load(path), path
-</span><span class='line'>    if not &lt;| HasPackageReference doc nugetId then
-</span><span class='line'>        doc.Root.XPathSelectElement("/packages").Add(packageNode)
-</span><span class='line'>        doc.Save path
-</span><span class='line'>
-</span><span class='line'>let UpdateProj (projFile : string) =
-</span><span class='line'>    if HasProjectReference (XDocument.Load(projFile)) refName then
-</span><span class='line'>        DeleteProjectReference refName projFile
-</span><span class='line'>        EnsureReference refName projFile
-</span><span class='line'>        EnsurePackagesDotConfigHasPackage nugetId projFile
-</span><span class='line'>
-</span><span class='line'>!+ (@"**\*.csproj")
-</span><span class='line'>++ (@"**\*.fsproj")
-</span><span class='line'>++ (@"**\*.vbproj")
-</span><span class='line'>|&gt; Scan
-</span><span class='line'>|&gt; Seq.map (fun proj -&gt; printfn "Updating %s" proj; proj)
-</span><span class='line'>|&gt; Seq.iter UpdateProj</span></code></pre></td></tr></table></div></figure>
+<div><script src='https://gist.github.com/5983379.js'></script>
+<noscript><pre><code></code></pre></noscript></div>
+
+
 
 </div>
 
@@ -433,7 +192,7 @@ all that, I hope you find it useful.</p>
     
       <div class="sharing">
   
-  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://blog.mavnn.co.uk/coding-hygiene-moving-from-project-references-to-nuget-dependencies/" data-via="mavnn" data-counturl="http://blog.mavnn.co.uk/coding-hygiene-moving-from-project-references-to-nuget-dependencies/" >Tweet</a>
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://blog.mavnn.co.uk/coding-hygiene-moving-from-project-references-to-nuget-dependencies/" data-via="mavnn" data-counturl="http://blog.mavnn.co.uk/coding-hygiene-moving-from-project-references-to-nuget-dependencies/" >Tweet</a>
   
   
   
@@ -466,23 +225,23 @@ all that, I hope you find it useful.</p>
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/useful-find-a-decent-windows-console/">Useful find: a decent Windows console</a>
+        <a href="/fscheck-breaking-your-code-in-new-and-exciting-ways/">FsCheck - Breaking Your Code in New and Exciting Ways</a>
       </li>
     
       <li class="post">
-        <a href="/coding-hygiene-moving-from-project-references-to-nuget-dependencies/">Coding Hygiene: Moving from project references to NuGet dependencies</a>
+        <a href="/useful-find-a-decent-windows-console/">Useful Find: A Decent Windows Console</a>
       </li>
     
       <li class="post">
-        <a href="/throttling-the-level-of-concurrency-in-f/index.html">Throttling the level of concurrency in F#</a>
+        <a href="/coding-hygiene-moving-from-project-references-to-nuget-dependencies/">Coding Hygiene: Moving From Project References to NuGet Dependencies</a>
       </li>
     
       <li class="post">
-        <a href="/fake-part-2-build-and-test/index.html">Fake Part 2: Build and test</a>
+        <a href="/throttling-the-level-of-concurrency-in-f/index.html">Throttling the Level of Concurrency in F#</a>
       </li>
     
       <li class="post">
-        <a href="/a-short-interlude-into-adaptive-polling-tag-f/index.html">A short interlude into adaptive polling</a>
+        <a href="/fake-part-2-build-and-test/index.html">Fake Part 2: Build and Test</a>
       </li>
     
   </ul>
@@ -497,7 +256,7 @@ all that, I hope you find it useful.</p>
   <a href="https://github.com/mavnn">@mavnn</a> on GitHub
   
   <script type="text/javascript">
-    $.domReady(function(){
+    $(document).ready(function(){
         if (!window.jXHR){
             var jxhr = document.createElement('script');
             jxhr.type = 'text/javascript';
@@ -515,23 +274,6 @@ all that, I hope you find it useful.</p>
     });
   </script>
   <script src="/javascripts/github.js" type="text/javascript"> </script>
-</section>
-
-
-<section>
-  <h1>Latest Tweets</h1>
-  <ul id="tweets">
-    <li class="loading">Status updating...</li>
-  </ul>
-  <script type="text/javascript">
-    $.domReady(function(){
-      getTwitterFeed("mavnn", 4, false);
-    });
-  </script>
-  <script src="/javascripts/twitter.js" type="text/javascript"> </script>
-  
-    <a href="http://twitter.com/mavnn" class="twitter-follow-button" data-show-count="false">Follow @mavnn</a>
-  
 </section>
 
 
@@ -579,7 +321,7 @@ all that, I hope you find it useful.</p>
       var twitterWidgets = document.createElement('script');
       twitterWidgets.type = 'text/javascript';
       twitterWidgets.async = true;
-      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
       document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
     })();
   </script>

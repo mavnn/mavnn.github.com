@@ -70,7 +70,7 @@ At this point FsCheck has revealed to us that our initial brief is actually inco
 
 This is a toy project so I'm going to bail slightly on this one: I'm going to assume that invalid values just add an error node with a 'cleaned' version of the input which could then be reviewed by a human at a later date. This has the advantage that it still fulfils all of our properties above.
 
-Fortunately for us, in .NET 4.0 and above there is a function in the `System.Xml` namespace called `XmlConvert.IsXmlChar' which does roughly what you would expect from the name. Let's add an invalid character filter, and an active pattern to tell us if any characters have been removed:
+Fortunately for us, in .NET 4.0 and above there is a function in the `System.Xml` namespace called `XmlConvert.IsXmlChar` which does roughly what you would expect from the name. Let's add an invalid character filter, and an active pattern to tell us if any characters have been removed:
 
 {% gist 5983701 Part6.fs %}
 

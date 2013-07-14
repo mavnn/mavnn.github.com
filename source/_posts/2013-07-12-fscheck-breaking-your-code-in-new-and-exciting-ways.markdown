@@ -25,7 +25,7 @@ Well, as well as any normal exploratory unit tests we may decide to write (which
 
 * Repeatedly calling the code with the same input xml document and the same input text should always give us the same result. I.E., the code should be idempotent.
 * Our code should never remove nodes from the XML. The result document will always be the same or longer than the original.
-* The input is supplied by the customer. It's about as trust worthy as a hungry stoat on speed.
+* The input is supplied by the customer. It's about as trustworthy as a hungry stoat on speed.
 
 ### Let's get started
 

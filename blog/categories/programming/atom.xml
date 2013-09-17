@@ -4,7 +4,7 @@
   <title><![CDATA[Category: programming | Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/blog/categories/programming/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2013-07-14T21:10:52+01:00</updated>
+  <updated>2013-09-17T11:46:41+01:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,35 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Teaching F# to C# Devs]]></title>
+    <link href="http://blog.mavnn.co.uk/teaching-f-number-to-c-number-devs/"/>
+    <updated>2013-09-17T11:12:00+01:00</updated>
+    <id>http://blog.mavnn.co.uk/teaching-f-number-to-c-number-devs</id>
+    <content type="html"><![CDATA[<p>So, in a fit of enthusiasm my boss bought 15 tickets to the <a href="" title="http://skillsmatter.com/event/scala/progressive-f-tutorials-2013">London Progressive F# Tutortials</a> when he saw the early birds pricing (did I mention it&rsquo;s nice working here?). Several of the people who have been assigned tickets have asked to go largely because they are new to F#, so I&rsquo;ve been asked to put together a starter session to teach them the basics. I&rsquo;ve tried this <a href="" title="http://blog.mavnn.co.uk/an-introduction-to-f-screencast-and-pdf-slide">once before</a> and it was a fairly successful session (F# was adopted as a official supported language in the company partly due to feedback following it). But it was still pretty rough around the edges, and as normal with these things, you always want to do them better the next time round&hellip;</p>
+
+<p>So, with a target audience of curious, experienced C# devs I&rsquo;m wondering about the best approach. The initial session needs to fit in an hour, although I can do individual follow ups afterwards.</p>
+
+<p>My current thinking is to take a block of C# code (smtp sender?) that is fairly straight forward but &lsquo;production ready&rsquo; in the sense that it includes error handling, logging, etc. Then do a straight re-write in F# live coding. And then start refactoring to more idiomatic F# as we go along.</p>
+
+<p>Features I feel would be important to cover:</p>
+
+<ul>
+<li>Basic syntax (let, functions, if &hellip; then, etc)</li>
+<li>Common idioms (|>, Seq.map)</li>
+<li>At least one computational expression (probably an error handling one; simpler than async in some ways)</li>
+<li>Several examples of using the match statements</li>
+<li>&hellip;which probably means at least one DU, possibly for error handling</li>
+<li>Records and { &hellip; with &hellip; } expressions</li>
+</ul>
+
+
+<p>I&rsquo;ve got a week or two to prepare, so what I&rsquo;m really hoping for at this point is suggestions and ideas from people for how to improve this as a session idea, things that threw you when you first started writing F# you think should be covered, whether you think this is a stupid idea for a session from the concept up, etc. Once the session is completed I&rsquo;ll be posting the slides and hopefully a screen cast of it as I did last time for use by <a href="" title="http://fsharp.org">fsharp.org</a>.</p>
+
+<p>Suggestions on the piece of C# code to translate would also be appreciated &ndash; either in terms of ideas of the type of code, or actual open source code that would serve as a code starting point.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[FsCheck - Breaking your code in new and exciting ways]]></title>
@@ -348,17 +377,6 @@ all that, I hope you find it useful.</p>
     <id>http://blog.mavnn.co.uk/in-which-our-intrepid-author-de-sugars-a-mona/in-which-our-intrepid-author-de-sugars-a-mona</id>
     <content type="html"><![CDATA[<p><p>In my previous post ( <a href="http://blog.mavnn.co.uk/playing-with-error-handling-strategies"><a href="http://blog.mavnn.co.uk/playing-with-error-handling-strategies">http://blog.mavnn.co.uk/playing-with-error-handling-strategies</a></a> ), Johann Deneux asked me whether my implementation of TryFinally actually worked. <p /> TD;LR: It works. But thank you Johann for making me check!</p>
 <p>Editted TD;LR: It&rsquo;s broken, but not for the reason I thought. See the comments for details, and corrected code here&nbsp;<a href="http://blog.mavnn.co.uk/corrected-error-handling-computational-expres"><a href="http://blog.mavnn.co.uk/corrected-error-handling-computational-expres">http://blog.mavnn.co.uk/corrected-error-handling-computational-expres</a></a><p /> This gave me a bit of a pause, as it&rsquo;s actually an implementation I took from another source. One I trust, but it was still embarrassing to realise I couldn&rsquo;t answer this question with full confidence as I didn&rsquo;t quite understand the code myself. <p /> In the end (especially given I&rsquo;m planning to actually use this code in production at some point), I decided to go the whole hog and de-sugar a couple of simple versions of the computational expression. <p /> So, first, the audit monad as used in my example code from the last post with just a simple let binding: <p /> <script src="https://gist.github.com/4550342.js"></script><p /> This raised my confidence slightly &ndash; the code I&rsquo;d written did what I expected. But, what happened when I tried to bind a disposable resource using use! rather than let!? Time for the moment of truth: <p /> <script src="https://gist.github.com/4550496.js"></script><p /> So there you have it. The code does actually behave as expected, protecting the use of the disposable resource and ensuring it&rsquo;s disposal. And I can breath easy that my code is doing what I thought it should be. Hopefully this will also serve as a useful example for anyone else starting out on the happy road of using computational expressions.</p></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Playing with error handling strategies]]></title>
-    <link href="http://blog.mavnn.co.uk/playing-with-error-handling-strategies/index.html"/>
-    <updated>2013-01-14T00:00:00+00:00</updated>
-    <id>http://blog.mavnn.co.uk/playing-with-error-handling-strategies/playing-with-error-handling-strategies</id>
-    <content type="html"><![CDATA[<p><p>Taking a break from Fake for a moment (I&rsquo;ll get back to it, I promise!) <p /> Note: this post assumes a basic understanding of computation expressions in F#; if you&rsquo;re looking for a primer on them,&nbsp;<a href="http://en.wikibooks.org/wiki/F_Sharp_Programming/Computation_Expressions"><a href="http://en.wikibooks.org/wiki/F_Sharp_Programming/Computation_Expressions">http://en.wikibooks.org/wiki/F_Sharp_Programming/Computation_Expressions</a></a> <br />is a good place to start.</p>
-<p>Note 2: the code in this post is actually broken if you use a use! or try finally block within your audit block. Check out&nbsp;<a href="http://blog.mavnn.co.uk/corrected-error-handling-computational-expres" style="font-size: 13px;"><a href="http://blog.mavnn.co.uk/corrected-error-handling-computational-expres">http://blog.mavnn.co.uk/corrected-error-handling-computational-expres</a></a>&nbsp;for the corrected code.</p>
-<p><br />I had a series of small services I needed to add error handling to today to polish them up from nice clean prototype to production ready status. <p /> Thinking about the joys of re-implementing the same error handling strategy in each of them, it occurred to me that this was exactly the kind of thing that computational expressions were built for. But my requirements went a bit further than just log the error and continue: each of these services contain critical locations where if a error occurred, we didn&rsquo;t just want it logged locally, but we wanted (in some cases) an alert sent to a remote auditing* server. <p /> Of course, mocking out the auditing service for testing is a bit of a pain in the backside, and how auditing is achieved shouldn&rsquo;t really be the responsibility of these services anyway. <p /> So, I decided to experiment with a builder interface. <p /> Meet the IErrorHandlerBuilder interface: <p /> <script src="https://gist.github.com/4533440.js"></script><p /> Should look awfully familiar if you&rsquo;ve recently checked out the msdn page on computational expressions: <a href="http://msdn.microsoft.com/en-us/library/dd233182.aspx"><a href="http://msdn.microsoft.com/en-us/library/dd233182.aspx">http://msdn.microsoft.com/en-us/library/dd233182.aspx</a></a> (except, you know, mine has the right signatures; that might want to be fixed at some point). <p /> How do we use it? <p /> Well, first we need an implementation. In fact, let&rsquo;s have two. Our first candidate, the AuditBuilder, takes an unhealthy number of dependencies that (in turn) take an unhealthy number of dependencies that you almost certainly want to supply from an IoC container. <p /> <script src="https://gist.github.com/4533554.js"></script><p /> What does it do? Well, basically if any bound function throws it logs the error via log4net and our in house audit server and then returns None. Otherwise it returns Some result from the computation. Obviously, if a computation further up the chain has already thrown we already have a None and we just pass it along. TryFinally and Using are implemented to make sure that you can still use disposable resources as you would expect within the expression. <p /> Our second candidate is the TestErrorBuilder: <p /> <script src="https://gist.github.com/4533560.js"></script><p /> This is almost identical to the implementation above, except that it takes no dependencies at all and if there is an error it just logs to the console via printfn. Very useful for debugging &ndash; you might even want a unit test version that logs nothing, depending on your unit tests. <p /> And now, our preparation is complete. How do we use our new toy, you ask? <p /> Something like this: <p /> <script src="https://gist.github.com/4533619.js"></script><p /> This little service persists interesting email messages to a document store, and sends the contents back to you when you request them. If an email is not persisted, or a request for an email fails, we want a remote alert to be triggered in production. Both the persist and content requests are handled as RabbitMq messages (using the EasyNetQ client). <p /> So in the message handler callbacks, declare an audit { } block and let! bind our message. Then we simply pass that bound message on to a handling function or object and return the resulting value, safe in the knowledge that our hosting program will have supplied an appropriate IErrorHandlerBuilder for our current purposes. The beauty of all of this is that the service object does not need to know what the error handling strategy is, and the objects/functions doing the work do not need to worry about error handling at all. <p /> This technique is especially useful in situations where you are making use of asynchronous programming techniques such as agents and you really don&rsquo;t want a single failure taking out your whole agent or async expression. If for some reason it&rsquo;s important to your code what the error is, as well as knowing it&rsquo;s been handled, it would be easy to modify this technique to return a Choice or custom MaybeError discriminated union that you could pull the exception out of later. <p /> It would also be helpful for managing things like SQL connections with multiple retry attempts: for testing you may not want that kind of complexity and you could pass in a simpler strategy builder, while testing your robust, multiple retry computational builder for use in actual deployed environments (test or production). <p /> And, of course, just knowing that builder interfaces are possible raises up a whole new world of possibilities. <p /> As always, I tend to write about stuff that is fresh and new to me (i.e. not fully considered and maybe fatally flawed). Comments and suggestions welcome. <p /> * To avoid any confusion, I should note that the word audit is used loosely in this blog post, with a meaning more related to a namespace within our code than the normal meaning of the word &lsquo;audit&rsquo;.</p></p>
 ]]></content>
   </entry>
   

@@ -4,7 +4,7 @@
   <title><![CDATA[Category: fsharp | Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/blog/categories/fsharp/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2013-07-14T21:10:52+01:00</updated>
+  <updated>2013-09-17T11:46:41+01:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,35 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Teaching F# to C# Devs]]></title>
+    <link href="http://blog.mavnn.co.uk/teaching-f-number-to-c-number-devs/"/>
+    <updated>2013-09-17T11:12:00+01:00</updated>
+    <id>http://blog.mavnn.co.uk/teaching-f-number-to-c-number-devs</id>
+    <content type="html"><![CDATA[<p>So, in a fit of enthusiasm my boss bought 15 tickets to the <a href="" title="http://skillsmatter.com/event/scala/progressive-f-tutorials-2013">London Progressive F# Tutortials</a> when he saw the early birds pricing (did I mention it&rsquo;s nice working here?). Several of the people who have been assigned tickets have asked to go largely because they are new to F#, so I&rsquo;ve been asked to put together a starter session to teach them the basics. I&rsquo;ve tried this <a href="" title="http://blog.mavnn.co.uk/an-introduction-to-f-screencast-and-pdf-slide">once before</a> and it was a fairly successful session (F# was adopted as a official supported language in the company partly due to feedback following it). But it was still pretty rough around the edges, and as normal with these things, you always want to do them better the next time round&hellip;</p>
+
+<p>So, with a target audience of curious, experienced C# devs I&rsquo;m wondering about the best approach. The initial session needs to fit in an hour, although I can do individual follow ups afterwards.</p>
+
+<p>My current thinking is to take a block of C# code (smtp sender?) that is fairly straight forward but &lsquo;production ready&rsquo; in the sense that it includes error handling, logging, etc. Then do a straight re-write in F# live coding. And then start refactoring to more idiomatic F# as we go along.</p>
+
+<p>Features I feel would be important to cover:</p>
+
+<ul>
+<li>Basic syntax (let, functions, if &hellip; then, etc)</li>
+<li>Common idioms (|>, Seq.map)</li>
+<li>At least one computational expression (probably an error handling one; simpler than async in some ways)</li>
+<li>Several examples of using the match statements</li>
+<li>&hellip;which probably means at least one DU, possibly for error handling</li>
+<li>Records and { &hellip; with &hellip; } expressions</li>
+</ul>
+
+
+<p>I&rsquo;ve got a week or two to prepare, so what I&rsquo;m really hoping for at this point is suggestions and ideas from people for how to improve this as a session idea, things that threw you when you first started writing F# you think should be covered, whether you think this is a stupid idea for a session from the concept up, etc. Once the session is completed I&rsquo;ll be posting the slides and hopefully a screen cast of it as I did last time for use by <a href="" title="http://fsharp.org">fsharp.org</a>.</p>
+
+<p>Suggestions on the piece of C# code to translate would also be appreciated &ndash; either in terms of ideas of the type of code, or actual open source code that would serve as a code starting point.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[FsCheck - Breaking your code in new and exciting ways]]></title>
@@ -405,32 +434,6 @@ all that, I hope you find it useful.</p>
 
 <p>&nbsp;</p>
 
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[A short interlude into adaptive polling]]></title>
-    <link href="http://blog.mavnn.co.uk/a-short-interlude-into-adaptive-polling-tag-f/index.html"/>
-    <updated>2013-01-22T00:00:00+00:00</updated>
-    <id>http://blog.mavnn.co.uk/a-short-interlude-into-adaptive-polling-tag-f/a-short-interlude-into-adaptive-polling-tag-f</id>
-    <content type="html"><![CDATA[<p><span style="font-family: arial,sans-serif; font-size: 13px;">Your windows service is watching an email inbox.</span><p /> <span style="font-family: arial,sans-serif; font-size: 13px;">How often should it poll?</span><p /><span style="font-family: arial,sans-serif; font-size: 13px;">Once every 5 minutes? Every 10? Then of course you realise that it should be different for every customer&hellip; or maybe every mailbox. You need more config!</span></p>
-
-<p><p />
-<div>Or not.<p /><span style="font-family: arial,sans-serif; font-size: 13px;">The real answer, of course, is something completely different: it&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">should poll a lot when a lot of emails are arriving, and not very much&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">when they aren&rsquo;t.</span><p /> <span style="font-family: arial,sans-serif; font-size: 13px;">It took a lot longer than it should have done to get my maths brain&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">back on, but with the help of my wife I eventually settled on this&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">code for deciding the intervals between polls:</span><p />
-<div><script src="https://gist.github.com/4595744.js"></script></div>
-<p />
-<div>The &lsquo;i&rsquo; in this function is the number of times we&rsquo;ve polled since the last time a new email was received (if one is received, we reset i to 0).</div>
-<p />
-<div>If you plot this out on a graph, you get something that looks like this:</div>
-<p />
-<div><img src="http://www.wolframalpha.com/share/img?i=d41d8cd98f00b204e9800998ecf8427ehd954rh40i&amp;f=HBQTQYZYGY4TOM3CGRSGMMBWGAYDCM3DGYZGMOBWGFRDANDCMUZAaaaa" alt="" /></div>
-<p />
-<div>(You can play with the shape of the graph at Wolfram|Alpha if you&rsquo;re feeling really geeky :) &ndash;&nbsp;<a href="http://www.wolframalpha.com/share/clip?f=d41d8cd98f00b204e9800998ecf8427ehd954rh40i"><a href="http://www.wolframalpha.com/share/clip?f=d41d8cd98f00b204e9800998ecf8427ehd954rh40i">http://www.wolframalpha.com/share/clip?f=d41d8cd98f00b204e9800998ecf8427ehd954rh40i</a></a>&nbsp;).</div>
-<p />
-<div>This gives us very aggressive polling for the first few minutes after discovering an email, then dropping off rapidly to close to the one every ten minutes mark that I decided was a reasonable background polling rate.</div>
-<p />
-<div>It&rsquo;s not truly adaptive in the machine learning sense, but it gives a very good first cut that is an awful lot better than any fixed value could be.</div>
-</div></p>
 ]]></content>
   </entry>
   

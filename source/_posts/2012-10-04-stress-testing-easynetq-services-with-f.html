@@ -3,6 +3,7 @@ permalink: /stress-testing-easynetq-services-with-f/index.html
 layout: post
 title: Stress testing EasyNetQ services with F#
 published: true
+comments: true
 categories: []
 ---
 <div>Having recently moved one of our (<a href="http://15below.com">http://15below.com</a>) infrastructure services from using MSMQs to RabbitMq (via using EasyNetQ: <a href="https://github.com/mikehadlow/EasyNetQ">https://github.com/mikehadlow/EasyNetQ</a>), I then wanted to run it through some simple stress tests. One of the reasons for this is that the old service used to time out on messages regularly, leaving them in a dead letter queue and requiring us to write the &#39;DeadLetterProcessor&#39; (a complete service in it&#39;s own right) to deal with the time outs.</div> <p /><div>74 lines of F# later, I was hitting the service with 40,000 requests spread across 4 parallel processes.</div><br /><div><script src="https://gist.github.com/3832369.js"></script></div> <p /><div>And the results: 18 seconds to process the lot, with no time outs or losses. Requests were going in faster than the service could process them, but Rabbit was admirably handling that side of things, and with the new setup multiple copies of the service would automatically round robin requests if that was ever needed.</div> <p /><div>Adious, DeadLetterProcessor: it was nice deleting you...</div>

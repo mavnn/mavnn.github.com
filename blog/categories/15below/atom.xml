@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: 15below | Mavnn's blog]]></title>
+  <link href="http://blog.mavnn.co.uk/blog/categories/15below/atom.xml" rel="self"/>
+  <link href="http://blog.mavnn.co.uk/"/>
+  <updated>2013-09-29T20:59:09+01:00</updated>
+  <id>http://blog.mavnn.co.uk/</id>
+  <author>
+    <name><![CDATA[mavnn]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Coding Hygiene: Moving from project references to NuGet dependencies]]></title>
+    <link href="http://blog.mavnn.co.uk/coding-hygiene-moving-from-project-references-to-nuget-dependencies/"/>
+    <updated>2013-03-08T17:08:00+00:00</updated>
+    <id>http://blog.mavnn.co.uk/coding-hygiene-moving-from-project-references-to-nuget-dependencies</id>
+    <content type="html"><![CDATA[<p>So, first post with the new blogging engine. Let&rsquo;s see how it goes.</p>
+
+<p>Our code base at <a href="http://15below.com">15below</a> started it&rsquo;s life a fair
+while ago, well before any form of .NET package management became
+practical. Because of that, we ended up building a lot of code in
+&lsquo;lockstep&rsquo; with project references in code as there was no sensible way
+of taking versioned binary dependencies.</p>
+
+<p>That&rsquo;s fine and all, but it encourages bad code hygiene: rather than
+having sharply defined contracts between components, if you&rsquo;ve got them
+all open in the same solution it becomes far too tempting to just nudge
+changes around as it&rsquo;s convenient at the time. Changes can infect other
+pieces of code, and the power of automatic refactoring across the entire
+solution becomes intoxicating.</p>
+
+<p>The result? It becomes very hard to do incremental builds (or
+deployments, for that matter). This in turn makes for a long feed back
+cycle between making a change, and being able to see it rolled out to a
+testing environment.</p>
+
+<p>So as part of the ongoing refactoring that any long lived code base needs to
+keep it maintainable and under control, we&rsquo;ve embarked on the process of
+splitting our code down into more logically separated repositories that
+reference each other via NuGet. This will require us to start being much
+more disciplined in our <a href="http://semver.org">semantic versioning</a> than we
+have been in the past, but will also allow us to build and deploy
+incrementally and massively reduce our feed back times.</p>
+
+<p>As part of splitting out the first logical division (I&rsquo;d like to say
+<a href="http://en.wikipedia.org/wiki/Domain-driven_design">domain</a> but we&rsquo;re
+not there yet!), I created the new repository and got the included
+assemblies up and building on TeamCity. It was only then (stupidly) that
+I realised that we had several hundred project references to these
+assemblies in our code. There was no way I was going to update them all
+by hand, so after a few hours development we now have a script for
+idempotently updating a project reference in a [cs|vb|fs]proj file to a
+NuGet reference. It does require you to do one update manually first;
+especially with assemblies that are strongly signed, I chickened out of
+trying to generate the reference nodes that needed to be added
+automatically. The script also makes sure that you end up with a
+packages.config file with the project that includes the new dependency.</p>
+
+<p>It should be noted that this script has only seen minimal testing, was
+coded up for one time use and does not come with a warranty of any kind!
+Use at your own risk, and once you understand what it&rsquo;s doing. But for
+all that, I hope you find it useful.</p>
+
+<p><div><script src='https://gist.github.com/5983379.js'></script>
+<noscript><pre><code>#r &quot;System.Xml.Linq&quot;
+#r &quot;tools\FAKE\FakeLib.dll&quot;
+open System.IO
+open System.Xml
+open System.Xml.Linq
+open System.Xml.XPath
+open Fake
+
+// You'll want to replace these values...
+let nugetId = &quot;my.package.id&quot;
+let refName = &quot;my.ref.name&quot;
+let packageNode = XElement.Parse &quot;&quot;&quot;&lt;package id=&quot;my.package.id&quot; version=&quot;1.0.0.6&quot; targetFramework=&quot;net40&quot; /&gt;&quot;&quot;&quot;
+let refXml =
+    &quot;&quot;&quot;
+    &lt;Reference Include=&quot;my.ref.name&quot;&gt;
+      &lt;HintPath&gt;..\..\packages\my.package.id.1.0.0.6\lib\net40\my.ref.name.dll&lt;/HintPath&gt;
+      &lt;Private&gt;True&lt;/Private&gt;
+    &lt;/Reference&gt;
+    &quot;&quot;&quot;
+let hintPathFromRoot =
+@&quot;packages\my.package.id.1.0.0.6\lib\net40\my.ref.name.dll&quot;
+let sourceRoot = &quot;C:\WhereIKeepMyRepo&quot;
+
+// You should be able to leave the rest alone
+let ns = &quot;http://schemas.microsoft.com/developer/msbuild/2003&quot;
+let nsm = new XmlNamespaceManager(new NameTable())
+nsm.AddNamespace(&quot;ns&quot;, ns)
+let nugetPath = sourceRoot @@ &quot;tools&quot; @@ &quot;NuGet&quot; @@ &quot;NuGet.exe&quot;
+
+let HasProjectReference (projDoc : XDocument) refName =
+    projDoc.Root.XPathSelectElements(&quot;//ns:ProjectReference[ns:Name='&quot; + refName + &quot;']&quot;, nsm)
+    |&gt; Seq.length
+    |&gt; (&lt;) 0
+
+let GetProjectReference (projDoc : XDocument) refName =
+    projDoc.Root.XPathSelectElement(&quot;//ns:ProjectReference[ns:Name='&quot; + refName + &quot;']&quot;, nsm)
+
+let DeleteProjectReference refName (projFile : string) =
+    let projDoc = XDocument.Load(projFile)
+    if HasProjectReference projDoc refName then
+        let ref = GetProjectReference projDoc refName
+        ref.Remove()
+        projDoc.Save(projFile)
+
+let HasReference (projDoc : XDocument) refName =
+    projDoc.Root.XPathSelectElements(&quot;//ns:Reference[@Include='&quot; + refName + &quot;']&quot;, nsm)
+    |&gt; Seq.append &lt;| projDoc.Root.XPathSelectElements(&quot;//ns:Reference[@Include[starts-with(., '&quot; + refName + &quot;,')]]&quot;, nsm)
+    |&gt; Seq.tryPick (fun e -&gt; Some e)
+
+let FirstReference (projDoc : XDocument) =
+    projDoc.Root.XPathSelectElements(&quot;//ns:Reference&quot;, nsm)
+    |&gt; Seq.head
+
+let GetHintPath hintPathFromRoot root projFile =
+    let rootDir = DirectoryInfo(root)
+    let projDir = DirectoryInfo(Path.GetDirectoryName(projFile))
+    let rec dirDiff (rootDir : DirectoryInfo) (currentDir : DirectoryInfo) levels =
+        if rootDir.FullName = currentDir.FullName then
+            levels
+        else
+            dirDiff rootDir (currentDir.Parent) (levels + 1)
+    hintPathFromRoot::[for _ in 1..(dirDiff rootDir projDir 0) -&gt; &quot;..&quot;]
+    |&gt; List.rev
+    |&gt; List.fold (@@) &quot;.&quot;
+
+let UpdateHintPath projFile =
+    let ref = XElement.Parse(refXml)
+    let xs = XNamespace.Get(ns)
+    let el = ref.XPathSelectElement(&quot;//HintPath&quot;)
+    el.SetValue (GetHintPath hintPathFromRoot sourceRoot projFile)
+    for node in ref.DescendantsAndSelf() do
+        node.Name &lt;- xs + node.Name.LocalName
+    ref
+
+let EnsureReference refName (projFile : string) =
+    let doc = XDocument.Load(projFile)
+    match HasReference doc refName with
+    | Some el -&gt; el.Remove()
+    | None -&gt; ()
+    let el = FirstReference doc
+    el.AddBeforeSelf(UpdateHintPath projFile)
+    doc.Save(projFile)
+
+type PackageFile =
+    | Exists of string
+    | Missing of string
+
+let GetPackagesDotConfig projFile =
+    let dir = Path.GetDirectoryName(projFile)
+    let path = dir @@ &quot;packages.config&quot;
+    if File.Exists(path) then
+        Exists path
+    else
+        Missing path
+
+let HasPackageReference (doc : XDocument) nugetId =
+    doc.XPathSelectElements(&quot;//package[@id = '&quot; + nugetId + &quot;']&quot;)
+    |&gt; Seq.length
+    |&gt; (&lt;) 0
+
+let EnsurePackagesDotConfigHasPackage nugetId projFile =
+    let doc, path =
+        match GetPackagesDotConfig projFile with
+        | Missing path -&gt;
+            XDocument.Parse(&quot;&lt;packages /&gt;&quot;), path
+        | Exists path -&gt;
+            XDocument.Load(path), path
+    if not &lt;| HasPackageReference doc nugetId then
+        doc.Root.XPathSelectElement(&quot;/packages&quot;).Add(packageNode)
+        doc.Save path
+
+let UpdateProj (projFile : string) =
+    if HasProjectReference (XDocument.Load(projFile)) refName then
+        DeleteProjectReference refName projFile
+        EnsureReference refName projFile
+        EnsurePackagesDotConfigHasPackage nugetId projFile
+
+!+ (@&quot;**\*.csproj&quot;)
+++ (@&quot;**\*.fsproj&quot;)
+++ (@&quot;**\*.vbproj&quot;)
+|&gt; Scan
+|&gt; Seq.map (fun proj -&gt; printfn &quot;Updating %s&quot; proj; proj)
+|&gt; Seq.iter UpdateProj
+</code></pre></noscript></div>
+</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Throttling the level of concurrency in F#]]></title>
+    <link href="http://blog.mavnn.co.uk/throttling-the-level-of-concurrency-in-f/index.html"/>
+    <updated>2013-02-15T00:00:00+00:00</updated>
+    <id>http://blog.mavnn.co.uk/throttling-the-level-of-concurrency-in-f/throttling-the-level-of-concurrency-in-f</id>
+    <content type="html"><![CDATA[<div>Async.Parallel |&gt; Async.RunSynchronously is great for running a load of stuff in parallel in F#, as long as you don&#39;t mind them all running at the same time.</div>
+
+
+<p><p /><div>Often, though, you want to map across a sequence and run functions on the elements in parallel, but with a limit to how many are being processed concurrently. Whether you&#39;re doing something CPU heavy and there&#39;s no point running more than the number of processors on the box, or whether you know that you&#39;ll swamp a remote server if you just dump all of your connections on it at once, this issue comes up surprisingly often.</div> <p /><div>As a first stab, you might be tempted to do something like this (if you think like I do):</div><p /><div><script src="https://gist.github.com/4961072.js"></script><br /> </div><p /><div>In a word: don&#39;t. The contention in the Semaphore make this enormously inefficient with even a few hundred tasks.</div><p /><div>In the end, the simplest  implementation I could come up with that didn&#39;t involve dragging in external dependencies was the following:</div> <p /><div><script src="https://gist.github.com/4961056.js"></script><br /></div><p /><div>If anyone has a simpler implementation, leave a comment and let me know!</div></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Fake Part 2: Build and test]]></title>
+    <link href="http://blog.mavnn.co.uk/fake-part-2-build-and-test/index.html"/>
+    <updated>2013-02-13T00:00:00+00:00</updated>
+    <id>http://blog.mavnn.co.uk/fake-part-2-build-and-test/fake-part-2-build-and-test</id>
+    <content type="html"><![CDATA[<p>The introduction to this series can be found at <a href="http://blog.mavnn.co.uk/getting-started-with-fake-an-introduction-tag">http://blog.mavnn.co.uk/getting-started-with-fake-an-introduction-tag</a> or just check out my Fake tag.</p>
+
+
+<p><strong>The scenario</strong></p>
+
+
+<p>So, you've written your brave new F# 3.0 solution, and now you want to build, test and package it with a shared build setup between your CI environment (which, of course, doesn't have Visual Studio installed) and your developer's machines.</p>
+
+
+<p><span style="font-size: 13px;">Hopefully this will walk you through most of the potential pitfalls you might find along the way.</span></p>
+
+
+<p><span style="font-size: 13px;">This post has been written using an actual build.fsx script that we use for a utility project at <a href="http://15below.com" title="15below" target="_blank">15below</a>. We're hiring, so if you're interested in this kind of thing, drop me a line.</span></p>
+
+
+<p><strong><span style="font-size: 13px;">Set up</span></strong></p>
+
+
+<p><span style="font-size: 13px;">There is no installer for the F# 3 compiler, so we're going to be playing some games to support building on a TeamCity build agent without VS 2012 installed.</span></p>
+
+
+<p><span style="font-size: 13px;">The script assumes a few things about your repository:</span></p>
+
+
+<p>&nbsp;</p>
+
+
+<ul>
+<li><span style="font-size: 13px;">a tools directory with the same NuGet and FSharp directories as at <a href="https://github.com/fsharp/FAKE/tree/develop/tools">https://github.com/fsharp/FAKE/tree/develop/tools</a> (basically a recent nuget.exe in one, and a recent build of the open source F# compiler project in the other)</span></li>
+<li><span style="font-size: 13px;">a tools/FAKE directory with a recent build of FAKE (I prefer to have a known version checked into git, but you can read instructions on how to bootstrap it via nuget at <a href="http://www.navision-blog.de/blog/2009/04/01/getting-started-with-fake-a-f-sharp-make-tool/)">http://www.navision-blog.de/blog/2009/04/01/getting-started-with-fake-a-f-sha...</a></span></li>
+</ul>
+
+
+<p>&nbsp;</p>
+
+
+<p><span style="font-size: 13px;">From here on down is just a heavily commented build.fsx file. I was going to use FSharp.Formatting to nicely format this, but unfortunately the combination of FSharp.Formatting itself and Posterous have defeated me. Something to play with more at a later date.</span></p>
+
+
+<p><span style="font-size: 13px;"><script src="https://gist.github.com/4944580.js"></script></span></p>
+
+
+<p><span style="font-size: 13px;">Hopefully this example will give you a start on using FAKE in real projects.</span></p>
+
+
+<p><span style="font-size: 13px;">In future posts I'd like to address some of the more esoteric bits and pieces we've been using FAKE for, such as building Octopus deployment packages, running integration tests (with full setup and database deployment) and running unit tests in parallel. Stay tuned...</span></p>
+
+
+<p>&nbsp;</p>
+
+
+<p>&nbsp;</p>
+
+
+<p>&nbsp;</p>
+
+
+<p>&nbsp;</p>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[A short interlude into adaptive polling]]></title>
+    <link href="http://blog.mavnn.co.uk/a-short-interlude-into-adaptive-polling-tag-f/index.html"/>
+    <updated>2013-01-22T00:00:00+00:00</updated>
+    <id>http://blog.mavnn.co.uk/a-short-interlude-into-adaptive-polling-tag-f/a-short-interlude-into-adaptive-polling-tag-f</id>
+    <content type="html"><![CDATA[<p><span style="font-family: arial,sans-serif; font-size: 13px;">Your windows service is watching an email inbox.</span><p /> <span style="font-family: arial,sans-serif; font-size: 13px;">How often should it poll?</span><p /><span style="font-family: arial,sans-serif; font-size: 13px;">Once every 5 minutes? Every 10? Then of course you realise that it should be different for every customer&hellip; or maybe every mailbox. You need more config!</span></p>
+
+<p><p />
+<div>Or not.<p /><span style="font-family: arial,sans-serif; font-size: 13px;">The real answer, of course, is something completely different: it&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">should poll a lot when a lot of emails are arriving, and not very much&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">when they aren&rsquo;t.</span><p /> <span style="font-family: arial,sans-serif; font-size: 13px;">It took a lot longer than it should have done to get my maths brain&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">back on, but with the help of my wife I eventually settled on this&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">code for deciding the intervals between polls:</span><p />
+<div><script src="https://gist.github.com/4595744.js"></script></div>
+<p />
+<div>The &lsquo;i&rsquo; in this function is the number of times we&rsquo;ve polled since the last time a new email was received (if one is received, we reset i to 0).</div>
+<p />
+<div>If you plot this out on a graph, you get something that looks like this:</div>
+<p />
+<div><img src="http://www.wolframalpha.com/share/img?i=d41d8cd98f00b204e9800998ecf8427ehd954rh40i&amp;f=HBQTQYZYGY4TOM3CGRSGMMBWGAYDCM3DGYZGMOBWGFRDANDCMUZAaaaa" alt="" /></div>
+<p />
+<div>(You can play with the shape of the graph at Wolfram|Alpha if you&rsquo;re feeling really geeky :) &ndash;&nbsp;<a href="http://www.wolframalpha.com/share/clip?f=d41d8cd98f00b204e9800998ecf8427ehd954rh40i"><a href="http://www.wolframalpha.com/share/clip?f=d41d8cd98f00b204e9800998ecf8427ehd954rh40i">http://www.wolframalpha.com/share/clip?f=d41d8cd98f00b204e9800998ecf8427ehd954rh40i</a></a>&nbsp;).</div>
+<p />
+<div>This gives us very aggressive polling for the first few minutes after discovering an email, then dropping off rapidly to close to the one every ten minutes mark that I decided was a reasonable background polling rate.</div>
+<p />
+<div>It&rsquo;s not truly adaptive in the machine learning sense, but it gives a very good first cut that is an awful lot better than any fixed value could be.</div>
+</div></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Corrected Error Handling Computational Expression]]></title>
+    <link href="http://blog.mavnn.co.uk/corrected-error-handling-computational-expres/index.html"/>
+    <updated>2013-01-18T00:00:00+00:00</updated>
+    <id>http://blog.mavnn.co.uk/corrected-error-handling-computational-expres/corrected-error-handling-computational-expres</id>
+    <content type="html"><![CDATA[<p>I&rsquo;ve been wanting to write code like this in F#, and know that any
+exceptions within a bound expression in an audit { } block will not
+only get caught, but that an external auditing service will get
+notified that the operation has failed.</p>
+
+
+
+
+<p><script src="https://gist.github.com/4565937.js"></script></p>
+
+
+
+
+<p>Unfortunately, it turns out my code in my post on error handling
+( <a href="http://blog.mavnn.co.uk/playing-with-error-handling-strategies">http://blog.mavnn.co.uk/playing-with-error-handling-strategies</a> ) was
+flawed in its ability to handle errors. The irony has not escaped me.</p>
+
+
+
+
+<p>The issue is with the eager evaluation of arguments to the TryFinally
+method of the builder. If it takes you a while to work out what that
+means, don&rsquo;t worry: it took me about 2 days to wrap my head round it
+and work out how to correct the code to make it behave as I would have
+expected.</p>
+
+
+
+
+<p>To make things work correctly, the type returned by the computational
+expression pretty much has to be a deferred function of some kind.</p>
+
+
+
+
+<p>So, the Interface, now renamed IAuditBuilder, gains a couple of helper
+functions and becomes:</p>
+
+
+
+
+<p><script src="https://gist.github.com/4565812.js"></script></p>
+
+
+
+
+<p>The implementation of the TestAuditBuilder (only logs to console on
+error) becomes:</p>
+
+
+
+
+<p><script src="https://gist.github.com/4565838.js"></script></p>
+
+
+
+
+<p>So: many thanks to Johann Deneux for patiently pointing out to me what
+the flaw in the original code was. I hope this example of a lazy
+computational expression is useful to other starting out down this
+rabbit hole of monadic weirdness. At least the resulting code looks
+pretty nice and readable now that the builder is fixed.</p>
+
+]]></content>
+  </entry>
+  
+</feed>

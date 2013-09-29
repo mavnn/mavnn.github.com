@@ -1,0 +1,359 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Getting started with Fake - an introduction - Mavnn's blog</title>
+  <meta name="author" content="mavnn">
+
+  
+  <meta name="description" content="This is the first post in what will be a series about how we moved to
+using Fake for our build and testing
+at 15below. Feel free to follow along for &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://blog.mavnn.co.uk/getting-started-with-fake-an-introduction-tag">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Mavnn's blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-37561687-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mavnn's blog</a></h1>
+  
+    <h2>Stuff from my brain</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:blog.mavnn.co.uk" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Getting Started With Fake - an Introduction</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-01-09T00:00:00+00:00" pubdate data-updated="true">Jan 9<span>th</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><blockquote><p>This is the first post in what will be a series about how we moved to
+using <a href="https://github.com/fsharp/FAKE">Fake</a> for our build and testing
+at <a href="http://15below.com">15below</a>. Feel free to follow along for the
+ride. It&rsquo;s partly there as a way of keeping the full development group
+within the company informed of what&rsquo;s going on, so it will get pretty
+detailed and gritty in the later sections, but we decided that there
+wasn&rsquo;t anything too company specific in here. So we&rsquo;re sharing it with
+you all&hellip;</p></blockquote>
+
+<p>At my current employer, we have a wide range of code all the way from
+automatically translated vb6 (to vb.net) to brand spanking new F# and
+C#. At the end of the day though, everything runs on .net 4.0
+(currently).</p>
+
+<p>With the newer components, we could in theory be building and testing
+them independently: messaging based and developed in a TDD style they
+tend to have an existing test harness around them and be easy to add
+further tests to if it proves necessary.</p>
+
+<p>The legacy code on the other hand, is a bit of a different matter.
+It&rsquo;s still in the code base because it works. We know it works,
+because customers are using it and getting value from it. The bits
+that didn&rsquo;t, or looked like they were getting flaky, are the bits that
+have been refactored as we went along. But they are old enough that
+what is now considered basic testing hygiene was still a little more
+than a twinkle in Kent Beck&rsquo;s eye. (Ok, ok, so the book had been
+released. But it wasn&rsquo;t exactly considered common best practice yet).
+So until the refactoring work is complete, we&rsquo;re stuck with a system
+where the only feasible way of testing some aspects of it is to
+actually deploy it somewhere and run some jobs through.</p>
+
+<p>So what does this all have to do with Fake?</p>
+
+<p>Well, basically our continuous integration was getting out of control.
+To get the level of functionality and control we needed, we were
+ending up with somewhere in the region of 500 lines of re-entrant,
+recursive MsBuild scripts. I seriously considered starting the
+alt.ms.build.die.die.die newsgroup. A full build on a developer&rsquo;s
+machine could take upwards of 45 minutes. Even more painfully, as the
+refactoring continued we ended up with TeamCity build configurations
+tightly coupled to specific versions of our software, and it was
+becoming clear that the whole CI system was going to rapidly collapse
+under it&rsquo;s own weight unless things changed.</p>
+
+<p>We needed a solution.</p>
+
+<p>It had to be:</p>
+
+<ul>
+<li>Powerful. Programming in MsBuild is&hellip; not fun. Xml is for data.</li>
+<li>Storable in git along with our source code.</li>
+<li>.net based. We&rsquo;re a .net shop, and our specialist knowledge is .net;
+rake wasn&rsquo;t going to cut it. We also didn&rsquo;t want the management
+overhead of even more tooling on the build agents.</li>
+<li>In active development.</li>
+<li>Preferably open source, so even if external development stopped we
+could continue to maintain it.</li>
+</ul>
+
+
+<p>As both the company F# evangelist and one of the two people doing most
+of the CI work, I was very interested to hear about Fake, especially
+after having a chance to chat to it&rsquo;s author (<a href="https://twitter.com/sforkmann">Steffen
+Forkmann</a>) and having it recommended by
+Don Syme (who wrote F#).</p>
+
+<p>It met all of the criteria above. It&rsquo;s scripts are full F# &ndash; a
+language fully supported by Microsoft within it&rsquo;s flagship Visual
+Studio product. The scripts can easily be stored in git. It&rsquo;s actively
+being worked on, and accepting contributions as a fully open source
+product.</p>
+
+<p>Time to give it a try.</p>
+
+<p>Next post: how to set up your &ldquo;HelloWorld.fsx&rdquo; Fake script with your
+source, with all the niceties like intellisense that you would want.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">mavnn</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-01-09T00:00:00+00:00" pubdate data-updated="true">Jan 9<span>th</span>, 2013</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/15below/'>15below</a>, <a class='category' href='/blog/categories/fake/'>fake</a>, <a class='category' href='/blog/categories/fsharp/'>fsharp</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://blog.mavnn.co.uk/getting-started-with-fake-an-introduction-tag/index.html" data-via="mavnn" data-counturl="http://blog.mavnn.co.uk/getting-started-with-fake-an-introduction-tag/index.html" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/st-lambda-and-the-t-shirt-of-extra-geek/index.html" title="Previous Post: St. Lambda and the T-shirt of Extra Geek">&laquo; St. Lambda and the T-shirt of Extra Geek</a>
+      
+      
+        <a class="basic-alignment right" href="/playing-with-error-handling-strategies/index.html" title="Next Post: Playing with error handling strategies">Playing with error handling strategies &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/being-a-priest-and-programming/">Being a Priest and Programming</a>
+      </li>
+    
+      <li class="post">
+        <a href="/implementing-classic-oo-style-code-in-f-number/">Implementing Classic OO Style Code in F#</a>
+      </li>
+    
+      <li class="post">
+        <a href="/teaching-f-number-to-c-number-devs/">Teaching F# to C# Devs</a>
+      </li>
+    
+      <li class="post">
+        <a href="/fscheck-breaking-your-code-in-new-and-exciting-ways/">FsCheck - Breaking Your Code in New and Exciting Ways</a>
+      </li>
+    
+      <li class="post">
+        <a href="/useful-find-a-decent-windows-console/">Useful Find: A Decent Windows Console</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/mavnn">@mavnn</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'mavnn',
+            count: 3,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - mavnn -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mavnn';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://blog.mavnn.co.uk/getting-started-with-fake-an-introduction-tag/index.html';
+        var disqus_url = 'http://blog.mavnn.co.uk/getting-started-with-fake-an-introduction-tag/index.html';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

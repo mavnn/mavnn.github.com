@@ -9,7 +9,8 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="As part of writing up notes for introducing F# as a programming language to experienced C# devs, I realised that I&rsquo;d written at least one &hellip;">
+  <meta name="description" content="As part of writing up notes for introducing F# as a programming language to experienced C# devs I was looking for examples
+of heavily OO code being &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -103,13 +104,311 @@
   </header>
 
 
-<div class="entry-content"><p>As part of writing up notes for introducing F# as a programming language to experienced C# devs, I realised that I&rsquo;d written at least one suitable example myself.</p>
+<div class="entry-content"><p>As part of writing up notes for introducing F# as a programming language to experienced C# devs I was looking for examples
+of heavily OO code being implemented in F#. Then I realised that I&rsquo;d written at least one suitable example myself.</p>
 
-<p>In the <a href="" title="https://github.com/mavnn/NuGetPlus">NuGetPlus project</a> I needed to implement a ProjectSystem class as the version in that was almost a direct copy of the MSBuildProjectSystem in the NuGet commandline client.</p>
+<p>In the <a href="" title="https://github.com/mavnn/NuGetPlus">NuGetPlus project</a> I needed to implement a ProjectSystem class that was almost a direct copy of the MSBuildProjectSystem in the NuGet commandline client.</p>
 
-<p>So without further ado, the <a href="" title="https://github.com/mavnn/NuGetPlus/blob/master/NuGetPlus.Core/ProjectSystem.fs">ProjectSystem class from NuGetPlus</a> and the <a href="" title="http://nuget.codeplex.com/SourceControl/latest#src/CommandLine/Common/MSBuildProjectSystem.cs">MSBuildProjectSystem class from NuGet</a>.</p>
+<p>So without further ado, F# and then C# versions of a class with inheritance and which implements several interfaces.</p>
 
-<script src="https://gist.github.com/mavnn/6684569.js"></script>
+<p>The <a href="" title="https://github.com/mavnn/NuGetPlus/blob/master/NuGetPlus.Core/ProjectSystem.fs">ProjectSystem class from NuGetPlus</a>:</p>
+
+<div><script src='https://gist.github.com/6684569.js?file=fsharp.fs'></script>
+<noscript><pre><code>[&lt;AutoOpen&gt;]
+module NuGetPlus.ProjectSystem
+
+open System
+open System.IO
+open System.Collections.Generic
+open System.Reflection
+open Microsoft.Build.Evaluation
+open NuGet
+
+let TryGetProject projectFile = 
+    ProjectCollection.GlobalProjectCollection.GetLoadedProjects(projectFile) 
+    |&gt; Seq.tryFind(fun p -&gt; p.FullPath = projectFile)
+
+type ProjectSystem(projectFile : string) = 
+    inherit PhysicalFileSystem(Path.GetDirectoryName(projectFile))
+    
+    let project = 
+        match TryGetProject projectFile with
+        | Some project -&gt; project
+        | None -&gt; Project(projectFile)
+    
+    let projectName = Path.GetFileNameWithoutExtension &lt;| project.FullPath
+    let framework = 
+        new Runtime.Versioning.FrameworkName(project.GetPropertyValue
+                                                 (&quot;TargetFrameworkMoniker&quot;))
+    
+    let GetReferenceByName name =
+        project.GetItems(&quot;Reference&quot;)
+        |&gt; Seq.filter
+               (fun i -&gt; 
+                   i.EvaluatedInclude.StartsWith
+                       (name, StringComparison.OrdinalIgnoreCase))
+        |&gt; Seq.tryFind
+               (fun i -&gt; 
+                   AssemblyName(i.EvaluatedInclude)
+                       .Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+
+    let GetReferenceByPath path = 
+        let name = Path.GetFileNameWithoutExtension path
+        GetReferenceByName name
+    
+    interface IProjectSystem with
+        member x.TargetFramework with get () = framework
+        member x.ProjectName with get () = projectName
+        
+        member x.AddReference(path, stream) = 
+            let fullPath = PathUtility.GetAbsolutePath(x.Root, path)
+            let relPath = 
+                PathUtility.GetRelativePath(project.FullPath, fullPath)
+            let includeName = Path.GetFileNameWithoutExtension fullPath
+            project.AddItem
+                (&quot;Reference&quot;, includeName, [|KeyValuePair(&quot;HintPath&quot;, relPath)|]) 
+            |&gt; ignore
+            project.Save()
+        
+        member x.AddFrameworkReference name = 
+            project.AddItem(&quot;Reference&quot;, name) |&gt; ignore
+            project.Save()
+        
+        member x.ReferenceExists path = 
+            match GetReferenceByName path with
+            | Some _ -&gt; true
+            | None -&gt; false
+        
+        member x.RemoveReference path = 
+            match GetReferenceByPath path with
+            | Some i -&gt; 
+                project.RemoveItem(i) |&gt; ignore
+                project.Save()
+            | None -&gt; ()
+        
+        member x.IsSupportedFile path = true
+        member x.ResolvePath path = path
+        member x.IsBindingRedirectSupported with get () = true
+        
+        member x.AddImport((targetPath : string), location) = 
+            if project.Xml.Imports = null 
+               || project.Xml.Imports 
+                  |&gt; Seq.forall
+                         (fun import -&gt; 
+                             not 
+                             &lt;| targetPath.Equals
+                                    (import.Project, 
+                                     StringComparison.OrdinalIgnoreCase)) then 
+                project.Xml.AddImport(targetPath) |&gt; ignore
+                project.ReevaluateIfNecessary()
+                project.Save()
+        
+        member x.RemoveImport(targetPath : string) = 
+            match project.Xml.Imports 
+                  |&gt; Seq.tryFind
+                         (fun import -&gt; 
+                             targetPath.Equals
+                                 (import.Project, 
+                                  StringComparison.OrdinalIgnoreCase)) with
+            | None -&gt; ()
+            | Some i -&gt; 
+                project.Xml.RemoveChild(i)
+                project.ReevaluateIfNecessary()
+                project.Save()
+        
+        member x.FileExistsInProject(path : string) = 
+            project.Items 
+            |&gt; Seq.exists
+                   (fun i -&gt; 
+                       i.EvaluatedInclude.Equals
+                           (path, StringComparison.OrdinalIgnoreCase) 
+                       &amp;&amp; (String.IsNullOrEmpty(i.ItemType) 
+                           || i.ItemType.[0] &lt;&gt; '_'))
+    
+    interface IPropertyProvider with
+        member x.GetPropertyValue name = project.GetPropertyValue(name) :&gt; obj</code></pre></noscript></div>
+
+
+<p>and the <a href="" title="http://nuget.codeplex.com/SourceControl/latest#src/CommandLine/Common/MSBuildProjectSystem.cs">MSBuildProjectSystem class from NuGet</a>:</p>
+
+<div><script src='https://gist.github.com/6684569.js?file=csharp.cs'></script>
+<noscript><pre><code>using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.Versioning;
+using Microsoft.Build.Evaluation;
+
+namespace NuGet.Common
+{
+    public class MSBuildProjectSystem : PhysicalFileSystem, IMSBuildProjectSystem
+    {
+        public MSBuildProjectSystem(string projectFile)
+            : base(Path.GetDirectoryName(projectFile))
+        {
+            Project = GetProject(projectFile);
+        }
+
+        public bool IsBindingRedirectSupported
+        {
+            get
+            {
+                return true;
+            }
+        }
+
+        private Project Project
+        {
+            get;
+            set;
+        }
+
+        public void AddFrameworkReference(string name)
+        {
+            // No-op
+        }
+
+        public void AddReference(string referencePath, Stream stream)
+        {
+            string fullPath = PathUtility.GetAbsolutePath(Root, referencePath);
+            string relativePath = PathUtility.GetRelativePath(Project.FullPath, fullPath);
+            // REVIEW: Do we need to use the fully qualified the assembly name for strong named assemblies?
+            string include = Path.GetFileNameWithoutExtension(fullPath);
+
+            Project.AddItem(&quot;Reference&quot;,
+                            include,
+                            new[] { 
+                                    new KeyValuePair&lt;string, string&gt;(&quot;HintPath&quot;, relativePath)
+                                });
+        }
+
+        public dynamic GetPropertyValue(string propertyName)
+        {
+            return Project.GetPropertyValue(propertyName);
+        }
+
+        public bool IsSupportedFile(string path)
+        {
+            return true;
+        }
+
+        public string ProjectName
+        {
+            get
+            {
+                return Path.GetFileNameWithoutExtension(Project.FullPath);
+            }
+        }
+
+        public bool ReferenceExists(string name)
+        {
+            return GetReference(name) != null;
+        }
+
+        public void RemoveReference(string name)
+        {
+            ProjectItem assemblyReference = GetReference(name);
+            if (assemblyReference != null)
+            {
+                Project.RemoveItem(assemblyReference);
+            }
+        }
+
+        private IEnumerable&lt;ProjectItem&gt; GetItems(string itemType, string name)
+        {
+            return Project.GetItems(itemType).Where(i =&gt; i.EvaluatedInclude.StartsWith(name, StringComparison.OrdinalIgnoreCase));
+        }
+
+        public ProjectItem GetReference(string name)
+        {
+            name = Path.GetFileNameWithoutExtension(name);
+            return GetItems(&quot;Reference&quot;, name)
+                .FirstOrDefault(
+                    item =&gt;
+                    new AssemblyName(item.EvaluatedInclude).Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+        }
+
+        public FrameworkName TargetFramework
+        {
+            get
+            {
+                string moniker = GetPropertyValue(&quot;TargetFrameworkMoniker&quot;);
+                if (String.IsNullOrEmpty(moniker))
+                {
+                    return null;
+                }
+                return new FrameworkName(moniker);
+            }
+        }
+
+        public string ResolvePath(string path)
+        {
+            return path;
+        }
+
+        public void Save()
+        {
+            Project.Save();
+        }
+
+        public bool FileExistsInProject(string path)
+        {
+            // some ItemTypes which starts with _ are added by various MSBuild tasks for their own purposes
+            // and they do not represent content files of the projects. Therefore, we exclude them when checking for file existence.
+            return Project.Items.Any(
+                i =&gt; i.EvaluatedInclude.Equals(path, StringComparison.OrdinalIgnoreCase) &amp;&amp; 
+                     (String.IsNullOrEmpty(i.ItemType) || i.ItemType[0] != '_'));
+        }
+
+        private static Project GetProject(string projectFile)
+        {
+            return ProjectCollection.GlobalProjectCollection.GetLoadedProjects(projectFile).FirstOrDefault() ?? new Project(projectFile);
+        }
+
+        public void AddImport(string targetPath, ProjectImportLocation location)
+        {
+            if (targetPath == null)
+            {
+                throw new ArgumentNullException(&quot;targetPath&quot;);
+            }
+
+            // adds an &lt;Import&gt; element to this project file.
+            if (Project.Xml.Imports == null ||
+                Project.Xml.Imports.All(import =&gt; !targetPath.Equals(import.Project, StringComparison.OrdinalIgnoreCase)))
+            {
+                Project.Xml.AddImport(targetPath);
+                NuGet.MSBuildProjectUtility.AddEnsureImportedTarget(Project, targetPath);
+                Project.ReevaluateIfNecessary();
+                Project.Save();
+            }
+        }
+
+        public void RemoveImport(string targetPath)
+        {
+            if (targetPath == null)
+            {
+                throw new ArgumentNullException(&quot;targetPath&quot;);
+            }
+
+            if (Project.Xml.Imports != null)
+            {
+                // search for this import statement and remove it
+                var importElement = Project.Xml.Imports.FirstOrDefault(
+                    import =&gt; targetPath.Equals(import.Project, StringComparison.OrdinalIgnoreCase));
+
+                if (importElement != null)
+                {
+                    Project.Xml.RemoveChild(importElement);
+                    NuGet.MSBuildProjectUtility.RemoveEnsureImportedTarget(Project, targetPath);
+                    Project.ReevaluateIfNecessary();
+                    Project.Save();
+                }
+            }
+        }
+    }
+}
+</code></pre></noscript></div>
 
 
 <p>I can&rsquo;t honestly remember if they do exactly the same thing, but they are pretty similar and implement the same interfaces and inheritance. As you can see, while F#&rsquo;s focus is being functional it will support OO code just fine, which is very useful indeed when you need to interop with .NET code from other languages and coding styles.</p>
@@ -161,6 +460,8 @@
         <a class="basic-alignment left" href="/teaching-f-number-to-c-number-devs/" title="Previous Post: Teaching F# to C# Devs">&laquo; Teaching F# to C# Devs</a>
       
       
+        <a class="basic-alignment right" href="/being-a-priest-and-programming/" title="Next Post: Being a priest and programming">Being a priest and programming &raquo;</a>
+      
     </p>
   </footer>
 </article>
@@ -180,6 +481,10 @@
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/being-a-priest-and-programming/">Being a Priest and Programming</a>
+      </li>
+    
+      <li class="post">
         <a href="/implementing-classic-oo-style-code-in-f-number/">Implementing Classic OO Style Code in F#</a>
       </li>
     
@@ -193,10 +498,6 @@
     
       <li class="post">
         <a href="/useful-find-a-decent-windows-console/">Useful Find: A Decent Windows Console</a>
-      </li>
-    
-      <li class="post">
-        <a href="/coding-hygiene-moving-from-project-references-to-nuget-dependencies/">Coding Hygiene: Moving From Project References to NuGet Dependencies</a>
       </li>
     
   </ul>

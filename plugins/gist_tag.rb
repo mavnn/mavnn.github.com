@@ -1,6 +1,6 @@
 # A Liquid tag for Jekyll sites that allows embedding Gists and showing code for non-JavaScript enabled browsers and readers.
 # by: Brandon Tilly
-# Source URL: https://gist.github.com/1027674
+# Source URL: https://gist.github.com/mavnn/1027674
 # Post http://brandontilley.com/2011/01/31/gist-tag-for-jekyll.html
 #
 # Example usage: {% gist 1027674 gist_tag.rb %} //embeds a gist for this plugin
@@ -40,13 +40,13 @@ module Jekyll
     end
 
     def script_url_for(gist_id, filename)
-      url = "https://gist.github.com/#{gist_id}.js"
+      url = "https://gist.github.com/mavnn/#{gist_id}.js"
       url = "#{url}?file=#{filename}" unless filename.nil? or filename.empty?
       url
     end
 
     def get_gist_url_for(gist, file)
-      "https://gist.github.com/raw/#{gist}/#{file}"
+      "https://gist.github.com/mavnn/#{gist}/raw/#{file}"
     end
 
     def cache(gist, file, data)

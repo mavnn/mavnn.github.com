@@ -136,7 +136,7 @@
 
 <p>After referencing <code>System.Xml</code> and <code>System.Xml.Linq</code>, our first, very naive, attempt at the implementation looks like this:</p>
 
-<div><script src='https://gist.github.com/5983701.js?file=Part1.fs'></script>
+<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part1.fs'></script>
 <noscript><pre><code>let AddEnhancement (xDoc : XDocument) (input : string) =
     xDoc.Root.Add(XElement(XName.Get &quot;Enhancement&quot;, input))
     xDoc</code></pre></noscript></div>
@@ -148,7 +148,7 @@
 
 <p>First, we&rsquo;ll need to add a property that we want to test. A property is simply a function that takes a data type FsCheck knows how to generate, and returns a bool. FsCheck knows how to generate strings, so our idempotence property looks something like this:</p>
 
-<div><script src='https://gist.github.com/5983701.js?file=Part2.fs'></script>
+<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part2.fs'></script>
 <noscript><pre><code>open FsCheck
 open DevEd.FsCheck
 open System.Xml.Linq
@@ -164,7 +164,7 @@ let ``Add enhancement must be idompotent`` input =
 
 <p>Looking good. How do we run it? Just add this to the end of the file:</p>
 
-<div><script src='https://gist.github.com/5983701.js?file=Part3.fs'></script>
+<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part3.fs'></script>
 <noscript><pre><code>Check.Quick ``Add enhancement must be idompotent``
 
 System.Console.ReadLine() |&gt; ignore</code></pre></noscript></div>
@@ -178,7 +178,7 @@ System.Console.ReadLine() |&gt; ignore</code></pre></noscript></div>
 
 <p>So; let&rsquo;s add some checking to <code>AddEnhancement</code> to make sure we don&rsquo;t re-add the same input more than once.</p>
 
-<div><script src='https://gist.github.com/5983701.js?file=Part4.fs'></script>
+<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part4.fs'></script>
 <noscript><pre><code>let AddEnhancement (xDoc : XDocument) (input : string) =
     if 
         xDoc.Root.Elements(XName.Get &quot;Enhancement&quot;)
@@ -191,7 +191,7 @@ System.Console.ReadLine() |&gt; ignore</code></pre></noscript></div>
 
 <p>And re-run the test and&hellip; oops.</p>
 
-<div><script src='https://gist.github.com/5983701.js?file=Part5.txt'></script>
+<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part5.txt'></script>
 <noscript><pre><code>System.ArgumentException was unhandled by user code
   HResult=-2147024809
   Message=' ', hexadecimal value 0x18, is an invalid character.
@@ -222,7 +222,7 @@ System.Console.ReadLine() |&gt; ignore</code></pre></noscript></div>
 
 <p>Fortunately for us, in .NET 4.0 and above there is a function in the <code>System.Xml</code> namespace called <code>XmlConvert.IsXmlChar</code> which does roughly what you would expect from the name. Let&rsquo;s add an invalid character filter, and an active pattern to tell us if any characters have been removed:</p>
 
-<div><script src='https://gist.github.com/5983701.js?file=Part6.fs'></script>
+<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part6.fs'></script>
 <noscript><pre><code>let filterInvalidChars (input : string) =
     input
     |&gt; Seq.filter (fun c -&gt; XmlConvert.IsXmlChar c)
@@ -240,7 +240,7 @@ let (|ValidXml|InvalidXml|) str =
 
 <p>Now we can amend <code>AddEnhancement</code> to add enhancement nodes for valid XML text or an error node for sanitized invalid XML text:</p>
 
-<div><script src='https://gist.github.com/5983701.js?file=Part7.fs'></script>
+<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part7.fs'></script>
 <noscript><pre><code>let AddEnhancement (xDoc : XDocument) (input : string) =
     match input with
     | ValidXml text -&gt;
@@ -265,7 +265,7 @@ let (|ValidXml|InvalidXml|) str =
 
 <p>And, of course, per the specification, it checks that the 3rd property above holds true (that adding enhancements never reduces the size of the document).</p>
 
-<div><script src='https://gist.github.com/5983701.js?file=Part8.fs'></script>
+<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part8.fs'></script>
 <noscript><pre><code>module FsCheck.Examples.Tests
 
 open FsCheck
@@ -422,6 +422,10 @@ System.Console.ReadLine() |&gt; ignore</code></pre></noscript></div>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/to-infinity/">To Infinity and Beyond</a>
+      </li>
+    
+      <li class="post">
         <a href="/introducing-f-number-to-experienced-developers/">Introducing F# to Experienced Developers</a>
       </li>
     
@@ -435,10 +439,6 @@ System.Console.ReadLine() |&gt; ignore</code></pre></noscript></div>
     
       <li class="post">
         <a href="/teaching-f-number-to-c-number-devs/">Teaching F# to C# Devs</a>
-      </li>
-    
-      <li class="post">
-        <a href="/fscheck-breaking-your-code-in-new-and-exciting-ways/">FsCheck - Breaking Your Code in New and Exciting Ways</a>
       </li>
     
   </ul>

@@ -4,7 +4,7 @@
   <title><![CDATA[Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2013-10-14T12:56:02+01:00</updated>
+  <updated>2013-10-31T09:41:05+00:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,136 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[To Infinity and Beyond]]></title>
+    <link href="http://blog.mavnn.co.uk/to-infinity/"/>
+    <updated>2013-10-31T07:41:00+00:00</updated>
+    <id>http://blog.mavnn.co.uk/to-infinity</id>
+    <content type="html"><![CDATA[<p>So, a couple of weeks ago I went to the Brighton Functional Programmers meet up. It was a fun night, and at one point I ended up live coding in front of a room of functional programmers trying to give examples of lazy and strict evaluation.</p>
+
+<p>The canonical go to tool for the job, is of course the infinite sequence and being stared at by a bunch of people and having syntax highlighting but no compiler, the first thing my brain pulled out of the air was this:</p>
+
+<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part1.fs'></script>
+<noscript><pre><code>let ones =
+    seq {
+        while true do
+            yield 1
+    }
+// seq [1; 1; 1; 1; ...]</code></pre></noscript></div>
+
+
+<p>Which prompted one of the people attending (hi <a href="https://twitter.com/milessabin">Miles!</a>) to comment &ldquo;let&rsquo;s see that in Haskell without the bizarre looping generator&rdquo;. Roughly &ndash; I&rsquo;m slightly paraphrasing here given the couple of weeks in between. He has a bit of a point, this isn&rsquo;t the most functional looking sequence generator in the world, and it looks like quite a lot of code to just generate a lot of ones.</p>
+
+<p>As always in these situations, I had of course thought of several other alternatives before I even reached my chair, so I thought I&rsquo;d have a quick survey of them and their advantages and disadvantages.</p>
+
+<p>My first thought was that I&rsquo;d missed the obvious and succinct option of just generating a range. In F# (as in Haskell) the 1 .. 10 notation generates a list of the integers from 1 to 10. Unfortunately:</p>
+
+<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part2.fs'></script>
+<noscript><pre><code>// Can't do this, unfortunately
+// seq { 1 .. }
+//
+// or this:
+// seq { 1 .. 0 .. 2 }
+//
+// Which I thought might be a nice hack.
+</code></pre></noscript></div>
+
+
+<p>Unlike Haskell, you can&rsquo;t have an unbounded range, nor can you set the &ldquo;step&rdquo; to zero to just keep on generating the same number. So you&rsquo;re limited to generating very big, but definitely not infinite sequences:</p>
+
+<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part3.fs'></script>
+<noscript><pre><code>let notInfiniteOrOnes = seq { 1 .. System.Int32.MaxValue }
+// seq [1; 2; 3; 4; ...]
+
+let notInfinite = seq { for _ in 1 .. System.Int32.MaxValue -&gt; 1 }
+// seq [1; 1; 1; 1; ...]
+</code></pre></noscript></div>
+
+
+<p>But hey! We&rsquo;re in functional world. So if we can&rsquo;t use sneaky built in syntax constructs, the next obvious choice is a recursive function:</p>
+
+<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part4.fs'></script>
+<noscript><pre><code>let ones' =
+    let rec gen () =
+        seq {
+            yield 1
+            yield! gen ()
+        }
+    gen ()
+// seq [1; 1; 1; 1; ...]
+</code></pre></noscript></div>
+
+
+<p>This is definitely infinite, and definitely functional in style. Bit verbose, of course, but it least it won&rsquo;t stack overflow as F# implements tail call recursion. It&rsquo;s verbose, but it does also have its advantages. It&rsquo;s trivial to pass things round in the recursive function (previous values from the sequence, etc) making this a very flexible way of generating sequences.</p>
+
+<p>And, of course, let&rsquo;s not ignore the standard library. The <code>Seq</code> module gives us a couple of methods designed specifically for generating (potentially) infinite sequences.</p>
+
+<p><code>Seq.initInfinite</code> just takes a function that returns a sequence value based on the index of that value:</p>
+
+<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part5.fs'></script>
+<noscript><pre><code>let ones'' = Seq.initInfinite (fun _ -&gt; 1)
+// seq [1; 1; 1; 1; ...]
+</code></pre></noscript></div>
+
+
+<p>As long as a simple mapping from index to value exists, this is both clear and concise. In theory, of course, it also suffers from the same issue as my range generators above: if your index exceeds the valid size of an Int32 you&rsquo;re out of luck.</p>
+
+<p><code>Seq.unfold</code> may seem less intuitive, but in my mind is the more flexible and powerful solution. I tend to come across examples where it&rsquo;s easier to generate a sequence based on either some state or the previous term than by index, and that&rsquo;s exactly what unfold allows you to do:</p>
+
+<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part6.fs'></script>
+<noscript><pre><code>let ones''' = Seq.unfold (fun _ -&gt; Some (1, ())) ()
+// seq [1; 1; 1; 1; ...]
+</code></pre></noscript></div>
+
+
+<p>It will also happily generate sequences forever if your generating function allows.</p>
+
+<p>So, how does it actually work? Let&rsquo;s look at a (slightly) more complex example that actually makes use of some state:</p>
+
+<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part7.fs'></script>
+<noscript><pre><code>let moreInterestingUnfold =
+    Seq.unfold
+        (fun state -&gt;
+            Some (state, state + 1)) 1
+// seq [1; 2; 3; 4; ...]
+</code></pre></noscript></div>
+
+
+<p>What&rsquo;s going on here then? Well, <code>unfold</code> takes two arguments. The first is a function that takes a &lsquo;State and returns an Option&lt;&rsquo;T * &#8216;State>. In our simple example above, both &#8216;State and &rsquo;T are of type <code>int</code> but there&rsquo;s no requirement for them to be of the same type. If at any point the function returns <code>None</code>, the sequence ends. In our example, we always return <code>Some</code>, so our sequence is infinite (at least until it runs out of integers) and we&rsquo;re return a tuple of two values &ndash; the first of which will be used as the next term in the sequence, and the second which will become the new state.</p>
+
+<p>The second argument to <code>unfold</code> is the starting state. In our case, this means the number that will be the first term in the sequence, and then we&rsquo;ll add one to it each time.</p>
+
+<p>Let&rsquo;s round this out with an example that uses different types for the state and the terms of the sequence, which will hopefully now make some sense:</p>
+
+<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part8.fs'></script>
+<noscript><pre><code>type Time =
+    {
+        Hour : int
+        Minute : int
+    }
+
+let addMinute time =
+    match time with
+    | { Hour = 23; Minute = 59 } -&gt;
+        { Hour = 0; Minute = 0 }
+    | { Minute = 59 } -&gt;
+        { Hour = time.Hour + 1; Minute = 0 }
+    | _ -&gt;
+        { Hour = time.Hour; Minute = time.Minute + 1 }
+
+let unfold' =
+    Seq.unfold
+        (fun state -&gt;
+            Some (sprintf &quot;%02d:%02d&quot; state.Hour state.Minute, addMinute state)
+            ) { Hour = 22; Minute = 59 }
+// seq [&quot;23:59&quot;; &quot;00:00&quot;; &quot;00:01&quot;; &quot;00:02&quot;; ...]
+</code></pre></noscript></div>
+
+
+<p>I&rsquo;m sure that you&rsquo;ve always needed a convenient way of cycling through every minute of the day repeatedly, with a nice readable string representation.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Introducing F# to Experienced Developers]]></title>
@@ -39,7 +169,7 @@
 
 <p>Nothing too exciting here :). This is just a place holder while giving the introduction, although I will also point out the lack of required boiler plate compared to C#.</p>
 
-<div><script src='https://gist.github.com/6973457.js?file=part1.fs'></script>
+<div><script src='https://gist.github.com/mavnn/6973457.js?file=part1.fs'></script>
 <noscript><pre><code>// Let's send an email!
 </code></pre></noscript></div>
 
@@ -48,7 +178,7 @@
 
 <p>Introduce the <code>open</code> keyword, <code>let</code> for value assignment, and give people a feel that they&rsquo;re not completely leaving their nice safe .net world behind.</p>
 
-<div><script src='https://gist.github.com/6973457.js?file=part2.fs'></script>
+<div><script src='https://gist.github.com/mavnn/6973457.js?file=part2.fs'></script>
 <noscript><pre><code>// Let's send an email!
 
 open System.Net.Mail
@@ -66,7 +196,7 @@ smtpClient.Dispose()</code></pre></noscript></div>
 
 <p>Some discussion about type inference will probably happen here.</p>
 
-<div><script src='https://gist.github.com/6973457.js?file=part3.fs'></script>
+<div><script src='https://gist.github.com/mavnn/6973457.js?file=part3.fs'></script>
 <noscript><pre><code>open System.Net.Mail
 
 let smtpClient = new SmtpClient(&quot;smtp.local&quot;)
@@ -97,7 +227,7 @@ System.Console.ReadLine() |&gt; ignore
 
 <p>Introduce the <code>use</code> keyword, show property assignment with <code>&lt;-</code>.</p>
 
-<div><script src='https://gist.github.com/6973457.js?file=part4.fs'></script>
+<div><script src='https://gist.github.com/mavnn/6973457.js?file=part4.fs'></script>
 <noscript><pre><code>open System.Net.Mail
 
 let smtpClient = new SmtpClient(&quot;smtp.local&quot;)
@@ -124,7 +254,7 @@ System.Console.ReadLine() |&gt; ignore
 
 <p>List syntax and introduce the <code>Seq</code> module. Example of currying.</p>
 
-<div><script src='https://gist.github.com/6973457.js?file=part5.fs'></script>
+<div><script src='https://gist.github.com/mavnn/6973457.js?file=part5.fs'></script>
 <noscript><pre><code>open System.Net.Mail
 
 let smtpClient = new SmtpClient(&quot;smtp.local&quot;)
@@ -158,7 +288,7 @@ System.Console.ReadLine() |&gt; ignore
 
 <p>An async workflow. Turns out that <code>SmtpClient</code> is not as clean for that as you would hope &ndash; it&rsquo;s async send methods don&rsquo;t appear to be thread safe (wait, what?) and even the relatively recent looking <code>SendMailAsync</code> method returns a <code>Task</code> rather than a <code>Task&lt;'T&gt;</code>. Having said that, it shows that even in less than ideal circumstances, you can leverage the <code>async</code> stuff even when interfacing with older .net code from other languages.</p>
 
-<div><script src='https://gist.github.com/6973457.js?file=part6.fs'></script>
+<div><script src='https://gist.github.com/mavnn/6973457.js?file=part6.fs'></script>
 <noscript><pre><code>open System.Net.Mail
 
 
@@ -203,7 +333,7 @@ System.Console.ReadLine() |&gt; ignore
 
 <p>In the live coding for this one, I&rsquo;ll make sure to demonstrate adding and removing brackets in different places.</p>
 
-<div><script src='https://gist.github.com/6973457.js?file=part7.fs'></script>
+<div><script src='https://gist.github.com/mavnn/6973457.js?file=part7.fs'></script>
 <noscript><pre><code>open System.Net.Mail
 
 let sendMessage messageDetails =
@@ -244,7 +374,7 @@ System.Console.ReadLine() |&gt; ignore
 
 <p>Record syntax.</p>
 
-<div><script src='https://gist.github.com/6973457.js?file=part8.fs'></script>
+<div><script src='https://gist.github.com/mavnn/6973457.js?file=part8.fs'></script>
 <noscript><pre><code>open System.Net.Mail
 
 (* How about if I want to pass lots of different bits
@@ -297,7 +427,7 @@ System.Console.ReadLine() |&gt; ignore
 
 <p>I&rsquo;m hoping to get at least this far in the session. The rest of it would be nice, but if we get here then I&rsquo;ll be happy I&rsquo;ve covered at least the basics.</p>
 
-<div><script src='https://gist.github.com/6973457.js?file=part9.fs'></script>
+<div><script src='https://gist.github.com/mavnn/6973457.js?file=part9.fs'></script>
 <noscript><pre><code>open System.IO
 open System.Net
 open System.Net.Mail
@@ -388,7 +518,7 @@ System.Console.ReadLine() |&gt; ignore
 
 <p>Validation with Active patterns.</p>
 
-<div><script src='https://gist.github.com/6973457.js?file=part10.fs'></script>
+<div><script src='https://gist.github.com/mavnn/6973457.js?file=part10.fs'></script>
 <noscript><pre><code>open System.IO
 open System.Net
 open System.Net.Mail
@@ -512,7 +642,7 @@ System.Console.ReadLine() |&gt; ignore
 </ul>
 
 
-<div><script src='https://gist.github.com/6973457.js?file=part11.fs'></script>
+<div><script src='https://gist.github.com/mavnn/6973457.js?file=part11.fs'></script>
 <noscript><pre><code>open System
 open System.IO
 open System.Net
@@ -805,7 +935,7 @@ of heavily OO code being implemented in F#. Then I realised that I&rsquo;d writt
 
 <p>The <a href="" title="https://github.com/mavnn/NuGetPlus/blob/master/NuGetPlus.Core/ProjectSystem.fs">ProjectSystem class from NuGetPlus</a>:</p>
 
-<div><script src='https://gist.github.com/6684569.js?file=fsharp.fs'></script>
+<div><script src='https://gist.github.com/mavnn/6684569.js?file=fsharp.fs'></script>
 <noscript><pre><code>[&lt;AutoOpen&gt;]
 module NuGetPlus.ProjectSystem
 
@@ -923,7 +1053,7 @@ type ProjectSystem(projectFile : string) =
 
 <p>and the <a href="" title="http://nuget.codeplex.com/SourceControl/latest#src/CommandLine/Common/MSBuildProjectSystem.cs">MSBuildProjectSystem class from NuGet</a>:</p>
 
-<div><script src='https://gist.github.com/6684569.js?file=csharp.cs'></script>
+<div><script src='https://gist.github.com/mavnn/6684569.js?file=csharp.cs'></script>
 <noscript><pre><code>using System;
 using System.Collections.Generic;
 using System.IO;
@@ -1174,7 +1304,7 @@ namespace NuGet.Common
 
 <p>After referencing <code>System.Xml</code> and <code>System.Xml.Linq</code>, our first, very naive, attempt at the implementation looks like this:</p>
 
-<div><script src='https://gist.github.com/5983701.js?file=Part1.fs'></script>
+<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part1.fs'></script>
 <noscript><pre><code>let AddEnhancement (xDoc : XDocument) (input : string) =
     xDoc.Root.Add(XElement(XName.Get &quot;Enhancement&quot;, input))
     xDoc</code></pre></noscript></div>
@@ -1186,7 +1316,7 @@ namespace NuGet.Common
 
 <p>First, we&rsquo;ll need to add a property that we want to test. A property is simply a function that takes a data type FsCheck knows how to generate, and returns a bool. FsCheck knows how to generate strings, so our idempotence property looks something like this:</p>
 
-<div><script src='https://gist.github.com/5983701.js?file=Part2.fs'></script>
+<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part2.fs'></script>
 <noscript><pre><code>open FsCheck
 open DevEd.FsCheck
 open System.Xml.Linq
@@ -1202,7 +1332,7 @@ let ``Add enhancement must be idompotent`` input =
 
 <p>Looking good. How do we run it? Just add this to the end of the file:</p>
 
-<div><script src='https://gist.github.com/5983701.js?file=Part3.fs'></script>
+<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part3.fs'></script>
 <noscript><pre><code>Check.Quick ``Add enhancement must be idompotent``
 
 System.Console.ReadLine() |&gt; ignore</code></pre></noscript></div>
@@ -1216,7 +1346,7 @@ System.Console.ReadLine() |&gt; ignore</code></pre></noscript></div>
 
 <p>So; let&rsquo;s add some checking to <code>AddEnhancement</code> to make sure we don&rsquo;t re-add the same input more than once.</p>
 
-<div><script src='https://gist.github.com/5983701.js?file=Part4.fs'></script>
+<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part4.fs'></script>
 <noscript><pre><code>let AddEnhancement (xDoc : XDocument) (input : string) =
     if 
         xDoc.Root.Elements(XName.Get &quot;Enhancement&quot;)
@@ -1229,7 +1359,7 @@ System.Console.ReadLine() |&gt; ignore</code></pre></noscript></div>
 
 <p>And re-run the test and&hellip; oops.</p>
 
-<div><script src='https://gist.github.com/5983701.js?file=Part5.txt'></script>
+<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part5.txt'></script>
 <noscript><pre><code>System.ArgumentException was unhandled by user code
   HResult=-2147024809
   Message=' ', hexadecimal value 0x18, is an invalid character.
@@ -1260,7 +1390,7 @@ System.Console.ReadLine() |&gt; ignore</code></pre></noscript></div>
 
 <p>Fortunately for us, in .NET 4.0 and above there is a function in the <code>System.Xml</code> namespace called <code>XmlConvert.IsXmlChar</code> which does roughly what you would expect from the name. Let&rsquo;s add an invalid character filter, and an active pattern to tell us if any characters have been removed:</p>
 
-<div><script src='https://gist.github.com/5983701.js?file=Part6.fs'></script>
+<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part6.fs'></script>
 <noscript><pre><code>let filterInvalidChars (input : string) =
     input
     |&gt; Seq.filter (fun c -&gt; XmlConvert.IsXmlChar c)
@@ -1278,7 +1408,7 @@ let (|ValidXml|InvalidXml|) str =
 
 <p>Now we can amend <code>AddEnhancement</code> to add enhancement nodes for valid XML text or an error node for sanitized invalid XML text:</p>
 
-<div><script src='https://gist.github.com/5983701.js?file=Part7.fs'></script>
+<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part7.fs'></script>
 <noscript><pre><code>let AddEnhancement (xDoc : XDocument) (input : string) =
     match input with
     | ValidXml text -&gt;
@@ -1303,7 +1433,7 @@ let (|ValidXml|InvalidXml|) str =
 
 <p>And, of course, per the specification, it checks that the 3rd property above holds true (that adding enhancements never reduces the size of the document).</p>
 
-<div><script src='https://gist.github.com/5983701.js?file=Part8.fs'></script>
+<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part8.fs'></script>
 <noscript><pre><code>module FsCheck.Examples.Tests
 
 open FsCheck
@@ -1462,7 +1592,7 @@ coded up for one time use and does not come with a warranty of any kind!
 Use at your own risk, and once you understand what it&rsquo;s doing. But for
 all that, I hope you find it useful.</p>
 
-<div><script src='https://gist.github.com/5983379.js'></script>
+<div><script src='https://gist.github.com/mavnn/5983379.js'></script>
 <noscript><pre><code></code></pre></noscript></div>
 
 
@@ -1752,20 +1882,6 @@ source, with all the niceties like intellisense that you would want.</p>
     <updated>2012-11-17T00:00:00+00:00</updated>
     <id>http://blog.mavnn.co.uk/some-days-its-good-to-be-a-dad/some-days-its-good-to-be-a-dad</id>
     <content type="html"><![CDATA[<p>Although you do get proud of some of the strangest things. I particularly like the Welsh dragon.</p> <p>What you can&#39;t see is that he&#39;s written the names of each country on the back of the respective flag.</p> <p><img src="http://blog.mavnn.co.uk/images/IMAG0158.jpg" alt="Some days it's good to be a dad" /></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Representing EasyNetQ Message Subscriptions as Blocking Queues]]></title>
-    <link href="http://blog.mavnn.co.uk/representing-easynetq-message-subscriptions-a/index.html"/>
-    <updated>2012-11-15T00:00:00+00:00</updated>
-    <id>http://blog.mavnn.co.uk/representing-easynetq-message-subscriptions-a/representing-easynetq-message-subscriptions-a</id>
-    <content type="html"><![CDATA[<p><span style="color: #222222; font-family: arial, sans-serif;">EasyNetQ (</span><a href="https://github.com/mikehadlow/EasyNetQ" target="_blank" style="color: #1155cc; font-family: arial, sans-serif;">https://github.com/mikehadlow/EasyNetQ</a><span style="color: #222222; font-family: arial, sans-serif;">) is a simple wrapper for RabbitMq that allows you to trivially send and receive plain .net objects over the wire (as long as they can be serialized). It handles all the details of setting up exchanges and queues for you, and as long as your use case fits its (deliberately) simple pattern it&#8217;s very convenient.</span></p>
-<div style="color: #222222; font-family: arial, sans-serif;">Unfortunately, if you want to use it in a more functional landscape (*cough* from F# *cough*), the fact that it exposes subscriptions via registering a callback is not the ideal interface. In these situations, it&#8217;s much easier to handle (and reason about) a lazy infinite sequence of messages that you can then handle however you want, including in the simplest case just sitting on the sequence in a small tail call recursive function.</div>
-<div style="color: #222222; font-family: arial, sans-serif;">So EasyFQ was born. Weighing in at a mighty 16 lines of F# code, it contains one function: SeqSubscibe&lt;&#8217;a&gt; :&nbsp;(IBus -&gt; string -&gt; seq&lt;&#8217;a&gt;).</div>
-<div style="color: #222222; font-family: arial, sans-serif;">There&#8217;s a .fsx with example usage in the GitHub repository:&nbsp;<a href="https://github.com/michael-newton-15below/EasyFQ" target="_blank" style="color: #1155cc;">https://github.com/michael-newton-15below/EasyFQ</a></div>
-<div style="color: #222222; font-family: arial, sans-serif;">I suppose the next step is to pester Mike into making it a Nuget package under the EasyNetQ umbrella&#8230;</div>
-<p>&nbsp;</p>
 ]]></content>
   </entry>
   

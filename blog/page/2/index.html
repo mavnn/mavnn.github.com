@@ -9,9 +9,7 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="I&rsquo;ve been wanting to write code like this in F#, and know that any
-exceptions within a bound expression in an audit { } block will not
-only get &hellip;">
+  <meta name="description" content="Your windows service is watching an email inbox. How often should it poll?Once every 5 minutes? Every 10? Then of course you realise that it should &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -79,6 +77,58 @@ only get &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/a-short-interlude-into-adaptive-polling-tag-f/index.html">A Short Interlude Into Adaptive Polling</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-01-22T00:00:00+00:00" pubdate data-updated="true">Jan 22<span>nd</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><span style="font-family: arial,sans-serif; font-size: 13px;">Your windows service is watching an email inbox.</span><p /> <span style="font-family: arial,sans-serif; font-size: 13px;">How often should it poll?</span><p /><span style="font-family: arial,sans-serif; font-size: 13px;">Once every 5 minutes? Every 10? Then of course you realise that it should be different for every customer&#8230; or maybe every mailbox. You need more config!</span>
+<p />
+<div>Or not.<p /><span style="font-family: arial,sans-serif; font-size: 13px;">The real answer, of course, is something completely different: it&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">should poll a lot when a lot of emails are arriving, and not very much&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">when they aren&#8217;t.</span><p /> <span style="font-family: arial,sans-serif; font-size: 13px;">It took a lot longer than it should have done to get my maths brain&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">back on, but with the help of my wife I eventually settled on this&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">code for deciding the intervals between polls:</span><p /> 
+<div><script src="https://gist.github.com/4595744.js"></script></div>
+<p />
+<div>The &#8216;i&#8217; in this function is the number of times we&#8217;ve polled since the last time a new email was received (if one is received, we reset i to 0).</div>
+<p />
+<div>If you plot this out on a graph, you get something that looks like this:</div>
+<p />
+<div><img src="http://www.wolframalpha.com/share/img?i=d41d8cd98f00b204e9800998ecf8427ehd954rh40i&amp;f=HBQTQYZYGY4TOM3CGRSGMMBWGAYDCM3DGYZGMOBWGFRDANDCMUZAaaaa" alt="" /></div>
+<p />
+<div>(You can play with the shape of the graph at Wolfram|Alpha if you&#8217;re feeling really geeky :) -&nbsp;<a href="http://www.wolframalpha.com/share/clip?f=d41d8cd98f00b204e9800998ecf8427ehd954rh40i">http://www.wolframalpha.com/share/clip?f=d41d8cd98f00b204e9800998ecf8427ehd954rh40i</a>&nbsp;).</div>
+<p />
+<div>This gives us very aggressive polling for the first few minutes after discovering an email, then dropping off rapidly to close to the one every ten minutes mark that I decided was a reasonable background polling rate.</div>
+<p />
+<div>It&#8217;s not truly adaptive in the machine learning sense, but it gives a very good first cut that is an awful lot better than any fixed value could be.</div>
+</div>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -544,47 +594,6 @@ source, with all the niceties like intellisense that you would want.</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/representing-easynetq-message-subscriptions-a/index.html">Representing EasyNetQ Message Subscriptions as Blocking Queues</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2012-11-15T00:00:00+00:00" pubdate data-updated="true">Nov 15<span>th</span>, 2012</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><span style="color: #222222; font-family: arial, sans-serif;">EasyNetQ (</span><a href="https://github.com/mikehadlow/EasyNetQ" target="_blank" style="color: #1155cc; font-family: arial, sans-serif;">https://github.com/mikehadlow/EasyNetQ</a><span style="color: #222222; font-family: arial, sans-serif;">) is a simple wrapper for RabbitMq that allows you to trivially send and receive plain .net objects over the wire (as long as they can be serialized). It handles all the details of setting up exchanges and queues for you, and as long as your use case fits its (deliberately) simple pattern it&#8217;s very convenient.</span></p>
-<div style="color: #222222; font-family: arial, sans-serif;">Unfortunately, if you want to use it in a more functional landscape (*cough* from F# *cough*), the fact that it exposes subscriptions via registering a callback is not the ideal interface. In these situations, it&#8217;s much easier to handle (and reason about) a lazy infinite sequence of messages that you can then handle however you want, including in the simplest case just sitting on the sequence in a small tail call recursive function.</div>
-<div style="color: #222222; font-family: arial, sans-serif;">So EasyFQ was born. Weighing in at a mighty 16 lines of F# code, it contains one function: SeqSubscibe&lt;&#8217;a&gt; :&nbsp;(IBus -&gt; string -&gt; seq&lt;&#8217;a&gt;).</div>
-<div style="color: #222222; font-family: arial, sans-serif;">There&#8217;s a .fsx with example usage in the GitHub repository:&nbsp;<a href="https://github.com/michael-newton-15below/EasyFQ" target="_blank" style="color: #1155cc;">https://github.com/michael-newton-15below/EasyFQ</a></div>
-<div style="color: #222222; font-family: arial, sans-serif;">I suppose the next step is to pester Mike into making it a Nuget package under the EasyNetQ umbrella&#8230;</div>
-<p>&nbsp;</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/3/">&larr; Older</a>
@@ -602,6 +611,10 @@ source, with all the niceties like intellisense that you would want.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/to-infinity/">To Infinity and Beyond</a>
+      </li>
+    
+      <li class="post">
         <a href="/introducing-f-number-to-experienced-developers/">Introducing F# to Experienced Developers</a>
       </li>
     
@@ -615,10 +628,6 @@ source, with all the niceties like intellisense that you would want.</p>
     
       <li class="post">
         <a href="/teaching-f-number-to-c-number-devs/">Teaching F# to C# Devs</a>
-      </li>
-    
-      <li class="post">
-        <a href="/fscheck-breaking-your-code-in-new-and-exciting-ways/">FsCheck - Breaking Your Code in New and Exciting Ways</a>
       </li>
     
   </ul>

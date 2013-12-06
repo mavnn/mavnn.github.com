@@ -4,7 +4,7 @@
   <title><![CDATA[Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2013-12-06T12:23:17+00:00</updated>
+  <updated>2013-12-06T12:40:10+00:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -408,68 +408,24 @@ let createNodeType id (node : Node) =
 
 <p>So, what we do is we build a couple of private helper methods that know how to find the correct port or node from one of the types that is allowed &ndash; in this case, a <code>string</code>:</p>
 
-<div><script src='https://gist.github.com/mavnn/7803991.js?file=Part12.fs'></script>
-<noscript><pre><code>let addInputPort (inputs : ProvidedTypeDefinition) (port : Port) =
-    let port = ProvidedProperty(
-                    port.Id.Name, 
-                    typeof&lt;InputPort&gt;, 
-                    GetterCode = fun args -&gt; 
-                        let id = port.Id.UniqueId.ToString()
-                        &lt;@@ GetPort id @@&gt;)
-    inputs.AddMember(port)
+<div><script src='https://gist.github.com/mavnn/7803991.js?file=Part13.fs'></script>
+<noscript><pre><code>let private nodes = JsonConvert.DeserializeObject&lt;seq&lt;Node&gt;&gt;(IO.File.ReadAllText(@&quot;c:\Temp\Graph.json&quot;))
+                    |&gt; Seq.map (fun n -&gt; n.Id.UniqueId.ToString(), n)
+                    |&gt; Map.ofSeq
 
-let addOutputPort (outputs : ProvidedTypeDefinition) (port : Port) =
-    let port = ProvidedProperty(
-                    port.Id.Name, 
-                    typeof&lt;OutputPort&gt;, 
-                    GetterCode = fun args -&gt; 
-                        let id = port.Id.UniqueId.ToString()
-                        &lt;@@ GetPort id @@&gt;)
-    outputs.AddMember(port)
+let private GetNode id =
+    nodes.[id]
 
-let addPorts inputs outputs (portList : seq&lt;Port&gt;) =
-    portList
-    |&gt; Seq.iter (fun port -&gt; 
-                    match port.Type with
-                    | &quot;input&quot; -&gt; addInputPort inputs port
-                    | &quot;output&quot; -&gt; addOutputPort outputs port
-                    | _ -&gt; failwithf &quot;Unknown port type for port %s/%s&quot; port.Id.Name (port.Id.UniqueId.ToString()))
+let private ports =
+    nodes
+    |&gt; Map.toSeq
+    |&gt; Seq.map (fun (_, node) -&gt; node.Ports)
+    |&gt; Seq.concat
+    |&gt; Seq.map (fun p -&gt; p.Id.UniqueId.ToString(), p)
+    |&gt; Map.ofSeq
 
-let createNodeType id (node : Node) =
-    let nodeType = ProvidedTypeDefinition(asm, ns, node.Id.Name, Some typeof&lt;nodeInstance&gt;)
-    let ctor = ProvidedConstructor(
-                [
-                    ProvidedParameter(&quot;Name&quot;, typeof&lt;string&gt;)
-                    ProvidedParameter(&quot;UniqueId&quot;, typeof&lt;Guid&gt;)
-                    ProvidedParameter(&quot;Config&quot;, typeof&lt;string&gt;)
-                ],
-                InvokeCode = fun [name;unique;config] -&gt; &lt;@@ NodeInstance.create (GetNode id) (%%name:string) (%%unique:Guid) (%%config:string) @@&gt;)
-    nodeType.AddMember(ctor)
-
-    let outputs = ProvidedTypeDefinition(&quot;Outputs&quot;, Some typeof&lt;obj&gt;)
-    let outputCtor = ProvidedConstructor([], InvokeCode = fun args -&gt; &lt;@@ obj() @@&gt;)
-    outputs.AddMember(outputCtor)
-    outputs.HideObjectMethods &lt;- true
-
-    let inputs = ProvidedTypeDefinition(&quot;Inputs&quot;, Some typeof&lt;obj&gt;)
-    let inputCtor = ProvidedConstructor([], InvokeCode = fun args -&gt; &lt;@@ obj() @@&gt;)
-    inputs.AddMember(inputCtor)
-    inputs.HideObjectMethods &lt;- true
-    addPorts inputs outputs node.Ports
-
-    // Add the inputs and outputs types of nested types under the Node type
-    nodeType.AddMembers([inputs;outputs])
-
-    // Now add some instance properties to expose them on a node instance.
-    let outputPorts = ProvidedProperty(&quot;OutputPorts&quot;, outputs, [],
-                        GetterCode = fun args -&gt; &lt;@@ obj() @@&gt;)
-    let inputPorts = ProvidedProperty(&quot;InputPorts&quot;, inputs, [],
-                        GetterCode = fun args -&gt; &lt;@@ obj() @@&gt;)
-
-    nodeType.AddMembers([inputPorts;outputPorts])
-
-    nodeType
-</code></pre></noscript></div>
+let private GetPort id =
+    ports.[id]</code></pre></noscript></div>
 
 
 <p>So, there you have it. A complete, working type provider that uses meta data supplied in Json format to create CLR types. Lots of things still to be added for production ready code (delayed loading, handling multiple ports with the same names, not hard coding the filename, etc).</p>

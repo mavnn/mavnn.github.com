@@ -11,7 +11,13 @@ So, first things first. Before we get to the actual problem space at hand, let's
 
 1) Create yourself a new Visual Studio F# library project (2012 or up should work).
 
-2) Add [ProvidedTypes.fs](https://raw.github.com/fsharp/FSharp.Data/master/src/CommonProviderImplementation/ProvidedTypes.fs) and [ProvidedTypes.fsi](https://raw.github.com/fsharp/FSharp.Data/master/src/CommonProviderImplementation/ProvidedTypes.fsi) to the project as the first couple of files. These are provided as code files rather than as compiled dlls due to complications with security and AppDomains when referencing dlls in the type provider assembly. For now just add them in - you really don't want to be re-creating the code in there by hand.
+2a) Install the [F# TypeProvider Starter Pack](https://www.nuget.org/packages/FSharp.TypeProviders.StarterPack/) or
+
+2b) add [ProvidedTypes.fs](https://raw.github.com/fsharp/FSharp.Data/master/src/CommonProviderImplementation/ProvidedTypes.fs) and [ProvidedTypes.fsi](https://raw.github.com/fsharp/FSharp.Data/master/src/CommonProviderImplementation/ProvidedTypes.fsi) to the project as the first couple of files.
+
+In either case, make sure that the .fsi file appears before the .fs file in your project listing, and that both appear before any type provider code - you will probably have to manually re-order them.
+
+These are provided as code files rather than as compiled dlls due to complications with security and AppDomains when referencing dlls in the type provider assembly. For now just add them in - you really don't want to be re-creating the code in there by hand.
 
 3) Replace the contents of Library1.fs with something like this:
 

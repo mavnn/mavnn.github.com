@@ -90,6 +90,8 @@ Our input JSON looks something like this:
 
 {% gist 7803991 Part6.json %}
 
+Things start getting a bit more in depth here, so you might want to check out the full code for this post, available on [GitHub](https://github.com/mavnn/Mavnn.Blog.TypeProvider), and follow along in your favourite development environment.
+
 We'll let someone else deal with the parsing - add a Nuget reference to `Newtonsoft.Json` to your type provider, and let's have a third reprise of `createTypes`.
 
 First, we'll need some classes to deserialize the Json into. Out of the box Newtonsoft doesn't do a great job on F# core classes (although that's changing), so for the moment we'll create some classic OO style mutable types:
@@ -136,6 +138,5 @@ So, there you have it. A complete, working type provider that uses meta data sup
 
 ![Winning...](/images/typeprovider.png)
 
-The full code for this post is available on [GitHub](https://github.com/mavnn/Mavnn.Blog.TypeProvider).
 
 Any questions or corrections, fire away. As mentioned, this is very much the first time I've used type providers - but even this level of usage is providing a goodly amount of value for us.

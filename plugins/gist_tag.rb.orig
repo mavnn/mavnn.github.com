@@ -50,7 +50,11 @@ module Jekyll
     end
 
     def get_gist_url_for(gist, file)
+<<<<<<< HEAD
       "https://gist.github.com/mavnn/#{gist}/raw/#{file}"
+=======
+      "https://gist.github.com/raw/#{gist}/#{file}"
+>>>>>>> 8f51bdc0fd0323c4a6bd9fd645f3abb73baccd08
     end
 
     def cache(gist, file, data)
@@ -75,6 +79,28 @@ module Jekyll
     end
 
     def get_gist_from_web(gist, file)
+<<<<<<< HEAD
+      gist_url          = get_gist_url_for gist, file
+      data = get_web_content gist_url
+      data = handle_gist_redirecting data
+      if data.code.to_i != 200
+        raise RuntimeError, "Gist replied with #{data.code} for #{gist_url}"
+      end
+      data            = data.body
+      cache gist, file, data unless @cache_disabled
+      data
+    end
+
+    def handle_gist_redirecting(data)
+      if data.code.to_i == 302
+        redirected_url  = data.header['Location']
+        data = get_web_content redirected_url
+        if data.code.to_i != 200
+          raise RuntimeError, "Gist replied with #{data.code} for #{gist_url}"
+        end
+      end
+      data
+=======
       gist_url = get_gist_url_for(gist, file)
       data     = get_web_content(gist_url)
 
@@ -96,6 +122,7 @@ module Jekyll
         raise ArgumentError, "GitHub replied with a 302 but didn't provide a location in the response headers."
       end
       get_web_content(redirected_url)
+>>>>>>> 8f51bdc0fd0323c4a6bd9fd645f3abb73baccd08
     end
 
     def get_web_content(url)

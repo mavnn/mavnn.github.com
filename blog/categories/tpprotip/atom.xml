@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: tpProTip | Mavnn's blog]]></title>
+  <link href="http://blog.mavnn.co.uk/blog/categories/tpprotip/atom.xml" rel="self"/>
+  <link href="http://blog.mavnn.co.uk/"/>
+  <updated>2014-01-10T12:32:46+00:00</updated>
+  <id>http://blog.mavnn.co.uk/</id>
+  <author>
+    <name><![CDATA[mavnn]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Type Provider ProTip]]></title>
+    <link href="http://blog.mavnn.co.uk/type-provider-protip/"/>
+    <updated>2014-01-10T12:15:15+00:00</updated>
+    <id>http://blog.mavnn.co.uk/type-provider-protip</id>
+    <content type="html"><![CDATA[<p>While type providers are incredibly powerful, the ProvidedTypes api for creating them is sometimes a bit rough around the edges. And not always as functional as you might hope.</p>
+
+<p>At some point I&rsquo;d like to do something about that, but for the moment I&rsquo;m just going to collect a few helpful tips and hints (mostly for own reference).</p>
+
+<p>Tip one is in the case where you have XmlDocs to add to ProvidedTypes, ProvidedMethods and ProvidedProperties; in our case we have an optional description field in our metadata and the boiler plate was getting tiresome.</p>
+
+<p>``` fsharp
+let inline addDoc (desc : Descriptor) def =</p>
+
+<pre><code>match desc.Description with
+| Some d -&gt;
+    (^T : (member AddXmlDoc : string -&gt; unit) (def, d))
+| None -&gt; ()
+</code></pre>
+
+<p>```</p>
+
+<p>This function takes a <code>Descriptor</code> with a <code>string option</code> Description field and any <code>def</code> with an AddXmlDoc member with the noted signature &ndash; and adds description as the xml doc if it exists.</p>
+]]></content>
+  </entry>
+  
+</feed>

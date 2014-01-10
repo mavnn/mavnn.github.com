@@ -1,109 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
 
-<!DOCTYPE html>
-<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
-<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
-<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
-<head>
-  <meta charset="utf-8">
-  <title>Type Providers From the Ground Up - Mavnn's blog</title>
-  <meta name="author" content="mavnn">
-
-  
-  <meta name="description" content="In the ground tradition of blog posts as both documentation and augmented memory, I&rsquo;ve just added our first Type Provider to the code base. &hellip;">
-  
-
-  <!-- http://t.co/dKP3o1e -->
-  <meta name="HandheldFriendly" content="True">
-  <meta name="MobileOptimized" content="320">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  
-  <link rel="canonical" href="http://blog.mavnn.co.uk/type-providers-from-the-ground-up">
-  <link href="/favicon.png" rel="icon">
-  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
-  <link href="/atom.xml" rel="alternate" title="Mavnn's blog" type="application/atom+xml">
-  <script src="/javascripts/modernizr-2.0.js"></script>
-  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
-  <script src="/javascripts/octopress.js" type="text/javascript"></script>
-  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
-<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
-<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
-
-  
-  <script type="text/javascript">
-    var _gaq = _gaq || [];
-    _gaq.push(['_setAccount', 'UA-37561687-1']);
-    _gaq.push(['_trackPageview']);
-
-    (function() {
-      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-    })();
-  </script>
-
-
-</head>
-
-<body   >
-  <header role="banner"><hgroup>
-  <h1><a href="/">Mavnn's blog</a></h1>
-  
-    <h2>Stuff from my brain</h2>
-  
-</hgroup>
-
-</header>
-  <nav role="navigation"><ul class="subscription" data-subscription="rss">
-  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
-  
-</ul>
-  
-<form action="http://google.com/search" method="get">
-  <fieldset role="search">
-    <input type="hidden" name="q" value="site:blog.mavnn.co.uk" />
-    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
-  </fieldset>
-</form>
-  
-<ul class="main-navigation">
-  <li><a href="/">Blog</a></li>
-  <li><a href="/blog/archives">Archives</a></li>
-</ul>
-
-</nav>
-  <div id="main">
-    <div id="content">
-      <div>
-<article class="hentry" role="article">
-  
-  <header>
+  <title><![CDATA[Category: typeprovider | Mavnn's blog]]></title>
+  <link href="http://blog.mavnn.co.uk/blog/categories/typeprovider/atom.xml" rel="self"/>
+  <link href="http://blog.mavnn.co.uk/"/>
+  <updated>2014-01-10T12:32:46+00:00</updated>
+  <id>http://blog.mavnn.co.uk/</id>
+  <author>
+    <name><![CDATA[mavnn]]></name>
     
-      <h1 class="entry-title">Type Providers From the Ground Up</h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
 
   
+  <entry>
+    <title type="html"><![CDATA[Type Provider ProTip]]></title>
+    <link href="http://blog.mavnn.co.uk/type-provider-protip/"/>
+    <updated>2014-01-10T12:15:15+00:00</updated>
+    <id>http://blog.mavnn.co.uk/type-provider-protip</id>
+    <content type="html"><![CDATA[<p>While type providers are incredibly powerful, the ProvidedTypes api for creating them is sometimes a bit rough around the edges. And not always as functional as you might hope.</p>
 
+<p>At some point I&rsquo;d like to do something about that, but for the moment I&rsquo;m just going to collect a few helpful tips and hints (mostly for own reference).</p>
 
-<time datetime="2013-12-05T11:28:00+00:00" pubdate data-updated="true">Dec 5<span>th</span>, 2013</time>
-        
-      </p>
-    
-  </header>
+<p>Tip one is in the case where you have XmlDocs to add to ProvidedTypes, ProvidedMethods and ProvidedProperties; in our case we have an optional description field in our metadata and the boiler plate was getting tiresome.</p>
 
+<p>``` fsharp
+let inline addDoc (desc : Descriptor) def =</p>
 
-<div class="entry-content"><p>In the ground tradition of blog posts as both documentation and augmented memory, I&rsquo;ve just added our first <a href="http://blogs.msdn.com/b/dsyme/archive/2013/01/30/twelve-type-providers-in-pictures.aspx">Type Provider</a> to the code base. Time to write up the details before a) I forget them and b) anyone else needs to modify the code.</p>
+<pre><code>match desc.Description with
+| Some d -&gt;
+    (^T : (member AddXmlDoc : string -&gt; unit) (def, d))
+| None -&gt; ()
+</code></pre>
+
+<p>```</p>
+
+<p>This function takes a <code>Descriptor</code> with a <code>string option</code> Description field and any <code>def</code> with an AddXmlDoc member with the noted signature &ndash; and adds description as the xml doc if it exists.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Type Providers from the Ground Up]]></title>
+    <link href="http://blog.mavnn.co.uk/type-providers-from-the-ground-up/"/>
+    <updated>2013-12-05T11:28:00+00:00</updated>
+    <id>http://blog.mavnn.co.uk/type-providers-from-the-ground-up</id>
+    <content type="html"><![CDATA[<p>In the ground tradition of blog posts as both documentation and augmented memory, I&rsquo;ve just added our first <a href="http://blogs.msdn.com/b/dsyme/archive/2013/01/30/twelve-type-providers-in-pictures.aspx">Type Provider</a> to the code base. Time to write up the details before a) I forget them and b) anyone else needs to modify the code.</p>
 
 <p>So, first things first. Before we get to the actual problem space at hand, let&rsquo;s try and provide a type. Any type&hellip;</p>
 
@@ -119,7 +60,7 @@
 
 <p>3) Replace the contents of Library1.fs with something like this:</p>
 
-<div><script src='https://gist.github.com/mavnn/7803991.js?file=Part1.fs'></script>
+<p><div><script src='https://gist.github.com/mavnn/7803991.js?file=Part1.fs'></script>
 <noscript><pre><code>module Mavnn.Blog.TypeProvider
 
 open ProviderImplementation.ProvidedTypes
@@ -131,7 +72,7 @@ type MavnnProvider (config : TypeProviderConfig) as this =
 
 [&lt;assembly:TypeProviderAssembly&gt;]
 do ()</code></pre></noscript></div>
-
+</p>
 
 <p>So, that&rsquo;s great and it builds. We have a type provider class and an assembly that knows it&rsquo;s a type providing assembly. Unfortunately, it doesn&rsquo;t actually provide any types yet. Let&rsquo;s try it.</p>
 
@@ -140,7 +81,7 @@ do ()</code></pre></noscript></div>
 
 <p>Update Library1.fs in your solution with something that looks like this, and then we&rsquo;ll run through what&rsquo;s going on, and how to test it.</p>
 
-<div><script src='https://gist.github.com/mavnn/7803991.js?file=Part2.fs'></script>
+<p><div><script src='https://gist.github.com/mavnn/7803991.js?file=Part2.fs'></script>
 <noscript><pre><code>module Mavnn.Blog.TypeProvider
 
 open ProviderImplementation.ProvidedTypes
@@ -166,7 +107,7 @@ type MavnnProvider (config : TypeProviderConfig) as this =
 
 [&lt;assembly:TypeProviderAssembly&gt;]
 do ()</code></pre></noscript></div>
-
+</p>
 
 <p>First things first &ndash; it looks like it should provide a class with a static property, but how do we test it?</p>
 
@@ -174,13 +115,13 @@ do ()</code></pre></noscript></div>
 
 <p>Fire up a second copy of Visual Studio (you went for the extra RAM option on your hardware, yes?) and create an F# project in it. Add an fsx file that looks something like this:</p>
 
-<div><script src='https://gist.github.com/mavnn/7803991.js?file=Part3.fsx'></script>
+<p><div><script src='https://gist.github.com/mavnn/7803991.js?file=Part3.fsx'></script>
 <noscript><pre><code>#r @&quot;../../Mavnn.Blog.TypeProvider/Mavnn.Blog.TypeProvider/bin/Debug/Mavnn.Blog.TypeProvider.dll&quot;
 
 open Mavnn.Blog.TypeProvider.Provided
 
 // Type `MyType.MyProperty` on next line down.</code></pre></noscript></div>
-
+</p>
 
 <p>Start typing, and&hellip; hurrah! Intellisense on your new, provided type with static property. Evaluate the script in F# interactive for one of the longest &ldquo;Hello World&rdquo; programs you&rsquo;ve ever seen.</p>
 
@@ -202,11 +143,13 @@ open Mavnn.Blog.TypeProvider.Provided
 
 <p>To give you a flavour, the quotation <code>&lt;@@ 1 + 2 @@&gt;</code> compiles to <code>Quotations.Expr = Call (None, op_Addition, [Value (1), Value (2)])</code>. Not very exciting so far, but how about:</p>
 
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>let addI i =
-</span><span class='line'>    &lt;@@ 1 + (%%i) @@&gt;</span></code></pre></td></tr></table></div></figure>
+<p>```
+let addI i =</p>
 
+<pre><code>&lt;@@ 1 + (%%i) @@&gt;
+</code></pre>
+
+<p>```</p>
 
 <p>This gives a function of <code>Expr -&gt; Expr</code>, and now we can do things like <code>let add2 = addI &lt;@@ 2 @@&gt;</code> (gives <code>val add2 : Expr = Call (None, op_Addition, [Value (1), Value (2)])</code>) or <code>let add2MultipliedByX x = addI &lt;@@ 2 * x @@&gt;</code> (gives <code>val add2MultipliedByX : x:int -&gt; Expr</code>) and what we get back is effectively the AST of the first F# expression with the second spliced in to evaluate as you will. So in our <code>GetterCode</code> above, we are actually providing the AST that will be compiled into the <code>get_MyPropertyMethod</code> of the type when it is created.</p>
 
@@ -214,7 +157,7 @@ open Mavnn.Blog.TypeProvider.Provided
 
 <p>So far, our type isn&rsquo;t very exciting. You can&rsquo;t even construct an instance of it. Let&rsquo;s see what we can do about that, with a replacement <code>createTypes</code> method:</p>
 
-<div><script src='https://gist.github.com/mavnn/7803991.js?file=Part4.fs'></script>
+<p><div><script src='https://gist.github.com/mavnn/7803991.js?file=Part4.fs'></script>
 <noscript><pre><code>    let createTypes () =
         let myType = ProvidedTypeDefinition(asm, ns, &quot;MyType&quot;, Some typeof&lt;obj&gt;)
         let myProp = ProvidedProperty(&quot;MyProperty&quot;, typeof&lt;string&gt;, IsStatic = true, 
@@ -235,7 +178,7 @@ open Mavnn.Blog.TypeProvider.Provided
 
         [myType]
 </code></pre></noscript></div>
-
+</p>
 
 <p>Now we can construct our type (in two ways, no less). As the underlying CLR type is an <code>object</code> we can store pretty much anything as the internal representation of an instance of our type. The <code>InvokeCode</code> parameter of the constructors needs to return a quotation that will return the internal representation of the object when it&rsquo;s evaluated. We&rsquo;re going to return a string (which we need to cast to an obj), and using the splicing syntax above we can inject the parameters of the constructor into the quotation (for the constructor which has a parameter).</p>
 
@@ -243,7 +186,7 @@ open Mavnn.Blog.TypeProvider.Provided
 
 <p>And now you can do things like this:</p>
 
-<div><script src='https://gist.github.com/mavnn/7803991.js?file=Part5.fsx'></script>
+<p><div><script src='https://gist.github.com/mavnn/7803991.js?file=Part5.fsx'></script>
 <noscript><pre><code>// Your path may vary...
 #r @&quot;../../Mavnn.Blog.TypeProvider/Mavnn.Blog.TypeProvider/bin/Debug/Mavnn.Blog.TypeProvider.dll&quot;
 
@@ -259,7 +202,7 @@ let thing2InnerState = thing2.InnerState
 // val thingInnerState : string = &quot;My internal state&quot;
 // val thing2 : Mavnn.Blog.TypeProvider.Provided.MyType = &quot;Some other text&quot;
 // val thing2InnerState : string = &quot;Some other text&quot;</code></pre></noscript></div>
-
+</p>
 
 <h2>And the point is?</h2>
 
@@ -269,7 +212,7 @@ let thing2InnerState = thing2.InnerState
 
 <p>Our input JSON looks something like this:</p>
 
-<div><script src='https://gist.github.com/mavnn/7803991.js?file=Part6.json'></script>
+<p><div><script src='https://gist.github.com/mavnn/7803991.js?file=Part6.json'></script>
 <noscript><pre><code>[
    {
       &quot;Id&quot;:{
@@ -352,7 +295,7 @@ let thing2InnerState = thing2.InnerState
       ]
    }
 ]</code></pre></noscript></div>
-
+</p>
 
 <p>Things start getting a bit more in depth here, so you might want to check out the full code for this post, available on <a href="https://github.com/mavnn/Mavnn.Blog.TypeProvider">GitHub</a>, and follow along in your favourite development environment.</p>
 
@@ -360,7 +303,7 @@ let thing2InnerState = thing2.InnerState
 
 <p>First, we&rsquo;ll need some classes to deserialize the Json into. Out of the box Newtonsoft doesn&rsquo;t do a great job on F# core classes (although that&rsquo;s changing), so for the moment we&rsquo;ll create some classic OO style mutable types:</p>
 
-<div><script src='https://gist.github.com/mavnn/7803991.js?file=Part7.fs'></script>
+<p><div><script src='https://gist.github.com/mavnn/7803991.js?file=Part7.fs'></script>
 <noscript><pre><code>type Id () =
     member val UniqueId = Guid() with get, set
     member val Name = &quot;&quot; with get, set
@@ -373,17 +316,17 @@ type Node () =
     member val Id = Id() with get, set
     member val Ports = Collections.Generic.List&lt;Port&gt;() with get, set
 </code></pre></noscript></div>
-
+</p>
 
 <p>(Don&rsquo;t worry though, these aren&rsquo;t what we&rsquo;ll actually expose as the main interface.)</p>
 
 <p>Turning our Json into the our new CLR types is straight forward:</p>
 
-<div><script src='https://gist.github.com/mavnn/7803991.js?file=Part8.fs'></script>
+<p><div><script src='https://gist.github.com/mavnn/7803991.js?file=Part8.fs'></script>
 <noscript><pre><code>let nodes =
     JsonConvert.DeserializeObject&lt;seq&lt;Node&gt;&gt;(IO.File.ReadAllText(@&quot;c:\Temp\Graph.json&quot;))
 </code></pre></noscript></div>
-
+</p>
 
 <p>Now the interesting part. To build a graph out of these nodes, we need to be able to do a few things.</p>
 
@@ -391,7 +334,7 @@ type Node () =
 
 <p>Let&rsquo;s help ourselves out by having a concrete type as an the underlying type for our instances:</p>
 
-<div><script src='https://gist.github.com/mavnn/7803991.js?file=Part9.fs'></script>
+<p><div><script src='https://gist.github.com/mavnn/7803991.js?file=Part9.fs'></script>
 <noscript><pre><code>type nodeInstance =
     {
         Node : Node
@@ -399,11 +342,11 @@ type Node () =
         Config : string
     }
 </code></pre></noscript></div>
-
+</p>
 
 <p>And then constructing a more specific type with a constructor for each node type we&rsquo;ve read from the Json:</p>
 
-<div><script src='https://gist.github.com/mavnn/7803991.js?file=Part10.fs'></script>
+<p><div><script src='https://gist.github.com/mavnn/7803991.js?file=Part10.fs'></script>
 <noscript><pre><code>let nodeType = ProvidedTypeDefinition(asm, ns, node.Id.Name, Some typeof&lt;nodeInstance&gt;)
 let ctor = ProvidedConstructor(
             [
@@ -413,13 +356,13 @@ let ctor = ProvidedConstructor(
             ],
             InvokeCode = fun [name;unique;config] -&gt; &lt;@@ NodeInstance.create (GetNode id) (%%name:string) (%%unique:Guid) (%%config:string) @@&gt;)
 </code></pre></noscript></div>
-
+</p>
 
 <p>So now we can construct (look back at the json) a <code>Simple</code> node instance by using <code>let simple = Simple("simpleInstance", Guid.NewGuid(),"MyConfig")</code>. And it already has our <code>InstanceId</code>, <code>Config</code> and <code>Node</code> properties from the underlying type.</p>
 
 <p>Good progress &ndash; but we don&rsquo;t have a nice way of representing the inputs and outputs? We want to be able to write some kind of connection builder function afterwards that won&rsquo;t allow you to connect to outputs to each other, or similar silliness, so we&rsquo;re going to need separate types for inputs and outputs.</p>
 
-<div><script src='https://gist.github.com/mavnn/7803991.js?file=Part11.fs'></script>
+<p><div><script src='https://gist.github.com/mavnn/7803991.js?file=Part11.fs'></script>
 <noscript><pre><code>// Check out the excellent article at F# for Fun and Profit
 // on using single case Discriminated Unions for data modelling
 // http://fsharpforfunandprofit.com/posts/designing-with-types-single-case-dus/
@@ -427,11 +370,11 @@ let ctor = ProvidedConstructor(
 type InputPort = | InputPort of Guid
 type OutputPort = | OutputPort of Guid
 </code></pre></noscript></div>
-
+</p>
 
 <p>And finally, we&rsquo;ll update our node creation function to add two subtypes to each node type called <code>Inputs</code> and <code>Outputs</code>, and then create properties on those objects to represent each port. Our full type creation for a node now looks something like this:</p>
 
-<div><script src='https://gist.github.com/mavnn/7803991.js?file=Part12.fs'></script>
+<p><div><script src='https://gist.github.com/mavnn/7803991.js?file=Part12.fs'></script>
 <noscript><pre><code>let addInputPort (inputs : ProvidedTypeDefinition) (port : Port) =
     let port = ProvidedProperty(
                     port.Id.Name, 
@@ -493,7 +436,7 @@ let createNodeType id (node : Node) =
 
     nodeType
 </code></pre></noscript></div>
-
+</p>
 
 <p>Leaving only one final mystery. What are the <code>GetPort</code> and <code>GetNode</code> methods &ndash; and why am I using them in the quotations rather than just using something like <code>&lt;@@ node @@&gt;</code>?</p>
 
@@ -501,7 +444,7 @@ let createNodeType id (node : Node) =
 
 <p>So, what we do is we build a couple of private helper methods that know how to find the correct port or node from one of the types that is allowed &ndash; in this case, a <code>string</code>:</p>
 
-<div><script src='https://gist.github.com/mavnn/7803991.js?file=Part13.fs'></script>
+<p><div><script src='https://gist.github.com/mavnn/7803991.js?file=Part13.fs'></script>
 <noscript><pre><code>let private nodes = JsonConvert.DeserializeObject&lt;seq&lt;Node&gt;&gt;(IO.File.ReadAllText(@&quot;c:\Temp\Graph.json&quot;))
                     |&gt; Seq.map (fun n -&gt; n.Id.UniqueId.ToString(), n)
                     |&gt; Map.ofSeq
@@ -519,211 +462,14 @@ let private ports =
 
 let private GetPort id =
     ports.[id]</code></pre></noscript></div>
-
+</p>
 
 <p>So, there you have it. A complete, working type provider that uses meta data supplied in Json format to create CLR types. Lots of things still to be added for production ready code (delayed loading, handling multiple ports with the same names, not hard coding the filename, etc).</p>
 
 <p><img src="/images/typeprovider.png" alt="Winning..." /></p>
 
 <p>Any questions or corrections, fire away. As mentioned, this is very much the first time I&rsquo;ve used type providers &ndash; but even this level of usage is providing a goodly amount of value for us.</p>
-</div>
-
-
-  <footer>
-    <p class="meta">
-      
+]]></content>
+  </entry>
   
-
-<span class="byline author vcard">Posted by <span class="fn">mavnn</span></span>
-
-      
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-12-05T11:28:00+00:00" pubdate data-updated="true">Dec 5<span>th</span>, 2013</time>
-      
-
-<span class="categories">
-  
-    <a class='category' href='/blog/categories/fsharp/'>fsharp</a>, <a class='category' href='/blog/categories/programming/'>programming</a>, <a class='category' href='/blog/categories/typeprovider/'>typeprovider</a>
-  
-</span>
-
-
-    </p>
-    
-      <div class="sharing">
-  
-  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://blog.mavnn.co.uk/type-providers-from-the-ground-up/" data-via="mavnn" data-counturl="http://blog.mavnn.co.uk/type-providers-from-the-ground-up/" >Tweet</a>
-  
-  
-  <div class="g-plusone" data-size="medium"></div>
-  
-  
-</div>
-
-    
-    <p class="meta">
-      
-        <a class="basic-alignment left" href="/to-infinity/" title="Previous Post: To Infinity and Beyond">&laquo; To Infinity and Beyond</a>
-      
-      
-        <a class="basic-alignment right" href="/pygments/" title="Next Post: Pygments">Pygments &raquo;</a>
-      
-    </p>
-  </footer>
-</article>
-
-  <section>
-    <h1>Comments</h1>
-    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
-</div>
-  </section>
-
-</div>
-
-<aside class="sidebar">
-  
-    <section>
-  <h1>Recent Posts</h1>
-  <ul id="recent_posts">
-    
-      <li class="post">
-        <a href="/type-provider-protip/">Type Provider ProTip</a>
-      </li>
-    
-      <li class="post">
-        <a href="/pygments/">Pygments</a>
-      </li>
-    
-      <li class="post">
-        <a href="/type-providers-from-the-ground-up/">Type Providers From the Ground Up</a>
-      </li>
-    
-      <li class="post">
-        <a href="/to-infinity/">To Infinity and Beyond</a>
-      </li>
-    
-      <li class="post">
-        <a href="/introducing-f-number-to-experienced-developers/">Introducing F# to Experienced Developers</a>
-      </li>
-    
-  </ul>
-</section>
-<section>
-  <h1>Tip the author</h1>
-  <p><script data-gittip-username="mavnn"
-        data-gittip-widget="button"
-        src="//gttp.co/v1.js"></script></p>
-</section>
-
-<section>
-  <h1>GitHub Repos</h1>
-  <ul id="gh_repos">
-    <li class="loading">Status updating...</li>
-  </ul>
-  
-  <a href="https://github.com/mavnn">@mavnn</a> on GitHub
-  
-  <script type="text/javascript">
-    $(document).ready(function(){
-        if (!window.jXHR){
-            var jxhr = document.createElement('script');
-            jxhr.type = 'text/javascript';
-            jxhr.src = '/javascripts/libs/jXHR.js';
-            var s = document.getElementsByTagName('script')[0];
-            s.parentNode.insertBefore(jxhr, s);
-        }
-
-        github.showRepos({
-            user: 'mavnn',
-            count: 3,
-            skip_forks: true,
-            target: '#gh_repos'
-        });
-    });
-  </script>
-  <script src="/javascripts/github.js" type="text/javascript"> </script>
-</section>
-
-
-
-<section class="googleplus">
-  <h1>
-    <a href="https://plus.google.com/+MichaelNewtonmavnn?rel=author">
-      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
-      Google+
-    </a>
-  </h1>
-</section>
-
-
-
-  
-</aside>
-
-
-    </div>
-  </div>
-  <footer role="contentinfo"><p>
-  Copyright &copy; 2014 - mavnn -
-  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
-</p>
-
-</footer>
-  
-
-<script type="text/javascript">
-      var disqus_shortname = 'mavnn';
-      
-        
-        // var disqus_developer = 1;
-        var disqus_identifier = 'http://blog.mavnn.co.uk/type-providers-from-the-ground-up/';
-        var disqus_url = 'http://blog.mavnn.co.uk/type-providers-from-the-ground-up/';
-        var disqus_script = 'embed.js';
-      
-    (function () {
-      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-      dsq.src = '//' + disqus_shortname + '.disqus.com/' + disqus_script;
-      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
-    }());
-</script>
-
-
-
-
-
-  <script type="text/javascript">
-    (function() {
-      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
-      script.src = 'https://apis.google.com/js/plusone.js';
-      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
-    })();
-  </script>
-
-
-
-  <script type="text/javascript">
-    (function(){
-      var twitterWidgets = document.createElement('script');
-      twitterWidgets.type = 'text/javascript';
-      twitterWidgets.async = true;
-      twitterWidgets.src = '//platform.twitter.com/widgets.js';
-      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
-    })();
-  </script>
-
-
-
-
-
-</body>
-</html>
+</feed>

@@ -5,11 +5,11 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>Terms of Engagement - Mavnn's blog</title>
+  <title>Type Provider ProTip - Mavnn's blog</title>
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="I was looking to express a concept recently and realised I didn&#39;t have the terminology for it, so I decided to coin something. So I now have a &hellip;">
+  <meta name="description" content="While type providers are incredibly powerful, the ProvidedTypes api for creating them is sometimes a bit rough around the edges. And not always as &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -18,7 +18,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://blog.mavnn.co.uk/terms-of-engagement">
+  <link rel="canonical" href="http://blog.mavnn.co.uk/type-provider-protip">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="Mavnn's blog" type="application/atom+xml">
@@ -80,7 +80,7 @@
   
   <header>
     
-      <h1 class="entry-title">Terms of Engagement</h1>
+      <h1 class="entry-title">Type Provider ProTip</h1>
     
     
       <p class="meta">
@@ -96,14 +96,33 @@
   
 
 
-<time datetime="2011-09-01T00:00:00+01:00" pubdate data-updated="true"></time>
+<time datetime="2014-01-10T12:15:15+00:00" pubdate data-updated="true">Jan 10<span>th</span>, 2014</time>
         
       </p>
     
   </header>
 
 
-<div class="entry-content"><p>I was looking to express a concept recently and realised I didn&#39;t have the terminology for it, so I decided to coin something.</p> <p>So I now have a new category if friendship:</p> <p>A &#39;real&#39; friend is someone who I can express an opinion to, disagree with and still be friends with.</p> <p>This is mostly independent of whether they are also a &#39;good&#39; friend (someone with whom there is a lot of shared knowledge and time) or a &#39;true&#39; friend (stuck with the friendship through crap, or at least given me strong reason to believe they would even if they haven&#39;t had to yet).</p> <p>Of course being in any of the categories makes moving into the others more likely&#8230;</p>
+<div class="entry-content"><p>While type providers are incredibly powerful, the ProvidedTypes api for creating them is sometimes a bit rough around the edges. And not always as functional as you might hope.</p>
+
+<p>At some point I&rsquo;d like to do something about that, but for the moment I&rsquo;m just going to collect a few helpful tips and hints (mostly for own reference).</p>
+
+<p>Tip one is in the case where you have XmlDocs to add to ProvidedTypes, ProvidedMethods and ProvidedProperties; in our case we have an optional description field in our metadata and the boiler plate was getting tiresome.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="k">inline</span> <span class="n">addDoc</span> <span class="o">(</span><span class="n">desc</span> <span class="o">:</span> <span class="nc">Descriptor</span><span class="o">)</span> <span class="n">def</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">match</span> <span class="n">desc</span><span class="o">.</span><span class="nc">Description</span> <span class="k">with</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Some</span> <span class="n">d</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="o">(^</span><span class="nc">T</span> <span class="o">:</span> <span class="o">(</span><span class="k">member</span> <span class="nc">AddXmlDoc</span> <span class="o">:</span> <span class="kt">string</span> <span class="o">-&gt;</span> <span class="kt">unit</span><span class="o">)</span> <span class="o">(</span><span class="n">def</span><span class="o">,</span> <span class="n">d</span><span class="o">))</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This function takes a <code>Descriptor</code> with a <code>string option</code> Description field and any <code>def</code> with an AddXmlDoc member with the noted signature &ndash; and adds description as the xml doc if it exists.</p>
 </div>
 
 
@@ -126,15 +145,21 @@
   
 
 
-<time datetime="2011-09-01T00:00:00+01:00" pubdate data-updated="true"></time>
+<time datetime="2014-01-10T12:15:15+00:00" pubdate data-updated="true">Jan 10<span>th</span>, 2014</time>
       
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/fsharp/'>fsharp</a>, <a class='category' href='/blog/categories/programming/'>programming</a>, <a class='category' href='/blog/categories/tpprotip/'>tpProTip</a>, <a class='category' href='/blog/categories/typeprovider/'>typeprovider</a>
+  
+</span>
 
 
     </p>
     
       <div class="sharing">
   
-  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://blog.mavnn.co.uk/terms-of-engagement/index.html" data-via="mavnn" data-counturl="http://blog.mavnn.co.uk/terms-of-engagement/index.html" >Tweet</a>
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://blog.mavnn.co.uk/type-provider-protip/" data-via="mavnn" data-counturl="http://blog.mavnn.co.uk/type-provider-protip/" >Tweet</a>
   
   
   <div class="g-plusone" data-size="medium"></div>
@@ -145,10 +170,8 @@
     
     <p class="meta">
       
-        <a class="basic-alignment left" href="/new-job/index.html" title="Previous Post: New job.">&laquo; New job.</a>
+        <a class="basic-alignment left" href="/pygments/" title="Previous Post: Pygments">&laquo; Pygments</a>
       
-      
-        <a class="basic-alignment right" href="/ncrunch/index.html" title="Next Post: NCrunch">NCrunch &raquo;</a>
       
     </p>
   </footer>
@@ -258,8 +281,8 @@
       
         
         // var disqus_developer = 1;
-        var disqus_identifier = 'http://blog.mavnn.co.uk/terms-of-engagement/index.html';
-        var disqus_url = 'http://blog.mavnn.co.uk/terms-of-engagement/index.html';
+        var disqus_identifier = 'http://blog.mavnn.co.uk/type-provider-protip/';
+        var disqus_url = 'http://blog.mavnn.co.uk/type-provider-protip/';
         var disqus_script = 'embed.js';
       
     (function () {

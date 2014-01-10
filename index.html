@@ -9,7 +9,7 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="Apparently I should be able to do inline F# code using one of the Octopress plugins, rather than having to use gists every where. Let&rsquo;s try it &hellip;">
+  <meta name="description" content="While type providers are incredibly powerful, the ProvidedTypes api for creating them is sometimes a bit rough around the edges. And not always as &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -83,6 +83,61 @@
       
   <header>
     
+      <h1 class="entry-title"><a href="/type-provider-protip/">Type Provider ProTip</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-01-10T12:15:15+00:00" pubdate data-updated="true">Jan 10<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>While type providers are incredibly powerful, the ProvidedTypes api for creating them is sometimes a bit rough around the edges. And not always as functional as you might hope.</p>
+
+<p>At some point I&rsquo;d like to do something about that, but for the moment I&rsquo;m just going to collect a few helpful tips and hints (mostly for own reference).</p>
+
+<p>Tip one is in the case where you have XmlDocs to add to ProvidedTypes, ProvidedMethods and ProvidedProperties; in our case we have an optional description field in our metadata and the boiler plate was getting tiresome.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="k">inline</span> <span class="n">addDoc</span> <span class="o">(</span><span class="n">desc</span> <span class="o">:</span> <span class="nc">Descriptor</span><span class="o">)</span> <span class="n">def</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">match</span> <span class="n">desc</span><span class="o">.</span><span class="nc">Description</span> <span class="k">with</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Some</span> <span class="n">d</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="o">(^</span><span class="nc">T</span> <span class="o">:</span> <span class="o">(</span><span class="k">member</span> <span class="nc">AddXmlDoc</span> <span class="o">:</span> <span class="kt">string</span> <span class="o">-&gt;</span> <span class="kt">unit</span><span class="o">)</span> <span class="o">(</span><span class="n">def</span><span class="o">,</span> <span class="n">d</span><span class="o">))</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This function takes a <code>Descriptor</code> with a <code>string option</code> Description field and any <code>def</code> with an AddXmlDoc member with the noted signature &ndash; and adds description as the xml doc if it exists.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
       <h1 class="entry-title"><a href="/pygments/">Pygments</a></h1>
     
     
@@ -117,7 +172,9 @@
 
 <p>Thanks <a href="https://twitter.com/ovatsus/status/411496863591067648">Gustavo</a></p>
 
-<p>Only issue is that having Python 3.x installed, which broke Octopress&#8217; Pygments support. Which kept me going for a while&hellip;</p>
+<p>Only issue is that having Python 3.x installed broke Octopress&#8217; Pygments support. Which kept me going for a while&hellip;</p>
+
+<p>Given I&rsquo;m not currently doing any Python development, a uninstall and adding 2.7 to the path did the job.</p>
 </div>
   
   
@@ -943,93 +1000,6 @@ info &ndash; a actually decent Windows console called ConEmu.</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/coding-hygiene-moving-from-project-references-to-nuget-dependencies/">Coding Hygiene: Moving From Project References to NuGet Dependencies</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-03-08T17:08:00+00:00" pubdate data-updated="true">Mar 8<span>th</span>, 2013</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>So, first post with the new blogging engine. Let&rsquo;s see how it goes.</p>
-
-<p>Our code base at <a href="http://15below.com">15below</a> started it&rsquo;s life a fair
-while ago, well before any form of .NET package management became
-practical. Because of that, we ended up building a lot of code in
-&lsquo;lockstep&rsquo; with project references in code as there was no sensible way
-of taking versioned binary dependencies.</p>
-
-<p>That&rsquo;s fine and all, but it encourages bad code hygiene: rather than
-having sharply defined contracts between components, if you&rsquo;ve got them
-all open in the same solution it becomes far too tempting to just nudge
-changes around as it&rsquo;s convenient at the time. Changes can infect other
-pieces of code, and the power of automatic refactoring across the entire
-solution becomes intoxicating.</p>
-
-<p>The result? It becomes very hard to do incremental builds (or
-deployments, for that matter). This in turn makes for a long feed back
-cycle between making a change, and being able to see it rolled out to a
-testing environment.</p>
-
-<p>So as part of the ongoing refactoring that any long lived code base needs to
-keep it maintainable and under control, we&rsquo;ve embarked on the process of
-splitting our code down into more logically separated repositories that
-reference each other via NuGet. This will require us to start being much
-more disciplined in our <a href="http://semver.org">semantic versioning</a> than we
-have been in the past, but will also allow us to build and deploy
-incrementally and massively reduce our feed back times.</p>
-
-<p>As part of splitting out the first logical division (I&rsquo;d like to say
-<a href="http://en.wikipedia.org/wiki/Domain-driven_design">domain</a> but we&rsquo;re
-not there yet!), I created the new repository and got the included
-assemblies up and building on TeamCity. It was only then (stupidly) that
-I realised that we had several hundred project references to these
-assemblies in our code. There was no way I was going to update them all
-by hand, so after a few hours development we now have a script for
-idempotently updating a project reference in a [cs|vb|fs]proj file to a
-NuGet reference. It does require you to do one update manually first;
-especially with assemblies that are strongly signed, I chickened out of
-trying to generate the reference nodes that needed to be added
-automatically. The script also makes sure that you end up with a
-packages.config file with the project that includes the new dependency.</p>
-
-<p>It should be noted that this script has only seen minimal testing, was
-coded up for one time use and does not come with a warranty of any kind!
-Use at your own risk, and once you understand what it&rsquo;s doing. But for
-all that, I hope you find it useful.</p>
-
-<div><script src='https://gist.github.com/mavnn/5983379.js'></script>
-<noscript><pre><code></code></pre></noscript></div>
-
-
-
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -1045,6 +1015,10 @@ all that, I hope you find it useful.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/type-provider-protip/">Type Provider ProTip</a>
+      </li>
+    
+      <li class="post">
         <a href="/pygments/">Pygments</a>
       </li>
     
@@ -1058,10 +1032,6 @@ all that, I hope you find it useful.</p>
     
       <li class="post">
         <a href="/introducing-f-number-to-experienced-developers/">Introducing F# to Experienced Developers</a>
-      </li>
-    
-      <li class="post">
-        <a href="/being-a-priest-and-programming/">Being a Priest and Programming</a>
       </li>
     
   </ul>

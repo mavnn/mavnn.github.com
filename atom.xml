@@ -4,7 +4,7 @@
   <title><![CDATA[Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2014-01-03T15:30:24+00:00</updated>
+  <updated>2014-01-10T12:32:46+00:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,34 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Type Provider ProTip]]></title>
+    <link href="http://blog.mavnn.co.uk/type-provider-protip/"/>
+    <updated>2014-01-10T12:15:15+00:00</updated>
+    <id>http://blog.mavnn.co.uk/type-provider-protip</id>
+    <content type="html"><![CDATA[<p>While type providers are incredibly powerful, the ProvidedTypes api for creating them is sometimes a bit rough around the edges. And not always as functional as you might hope.</p>
+
+<p>At some point I&rsquo;d like to do something about that, but for the moment I&rsquo;m just going to collect a few helpful tips and hints (mostly for own reference).</p>
+
+<p>Tip one is in the case where you have XmlDocs to add to ProvidedTypes, ProvidedMethods and ProvidedProperties; in our case we have an optional description field in our metadata and the boiler plate was getting tiresome.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="k">inline</span> <span class="n">addDoc</span> <span class="o">(</span><span class="n">desc</span> <span class="o">:</span> <span class="nc">Descriptor</span><span class="o">)</span> <span class="n">def</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">match</span> <span class="n">desc</span><span class="o">.</span><span class="nc">Description</span> <span class="k">with</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Some</span> <span class="n">d</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="o">(^</span><span class="nc">T</span> <span class="o">:</span> <span class="o">(</span><span class="k">member</span> <span class="nc">AddXmlDoc</span> <span class="o">:</span> <span class="kt">string</span> <span class="o">-&gt;</span> <span class="kt">unit</span><span class="o">)</span> <span class="o">(</span><span class="n">def</span><span class="o">,</span> <span class="n">d</span><span class="o">))</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This function takes a <code>Descriptor</code> with a <code>string option</code> Description field and any <code>def</code> with an AddXmlDoc member with the noted signature &ndash; and adds description as the xml doc if it exists.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Pygments]]></title>
@@ -29,7 +57,9 @@
 
 <p>Thanks <a href="https://twitter.com/ovatsus/status/411496863591067648">Gustavo</a></p>
 
-<p>Only issue is that having Python 3.x installed, which broke Octopress&#8217; Pygments support. Which kept me going for a while&hellip;</p>
+<p>Only issue is that having Python 3.x installed broke Octopress&#8217; Pygments support. Which kept me going for a while&hellip;</p>
+
+<p>Given I&rsquo;m not currently doing any Python development, a uninstall and adding 2.7 to the path did the job.</p>
 ]]></content>
   </entry>
   
@@ -2306,15 +2336,6 @@ source, with all the niceties like intellisense that you would want.</p>
 <div>Two things in particular I&#8217;ll treasure for a long time out of all of this. One is my wife saying on the way to church that after the service she was going to seek out two particular ladies and ask them to pray with and support her: and at the end of the service the two of them being there before she had a chance to stand up. &nbsp;And the pastor, who had been ill in the morning and so hadn&#8217;t heard the news. We saw him before the evening carols, and he asked my wife how things were going. &nbsp;She told him, and with the service about to start, and about 400 people waiting for him he just stopped, grabbed us in a hug and cried (while praying for us). It was, I think, the single most therapeutic thing anyone has ever done for me.</div>
 <p />
 <div>So I cry, and smile. And I mean them both.</div>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Anyone Using FsCheck for Business Code?]]></title>
-    <link href="http://blog.mavnn.co.uk/anyone-using-fscheck-for-business-code/index.html"/>
-    <updated>2012-12-13T00:00:00+00:00</updated>
-    <id>http://blog.mavnn.co.uk/anyone-using-fscheck-for-business-code/anyone-using-fscheck-for-business-code</id>
-    <content type="html"><![CDATA[<p>Libraries like FsCheck ( <a href="http://fscheck.codeplex.com/">http://fscheck.codeplex.com/</a> ) and  Pex always capture my imagination as fantastically clever and potentially useful tools. Along with things like strong type systems and code contacts they especially appeal to my long buried mathematical background.</p> <p>Unfortunately, and probably because of said mathematical background, I sometimes struggle to think of ways to use them outside of maths and science problems. If I&#39;m working on a maths library or I decide I want to write a sorting algorithm, trivially easy sanity checks of things like whether a function is cummutative or associative are immediately useful.</p> <p>If I&#39;m writing a service that polls an email address for bounced emails and out of office replies&#8230; I don&#39;t know. It feels like there should be things they can help me with: after all, over the years I&#39;ve decided the strong type system is helpful even for this side of things, so surely the QuickCheck/proof side of things should be to. But the amount of work it requires to set up the test generators for complex data types (and then trying to formalize the acceptance criteria without just writing the actual implementation!) feels so large compared to the size of the project that I can never justify the time to actually use the tools.</p> <p>So I&#39;m left wondering: am I missing something? Is there a whole new level of treating ease and vigour I&#39;m missing out on just because I don&#39;t have the imagination and experience to make good use of the tools right there in front of me? </p> <p>Or are these tools only really useful in their own narrow field? </p> <p>I suspect the middle ground; for the moment ideas are avoiding me in droves. Any good open source examples out there of these tools in use for the kind of &#39;business&#39; code that most of us spend most of our time writing? </p>
 ]]></content>
   </entry>
   

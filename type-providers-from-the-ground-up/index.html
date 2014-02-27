@@ -119,18 +119,29 @@
 
 <p>3) Replace the contents of Library1.fs with something like this:</p>
 
-<div><script src='https://gist.github.com/mavnn/7803991.js?file=Part1.fs'></script>
-<noscript><pre><code>module Mavnn.Blog.TypeProvider
-
-open ProviderImplementation.ProvidedTypes
-open Microsoft.FSharp.Core.CompilerServices
-
-[&lt;TypeProvider&gt;]
-type MavnnProvider (config : TypeProviderConfig) as this =
-    inherit TypeProviderForNamespaces ()
-
-[&lt;assembly:TypeProviderAssembly&gt;]
-do ()</code></pre></noscript></div>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nn">Mavnn</span><span class="p">.</span><span class="nn">Blog</span><span class="p">.</span><span class="nc">TypeProvider</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nn">ProviderImplementation</span><span class="p">.</span><span class="nc">ProvidedTypes</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nn">Core</span><span class="p">.</span><span class="nc">CompilerServices</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="nc">TypeProvider</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">type</span> <span class="nc">MavnnProvider</span> <span class="o">(</span><span class="n">config</span> <span class="o">:</span> <span class="nc">TypeProviderConfig</span><span class="o">)</span> <span class="k">as</span> <span class="n">this</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">inherit</span> <span class="nc">TypeProviderForNamespaces</span> <span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="n">assembly</span><span class="o">:</span><span class="nc">TypeProviderAssembly</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">do</span> <span class="bp">()</span>
+</span></code></pre></td></tr></table></div></figure>
 
 
 <p>So, that&rsquo;s great and it builds. We have a type provider class and an assembly that knows it&rsquo;s a type providing assembly. Unfortunately, it doesn&rsquo;t actually provide any types yet. Let&rsquo;s try it.</p>
@@ -140,32 +151,57 @@ do ()</code></pre></noscript></div>
 
 <p>Update Library1.fs in your solution with something that looks like this, and then we&rsquo;ll run through what&rsquo;s going on, and how to test it.</p>
 
-<div><script src='https://gist.github.com/mavnn/7803991.js?file=Part2.fs'></script>
-<noscript><pre><code>module Mavnn.Blog.TypeProvider
-
-open ProviderImplementation.ProvidedTypes
-open Microsoft.FSharp.Core.CompilerServices
-open System.Reflection
-
-[&lt;TypeProvider&gt;]
-type MavnnProvider (config : TypeProviderConfig) as this =
-    inherit TypeProviderForNamespaces ()
-
-    let ns = &quot;Mavnn.Blog.TypeProvider.Provided&quot;
-    let asm = Assembly.GetExecutingAssembly()
-
-    let createTypes () =
-        let myType = ProvidedTypeDefinition(asm, ns, &quot;MyType&quot;, Some typeof&lt;obj&gt;)
-        let myProp = ProvidedProperty(&quot;MyProperty&quot;, typeof&lt;string&gt;, IsStatic = true, 
-                                        GetterCode = (fun args -&gt; &lt;@@ &quot;Hello world&quot; @@&gt;))
-        myType.AddMember(myProp)
-        [myType]
-
-    do
-        this.AddNamespace(ns, createTypes())
-
-[&lt;assembly:TypeProviderAssembly&gt;]
-do ()</code></pre></noscript></div>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nn">Mavnn</span><span class="p">.</span><span class="nn">Blog</span><span class="p">.</span><span class="nc">TypeProvider</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nn">ProviderImplementation</span><span class="p">.</span><span class="nc">ProvidedTypes</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nn">Core</span><span class="p">.</span><span class="nc">CompilerServices</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Reflection</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="nc">TypeProvider</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">type</span> <span class="nc">MavnnProvider</span> <span class="o">(</span><span class="n">config</span> <span class="o">:</span> <span class="nc">TypeProviderConfig</span><span class="o">)</span> <span class="k">as</span> <span class="n">this</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">inherit</span> <span class="nc">TypeProviderForNamespaces</span> <span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">ns</span> <span class="o">=</span> <span class="s2">&quot;Mavnn.Blog.TypeProvider.Provided&quot;</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">asm</span> <span class="o">=</span> <span class="nn">Assembly</span><span class="p">.</span><span class="nc">GetExecutingAssembly</span><span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">createTypes</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">myType</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="s2">&quot;MyType&quot;</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;)</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">myProp</span> <span class="o">=</span> <span class="nc">ProvidedProperty</span><span class="o">(</span><span class="s2">&quot;MyProperty&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;,</span> <span class="nc">IsStatic</span> <span class="o">=</span> <span class="bp">true</span><span class="o">,</span>
+</span><span class='line'>                                        <span class="nc">GetterCode</span> <span class="o">=</span> <span class="o">(</span><span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="s2">&quot;Hello world&quot;</span> <span class="o">@@&gt;))</span>
+</span><span class='line'>        <span class="n">myType</span><span class="o">.</span><span class="nc">AddMember</span><span class="o">(</span><span class="n">myProp</span><span class="o">)</span>
+</span><span class='line'>        <span class="o">[</span><span class="n">myType</span><span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">do</span>
+</span><span class='line'>        <span class="n">this</span><span class="o">.</span><span class="nc">AddNamespace</span><span class="o">(</span><span class="n">ns</span><span class="o">,</span> <span class="n">createTypes</span><span class="bp">()</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="n">assembly</span><span class="o">:</span><span class="nc">TypeProviderAssembly</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">do</span> <span class="bp">()</span>
+</span></code></pre></td></tr></table></div></figure>
 
 
 <p>First things first &ndash; it looks like it should provide a class with a static property, but how do we test it?</p>
@@ -174,12 +210,19 @@ do ()</code></pre></noscript></div>
 
 <p>Fire up a second copy of Visual Studio (you went for the extra RAM option on your hardware, yes?) and create an F# project in it. Add an fsx file that looks something like this:</p>
 
-<div><script src='https://gist.github.com/mavnn/7803991.js?file=Part3.fsx'></script>
-<noscript><pre><code>#r @&quot;../../Mavnn.Blog.TypeProvider/Mavnn.Blog.TypeProvider/bin/Debug/Mavnn.Blog.TypeProvider.dll&quot;
-
-open Mavnn.Blog.TypeProvider.Provided
-
-// Type `MyType.MyProperty` on next line down.</code></pre></noscript></div>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="c1">// Your path may vary...</span>
+</span><span class='line'><span class="o">#</span><span class="n">r</span> <span class="o">@</span><span class="s2">&quot;../../Mavnn.Blog.TypeProvider/Mavnn.Blog.TypeProvider/bin/Debug/Mavnn.Blog.TypeProvider.dll&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nn">Mavnn</span><span class="p">.</span><span class="nn">Blog</span><span class="p">.</span><span class="nn">TypeProvider</span><span class="p">.</span><span class="nc">Provided</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// Type `MyType.MyProperty` on next line down.</span>
+</span></code></pre></td></tr></table></div></figure>
 
 
 <p>Start typing, and&hellip; hurrah! Intellisense on your new, provided type with static property. Evaluate the script in F# interactive for one of the longest &ldquo;Hello World&rdquo; programs you&rsquo;ve ever seen.</p>
@@ -202,10 +245,11 @@ open Mavnn.Blog.TypeProvider.Provided
 
 <p>To give you a flavour, the quotation <code>&lt;@@ 1 + 2 @@&gt;</code> compiles to <code>Quotations.Expr = Call (None, op_Addition, [Value (1), Value (2)])</code>. Not very exciting so far, but how about:</p>
 
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>let addI i =
-</span><span class='line'>    &lt;@@ 1 + (%%i) @@&gt;</span></code></pre></td></tr></table></div></figure>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">addI</span> <span class="n">i</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">&lt;@@</span> <span class="mi">1</span> <span class="o">+</span> <span class="o">(%%</span><span class="n">i</span><span class="o">)</span> <span class="o">@@&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
 
 
 <p>This gives a function of <code>Expr -&gt; Expr</code>, and now we can do things like <code>let add2 = addI &lt;@@ 2 @@&gt;</code> (gives <code>val add2 : Expr = Call (None, op_Addition, [Value (1), Value (2)])</code>) or <code>let add2MultipliedByX x = addI &lt;@@ 2 * x @@&gt;</code> (gives <code>val add2MultipliedByX : x:int -&gt; Expr</code>) and what we get back is effectively the AST of the first F# expression with the second spliced in to evaluate as you will. So in our <code>GetterCode</code> above, we are actually providing the AST that will be compiled into the <code>get_MyPropertyMethod</code> of the type when it is created.</p>
@@ -214,27 +258,51 @@ open Mavnn.Blog.TypeProvider.Provided
 
 <p>So far, our type isn&rsquo;t very exciting. You can&rsquo;t even construct an instance of it. Let&rsquo;s see what we can do about that, with a replacement <code>createTypes</code> method:</p>
 
-<div><script src='https://gist.github.com/mavnn/7803991.js?file=Part4.fs'></script>
-<noscript><pre><code>    let createTypes () =
-        let myType = ProvidedTypeDefinition(asm, ns, &quot;MyType&quot;, Some typeof&lt;obj&gt;)
-        let myProp = ProvidedProperty(&quot;MyProperty&quot;, typeof&lt;string&gt;, IsStatic = true, 
-                                        GetterCode = fun args -&gt; &lt;@@ &quot;Hello world&quot; @@&gt;)
-        myType.AddMember(myProp)
-
-        let ctor = ProvidedConstructor([], InvokeCode = fun args -&gt; &lt;@@ &quot;My internal state&quot; :&gt; obj @@&gt;)
-        myType.AddMember(ctor)
-
-        let ctor2 = ProvidedConstructor(
-                        [ProvidedParameter(&quot;InnerState&quot;, typeof&lt;string&gt;)],
-                        InvokeCode = fun args -&gt; &lt;@@ (%%(args.[0]):string) :&gt; obj @@&gt;)
-        myType.AddMember(ctor2)
-
-        let innerState = ProvidedProperty(&quot;InnerState&quot;, typeof&lt;string&gt;,
-                            GetterCode = fun args -&gt; &lt;@@ (%%(args.[0]) :&gt; obj) :?&gt; string @@&gt;)
-        myType.AddMember(innerState)
-
-        [myType]
-</code></pre></noscript></div>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">createTypes</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">myType</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="s2">&quot;MyType&quot;</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;)</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">myProp</span> <span class="o">=</span> <span class="nc">ProvidedProperty</span><span class="o">(</span><span class="s2">&quot;MyProperty&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;,</span> <span class="nc">IsStatic</span> <span class="o">=</span> <span class="bp">true</span><span class="o">,</span>
+</span><span class='line'>                                    <span class="nc">GetterCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="s2">&quot;Hello world&quot;</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>    <span class="n">myType</span><span class="o">.</span><span class="nc">AddMember</span><span class="o">(</span><span class="n">myProp</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">ctor</span> <span class="o">=</span> <span class="nc">ProvidedConstructor</span><span class="o">(</span><span class="bp">[]</span><span class="o">,</span> <span class="nc">InvokeCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="s2">&quot;My internal state&quot;</span> <span class="o">:&gt;</span> <span class="n">obj</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>    <span class="n">myType</span><span class="o">.</span><span class="nc">AddMember</span><span class="o">(</span><span class="n">ctor</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">ctor2</span> <span class="o">=</span> <span class="nc">ProvidedConstructor</span><span class="o">(</span>
+</span><span class='line'>                    <span class="o">[</span><span class="nc">ProvidedParameter</span><span class="o">(</span><span class="s2">&quot;InnerState&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;)],</span>
+</span><span class='line'>                    <span class="nc">InvokeCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="o">(%%(</span><span class="n">args</span><span class="o">.[</span><span class="mi">0</span><span class="o">]):</span><span class="kt">string</span><span class="o">)</span> <span class="o">:&gt;</span> <span class="n">obj</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>    <span class="n">myType</span><span class="o">.</span><span class="nc">AddMember</span><span class="o">(</span><span class="n">ctor2</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">innerState</span> <span class="o">=</span> <span class="nc">ProvidedProperty</span><span class="o">(</span><span class="s2">&quot;InnerState&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;,</span>
+</span><span class='line'>                        <span class="nc">GetterCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="o">(%%(</span><span class="n">args</span><span class="o">.[</span><span class="mi">0</span><span class="o">])</span> <span class="o">:&gt;</span> <span class="n">obj</span><span class="o">)</span> <span class="o">:?&gt;</span> <span class="kt">string</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>    <span class="n">myType</span><span class="o">.</span><span class="nc">AddMember</span><span class="o">(</span><span class="n">innerState</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="o">[</span><span class="n">myType</span><span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">do</span>
+</span><span class='line'>    <span class="n">this</span><span class="o">.</span><span class="nc">AddNamespace</span><span class="o">(</span><span class="n">ns</span><span class="o">,</span> <span class="n">createTypes</span><span class="bp">()</span><span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
 
 
 <p>Now we can construct our type (in two ways, no less). As the underlying CLR type is an <code>object</code> we can store pretty much anything as the internal representation of an instance of our type. The <code>InvokeCode</code> parameter of the constructors needs to return a quotation that will return the internal representation of the object when it&rsquo;s evaluated. We&rsquo;re going to return a string (which we need to cast to an obj), and using the splicing syntax above we can inject the parameters of the constructor into the quotation (for the constructor which has a parameter).</p>
@@ -243,22 +311,37 @@ open Mavnn.Blog.TypeProvider.Provided
 
 <p>And now you can do things like this:</p>
 
-<div><script src='https://gist.github.com/mavnn/7803991.js?file=Part5.fsx'></script>
-<noscript><pre><code>// Your path may vary...
-#r @&quot;../../Mavnn.Blog.TypeProvider/Mavnn.Blog.TypeProvider/bin/Debug/Mavnn.Blog.TypeProvider.dll&quot;
-
-open Mavnn.Blog.TypeProvider.Provided
-
-let thing = MyType()
-let thingInnerState = thing.InnerState
-
-let thing2 = MyType(&quot;Some other text&quot;)
-let thing2InnerState = thing2.InnerState
-
-// val thing : Mavnn.Blog.TypeProvider.Provided.MyType = &quot;My internal state&quot;
-// val thingInnerState : string = &quot;My internal state&quot;
-// val thing2 : Mavnn.Blog.TypeProvider.Provided.MyType = &quot;Some other text&quot;
-// val thing2InnerState : string = &quot;Some other text&quot;</code></pre></noscript></div>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="c1">// Your path may vary...</span>
+</span><span class='line'><span class="o">#</span><span class="n">r</span> <span class="o">@</span><span class="s2">&quot;../../Mavnn.Blog.TypeProvider/Mavnn.Blog.TypeProvider/bin/Debug/Mavnn.Blog.TypeProvider.dll&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nn">Mavnn</span><span class="p">.</span><span class="nn">Blog</span><span class="p">.</span><span class="nn">TypeProvider</span><span class="p">.</span><span class="nc">Provided</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">thing</span> <span class="o">=</span> <span class="nc">MyType</span><span class="bp">()</span>
+</span><span class='line'><span class="k">let</span> <span class="n">thingInnerState</span> <span class="o">=</span> <span class="n">thing</span><span class="o">.</span><span class="nc">InnerState</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">thing2</span> <span class="o">=</span> <span class="nc">MyType</span><span class="o">(</span><span class="s2">&quot;Some other text&quot;</span><span class="o">)</span>
+</span><span class='line'><span class="k">let</span> <span class="n">thing2InnerState</span> <span class="o">=</span> <span class="n">thing2</span><span class="o">.</span><span class="nc">InnerState</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// val thing : Mavnn.Blog.TypeProvider.Provided.MyType = &quot;My internal state&quot;</span>
+</span><span class='line'><span class="c1">// val thingInnerState : string = &quot;My internal state&quot;</span>
+</span><span class='line'><span class="c1">// val thing2 : Mavnn.Blog.TypeProvider.Provided.MyType = &quot;Some other text&quot;</span>
+</span><span class='line'><span class="c1">// val thing2InnerState : string = &quot;Some other text&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
 
 
 <h2>And the point is?</h2>
@@ -269,89 +352,171 @@ let thing2InnerState = thing2.InnerState
 
 <p>Our input JSON looks something like this:</p>
 
-<div><script src='https://gist.github.com/mavnn/7803991.js?file=Part6.json'></script>
-<noscript><pre><code>[
-   {
-      &quot;Id&quot;:{
-         &quot;Name&quot;:&quot;Simple&quot;,
-         &quot;UniqueId&quot;:&quot;0ab82262-0ad3-47d3-a026-615b84352822&quot;
-      },
-      &quot;Ports&quot;:[
-         {
-            &quot;Id&quot;:{
-               &quot;Name&quot;:&quot;Input&quot;,
-               &quot;UniqueId&quot;:&quot;4b69408e-82d2-4c36-ab78-0d2327268622&quot;
-            },
-            &quot;Type&quot;:&quot;input&quot;
-         },
-         {
-            &quot;Id&quot;:{
-               &quot;Name&quot;:&quot;Output&quot;,
-               &quot;UniqueId&quot;:&quot;92ae5a96-6900-4d77-832f-d272329f8a90&quot;
-            },
-            &quot;Type&quot;:&quot;output&quot;
-         }
-      ]
-   },
-   {
-      &quot;Id&quot;:{
-         &quot;Name&quot;:&quot;Join&quot;,
-         &quot;UniqueId&quot;:&quot;162c0981-4370-4db3-8e3f-149f13c001da&quot;
-      },
-      &quot;Ports&quot;:[
-         {
-            &quot;Id&quot;:{
-               &quot;Name&quot;:&quot;Input1&quot;,
-               &quot;UniqueId&quot;:&quot;c0fea7ff-456e-4d4e-b5a4-9539ca134344&quot;
-            },
-            &quot;Type&quot;:&quot;input&quot;
-         },
-         {
-            &quot;Id&quot;:{
-               &quot;Name&quot;:&quot;Input2&quot;,
-               &quot;UniqueId&quot;:&quot;4e93c3b1-11bc-422a-91b8-e53204368714&quot;
-            },
-            &quot;Type&quot;:&quot;input&quot;
-         },
-         {
-            &quot;Id&quot;:{
-               &quot;Name&quot;:&quot;Output&quot;,
-               &quot;UniqueId&quot;:&quot;fb54728b-9602-4220-ba08-ad160d92d5a4&quot;
-            },
-            &quot;Type&quot;:&quot;output&quot;
-         }
-      ]
-   },
-   {
-      &quot;Id&quot;:{
-         &quot;Name&quot;:&quot;Split&quot;,
-         &quot;UniqueId&quot;:&quot;c3e44941-9182-41c3-921c-863a82097ba8&quot;
-      },
-      &quot;Ports&quot;:[
-         {
-            &quot;Id&quot;:{
-               &quot;Name&quot;:&quot;Input&quot;,
-               &quot;UniqueId&quot;:&quot;0ec2537c-3346-4503-9f5a-d0bb49e9e431&quot;
-            },
-            &quot;Type&quot;:&quot;input&quot;
-         },
-         {
-            &quot;Id&quot;:{
-               &quot;Name&quot;:&quot;Output1&quot;,
-               &quot;UniqueId&quot;:&quot;77b5a50c-3d11-4a67-b14d-52d6246e78c5&quot;
-            },
-            &quot;Type&quot;:&quot;output&quot;
-         },
-         {
-            &quot;Id&quot;:{
-               &quot;Name&quot;:&quot;Output2&quot;,
-               &quot;UniqueId&quot;:&quot;d4d1e928-5347-4d51-be54-8650bdfe9bac&quot;
-            },
-            &quot;Type&quot;:&quot;output&quot;
-         }
-      ]
-   }
-]</code></pre></noscript></div>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="p">[</span>
+</span><span class='line'>   <span class="p">{</span>
+</span><span class='line'>      <span class="nt">&quot;Id&quot;</span><span class="p">:{</span>
+</span><span class='line'>         <span class="nt">&quot;Name&quot;</span><span class="p">:</span><span class="s2">&quot;Simple&quot;</span><span class="p">,</span>
+</span><span class='line'>         <span class="nt">&quot;UniqueId&quot;</span><span class="p">:</span><span class="s2">&quot;0ab82262-0ad3-47d3-a026-615b84352822&quot;</span>
+</span><span class='line'>      <span class="p">},</span>
+</span><span class='line'>      <span class="nt">&quot;Ports&quot;</span><span class="p">:[</span>
+</span><span class='line'>         <span class="p">{</span>
+</span><span class='line'>            <span class="nt">&quot;Id&quot;</span><span class="p">:{</span>
+</span><span class='line'>               <span class="nt">&quot;Name&quot;</span><span class="p">:</span><span class="s2">&quot;Input&quot;</span><span class="p">,</span>
+</span><span class='line'>               <span class="nt">&quot;UniqueId&quot;</span><span class="p">:</span><span class="s2">&quot;4b69408e-82d2-4c36-ab78-0d2327268622&quot;</span>
+</span><span class='line'>            <span class="p">},</span>
+</span><span class='line'>            <span class="nt">&quot;Type&quot;</span><span class="p">:</span><span class="s2">&quot;input&quot;</span>
+</span><span class='line'>         <span class="p">},</span>
+</span><span class='line'>         <span class="p">{</span>
+</span><span class='line'>            <span class="nt">&quot;Id&quot;</span><span class="p">:{</span>
+</span><span class='line'>               <span class="nt">&quot;Name&quot;</span><span class="p">:</span><span class="s2">&quot;Output&quot;</span><span class="p">,</span>
+</span><span class='line'>               <span class="nt">&quot;UniqueId&quot;</span><span class="p">:</span><span class="s2">&quot;92ae5a96-6900-4d77-832f-d272329f8a90&quot;</span>
+</span><span class='line'>            <span class="p">},</span>
+</span><span class='line'>            <span class="nt">&quot;Type&quot;</span><span class="p">:</span><span class="s2">&quot;output&quot;</span>
+</span><span class='line'>         <span class="p">}</span>
+</span><span class='line'>      <span class="p">]</span>
+</span><span class='line'>   <span class="p">},</span>
+</span><span class='line'>   <span class="p">{</span>
+</span><span class='line'>      <span class="nt">&quot;Id&quot;</span><span class="p">:{</span>
+</span><span class='line'>         <span class="nt">&quot;Name&quot;</span><span class="p">:</span><span class="s2">&quot;Join&quot;</span><span class="p">,</span>
+</span><span class='line'>         <span class="nt">&quot;UniqueId&quot;</span><span class="p">:</span><span class="s2">&quot;162c0981-4370-4db3-8e3f-149f13c001da&quot;</span>
+</span><span class='line'>      <span class="p">},</span>
+</span><span class='line'>      <span class="nt">&quot;Ports&quot;</span><span class="p">:[</span>
+</span><span class='line'>         <span class="p">{</span>
+</span><span class='line'>            <span class="nt">&quot;Id&quot;</span><span class="p">:{</span>
+</span><span class='line'>               <span class="nt">&quot;Name&quot;</span><span class="p">:</span><span class="s2">&quot;Input1&quot;</span><span class="p">,</span>
+</span><span class='line'>               <span class="nt">&quot;UniqueId&quot;</span><span class="p">:</span><span class="s2">&quot;c0fea7ff-456e-4d4e-b5a4-9539ca134344&quot;</span>
+</span><span class='line'>            <span class="p">},</span>
+</span><span class='line'>            <span class="nt">&quot;Type&quot;</span><span class="p">:</span><span class="s2">&quot;input&quot;</span>
+</span><span class='line'>         <span class="p">},</span>
+</span><span class='line'>         <span class="p">{</span>
+</span><span class='line'>            <span class="nt">&quot;Id&quot;</span><span class="p">:{</span>
+</span><span class='line'>               <span class="nt">&quot;Name&quot;</span><span class="p">:</span><span class="s2">&quot;Input2&quot;</span><span class="p">,</span>
+</span><span class='line'>               <span class="nt">&quot;UniqueId&quot;</span><span class="p">:</span><span class="s2">&quot;4e93c3b1-11bc-422a-91b8-e53204368714&quot;</span>
+</span><span class='line'>            <span class="p">},</span>
+</span><span class='line'>            <span class="nt">&quot;Type&quot;</span><span class="p">:</span><span class="s2">&quot;input&quot;</span>
+</span><span class='line'>         <span class="p">},</span>
+</span><span class='line'>         <span class="p">{</span>
+</span><span class='line'>            <span class="nt">&quot;Id&quot;</span><span class="p">:{</span>
+</span><span class='line'>               <span class="nt">&quot;Name&quot;</span><span class="p">:</span><span class="s2">&quot;Output&quot;</span><span class="p">,</span>
+</span><span class='line'>               <span class="nt">&quot;UniqueId&quot;</span><span class="p">:</span><span class="s2">&quot;fb54728b-9602-4220-ba08-ad160d92d5a4&quot;</span>
+</span><span class='line'>            <span class="p">},</span>
+</span><span class='line'>            <span class="nt">&quot;Type&quot;</span><span class="p">:</span><span class="s2">&quot;output&quot;</span>
+</span><span class='line'>         <span class="p">}</span>
+</span><span class='line'>      <span class="p">]</span>
+</span><span class='line'>   <span class="p">},</span>
+</span><span class='line'>   <span class="p">{</span>
+</span><span class='line'>      <span class="nt">&quot;Id&quot;</span><span class="p">:{</span>
+</span><span class='line'>         <span class="nt">&quot;Name&quot;</span><span class="p">:</span><span class="s2">&quot;Split&quot;</span><span class="p">,</span>
+</span><span class='line'>         <span class="nt">&quot;UniqueId&quot;</span><span class="p">:</span><span class="s2">&quot;c3e44941-9182-41c3-921c-863a82097ba8&quot;</span>
+</span><span class='line'>      <span class="p">},</span>
+</span><span class='line'>      <span class="nt">&quot;Ports&quot;</span><span class="p">:[</span>
+</span><span class='line'>         <span class="p">{</span>
+</span><span class='line'>            <span class="nt">&quot;Id&quot;</span><span class="p">:{</span>
+</span><span class='line'>               <span class="nt">&quot;Name&quot;</span><span class="p">:</span><span class="s2">&quot;Input&quot;</span><span class="p">,</span>
+</span><span class='line'>               <span class="nt">&quot;UniqueId&quot;</span><span class="p">:</span><span class="s2">&quot;0ec2537c-3346-4503-9f5a-d0bb49e9e431&quot;</span>
+</span><span class='line'>            <span class="p">},</span>
+</span><span class='line'>            <span class="nt">&quot;Type&quot;</span><span class="p">:</span><span class="s2">&quot;input&quot;</span>
+</span><span class='line'>         <span class="p">},</span>
+</span><span class='line'>         <span class="p">{</span>
+</span><span class='line'>            <span class="nt">&quot;Id&quot;</span><span class="p">:{</span>
+</span><span class='line'>               <span class="nt">&quot;Name&quot;</span><span class="p">:</span><span class="s2">&quot;Output1&quot;</span><span class="p">,</span>
+</span><span class='line'>               <span class="nt">&quot;UniqueId&quot;</span><span class="p">:</span><span class="s2">&quot;77b5a50c-3d11-4a67-b14d-52d6246e78c5&quot;</span>
+</span><span class='line'>            <span class="p">},</span>
+</span><span class='line'>            <span class="nt">&quot;Type&quot;</span><span class="p">:</span><span class="s2">&quot;output&quot;</span>
+</span><span class='line'>         <span class="p">},</span>
+</span><span class='line'>         <span class="p">{</span>
+</span><span class='line'>            <span class="nt">&quot;Id&quot;</span><span class="p">:{</span>
+</span><span class='line'>               <span class="nt">&quot;Name&quot;</span><span class="p">:</span><span class="s2">&quot;Output2&quot;</span><span class="p">,</span>
+</span><span class='line'>               <span class="nt">&quot;UniqueId&quot;</span><span class="p">:</span><span class="s2">&quot;d4d1e928-5347-4d51-be54-8650bdfe9bac&quot;</span>
+</span><span class='line'>            <span class="p">},</span>
+</span><span class='line'>            <span class="nt">&quot;Type&quot;</span><span class="p">:</span><span class="s2">&quot;output&quot;</span>
+</span><span class='line'>         <span class="p">}</span>
+</span><span class='line'>      <span class="p">]</span>
+</span><span class='line'>   <span class="p">}</span>
+</span><span class='line'><span class="p">]</span>
+</span></code></pre></td></tr></table></div></figure>
 
 
 <p>Things start getting a bit more in depth here, so you might want to check out the full code for this post, available on <a href="https://github.com/mavnn/Mavnn.Blog.TypeProvider">GitHub</a>, and follow along in your favourite development environment.</p>
@@ -360,29 +525,40 @@ let thing2InnerState = thing2.InnerState
 
 <p>First, we&rsquo;ll need some classes to deserialize the Json into. Out of the box Newtonsoft doesn&rsquo;t do a great job on F# core classes (although that&rsquo;s changing), so for the moment we&rsquo;ll create some classic OO style mutable types:</p>
 
-<div><script src='https://gist.github.com/mavnn/7803991.js?file=Part7.fs'></script>
-<noscript><pre><code>type Id () =
-    member val UniqueId = Guid() with get, set
-    member val Name = &quot;&quot; with get, set
-
-type Port () =
-    member val Id = Id() with get, set
-    member val Type = &quot;&quot; with get, set
-
-type Node () =
-    member val Id = Id() with get, set
-    member val Ports = Collections.Generic.List&lt;Port&gt;() with get, set
-</code></pre></noscript></div>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">Id</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">member</span> <span class="k">val</span> <span class="nc">UniqueId</span> <span class="o">=</span> <span class="nc">Guid</span><span class="bp">()</span> <span class="k">with</span> <span class="n">get</span><span class="o">,</span> <span class="n">set</span>
+</span><span class='line'>    <span class="k">member</span> <span class="k">val</span> <span class="nc">Name</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span> <span class="k">with</span> <span class="n">get</span><span class="o">,</span> <span class="n">set</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">Port</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">member</span> <span class="k">val</span> <span class="nc">Id</span> <span class="o">=</span> <span class="nc">Id</span><span class="bp">()</span> <span class="k">with</span> <span class="n">get</span><span class="o">,</span> <span class="n">set</span>
+</span><span class='line'>    <span class="k">member</span> <span class="k">val</span> <span class="nc">Type</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span> <span class="k">with</span> <span class="n">get</span><span class="o">,</span> <span class="n">set</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">Node</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">member</span> <span class="k">val</span> <span class="nc">Id</span> <span class="o">=</span> <span class="nc">Id</span><span class="bp">()</span> <span class="k">with</span> <span class="n">get</span><span class="o">,</span> <span class="n">set</span>
+</span><span class='line'>    <span class="k">member</span> <span class="k">val</span> <span class="nc">Ports</span> <span class="o">=</span> <span class="nn">Collections</span><span class="p">.</span><span class="nn">Generic</span><span class="p">.</span><span class="nc">List</span><span class="o">&lt;</span><span class="nc">Port</span><span class="o">&gt;</span><span class="bp">()</span> <span class="k">with</span> <span class="n">get</span><span class="o">,</span> <span class="n">set</span>
+</span></code></pre></td></tr></table></div></figure>
 
 
 <p>(Don&rsquo;t worry though, these aren&rsquo;t what we&rsquo;ll actually expose as the main interface.)</p>
 
 <p>Turning our Json into the our new CLR types is straight forward:</p>
 
-<div><script src='https://gist.github.com/mavnn/7803991.js?file=Part8.fs'></script>
-<noscript><pre><code>let nodes =
-    JsonConvert.DeserializeObject&lt;seq&lt;Node&gt;&gt;(IO.File.ReadAllText(@&quot;c:\Temp\Graph.json&quot;))
-</code></pre></noscript></div>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">nodes</span> <span class="o">=</span>
+</span><span class='line'>    <span class="nn">JsonConvert</span><span class="p">.</span><span class="nc">DeserializeObject</span><span class="o">&lt;</span><span class="n">seq</span><span class="o">&lt;</span><span class="nc">Node</span><span class="o">&gt;&gt;(</span><span class="nn">IO</span><span class="p">.</span><span class="nn">File</span><span class="p">.</span><span class="nc">ReadAllText</span><span class="o">(@</span><span class="s2">&quot;c:</span><span class="err">\</span><span class="s2">Temp</span><span class="err">\</span><span class="s2">Graph.json&quot;</span><span class="o">))</span>
+</span></code></pre></td></tr></table></div></figure>
 
 
 <p>Now the interesting part. To build a graph out of these nodes, we need to be able to do a few things.</p>
@@ -391,108 +567,192 @@ type Node () =
 
 <p>Let&rsquo;s help ourselves out by having a concrete type as an the underlying type for our instances:</p>
 
-<div><script src='https://gist.github.com/mavnn/7803991.js?file=Part9.fs'></script>
-<noscript><pre><code>type nodeInstance =
-    {
-        Node : Node
-        InstanceId : Id
-        Config : string
-    }
-</code></pre></noscript></div>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="n">nodeInstance</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span>
+</span><span class='line'>        <span class="nc">Node</span> <span class="o">:</span> <span class="nc">Node</span>
+</span><span class='line'>        <span class="nc">InstanceId</span> <span class="o">:</span> <span class="nc">Id</span>
+</span><span class='line'>        <span class="nc">Config</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">module</span> <span class="k">private</span> <span class="nc">NodeInstance</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">create</span> <span class="n">node</span> <span class="n">name</span> <span class="n">guid</span> <span class="n">config</span> <span class="o">=</span>
+</span><span class='line'>        <span class="o">{</span> <span class="nc">Node</span> <span class="o">=</span> <span class="n">node</span><span class="o">;</span> <span class="nc">InstanceId</span> <span class="o">=</span> <span class="nc">Id</span><span class="o">(</span><span class="nc">Name</span> <span class="o">=</span> <span class="n">name</span><span class="o">,</span> <span class="nc">UniqueId</span> <span class="o">=</span> <span class="n">guid</span><span class="o">);</span> <span class="nc">Config</span> <span class="o">=</span> <span class="n">config</span> <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
 
 
 <p>And then constructing a more specific type with a constructor for each node type we&rsquo;ve read from the Json:</p>
 
-<div><script src='https://gist.github.com/mavnn/7803991.js?file=Part10.fs'></script>
-<noscript><pre><code>let nodeType = ProvidedTypeDefinition(asm, ns, node.Id.Name, Some typeof&lt;nodeInstance&gt;)
-let ctor = ProvidedConstructor(
-            [
-                ProvidedParameter(&quot;Name&quot;, typeof&lt;string&gt;)
-                ProvidedParameter(&quot;UniqueId&quot;, typeof&lt;Guid&gt;)
-                ProvidedParameter(&quot;Config&quot;, typeof&lt;string&gt;)
-            ],
-            InvokeCode = fun [name;unique;config] -&gt; &lt;@@ NodeInstance.create (GetNode id) (%%name:string) (%%unique:Guid) (%%config:string) @@&gt;)
-</code></pre></noscript></div>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">nodeType</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="n">node</span><span class="o">.</span><span class="nn">Id</span><span class="p">.</span><span class="nc">Name</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">nodeInstance</span><span class="o">&gt;)</span>
+</span><span class='line'><span class="k">let</span> <span class="n">ctor</span> <span class="o">=</span> <span class="nc">ProvidedConstructor</span><span class="o">(</span>
+</span><span class='line'>            <span class="o">[</span>
+</span><span class='line'>                <span class="nc">ProvidedParameter</span><span class="o">(</span><span class="s2">&quot;Name&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;)</span>
+</span><span class='line'>                <span class="nc">ProvidedParameter</span><span class="o">(</span><span class="s2">&quot;UniqueId&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="nc">Guid</span><span class="o">&gt;)</span>
+</span><span class='line'>                <span class="nc">ProvidedParameter</span><span class="o">(</span><span class="s2">&quot;Config&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;)</span>
+</span><span class='line'>            <span class="o">],</span>
+</span><span class='line'>            <span class="nc">InvokeCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="o">[</span><span class="n">name</span><span class="o">;</span><span class="n">unique</span><span class="o">;</span><span class="n">config</span><span class="o">]</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="nn">NodeInstance</span><span class="p">.</span><span class="n">create</span> <span class="o">(</span><span class="nc">GetNode</span> <span class="n">id</span><span class="o">)</span> <span class="o">(%%</span><span class="n">name</span><span class="o">:</span><span class="kt">string</span><span class="o">)</span> <span class="o">(%%</span><span class="n">unique</span><span class="o">:</span><span class="nc">Guid</span><span class="o">)</span> <span class="o">(%%</span><span class="n">config</span><span class="o">:</span><span class="kt">string</span><span class="o">)</span> <span class="o">@@&gt;)</span>
+</span></code></pre></td></tr></table></div></figure>
 
 
 <p>So now we can construct (look back at the json) a <code>Simple</code> node instance by using <code>let simple = Simple("simpleInstance", Guid.NewGuid(),"MyConfig")</code>. And it already has our <code>InstanceId</code>, <code>Config</code> and <code>Node</code> properties from the underlying type.</p>
 
 <p>Good progress &ndash; but we don&rsquo;t have a nice way of representing the inputs and outputs? We want to be able to write some kind of connection builder function afterwards that won&rsquo;t allow you to connect to outputs to each other, or similar silliness, so we&rsquo;re going to need separate types for inputs and outputs.</p>
 
-<div><script src='https://gist.github.com/mavnn/7803991.js?file=Part11.fs'></script>
-<noscript><pre><code>// Check out the excellent article at F# for Fun and Profit
-// on using single case Discriminated Unions for data modelling
-// http://fsharpforfunandprofit.com/posts/designing-with-types-single-case-dus/
-
-type InputPort = | InputPort of Guid
-type OutputPort = | OutputPort of Guid
-</code></pre></noscript></div>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="c1">// Check out the excellent article at F# for Fun and Profit</span>
+</span><span class='line'><span class="c1">// on using single case Discriminated Unions for data modelling</span>
+</span><span class='line'><span class="c1">// http://fsharpforfunandprofit.com/posts/designing-with-types-single-case-dus/</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">InputPort</span> <span class="o">=</span> <span class="o">|</span> <span class="nc">InputPort</span> <span class="k">of</span> <span class="nc">Port</span>
+</span><span class='line'><span class="k">type</span> <span class="nc">OutputPort</span> <span class="o">=</span> <span class="o">|</span> <span class="nc">OutputPort</span> <span class="k">of</span> <span class="nc">Port</span>
+</span></code></pre></td></tr></table></div></figure>
 
 
 <p>And finally, we&rsquo;ll update our node creation function to add two subtypes to each node type called <code>Inputs</code> and <code>Outputs</code>, and then create properties on those objects to represent each port. Our full type creation for a node now looks something like this:</p>
 
-<div><script src='https://gist.github.com/mavnn/7803991.js?file=Part12.fs'></script>
-<noscript><pre><code>let addInputPort (inputs : ProvidedTypeDefinition) (port : Port) =
-    let port = ProvidedProperty(
-                    port.Id.Name, 
-                    typeof&lt;InputPort&gt;, 
-                    GetterCode = fun args -&gt; 
-                        let id = port.Id.UniqueId.ToString()
-                        &lt;@@ GetPort id @@&gt;)
-    inputs.AddMember(port)
-
-let addOutputPort (outputs : ProvidedTypeDefinition) (port : Port) =
-    let port = ProvidedProperty(
-                    port.Id.Name, 
-                    typeof&lt;OutputPort&gt;, 
-                    GetterCode = fun args -&gt; 
-                        let id = port.Id.UniqueId.ToString()
-                        &lt;@@ GetPort id @@&gt;)
-    outputs.AddMember(port)
-
-let addPorts inputs outputs (portList : seq&lt;Port&gt;) =
-    portList
-    |&gt; Seq.iter (fun port -&gt; 
-                    match port.Type with
-                    | &quot;input&quot; -&gt; addInputPort inputs port
-                    | &quot;output&quot; -&gt; addOutputPort outputs port
-                    | _ -&gt; failwithf &quot;Unknown port type for port %s/%s&quot; port.Id.Name (port.Id.UniqueId.ToString()))
-
-let createNodeType id (node : Node) =
-    let nodeType = ProvidedTypeDefinition(asm, ns, node.Id.Name, Some typeof&lt;nodeInstance&gt;)
-    let ctor = ProvidedConstructor(
-                [
-                    ProvidedParameter(&quot;Name&quot;, typeof&lt;string&gt;)
-                    ProvidedParameter(&quot;UniqueId&quot;, typeof&lt;Guid&gt;)
-                    ProvidedParameter(&quot;Config&quot;, typeof&lt;string&gt;)
-                ],
-                InvokeCode = fun [name;unique;config] -&gt; &lt;@@ NodeInstance.create (GetNode id) (%%name:string) (%%unique:Guid) (%%config:string) @@&gt;)
-    nodeType.AddMember(ctor)
-
-    let outputs = ProvidedTypeDefinition(&quot;Outputs&quot;, Some typeof&lt;obj&gt;)
-    let outputCtor = ProvidedConstructor([], InvokeCode = fun args -&gt; &lt;@@ obj() @@&gt;)
-    outputs.AddMember(outputCtor)
-    outputs.HideObjectMethods &lt;- true
-
-    let inputs = ProvidedTypeDefinition(&quot;Inputs&quot;, Some typeof&lt;obj&gt;)
-    let inputCtor = ProvidedConstructor([], InvokeCode = fun args -&gt; &lt;@@ obj() @@&gt;)
-    inputs.AddMember(inputCtor)
-    inputs.HideObjectMethods &lt;- true
-    addPorts inputs outputs node.Ports
-
-    // Add the inputs and outputs types of nested types under the Node type
-    nodeType.AddMembers([inputs;outputs])
-
-    // Now add some instance properties to expose them on a node instance.
-    let outputPorts = ProvidedProperty(&quot;OutputPorts&quot;, outputs, [],
-                        GetterCode = fun args -&gt; &lt;@@ obj() @@&gt;)
-    let inputPorts = ProvidedProperty(&quot;InputPorts&quot;, inputs, [],
-                        GetterCode = fun args -&gt; &lt;@@ obj() @@&gt;)
-
-    nodeType.AddMembers([inputPorts;outputPorts])
-
-    nodeType
-</code></pre></noscript></div>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">addInputPort</span> <span class="o">(</span><span class="n">inputs</span> <span class="o">:</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">)</span> <span class="o">(</span><span class="n">port</span> <span class="o">:</span> <span class="nc">Port</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">port</span> <span class="o">=</span> <span class="nc">ProvidedProperty</span><span class="o">(</span>
+</span><span class='line'>                    <span class="n">port</span><span class="o">.</span><span class="nn">Id</span><span class="p">.</span><span class="nc">Name</span><span class="o">,</span>
+</span><span class='line'>                    <span class="n">typeof</span><span class="o">&lt;</span><span class="nc">InputPort</span><span class="o">&gt;,</span>
+</span><span class='line'>                    <span class="nc">GetterCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span>
+</span><span class='line'>                        <span class="k">let</span> <span class="n">id</span> <span class="o">=</span> <span class="n">port</span><span class="o">.</span><span class="nn">Id</span><span class="p">.</span><span class="nn">UniqueId</span><span class="p">.</span><span class="nc">ToString</span><span class="bp">()</span>
+</span><span class='line'>                        <span class="o">&lt;@@</span> <span class="nc">GetPort</span> <span class="n">id</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>    <span class="n">inputs</span><span class="o">.</span><span class="nc">AddMember</span><span class="o">(</span><span class="n">port</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">addOutputPort</span> <span class="o">(</span><span class="n">outputs</span> <span class="o">:</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">)</span> <span class="o">(</span><span class="n">port</span> <span class="o">:</span> <span class="nc">Port</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">port</span> <span class="o">=</span> <span class="nc">ProvidedProperty</span><span class="o">(</span>
+</span><span class='line'>                    <span class="n">port</span><span class="o">.</span><span class="nn">Id</span><span class="p">.</span><span class="nc">Name</span><span class="o">,</span>
+</span><span class='line'>                    <span class="n">typeof</span><span class="o">&lt;</span><span class="nc">OutputPort</span><span class="o">&gt;,</span>
+</span><span class='line'>                    <span class="nc">GetterCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span>
+</span><span class='line'>                        <span class="k">let</span> <span class="n">id</span> <span class="o">=</span> <span class="n">port</span><span class="o">.</span><span class="nn">Id</span><span class="p">.</span><span class="nn">UniqueId</span><span class="p">.</span><span class="nc">ToString</span><span class="bp">()</span>
+</span><span class='line'>                        <span class="o">&lt;@@</span> <span class="nc">GetPort</span> <span class="n">id</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>    <span class="n">outputs</span><span class="o">.</span><span class="nc">AddMember</span><span class="o">(</span><span class="n">port</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">addPorts</span> <span class="n">inputs</span> <span class="n">outputs</span> <span class="o">(</span><span class="n">portList</span> <span class="o">:</span> <span class="n">seq</span><span class="o">&lt;</span><span class="nc">Port</span><span class="o">&gt;)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">portList</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">iter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">port</span> <span class="o">-&gt;</span>
+</span><span class='line'>                    <span class="k">match</span> <span class="n">port</span><span class="o">.</span><span class="nc">Type</span> <span class="k">with</span>
+</span><span class='line'>                    <span class="o">|</span> <span class="s2">&quot;input&quot;</span> <span class="o">-&gt;</span> <span class="n">addInputPort</span> <span class="n">inputs</span> <span class="n">port</span>
+</span><span class='line'>                    <span class="o">|</span> <span class="s2">&quot;output&quot;</span> <span class="o">-&gt;</span> <span class="n">addOutputPort</span> <span class="n">outputs</span> <span class="n">port</span>
+</span><span class='line'>                    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">failwithf</span> <span class="s2">&quot;Unknown port type for port %s/%s&quot;</span> <span class="n">port</span><span class="o">.</span><span class="nn">Id</span><span class="p">.</span><span class="nc">Name</span> <span class="o">(</span><span class="n">port</span><span class="o">.</span><span class="nn">Id</span><span class="p">.</span><span class="nn">UniqueId</span><span class="p">.</span><span class="nc">ToString</span><span class="bp">()</span><span class="o">))</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">createNodeType</span> <span class="n">id</span> <span class="o">(</span><span class="n">node</span> <span class="o">:</span> <span class="nc">Node</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">nodeType</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="n">node</span><span class="o">.</span><span class="nn">Id</span><span class="p">.</span><span class="nc">Name</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">nodeInstance</span><span class="o">&gt;)</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">ctor</span> <span class="o">=</span> <span class="nc">ProvidedConstructor</span><span class="o">(</span>
+</span><span class='line'>                <span class="o">[</span>
+</span><span class='line'>                    <span class="nc">ProvidedParameter</span><span class="o">(</span><span class="s2">&quot;Name&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;)</span>
+</span><span class='line'>                    <span class="nc">ProvidedParameter</span><span class="o">(</span><span class="s2">&quot;UniqueId&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="nc">Guid</span><span class="o">&gt;)</span>
+</span><span class='line'>                    <span class="nc">ProvidedParameter</span><span class="o">(</span><span class="s2">&quot;Config&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;)</span>
+</span><span class='line'>                <span class="o">],</span>
+</span><span class='line'>                <span class="nc">InvokeCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="o">[</span><span class="n">name</span><span class="o">;</span><span class="n">unique</span><span class="o">;</span><span class="n">config</span><span class="o">]</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="nn">NodeInstance</span><span class="p">.</span><span class="n">create</span> <span class="o">(</span><span class="nc">GetNode</span> <span class="n">id</span><span class="o">)</span> <span class="o">(%%</span><span class="n">name</span><span class="o">:</span><span class="kt">string</span><span class="o">)</span> <span class="o">(%%</span><span class="n">unique</span><span class="o">:</span><span class="nc">Guid</span><span class="o">)</span> <span class="o">(%%</span><span class="n">config</span><span class="o">:</span><span class="kt">string</span><span class="o">)</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>    <span class="n">nodeType</span><span class="o">.</span><span class="nc">AddMember</span><span class="o">(</span><span class="n">ctor</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">outputs</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="s2">&quot;Outputs&quot;</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;)</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">outputCtor</span> <span class="o">=</span> <span class="nc">ProvidedConstructor</span><span class="o">(</span><span class="bp">[]</span><span class="o">,</span> <span class="nc">InvokeCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="n">obj</span><span class="bp">()</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>    <span class="n">outputs</span><span class="o">.</span><span class="nc">AddMember</span><span class="o">(</span><span class="n">outputCtor</span><span class="o">)</span>
+</span><span class='line'>    <span class="n">outputs</span><span class="o">.</span><span class="nc">HideObjectMethods</span> <span class="o">&lt;-</span> <span class="bp">true</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">inputs</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="s2">&quot;Inputs&quot;</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;)</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">inputCtor</span> <span class="o">=</span> <span class="nc">ProvidedConstructor</span><span class="o">(</span><span class="bp">[]</span><span class="o">,</span> <span class="nc">InvokeCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="n">obj</span><span class="bp">()</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>    <span class="n">inputs</span><span class="o">.</span><span class="nc">AddMember</span><span class="o">(</span><span class="n">inputCtor</span><span class="o">)</span>
+</span><span class='line'>    <span class="n">inputs</span><span class="o">.</span><span class="nc">HideObjectMethods</span> <span class="o">&lt;-</span> <span class="bp">true</span>
+</span><span class='line'>    <span class="n">addPorts</span> <span class="n">inputs</span> <span class="n">outputs</span> <span class="n">node</span><span class="o">.</span><span class="nc">Ports</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// Add the inputs and outputs types of nested types under the Node type</span>
+</span><span class='line'>    <span class="n">nodeType</span><span class="o">.</span><span class="nc">AddMembers</span><span class="o">([</span><span class="n">inputs</span><span class="o">;</span><span class="n">outputs</span><span class="o">])</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// Now add some instance properties to expose them on a node instance.</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">outputPorts</span> <span class="o">=</span> <span class="nc">ProvidedProperty</span><span class="o">(</span><span class="s2">&quot;OutputPorts&quot;</span><span class="o">,</span> <span class="n">outputs</span><span class="o">,</span> <span class="bp">[]</span><span class="o">,</span>
+</span><span class='line'>                        <span class="nc">GetterCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="n">obj</span><span class="bp">()</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">inputPorts</span> <span class="o">=</span> <span class="nc">ProvidedProperty</span><span class="o">(</span><span class="s2">&quot;InputPorts&quot;</span><span class="o">,</span> <span class="n">inputs</span><span class="o">,</span> <span class="bp">[]</span><span class="o">,</span>
+</span><span class='line'>                        <span class="nc">GetterCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="n">obj</span><span class="bp">()</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">nodeType</span><span class="o">.</span><span class="nc">AddMembers</span><span class="o">([</span><span class="n">inputPorts</span><span class="o">;</span><span class="n">outputPorts</span><span class="o">])</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">nodeType</span>
+</span></code></pre></td></tr></table></div></figure>
 
 
 <p>Leaving only one final mystery. What are the <code>GetPort</code> and <code>GetNode</code> methods &ndash; and why am I using them in the quotations rather than just using something like <code>&lt;@@ node @@&gt;</code>?</p>
@@ -501,24 +761,41 @@ let createNodeType id (node : Node) =
 
 <p>So, what we do is we build a couple of private helper methods that know how to find the correct port or node from one of the types that is allowed &ndash; in this case, a <code>string</code>:</p>
 
-<div><script src='https://gist.github.com/mavnn/7803991.js?file=Part13.fs'></script>
-<noscript><pre><code>let private nodes = JsonConvert.DeserializeObject&lt;seq&lt;Node&gt;&gt;(IO.File.ReadAllText(@&quot;c:\Temp\Graph.json&quot;))
-                    |&gt; Seq.map (fun n -&gt; n.Id.UniqueId.ToString(), n)
-                    |&gt; Map.ofSeq
-
-let private GetNode id =
-    nodes.[id]
-
-let private ports =
-    nodes
-    |&gt; Map.toSeq
-    |&gt; Seq.map (fun (_, node) -&gt; node.Ports)
-    |&gt; Seq.concat
-    |&gt; Seq.map (fun p -&gt; p.Id.UniqueId.ToString(), p)
-    |&gt; Map.ofSeq
-
-let private GetPort id =
-    ports.[id]</code></pre></noscript></div>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">nodes</span> <span class="o">=</span> <span class="nn">JsonConvert</span><span class="p">.</span><span class="nc">DeserializeObject</span><span class="o">&lt;</span><span class="n">seq</span><span class="o">&lt;</span><span class="nc">Node</span><span class="o">&gt;&gt;(</span><span class="nn">IO</span><span class="p">.</span><span class="nn">File</span><span class="p">.</span><span class="nc">ReadAllText</span><span class="o">(@</span><span class="s2">&quot;c:</span><span class="err">\</span><span class="s2">Temp</span><span class="err">\</span><span class="s2">Graph.json&quot;</span><span class="o">))</span>
+</span><span class='line'>                    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">n</span> <span class="o">-&gt;</span> <span class="n">n</span><span class="o">.</span><span class="nn">Id</span><span class="p">.</span><span class="nn">UniqueId</span><span class="p">.</span><span class="nc">ToString</span><span class="bp">()</span><span class="o">,</span> <span class="n">n</span><span class="o">)</span>
+</span><span class='line'>                    <span class="o">|&gt;</span> <span class="nn">Map</span><span class="p">.</span><span class="n">ofSeq</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="nc">GetNode</span> <span class="n">id</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">nodes</span><span class="o">.[</span><span class="n">id</span><span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">ports</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">nodes</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Map</span><span class="p">.</span><span class="n">toSeq</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="o">(_,</span> <span class="n">node</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="n">node</span><span class="o">.</span><span class="nc">Ports</span><span class="o">)</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">concat</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">p</span> <span class="o">-&gt;</span> <span class="n">p</span><span class="o">.</span><span class="nn">Id</span><span class="p">.</span><span class="nn">UniqueId</span><span class="p">.</span><span class="nc">ToString</span><span class="bp">()</span><span class="o">,</span> <span class="n">p</span><span class="o">)</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Map</span><span class="p">.</span><span class="n">ofSeq</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="nc">GetPort</span> <span class="n">id</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">ports</span><span class="o">.[</span><span class="n">id</span><span class="o">]</span>
+</span></code></pre></td></tr></table></div></figure>
 
 
 <p>So, there you have it. A complete, working type provider that uses meta data supplied in Json format to create CLR types. Lots of things still to be added for production ready code (delayed loading, handling multiple ports with the same names, not hard coding the filename, etc).</p>

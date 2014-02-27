@@ -4,7 +4,7 @@
   <title><![CDATA[Category: programming | Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/blog/categories/programming/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2014-01-10T12:32:46+00:00</updated>
+  <updated>2014-02-27T15:43:07+00:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -60,19 +60,21 @@ let inline addDoc (desc : Descriptor) def =</p>
 
 <p>3) Replace the contents of Library1.fs with something like this:</p>
 
-<p><div><script src='https://gist.github.com/mavnn/7803991.js?file=Part1.fs'></script>
-<noscript><pre><code>module Mavnn.Blog.TypeProvider
+<p>``` fsharp
+module Mavnn.Blog.TypeProvider</p>
 
-open ProviderImplementation.ProvidedTypes
-open Microsoft.FSharp.Core.CompilerServices
+<p>open ProviderImplementation.ProvidedTypes
+open Microsoft.FSharp.Core.CompilerServices</p>
 
-[&lt;TypeProvider&gt;]
-type MavnnProvider (config : TypeProviderConfig) as this =
-    inherit TypeProviderForNamespaces ()
+<p>[<TypeProvider>]
+type MavnnProvider (config : TypeProviderConfig) as this =</p>
 
-[&lt;assembly:TypeProviderAssembly&gt;]
-do ()</code></pre></noscript></div>
-</p>
+<pre><code>inherit TypeProviderForNamespaces ()
+</code></pre>
+
+<p>[&lt;assembly:TypeProviderAssembly>]
+do ()
+```</p>
 
 <p>So, that&rsquo;s great and it builds. We have a type provider class and an assembly that knows it&rsquo;s a type providing assembly. Unfortunately, it doesn&rsquo;t actually provide any types yet. Let&rsquo;s try it.</p>
 
@@ -81,33 +83,35 @@ do ()</code></pre></noscript></div>
 
 <p>Update Library1.fs in your solution with something that looks like this, and then we&rsquo;ll run through what&rsquo;s going on, and how to test it.</p>
 
-<p><div><script src='https://gist.github.com/mavnn/7803991.js?file=Part2.fs'></script>
-<noscript><pre><code>module Mavnn.Blog.TypeProvider
+<p>``` fsharp
+module Mavnn.Blog.TypeProvider</p>
 
-open ProviderImplementation.ProvidedTypes
+<p>open ProviderImplementation.ProvidedTypes
 open Microsoft.FSharp.Core.CompilerServices
-open System.Reflection
+open System.Reflection</p>
 
-[&lt;TypeProvider&gt;]
-type MavnnProvider (config : TypeProviderConfig) as this =
-    inherit TypeProviderForNamespaces ()
+<p>[<TypeProvider>]
+type MavnnProvider (config : TypeProviderConfig) as this =</p>
 
-    let ns = &quot;Mavnn.Blog.TypeProvider.Provided&quot;
-    let asm = Assembly.GetExecutingAssembly()
+<pre><code>inherit TypeProviderForNamespaces ()
 
-    let createTypes () =
-        let myType = ProvidedTypeDefinition(asm, ns, &quot;MyType&quot;, Some typeof&lt;obj&gt;)
-        let myProp = ProvidedProperty(&quot;MyProperty&quot;, typeof&lt;string&gt;, IsStatic = true, 
-                                        GetterCode = (fun args -&gt; &lt;@@ &quot;Hello world&quot; @@&gt;))
-        myType.AddMember(myProp)
-        [myType]
+let ns = "Mavnn.Blog.TypeProvider.Provided"
+let asm = Assembly.GetExecutingAssembly()
 
-    do
-        this.AddNamespace(ns, createTypes())
+let createTypes () =
+    let myType = ProvidedTypeDefinition(asm, ns, "MyType", Some typeof&lt;obj&gt;)
+    let myProp = ProvidedProperty("MyProperty", typeof&lt;string&gt;, IsStatic = true, 
+                                    GetterCode = (fun args -&gt; &lt;@@ "Hello world" @@&gt;))
+    myType.AddMember(myProp)
+    [myType]
 
-[&lt;assembly:TypeProviderAssembly&gt;]
-do ()</code></pre></noscript></div>
-</p>
+do
+    this.AddNamespace(ns, createTypes())
+</code></pre>
+
+<p>[&lt;assembly:TypeProviderAssembly>]
+do ()
+```</p>
 
 <p>First things first &ndash; it looks like it should provide a class with a static property, but how do we test it?</p>
 
@@ -115,13 +119,15 @@ do ()</code></pre></noscript></div>
 
 <p>Fire up a second copy of Visual Studio (you went for the extra RAM option on your hardware, yes?) and create an F# project in it. Add an fsx file that looks something like this:</p>
 
-<p><div><script src='https://gist.github.com/mavnn/7803991.js?file=Part3.fsx'></script>
-<noscript><pre><code>#r @&quot;../../Mavnn.Blog.TypeProvider/Mavnn.Blog.TypeProvider/bin/Debug/Mavnn.Blog.TypeProvider.dll&quot;
+<p>``` fsharp
+// Your path may vary&hellip;</p>
 
-open Mavnn.Blog.TypeProvider.Provided
+<h1>r @&ldquo;../../Mavnn.Blog.TypeProvider/Mavnn.Blog.TypeProvider/bin/Debug/Mavnn.Blog.TypeProvider.dll&rdquo;</h1>
 
-// Type `MyType.MyProperty` on next line down.</code></pre></noscript></div>
-</p>
+<p>open Mavnn.Blog.TypeProvider.Provided</p>
+
+<p>// Type <code>MyType.MyProperty</code> on next line down.
+```</p>
 
 <p>Start typing, and&hellip; hurrah! Intellisense on your new, provided type with static property. Evaluate the script in F# interactive for one of the longest &ldquo;Hello World&rdquo; programs you&rsquo;ve ever seen.</p>
 
@@ -143,7 +149,7 @@ open Mavnn.Blog.TypeProvider.Provided
 
 <p>To give you a flavour, the quotation <code>&lt;@@ 1 + 2 @@&gt;</code> compiles to <code>Quotations.Expr = Call (None, op_Addition, [Value (1), Value (2)])</code>. Not very exciting so far, but how about:</p>
 
-<p>```
+<p>``` fsharp
 let addI i =</p>
 
 <pre><code>&lt;@@ 1 + (%%i) @@&gt;
@@ -157,28 +163,33 @@ let addI i =</p>
 
 <p>So far, our type isn&rsquo;t very exciting. You can&rsquo;t even construct an instance of it. Let&rsquo;s see what we can do about that, with a replacement <code>createTypes</code> method:</p>
 
-<p><div><script src='https://gist.github.com/mavnn/7803991.js?file=Part4.fs'></script>
-<noscript><pre><code>    let createTypes () =
-        let myType = ProvidedTypeDefinition(asm, ns, &quot;MyType&quot;, Some typeof&lt;obj&gt;)
-        let myProp = ProvidedProperty(&quot;MyProperty&quot;, typeof&lt;string&gt;, IsStatic = true, 
-                                        GetterCode = fun args -&gt; &lt;@@ &quot;Hello world&quot; @@&gt;)
-        myType.AddMember(myProp)
+<p>``` fsharp</p>
 
-        let ctor = ProvidedConstructor([], InvokeCode = fun args -&gt; &lt;@@ &quot;My internal state&quot; :&gt; obj @@&gt;)
-        myType.AddMember(ctor)
+<pre><code>let createTypes () =
+    let myType = ProvidedTypeDefinition(asm, ns, "MyType", Some typeof&lt;obj&gt;)
+    let myProp = ProvidedProperty("MyProperty", typeof&lt;string&gt;, IsStatic = true, 
+                                    GetterCode = fun args -&gt; &lt;@@ "Hello world" @@&gt;)
+    myType.AddMember(myProp)
 
-        let ctor2 = ProvidedConstructor(
-                        [ProvidedParameter(&quot;InnerState&quot;, typeof&lt;string&gt;)],
-                        InvokeCode = fun args -&gt; &lt;@@ (%%(args.[0]):string) :&gt; obj @@&gt;)
-        myType.AddMember(ctor2)
+    let ctor = ProvidedConstructor([], InvokeCode = fun args -&gt; &lt;@@ "My internal state" :&gt; obj @@&gt;)
+    myType.AddMember(ctor)
 
-        let innerState = ProvidedProperty(&quot;InnerState&quot;, typeof&lt;string&gt;,
-                            GetterCode = fun args -&gt; &lt;@@ (%%(args.[0]) :&gt; obj) :?&gt; string @@&gt;)
-        myType.AddMember(innerState)
+    let ctor2 = ProvidedConstructor(
+                    [ProvidedParameter("InnerState", typeof&lt;string&gt;)],
+                    InvokeCode = fun args -&gt; &lt;@@ (%%(args.[0]):string) :&gt; obj @@&gt;)
+    myType.AddMember(ctor2)
 
-        [myType]
-</code></pre></noscript></div>
-</p>
+    let innerState = ProvidedProperty("InnerState", typeof&lt;string&gt;,
+                        GetterCode = fun args -&gt; &lt;@@ (%%(args.[0]) :&gt; obj) :?&gt; string @@&gt;)
+    myType.AddMember(innerState)
+
+    [myType]
+
+do
+    this.AddNamespace(ns, createTypes())
+</code></pre>
+
+<p>```</p>
 
 <p>Now we can construct our type (in two ways, no less). As the underlying CLR type is an <code>object</code> we can store pretty much anything as the internal representation of an instance of our type. The <code>InvokeCode</code> parameter of the constructors needs to return a quotation that will return the internal representation of the object when it&rsquo;s evaluated. We&rsquo;re going to return a string (which we need to cast to an obj), and using the splicing syntax above we can inject the parameters of the constructor into the quotation (for the constructor which has a parameter).</p>
 
@@ -186,23 +197,24 @@ let addI i =</p>
 
 <p>And now you can do things like this:</p>
 
-<p><div><script src='https://gist.github.com/mavnn/7803991.js?file=Part5.fsx'></script>
-<noscript><pre><code>// Your path may vary...
-#r @&quot;../../Mavnn.Blog.TypeProvider/Mavnn.Blog.TypeProvider/bin/Debug/Mavnn.Blog.TypeProvider.dll&quot;
+<p>``` fsharp
+// Your path may vary&hellip;</p>
 
-open Mavnn.Blog.TypeProvider.Provided
+<h1>r @&ldquo;../../Mavnn.Blog.TypeProvider/Mavnn.Blog.TypeProvider/bin/Debug/Mavnn.Blog.TypeProvider.dll&rdquo;</h1>
 
-let thing = MyType()
-let thingInnerState = thing.InnerState
+<p>open Mavnn.Blog.TypeProvider.Provided</p>
 
-let thing2 = MyType(&quot;Some other text&quot;)
-let thing2InnerState = thing2.InnerState
+<p>let thing = MyType()
+let thingInnerState = thing.InnerState</p>
 
-// val thing : Mavnn.Blog.TypeProvider.Provided.MyType = &quot;My internal state&quot;
-// val thingInnerState : string = &quot;My internal state&quot;
-// val thing2 : Mavnn.Blog.TypeProvider.Provided.MyType = &quot;Some other text&quot;
-// val thing2InnerState : string = &quot;Some other text&quot;</code></pre></noscript></div>
-</p>
+<p>let thing2 = MyType(&ldquo;Some other text&rdquo;)
+let thing2InnerState = thing2.InnerState</p>
+
+<p>// val thing : Mavnn.Blog.TypeProvider.Provided.MyType = &ldquo;My internal state&rdquo;
+// val thingInnerState : string = &ldquo;My internal state&rdquo;
+// val thing2 : Mavnn.Blog.TypeProvider.Provided.MyType = &ldquo;Some other text&rdquo;
+// val thing2InnerState : string = &ldquo;Some other text&rdquo;
+```</p>
 
 <h2>And the point is?</h2>
 
@@ -212,90 +224,99 @@ let thing2InnerState = thing2.InnerState
 
 <p>Our input JSON looks something like this:</p>
 
-<p><div><script src='https://gist.github.com/mavnn/7803991.js?file=Part6.json'></script>
-<noscript><pre><code>[
-   {
-      &quot;Id&quot;:{
-         &quot;Name&quot;:&quot;Simple&quot;,
-         &quot;UniqueId&quot;:&quot;0ab82262-0ad3-47d3-a026-615b84352822&quot;
-      },
-      &quot;Ports&quot;:[
-         {
-            &quot;Id&quot;:{
-               &quot;Name&quot;:&quot;Input&quot;,
-               &quot;UniqueId&quot;:&quot;4b69408e-82d2-4c36-ab78-0d2327268622&quot;
-            },
-            &quot;Type&quot;:&quot;input&quot;
-         },
-         {
-            &quot;Id&quot;:{
-               &quot;Name&quot;:&quot;Output&quot;,
-               &quot;UniqueId&quot;:&quot;92ae5a96-6900-4d77-832f-d272329f8a90&quot;
-            },
-            &quot;Type&quot;:&quot;output&quot;
-         }
-      ]
-   },
-   {
-      &quot;Id&quot;:{
-         &quot;Name&quot;:&quot;Join&quot;,
-         &quot;UniqueId&quot;:&quot;162c0981-4370-4db3-8e3f-149f13c001da&quot;
-      },
-      &quot;Ports&quot;:[
-         {
-            &quot;Id&quot;:{
-               &quot;Name&quot;:&quot;Input1&quot;,
-               &quot;UniqueId&quot;:&quot;c0fea7ff-456e-4d4e-b5a4-9539ca134344&quot;
-            },
-            &quot;Type&quot;:&quot;input&quot;
-         },
-         {
-            &quot;Id&quot;:{
-               &quot;Name&quot;:&quot;Input2&quot;,
-               &quot;UniqueId&quot;:&quot;4e93c3b1-11bc-422a-91b8-e53204368714&quot;
-            },
-            &quot;Type&quot;:&quot;input&quot;
-         },
-         {
-            &quot;Id&quot;:{
-               &quot;Name&quot;:&quot;Output&quot;,
-               &quot;UniqueId&quot;:&quot;fb54728b-9602-4220-ba08-ad160d92d5a4&quot;
-            },
-            &quot;Type&quot;:&quot;output&quot;
-         }
-      ]
-   },
-   {
-      &quot;Id&quot;:{
-         &quot;Name&quot;:&quot;Split&quot;,
-         &quot;UniqueId&quot;:&quot;c3e44941-9182-41c3-921c-863a82097ba8&quot;
-      },
-      &quot;Ports&quot;:[
-         {
-            &quot;Id&quot;:{
-               &quot;Name&quot;:&quot;Input&quot;,
-               &quot;UniqueId&quot;:&quot;0ec2537c-3346-4503-9f5a-d0bb49e9e431&quot;
-            },
-            &quot;Type&quot;:&quot;input&quot;
-         },
-         {
-            &quot;Id&quot;:{
-               &quot;Name&quot;:&quot;Output1&quot;,
-               &quot;UniqueId&quot;:&quot;77b5a50c-3d11-4a67-b14d-52d6246e78c5&quot;
-            },
-            &quot;Type&quot;:&quot;output&quot;
-         },
-         {
-            &quot;Id&quot;:{
-               &quot;Name&quot;:&quot;Output2&quot;,
-               &quot;UniqueId&quot;:&quot;d4d1e928-5347-4d51-be54-8650bdfe9bac&quot;
-            },
-            &quot;Type&quot;:&quot;output&quot;
-         }
-      ]
-   }
-]</code></pre></noscript></div>
-</p>
+<p>``` json
+[
+   {</p>
+
+<pre><code>  "Id":{
+     "Name":"Simple",
+     "UniqueId":"0ab82262-0ad3-47d3-a026-615b84352822"
+  },
+  "Ports":[
+     {
+        "Id":{
+           "Name":"Input",
+           "UniqueId":"4b69408e-82d2-4c36-ab78-0d2327268622"
+        },
+        "Type":"input"
+     },
+     {
+        "Id":{
+           "Name":"Output",
+           "UniqueId":"92ae5a96-6900-4d77-832f-d272329f8a90"
+        },
+        "Type":"output"
+     }
+  ]
+</code></pre>
+
+<p>   },
+   {</p>
+
+<pre><code>  "Id":{
+     "Name":"Join",
+     "UniqueId":"162c0981-4370-4db3-8e3f-149f13c001da"
+  },
+  "Ports":[
+     {
+        "Id":{
+           "Name":"Input1",
+           "UniqueId":"c0fea7ff-456e-4d4e-b5a4-9539ca134344"
+        },
+        "Type":"input"
+     },
+     {
+        "Id":{
+           "Name":"Input2",
+           "UniqueId":"4e93c3b1-11bc-422a-91b8-e53204368714"
+        },
+        "Type":"input"
+     },
+     {
+        "Id":{
+           "Name":"Output",
+           "UniqueId":"fb54728b-9602-4220-ba08-ad160d92d5a4"
+        },
+        "Type":"output"
+     }
+  ]
+</code></pre>
+
+<p>   },
+   {</p>
+
+<pre><code>  "Id":{
+     "Name":"Split",
+     "UniqueId":"c3e44941-9182-41c3-921c-863a82097ba8"
+  },
+  "Ports":[
+     {
+        "Id":{
+           "Name":"Input",
+           "UniqueId":"0ec2537c-3346-4503-9f5a-d0bb49e9e431"
+        },
+        "Type":"input"
+     },
+     {
+        "Id":{
+           "Name":"Output1",
+           "UniqueId":"77b5a50c-3d11-4a67-b14d-52d6246e78c5"
+        },
+        "Type":"output"
+     },
+     {
+        "Id":{
+           "Name":"Output2",
+           "UniqueId":"d4d1e928-5347-4d51-be54-8650bdfe9bac"
+        },
+        "Type":"output"
+     }
+  ]
+</code></pre>
+
+<p>   }
+]
+```</p>
 
 <p>Things start getting a bit more in depth here, so you might want to check out the full code for this post, available on <a href="https://github.com/mavnn/Mavnn.Blog.TypeProvider">GitHub</a>, and follow along in your favourite development environment.</p>
 
@@ -303,30 +324,38 @@ let thing2InnerState = thing2.InnerState
 
 <p>First, we&rsquo;ll need some classes to deserialize the Json into. Out of the box Newtonsoft doesn&rsquo;t do a great job on F# core classes (although that&rsquo;s changing), so for the moment we&rsquo;ll create some classic OO style mutable types:</p>
 
-<p><div><script src='https://gist.github.com/mavnn/7803991.js?file=Part7.fs'></script>
-<noscript><pre><code>type Id () =
-    member val UniqueId = Guid() with get, set
-    member val Name = &quot;&quot; with get, set
+<p>``` fsharp
+type Id () =</p>
 
-type Port () =
-    member val Id = Id() with get, set
-    member val Type = &quot;&quot; with get, set
+<pre><code>member val UniqueId = Guid() with get, set
+member val Name = "" with get, set
+</code></pre>
 
-type Node () =
-    member val Id = Id() with get, set
-    member val Ports = Collections.Generic.List&lt;Port&gt;() with get, set
-</code></pre></noscript></div>
-</p>
+<p>type Port () =</p>
+
+<pre><code>member val Id = Id() with get, set
+member val Type = "" with get, set
+</code></pre>
+
+<p>type Node () =</p>
+
+<pre><code>member val Id = Id() with get, set
+member val Ports = Collections.Generic.List&lt;Port&gt;() with get, set
+</code></pre>
+
+<p>```</p>
 
 <p>(Don&rsquo;t worry though, these aren&rsquo;t what we&rsquo;ll actually expose as the main interface.)</p>
 
 <p>Turning our Json into the our new CLR types is straight forward:</p>
 
-<p><div><script src='https://gist.github.com/mavnn/7803991.js?file=Part8.fs'></script>
-<noscript><pre><code>let nodes =
-    JsonConvert.DeserializeObject&lt;seq&lt;Node&gt;&gt;(IO.File.ReadAllText(@&quot;c:\Temp\Graph.json&quot;))
-</code></pre></noscript></div>
-</p>
+<p>``` fsharp
+let nodes =</p>
+
+<pre><code>JsonConvert.DeserializeObject&lt;seq&lt;Node&gt;&gt;(IO.File.ReadAllText(@"c:\Temp\Graph.json"))
+</code></pre>
+
+<p>```</p>
 
 <p>Now the interesting part. To build a graph out of these nodes, we need to be able to do a few things.</p>
 
@@ -334,109 +363,126 @@ type Node () =
 
 <p>Let&rsquo;s help ourselves out by having a concrete type as an the underlying type for our instances:</p>
 
-<p><div><script src='https://gist.github.com/mavnn/7803991.js?file=Part9.fs'></script>
-<noscript><pre><code>type nodeInstance =
-    {
-        Node : Node
-        InstanceId : Id
-        Config : string
-    }
-</code></pre></noscript></div>
-</p>
+<p>``` fsharp
+type nodeInstance =</p>
+
+<pre><code>{
+    Node : Node
+    InstanceId : Id
+    Config : string
+}
+</code></pre>
+
+<p>module private NodeInstance =</p>
+
+<pre><code>let create node name guid config =
+    { Node = node; InstanceId = Id(Name = name, UniqueId = guid); Config = config }  
+</code></pre>
+
+<p>```</p>
 
 <p>And then constructing a more specific type with a constructor for each node type we&rsquo;ve read from the Json:</p>
 
-<p><div><script src='https://gist.github.com/mavnn/7803991.js?file=Part10.fs'></script>
-<noscript><pre><code>let nodeType = ProvidedTypeDefinition(asm, ns, node.Id.Name, Some typeof&lt;nodeInstance&gt;)
-let ctor = ProvidedConstructor(
-            [
-                ProvidedParameter(&quot;Name&quot;, typeof&lt;string&gt;)
-                ProvidedParameter(&quot;UniqueId&quot;, typeof&lt;Guid&gt;)
-                ProvidedParameter(&quot;Config&quot;, typeof&lt;string&gt;)
-            ],
-            InvokeCode = fun [name;unique;config] -&gt; &lt;@@ NodeInstance.create (GetNode id) (%%name:string) (%%unique:Guid) (%%config:string) @@&gt;)
-</code></pre></noscript></div>
-</p>
+<p>``` fsharp
+let nodeType = ProvidedTypeDefinition(asm, ns, node.Id.Name, Some typeof<nodeInstance>)
+let ctor = ProvidedConstructor(</p>
+
+<pre><code>        [
+            ProvidedParameter("Name", typeof&lt;string&gt;)
+            ProvidedParameter("UniqueId", typeof&lt;Guid&gt;)
+            ProvidedParameter("Config", typeof&lt;string&gt;)
+        ],
+        InvokeCode = fun [name;unique;config] -&gt; &lt;@@ NodeInstance.create (GetNode id) (%%name:string) (%%unique:Guid) (%%config:string) @@&gt;)
+</code></pre>
+
+<p>```</p>
 
 <p>So now we can construct (look back at the json) a <code>Simple</code> node instance by using <code>let simple = Simple("simpleInstance", Guid.NewGuid(),"MyConfig")</code>. And it already has our <code>InstanceId</code>, <code>Config</code> and <code>Node</code> properties from the underlying type.</p>
 
 <p>Good progress &ndash; but we don&rsquo;t have a nice way of representing the inputs and outputs? We want to be able to write some kind of connection builder function afterwards that won&rsquo;t allow you to connect to outputs to each other, or similar silliness, so we&rsquo;re going to need separate types for inputs and outputs.</p>
 
-<p><div><script src='https://gist.github.com/mavnn/7803991.js?file=Part11.fs'></script>
-<noscript><pre><code>// Check out the excellent article at F# for Fun and Profit
+<p>``` fsharp
+// Check out the excellent article at F# for Fun and Profit
 // on using single case Discriminated Unions for data modelling
-// http://fsharpforfunandprofit.com/posts/designing-with-types-single-case-dus/
+// <a href="http://fsharpforfunandprofit.com/posts/designing-with-types-single-case-dus/">http://fsharpforfunandprofit.com/posts/designing-with-types-single-case-dus/</a></p>
 
-type InputPort = | InputPort of Guid
-type OutputPort = | OutputPort of Guid
-</code></pre></noscript></div>
-</p>
+<p>type InputPort = | InputPort of Port
+type OutputPort = | OutputPort of Port
+```</p>
 
 <p>And finally, we&rsquo;ll update our node creation function to add two subtypes to each node type called <code>Inputs</code> and <code>Outputs</code>, and then create properties on those objects to represent each port. Our full type creation for a node now looks something like this:</p>
 
-<p><div><script src='https://gist.github.com/mavnn/7803991.js?file=Part12.fs'></script>
-<noscript><pre><code>let addInputPort (inputs : ProvidedTypeDefinition) (port : Port) =
-    let port = ProvidedProperty(
-                    port.Id.Name, 
-                    typeof&lt;InputPort&gt;, 
-                    GetterCode = fun args -&gt; 
-                        let id = port.Id.UniqueId.ToString()
-                        &lt;@@ GetPort id @@&gt;)
-    inputs.AddMember(port)
+<p>``` fsharp
+let addInputPort (inputs : ProvidedTypeDefinition) (port : Port) =</p>
 
-let addOutputPort (outputs : ProvidedTypeDefinition) (port : Port) =
-    let port = ProvidedProperty(
-                    port.Id.Name, 
-                    typeof&lt;OutputPort&gt;, 
-                    GetterCode = fun args -&gt; 
-                        let id = port.Id.UniqueId.ToString()
-                        &lt;@@ GetPort id @@&gt;)
-    outputs.AddMember(port)
+<pre><code>let port = ProvidedProperty(
+                port.Id.Name, 
+                typeof&lt;InputPort&gt;, 
+                GetterCode = fun args -&gt; 
+                    let id = port.Id.UniqueId.ToString()
+                    &lt;@@ GetPort id @@&gt;)
+inputs.AddMember(port)
+</code></pre>
 
-let addPorts inputs outputs (portList : seq&lt;Port&gt;) =
-    portList
-    |&gt; Seq.iter (fun port -&gt; 
-                    match port.Type with
-                    | &quot;input&quot; -&gt; addInputPort inputs port
-                    | &quot;output&quot; -&gt; addOutputPort outputs port
-                    | _ -&gt; failwithf &quot;Unknown port type for port %s/%s&quot; port.Id.Name (port.Id.UniqueId.ToString()))
+<p>let addOutputPort (outputs : ProvidedTypeDefinition) (port : Port) =</p>
 
-let createNodeType id (node : Node) =
-    let nodeType = ProvidedTypeDefinition(asm, ns, node.Id.Name, Some typeof&lt;nodeInstance&gt;)
-    let ctor = ProvidedConstructor(
-                [
-                    ProvidedParameter(&quot;Name&quot;, typeof&lt;string&gt;)
-                    ProvidedParameter(&quot;UniqueId&quot;, typeof&lt;Guid&gt;)
-                    ProvidedParameter(&quot;Config&quot;, typeof&lt;string&gt;)
-                ],
-                InvokeCode = fun [name;unique;config] -&gt; &lt;@@ NodeInstance.create (GetNode id) (%%name:string) (%%unique:Guid) (%%config:string) @@&gt;)
-    nodeType.AddMember(ctor)
+<pre><code>let port = ProvidedProperty(
+                port.Id.Name, 
+                typeof&lt;OutputPort&gt;, 
+                GetterCode = fun args -&gt; 
+                    let id = port.Id.UniqueId.ToString()
+                    &lt;@@ GetPort id @@&gt;)
+outputs.AddMember(port)
+</code></pre>
 
-    let outputs = ProvidedTypeDefinition(&quot;Outputs&quot;, Some typeof&lt;obj&gt;)
-    let outputCtor = ProvidedConstructor([], InvokeCode = fun args -&gt; &lt;@@ obj() @@&gt;)
-    outputs.AddMember(outputCtor)
-    outputs.HideObjectMethods &lt;- true
+<p>let addPorts inputs outputs (portList : seq<Port>) =</p>
 
-    let inputs = ProvidedTypeDefinition(&quot;Inputs&quot;, Some typeof&lt;obj&gt;)
-    let inputCtor = ProvidedConstructor([], InvokeCode = fun args -&gt; &lt;@@ obj() @@&gt;)
-    inputs.AddMember(inputCtor)
-    inputs.HideObjectMethods &lt;- true
-    addPorts inputs outputs node.Ports
+<pre><code>portList
+|&gt; Seq.iter (fun port -&gt; 
+                match port.Type with
+                | "input" -&gt; addInputPort inputs port
+                | "output" -&gt; addOutputPort outputs port
+                | _ -&gt; failwithf "Unknown port type for port %s/%s" port.Id.Name (port.Id.UniqueId.ToString()))
+</code></pre>
 
-    // Add the inputs and outputs types of nested types under the Node type
-    nodeType.AddMembers([inputs;outputs])
+<p>let createNodeType id (node : Node) =</p>
 
-    // Now add some instance properties to expose them on a node instance.
-    let outputPorts = ProvidedProperty(&quot;OutputPorts&quot;, outputs, [],
-                        GetterCode = fun args -&gt; &lt;@@ obj() @@&gt;)
-    let inputPorts = ProvidedProperty(&quot;InputPorts&quot;, inputs, [],
-                        GetterCode = fun args -&gt; &lt;@@ obj() @@&gt;)
+<pre><code>let nodeType = ProvidedTypeDefinition(asm, ns, node.Id.Name, Some typeof&lt;nodeInstance&gt;)
+let ctor = ProvidedConstructor(
+            [
+                ProvidedParameter("Name", typeof&lt;string&gt;)
+                ProvidedParameter("UniqueId", typeof&lt;Guid&gt;)
+                ProvidedParameter("Config", typeof&lt;string&gt;)
+            ],
+            InvokeCode = fun [name;unique;config] -&gt; &lt;@@ NodeInstance.create (GetNode id) (%%name:string) (%%unique:Guid) (%%config:string) @@&gt;)
+nodeType.AddMember(ctor)
 
-    nodeType.AddMembers([inputPorts;outputPorts])
+let outputs = ProvidedTypeDefinition("Outputs", Some typeof&lt;obj&gt;)
+let outputCtor = ProvidedConstructor([], InvokeCode = fun args -&gt; &lt;@@ obj() @@&gt;)
+outputs.AddMember(outputCtor)
+outputs.HideObjectMethods &lt;- true
 
-    nodeType
-</code></pre></noscript></div>
-</p>
+let inputs = ProvidedTypeDefinition("Inputs", Some typeof&lt;obj&gt;)
+let inputCtor = ProvidedConstructor([], InvokeCode = fun args -&gt; &lt;@@ obj() @@&gt;)
+inputs.AddMember(inputCtor)
+inputs.HideObjectMethods &lt;- true
+addPorts inputs outputs node.Ports
+
+// Add the inputs and outputs types of nested types under the Node type
+nodeType.AddMembers([inputs;outputs])
+
+// Now add some instance properties to expose them on a node instance.
+let outputPorts = ProvidedProperty("OutputPorts", outputs, [],
+                    GetterCode = fun args -&gt; &lt;@@ obj() @@&gt;)
+let inputPorts = ProvidedProperty("InputPorts", inputs, [],
+                    GetterCode = fun args -&gt; &lt;@@ obj() @@&gt;)
+
+nodeType.AddMembers([inputPorts;outputPorts])
+
+nodeType
+</code></pre>
+
+<p>```</p>
 
 <p>Leaving only one final mystery. What are the <code>GetPort</code> and <code>GetNode</code> methods &ndash; and why am I using them in the quotations rather than just using something like <code>&lt;@@ node @@&gt;</code>?</p>
 
@@ -444,25 +490,34 @@ let createNodeType id (node : Node) =
 
 <p>So, what we do is we build a couple of private helper methods that know how to find the correct port or node from one of the types that is allowed &ndash; in this case, a <code>string</code>:</p>
 
-<p><div><script src='https://gist.github.com/mavnn/7803991.js?file=Part13.fs'></script>
-<noscript><pre><code>let private nodes = JsonConvert.DeserializeObject&lt;seq&lt;Node&gt;&gt;(IO.File.ReadAllText(@&quot;c:\Temp\Graph.json&quot;))
-                    |&gt; Seq.map (fun n -&gt; n.Id.UniqueId.ToString(), n)
-                    |&gt; Map.ofSeq
+<p>``` fsharp
+let private nodes = JsonConvert.DeserializeObject&lt;seq<Node>>(IO.File.ReadAllText(@&ldquo;c:\Temp\Graph.json&rdquo;))</p>
 
-let private GetNode id =
-    nodes.[id]
+<pre><code>                |&gt; Seq.map (fun n -&gt; n.Id.UniqueId.ToString(), n)
+                |&gt; Map.ofSeq
+</code></pre>
 
-let private ports =
-    nodes
-    |&gt; Map.toSeq
-    |&gt; Seq.map (fun (_, node) -&gt; node.Ports)
-    |&gt; Seq.concat
-    |&gt; Seq.map (fun p -&gt; p.Id.UniqueId.ToString(), p)
-    |&gt; Map.ofSeq
+<p>let GetNode id =</p>
 
-let private GetPort id =
-    ports.[id]</code></pre></noscript></div>
-</p>
+<pre><code>nodes.[id]
+</code></pre>
+
+<p>let private ports =</p>
+
+<pre><code>nodes
+|&gt; Map.toSeq
+|&gt; Seq.map (fun (_, node) -&gt; node.Ports)
+|&gt; Seq.concat
+|&gt; Seq.map (fun p -&gt; p.Id.UniqueId.ToString(), p)
+|&gt; Map.ofSeq
+</code></pre>
+
+<p>let GetPort id =</p>
+
+<pre><code>ports.[id]
+</code></pre>
+
+<p>```</p>
 
 <p>So, there you have it. A complete, working type provider that uses meta data supplied in Json format to create CLR types. Lots of things still to be added for production ready code (delayed loading, handling multiple ports with the same names, not hard coding the filename, etc).</p>
 

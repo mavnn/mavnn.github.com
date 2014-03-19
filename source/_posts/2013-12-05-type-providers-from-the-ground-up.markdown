@@ -5,6 +5,8 @@ date: 2013-12-05 11:28
 comments: true
 categories: [fsharp, programming, typeprovider]
 ---
+*This post is part of a series: [part 2](/type-providers-from-the-first-floor/) follows on directly from this post.*
+
 In the ground tradition of blog posts as both documentation and augmented memory, I've just added our first [Type Provider](http://blogs.msdn.com/b/dsyme/archive/2013/01/30/twelve-type-providers-in-pictures.aspx) to the code base. Time to write up the details before a) I forget them and b) anyone else needs to modify the code.
 
 So, first things first. Before we get to the actual problem space at hand, let's try and provide a type. Any type...
@@ -428,3 +430,5 @@ So, there you have it. A complete, working type provider that uses meta data sup
 
 
 Any questions or corrections, fire away. As mentioned, this is very much the first time I've used type providers - but even this level of usage is providing a goodly amount of value for us.
+
+And if you're ready for the next challenge... off to [part 2](/type-providers-from-the-first-floor/) with you!

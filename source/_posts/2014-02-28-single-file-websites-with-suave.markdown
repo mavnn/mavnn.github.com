@@ -36,8 +36,6 @@ let app =
     ]
 
 web_server default_config app
-
-Console.ReadLine() |> ignore
 ```
 
 And the embedded module looks like this:
@@ -105,3 +103,5 @@ let browse_embedded : WebPart =
 ```
 
 [@ad3mar](https://twitter.com/ad3mar) if you feel like rolling this into Suave, you can consider it licenced under what ever is most convenient. An official licence file would make me much happier using Suave in production, by the way (hint, hint).
+
+Edit: ad3mar has pointed out in the comments that Suave is already Apache2 licensed, I just failed to find the file last time I looked.

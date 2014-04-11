@@ -328,7 +328,7 @@ We already know that:
 let embeddedId (identifier : Id) = <@ identifier @>
 ```
 
-isn't going to work. The expression evaluator won't know what to do with the ``Id`` type. But ``Id``'s constructor is a private method, as is the ``Guid`` constructor. Let's try it:
+isn't going to work. The expression evaluator won't know what to do with the ``Id`` type. But ``Id``'s constructor is a public method, as is the ``Guid`` constructor. Let's try it:
 
 ``` fsharp
 let private embeddedId (id : Id) =
@@ -414,7 +414,7 @@ let ctor = ProvidedConstructor(
                     <@@ NodeInstance.create (%nodeExpr) (%%name:string) (%%unique:Guid) (%%config:string) @@>)
 ```
 
-Can you see the difference? Now, rather than closing over the GetNode method, we're closing over the quotation of the node that it returns.
+Can you see the difference? Now, rather than closing over the ``GetNode`` method, we're closing over the quotation of the node that it returns.
 
 With a sense of deja vu, let's just check this all works...
 

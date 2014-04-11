@@ -9,7 +9,7 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="Awesome discussion on the finer points of whether having a Linux based cruise missile launched at you entitles you to a copy of the source code &hellip;">
+  <meta name="description" content="Having recently moved one of our (http://15below.com) infrastructure services from using MSMQs to RabbitMq (via using EasyNetQ: https://github.com/ &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -77,6 +77,42 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/stress-testing-easynetq-services-with-f/index.html">Stress Testing EasyNetQ Services With F#</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-10-04T00:00:00+01:00" pubdate data-updated="true"></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><div>Having recently moved one of our (<a href="http://15below.com">http://15below.com</a>) infrastructure services from using MSMQs to RabbitMq (via using EasyNetQ: <a href="https://github.com/mikehadlow/EasyNetQ">https://github.com/mikehadlow/EasyNetQ</a>), I then wanted to run it through some simple stress tests. One of the reasons for this is that the old service used to time out on messages regularly, leaving them in a dead letter queue and requiring us to write the &#39;DeadLetterProcessor&#39; (a complete service in it&#39;s own right) to deal with the time outs.</div> <p /><div>74 lines of F# later, I was hitting the service with 40,000 requests spread across 4 parallel processes.</div><br /><div><script src="https://gist.github.com/3832369.js"></script></div> <p /><div>And the results: 18 seconds to process the lot, with no time outs or losses. Requests were going in faster than the service could process them, but Rabbit was admirably handling that side of things, and with the new setup multiple copies of the service would automatically round robin requests if that was ever needed.</div> <p /><div>Adious, DeadLetterProcessor: it was nice deleting you&#8230;</div>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -419,42 +455,6 @@ y-combinator</a>.</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/terms-of-engagement/index.html">Terms of Engagement</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2011-09-01T00:00:00+01:00" pubdate data-updated="true"></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>I was looking to express a concept recently and realised I didn&#39;t have the terminology for it, so I decided to coin something.</p> <p>So I now have a new category if friendship:</p> <p>A &#39;real&#39; friend is someone who I can express an opinion to, disagree with and still be friends with.</p> <p>This is mostly independent of whether they are also a &#39;good&#39; friend (someone with whom there is a lot of shared knowledge and time) or a &#39;true&#39; friend (stuck with the friendship through crap, or at least given me strong reason to believe they would even if they haven&#39;t had to yet).</p> <p>Of course being in any of the categories makes moving into the others more likely&#8230;</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/5/">&larr; Older</a>
@@ -472,6 +472,10 @@ y-combinator</a>.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/going-functionally-solid/">Going Functionally SOLID</a>
+      </li>
+    
+      <li class="post">
         <a href="/type-providers-from-the-first-floor/">Type Providers From the First Floor</a>
       </li>
     
@@ -485,10 +489,6 @@ y-combinator</a>.</p>
     
       <li class="post">
         <a href="/pygments/">Pygments</a>
-      </li>
-    
-      <li class="post">
-        <a href="/type-providers-from-the-ground-up/">Type Providers From the Ground Up</a>
       </li>
     
   </ul>

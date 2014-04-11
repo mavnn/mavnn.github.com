@@ -4,7 +4,7 @@
   <title><![CDATA[Category: programming | Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/blog/categories/programming/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2014-03-20T09:57:49+00:00</updated>
+  <updated>2014-04-11T14:34:12+01:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,384 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Going Functionally SOLID]]></title>
+    <link href="http://blog.mavnn.co.uk/going-functionally-solid/"/>
+    <updated>2014-04-11T11:45:47+01:00</updated>
+    <id>http://blog.mavnn.co.uk/going-functionally-solid</id>
+    <content type="html"><![CDATA[<p><em>The one giant robot every programmer should know and love! Meet Big O!</em></p>
+
+<p><img src="/images/Big_o.jpg" alt="Big O" /></p>
+
+<p><em>For all your algorithmic complexity needs. And any giant mecha in need of a good pounding.</em></p>
+
+<p>And now, back to your regularly scheduled blog post&hellip;</p>
+
+<p>Inspired both by <a href="http://blog.ploeh.dk/2014/03/10/solid-the-next-step-is-functional/">Mark Seemann&rsquo;s excellent blog post</a> and by my ongoing campaign to introduce functional programming techniques to <a href="http://www.15below.com/">15below</a> developers who aren&rsquo;t familiar with them yet, I decided it was time to run a mini-series on applying good principles like <a href="http://en.wikipedia.org/wiki/Solid_%28object-oriented_design%29">SOLID</a> in a functional world.</p>
+
+<p>We run weekly one hour &ldquo;Developer Education&rdquo; sessions. For this series I started with a badly written piece of code (it came naturally, given I had limited prep time&hellip;) in a style of someone who has kind of heard about SOLID and functional programming:</p>
+
+<ul>
+<li><strong>SOLID</strong>: &ldquo;So, eh, I need some interfaces and things. Concrete bad, interface good. In wonder what the whole DI thing is?&rdquo;</li>
+<li><strong>Functional</strong>: &ldquo;And, erm. Chainable functions? Fluent APIs, maybe? That&rsquo;s kind of functional, right?&rdquo;</li>
+</ul>
+
+
+<!-- More -->
+
+
+<p>And then we had a open house suggesting modifications to the code where I made the changes live as we went along. In this first session, we only got as far as making the code a bit more solid &ndash; tune back in next month for the make it functional session..</p>
+
+<p>Deciding that we needed a more interesting example domain than sending emails for once, I decided to go the whole hog. Below you&rsquo;ll find the before and after versions of &ldquo;HeavyGearSOLID&rdquo;&rsquo;s unit representation code.</p>
+
+<p>Because everything is better with giant robots.</p>
+
+<p>The session was a fun change of pace from other things we&rsquo;ve done, and sparked off a nice bit of discussion (although not as much as I hoped&hellip; heckle more, 15below people!). I&rsquo;m quite looking forward to the next part of the series.</p>
+
+<h2>Before</h2>
+
+<p><code>` fsharp
+namespace</code>メタルギアソリッド``</p>
+
+<p>open System
+open Utils</p>
+
+<p>type IMecha =</p>
+
+<pre><code>abstract Walk : Direction * int -&gt; IMecha
+abstract Jump : Direction * int -&gt; IMecha
+abstract Fly : Direction * int -&gt; IMecha
+abstract Position : int * int
+abstract Hits : int
+abstract Destroyed : bool
+abstract Dodge : int
+abstract Armour : int
+abstract TakeDamage : int -&gt; IMecha
+abstract FireCannon : IMecha * int -&gt; IMecha
+abstract FireMissiles : IMecha * int -&gt; IMecha
+</code></pre>
+
+<p>type GiantRobo (position) =</p>
+
+<pre><code>let _position = ref position
+let _hits = ref 100
+let _destroyed = ref false
+let _dodge = ref 5
+let _armour = ref 20
+let rand = Random()
+interface IMecha with
+    member x.Walk (dir, distance) =
+        let iMecha = x :&gt; IMecha
+        if distance &gt; 4 then
+            failwith "GiantRobo is slow!"
+        else
+            _position := Move (!_position) dir distance
+            iMecha
+    member x.Jump (_, _) =
+        raise &lt;| NotImplementedException("GiantRobo can't jump")
+    member x.Fly (_, _) =
+        raise &lt;| NotImplementedException("GiantRobo can't fly")
+    member x.Position =
+        !_position
+    member x.Hits =
+        !_hits                        
+    member x.Destroyed =
+        !_destroyed
+    member x.Dodge =
+        !_dodge
+    member x.Armour =
+        !_armour
+    member x.TakeDamage damage =
+        _hits := !_hits - damage
+        _destroyed := !_hits &lt;= 0
+        x :&gt; IMecha
+    member x.FireCannon (target, roll) =
+        if roll &gt; target.Dodge then
+            target.TakeDamage (max 0 (60 - target.Armour))
+        else
+            target
+    member x.FireMissiles (target, roll) =
+        raise &lt;| NotImplementedException("Giant Robo has no missiles")
+</code></pre>
+
+<p>type ITransformingMecha =</p>
+
+<pre><code>inherit IMecha
+abstract Mode : string
+abstract ``Transform!`` : string -&gt; ITransformingMecha
+</code></pre>
+
+<p>type VF1 (position) =</p>
+
+<pre><code>let _position = ref position
+let _hits = ref 50
+let _destroyed = ref false
+let _dodge = ref 10
+let _armour = ref 10
+let _mode = ref "Battroid"
+interface ITransformingMecha with
+    member x.Walk (dir, distance) =
+        let iMecha = x :&gt; IMecha
+        if !_mode = "Fighter" then failwith "No legs in Fighter mode!"
+        if distance &gt; 6 then
+            failwith "VF-1 isn't that fast!"
+        else
+            _position := Move (!_position) dir distance
+            iMecha
+    member x.Jump (dir, distance) =
+        let iMecha = x :&gt; IMecha
+        if !_mode = "Fighter" then failwith "Jumping in Fighter mode makes no sense!"
+        let maxDistance =
+            match !_mode with
+            | "GERWALK" -&gt; 8
+            | "Battroid" -&gt; 6
+            | _ -&gt; failwith "No good"
+        if distance &gt; maxDistance then
+            failwith "VF-1 isn't that fast!"
+        else
+            _position := Move (!_position) dir distance
+            iMecha
+    member x.Fly (dir, distance) =
+        let iMecha = x :&gt; IMecha
+        if !_mode = "Battroid" then failwith "Battroid mode can't fly"
+        let maxDistance =
+            match !_mode with
+            | "Fighter" -&gt; 20
+            | "GERWALK" -&gt; 15
+            | _ -&gt; failwith "No good"
+        if distance &gt; maxDistance then
+            failwith "VF-1 isn't that fast!"
+        else
+            _position := Move (!_position) dir distance
+            iMecha
+    member x.Position =
+        !_position
+    member x.Hits =
+        !_hits                        
+    member x.Destroyed =
+        !_destroyed
+    member x.Dodge =
+        !_dodge
+    member x.Armour =
+        !_armour
+    member x.TakeDamage damage =
+        _hits := !_hits - damage
+        _destroyed := !_hits &lt;= 0
+        x :&gt; IMecha
+    member x.FireCannon (target, roll) =
+        if roll &gt; target.Dodge then
+            target.TakeDamage (max 0 (20 - target.Armour))
+        else
+            target
+    member x.FireMissiles (target, roll) =
+        if roll &gt; (target.Dodge / 2) then
+            target.TakeDamage (max 0 (60 - target.Armour))
+        else
+            target
+    member x.Mode =
+        !_mode
+    member x.``Transform!`` mode =
+        match mode with
+        | "Fighter" -&gt;
+            _mode := "Fighter"
+        | "GERWALK" -&gt;
+            _mode := "GERWALK"
+        | "Battroid" -&gt;
+            _mode := "Battroid"
+        | _ -&gt;
+            failwith "Not a valid VF-1 mode"
+        x :&gt; ITransformingMecha
+</code></pre>
+
+<p>```</p>
+
+<h2>After</h2>
+
+<p><code>` fsharp
+namespace</code>メタルギアソリッド``</p>
+
+<p>open System
+open Utils</p>
+
+<p>type Location =</p>
+
+<pre><code>{
+    Position : int * int
+    Altitude : int
+}
+</code></pre>
+
+<p>type IDestructable =</p>
+
+<pre><code>abstract Armour : int
+abstract Dodge : int
+abstract Hits : int
+abstract Destroyed : bool
+abstract TakeDamage : int -&gt; IDestructable
+</code></pre>
+
+<p>type IWalk =</p>
+
+<pre><code>abstract Walk : Direction * int -&gt; Location
+</code></pre>
+
+<p>type IJump =</p>
+
+<pre><code>abstract Jump : Direction * int -&gt; Location
+</code></pre>
+
+<p>type IFly =</p>
+
+<pre><code>abstract Fly : Direction * int -&gt; Location
+</code></pre>
+
+<p>type IHazWeapon =</p>
+
+<pre><code>abstract Fire : IDestructable * int -&gt; IDestructable
+</code></pre>
+
+<p>type IHazWeapons =</p>
+
+<pre><code>abstract WMDs : List&lt;IHazWeapon&gt;
+</code></pre>
+
+<p>type IHazCannon =</p>
+
+<pre><code>inherit IHazWeapon
+</code></pre>
+
+<p>type IHazMissiles =</p>
+
+<pre><code>inherit IHazWeapon
+</code></pre>
+
+<p>type NormalDestructable (hits, dodge, armour) =</p>
+
+<pre><code>let _hits = ref 100
+let _destroyed = ref false
+let _dodge = ref 5
+let _armour = ref 20
+interface IDestructable with
+    member x.Hits =
+        !_hits                        
+    member x.Destroyed =
+        !_destroyed
+    member x.Dodge =
+        !_dodge
+    member x.Armour =
+        !_armour
+    member x.TakeDamage damage =
+        _hits := !_hits - damage
+        _destroyed := !_hits &lt;= 0
+        x :&gt; IDestructable
+</code></pre>
+
+<p>type GiantRobo (position, destructable : #IDestructable) =</p>
+
+<pre><code>let _position = ref position
+member x.Position =
+    !_position
+interface IWalk with
+    member x.Walk (dir, distance) =
+        if distance &gt; 4 then
+            failwith "GiantRobo is slow!"
+        else
+            { Position = Move (!_position) dir distance; Altitude = 0 }
+interface IDestructable with
+    member x.Hits = destructable.Hits
+    member x.Destroyed = destructable.Destroyed
+    member x.Dodge = destructable.Dodge
+    member x.Armour = destructable.Armour
+    member x.TakeDamage damage = destructable.TakeDamage damage
+interface IHazWeapons with
+    member x.WMDs =
+        [{ new IHazCannon with 
+            member x.Fire (target, roll) =
+                if roll &gt; target.Dodge then
+                    target.TakeDamage (max 0 (60 - target.Armour))
+                else
+                    target }]
+</code></pre>
+
+<p>type ITransforming =</p>
+
+<pre><code>abstract Mode : string
+abstract ``Transform!`` : string -&gt; ITransforming
+</code></pre>
+
+<p>type VF1 (position) =</p>
+
+<pre><code>let _position = ref position
+let _mode = ref "Battroid"
+member x.Position =
+    !_position
+interface IWalk with
+    member x.Walk (dir, distance) =
+        if !_mode = "Fighter" then failwith "No legs in Fighter mode!"
+        if distance &gt; 6 then
+            failwith "VF-1 isn't that fast!"
+        else
+            { Position = Move (!_position) dir distance; Altitude = 0 }
+interface IJump with
+    member x.Jump (dir, distance) =
+        if !_mode = "Fighter" then failwith "Jumping in Fighter mode makes no sense!"
+        let maxDistance =
+            match !_mode with
+            | "GERWALK" -&gt; 8
+            | "Battroid" -&gt; 6
+            | _ -&gt; failwith "No good"
+        if distance &gt; maxDistance then
+            failwith "VF-1 isn't that fast!"
+        else
+            { Position = Move (!_position) dir distance; Altitude = 0 }
+interface IFly with
+    member x.Fly (dir, distance) =
+        if !_mode = "Battroid" then failwith "Battroid mode can't fly"
+        let maxDistance =
+            match !_mode with
+            | "Fighter" -&gt; 20
+            | "GERWALK" -&gt; 15
+            | _ -&gt; failwith "No good"
+        if distance &gt; maxDistance then
+            failwith "VF-1 isn't that fast!"
+        else
+            { Position = Move (!_position) dir distance; Altitude = 0 }
+interface IHazWeapons with
+    member x.WMDs =
+        [
+            { new IHazCannon with
+                member x.Fire (target, roll) =
+                    if roll &gt; target.Dodge then
+                        target.TakeDamage (max 0 (20 - target.Armour))
+                    else
+                        target };
+             { new IHazMissiles with
+                member x.Fire (target, roll) =
+                    if roll &gt; (target.Dodge / 2) then
+                        target.TakeDamage (max 0 (60 - target.Armour))
+                    else
+                        target }
+        ]
+interface ITransforming with
+    member x.Mode =
+        !_mode
+    member x.``Transform!`` mode =
+        match mode with
+        | "Fighter" -&gt;
+            _mode := "Fighter"
+        | "GERWALK" -&gt;
+            _mode := "GERWALK"
+        | "Battroid" -&gt;
+            _mode := "Battroid"
+        | _ -&gt;
+            failwith "Not a valid VF-1 mode"
+        x :&gt; ITransforming
+</code></pre>
+
+<p>```</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Type Providers From the First Floor]]></title>
@@ -1109,136 +1487,6 @@ let private nodes = JsonConvert.DeserializeObject&lt;seq<Node>>(IO.File.ReadAllT
 <p>Any questions or corrections, fire away. As mentioned, this is very much the first time I&rsquo;ve used type providers &ndash; but even this level of usage is providing a goodly amount of value for us.</p>
 
 <p>And if you&rsquo;re ready for the next challenge&hellip; off to <a href="/type-providers-from-the-first-floor/">part 2</a> with you!</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[To Infinity and Beyond]]></title>
-    <link href="http://blog.mavnn.co.uk/to-infinity/"/>
-    <updated>2013-10-31T07:41:00+00:00</updated>
-    <id>http://blog.mavnn.co.uk/to-infinity</id>
-    <content type="html"><![CDATA[<p>So, a couple of weeks ago I went to the Brighton Functional Programmers meet up. It was a fun night, and at one point I ended up live coding in front of a room of functional programmers trying to give examples of lazy and strict evaluation.</p>
-
-<p>The canonical go to tool for the job, is of course the infinite sequence and being stared at by a bunch of people and having syntax highlighting but no compiler, the first thing my brain pulled out of the air was this:</p>
-
-<p><div><script src='https://gist.github.com/mavnn/7246744.js?file=Part1.fs'></script>
-<noscript><pre><code>let ones =
-    seq {
-        while true do
-            yield 1
-    }
-// seq [1; 1; 1; 1; ...]</code></pre></noscript></div>
-</p>
-
-<p>Which prompted one of the people attending (hi <a href="https://twitter.com/milessabin">Miles!</a>) to comment &ldquo;let&rsquo;s see that in Haskell without the bizarre looping generator&rdquo;. Roughly &ndash; I&rsquo;m slightly paraphrasing here given the couple of weeks in between. He has a bit of a point, this isn&rsquo;t the most functional looking sequence generator in the world, and it looks like quite a lot of code to just generate a lot of ones.</p>
-
-<p>As always in these situations, I had of course thought of several other alternatives before I even reached my chair, so I thought I&rsquo;d have a quick survey of them and their advantages and disadvantages.</p>
-
-<p>My first thought was that I&rsquo;d missed the obvious and succinct option of just generating a range. In F# (as in Haskell) the 1 .. 10 notation generates a list of the integers from 1 to 10. Unfortunately:</p>
-
-<p><div><script src='https://gist.github.com/mavnn/7246744.js?file=Part2.fs'></script>
-<noscript><pre><code>// Can't do this, unfortunately
-// seq { 1 .. }
-//
-// or this:
-// seq { 1 .. 0 .. 2 }
-//
-// Which I thought might be a nice hack.
-</code></pre></noscript></div>
-</p>
-
-<p>Unlike Haskell, you can&rsquo;t have an unbounded range, nor can you set the &ldquo;step&rdquo; to zero to just keep on generating the same number. So you&rsquo;re limited to generating very big, but definitely not infinite sequences:</p>
-
-<p><div><script src='https://gist.github.com/mavnn/7246744.js?file=Part3.fs'></script>
-<noscript><pre><code>let notInfiniteOrOnes = seq { 1 .. System.Int32.MaxValue }
-// seq [1; 2; 3; 4; ...]
-
-let notInfinite = seq { for _ in 1 .. System.Int32.MaxValue -&gt; 1 }
-// seq [1; 1; 1; 1; ...]
-</code></pre></noscript></div>
-</p>
-
-<p>But hey! We&rsquo;re in functional world. So if we can&rsquo;t use sneaky built in syntax constructs, the next obvious choice is a recursive function:</p>
-
-<p><div><script src='https://gist.github.com/mavnn/7246744.js?file=Part4.fs'></script>
-<noscript><pre><code>let ones' =
-    let rec gen () =
-        seq {
-            yield 1
-            yield! gen ()
-        }
-    gen ()
-// seq [1; 1; 1; 1; ...]
-</code></pre></noscript></div>
-</p>
-
-<p>This is definitely infinite, and definitely functional in style. Bit verbose, of course, but it least it won&rsquo;t stack overflow as F# implements tail call recursion. It&rsquo;s verbose, but it does also have its advantages. It&rsquo;s trivial to pass things round in the recursive function (previous values from the sequence, etc) making this a very flexible way of generating sequences.</p>
-
-<p>And, of course, let&rsquo;s not ignore the standard library. The <code>Seq</code> module gives us a couple of methods designed specifically for generating (potentially) infinite sequences.</p>
-
-<p><code>Seq.initInfinite</code> just takes a function that returns a sequence value based on the index of that value:</p>
-
-<p><div><script src='https://gist.github.com/mavnn/7246744.js?file=Part5.fs'></script>
-<noscript><pre><code>let ones'' = Seq.initInfinite (fun _ -&gt; 1)
-// seq [1; 1; 1; 1; ...]
-</code></pre></noscript></div>
-</p>
-
-<p>As long as a simple mapping from index to value exists, this is both clear and concise. In theory, of course, it also suffers from the same issue as my range generators above: if your index exceeds the valid size of an Int32 you&rsquo;re out of luck.</p>
-
-<p><code>Seq.unfold</code> may seem less intuitive, but in my mind is the more flexible and powerful solution. I tend to come across examples where it&rsquo;s easier to generate a sequence based on either some state or the previous term than by index, and that&rsquo;s exactly what unfold allows you to do:</p>
-
-<p><div><script src='https://gist.github.com/mavnn/7246744.js?file=Part6.fs'></script>
-<noscript><pre><code>let ones''' = Seq.unfold (fun _ -&gt; Some (1, ())) ()
-// seq [1; 1; 1; 1; ...]
-</code></pre></noscript></div>
-</p>
-
-<p>It will also happily generate sequences forever if your generating function allows.</p>
-
-<p>So, how does it actually work? Let&rsquo;s look at a (slightly) more complex example that actually makes use of some state:</p>
-
-<p><div><script src='https://gist.github.com/mavnn/7246744.js?file=Part7.fs'></script>
-<noscript><pre><code>let moreInterestingUnfold =
-    Seq.unfold
-        (fun state -&gt;
-            Some (state, state + 1)) 1
-// seq [1; 2; 3; 4; ...]
-</code></pre></noscript></div>
-</p>
-
-<p>What&rsquo;s going on here then? Well, <code>unfold</code> takes two arguments. The first is a function that takes a &lsquo;State and returns an Option&lt;&rsquo;T * 'State>. In our simple example above, both 'State and &rsquo;T are of type <code>int</code> but there&rsquo;s no requirement for them to be of the same type. If at any point the function returns <code>None</code>, the sequence ends. In our example, we always return <code>Some</code>, so our sequence is infinite (at least until it runs out of integers) and we&rsquo;re return a tuple of two values &ndash; the first of which will be used as the next term in the sequence, and the second which will become the new state.</p>
-
-<p>The second argument to <code>unfold</code> is the starting state. In our case, this means the number that will be the first term in the sequence, and then we&rsquo;ll add one to it each time.</p>
-
-<p>Let&rsquo;s round this out with an example that uses different types for the state and the terms of the sequence, which will hopefully now make some sense:</p>
-
-<p><div><script src='https://gist.github.com/mavnn/7246744.js?file=Part8.fs'></script>
-<noscript><pre><code>type Time =
-    {
-        Hour : int
-        Minute : int
-    }
-
-let addMinute time =
-    match time with
-    | { Hour = 23; Minute = 59 } -&gt;
-        { Hour = 0; Minute = 0 }
-    | { Minute = 59 } -&gt;
-        { Hour = time.Hour + 1; Minute = 0 }
-    | _ -&gt;
-        { Hour = time.Hour; Minute = time.Minute + 1 }
-
-let unfold' =
-    Seq.unfold
-        (fun state -&gt;
-            Some (sprintf &quot;%02d:%02d&quot; state.Hour state.Minute, addMinute state)
-            ) { Hour = 22; Minute = 59 }
-// seq [&quot;23:59&quot;; &quot;00:00&quot;; &quot;00:01&quot;; &quot;00:02&quot;; ...]
-</code></pre></noscript></div>
-</p>
-
-<p>I&rsquo;m sure that you&rsquo;ve always needed a convenient way of cycling through every minute of the day repeatedly, with a nice readable string representation.</p>
 ]]></content>
   </entry>
   

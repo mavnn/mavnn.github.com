@@ -6,6 +6,8 @@ comments: true
 categories: [fsharp, programming, suave]
 ---
 
+> As of a few days ago, the embedded module [was merged](https://github.com/SuaveIO/suave/pull/100/files) into Suave master. Enjoy!
+
 I'm a great fan of [Suave](http://suave.io/) for simple web development in F#. I highly recommend checking out the site for details, but in the mean time I'd like to share a little trick I've been using for rapid prototyping that I'm finding very useful.
 
 The Suave.Http module contains a few helpers for serving static files from disk. Unfortunately, depending on use case and deployment strategy, relying on the location of a bunch of files on disk can be problematic.

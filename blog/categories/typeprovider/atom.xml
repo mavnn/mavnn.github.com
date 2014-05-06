@@ -4,7 +4,7 @@
   <title><![CDATA[Category: typeprovider | Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/blog/categories/typeprovider/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2014-04-29T10:06:44+01:00</updated>
+  <updated>2014-05-06T16:26:08+01:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,141 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Type safe printf via Type Providers]]></title>
+    <link href="http://blog.mavnn.co.uk/type-safe-printf-via-type-providers/"/>
+    <updated>2014-05-06T15:33:15+01:00</updated>
+    <id>http://blog.mavnn.co.uk/type-safe-printf-via-type-providers</id>
+    <content type="html"><![CDATA[<p><a href="http://twitter.com/puffnfresh">Brian McKenna</a> posted an interesting <a href="http://www.youtube.com/watch?v=fVBck2Zngjo">video</a> and <a href="https://gist.github.com/puffnfresh/11202637">gist</a> on implementing a type safe printf in Idris with dependent types.</p>
+
+<p>This led me down a nice little rabbit hole wondering if something similar could be achieved with an F# type provider.</p>
+
+<p>With a <a href="http://stackoverflow.com/questions/23375469/how-can-i-build-an-arbitary-curried-function-in-an-f-type-provider">bit of help from Tomas</a> the final solution turned out to be surprisingly nice, although not quite so clean as the Idris original.</p>
+
+<!-- more -->
+
+
+<p>Taking the format string and parsing it looks very similar to the Idris version, what with the common ML history of the two languages:</p>
+
+<p>```fsharp
+type Format =</p>
+
+<pre><code>| FString of Format
+| FInt of Format
+| Other of char * Format
+| End
+</code></pre>
+
+<p>let parseFormatString str =</p>
+
+<pre><code>let rec parseFormat chars =
+    match chars with
+    | '%'::'d'::t -&gt; FInt (parseFormat t)
+    | '%'::'s'::t -&gt; FString (parseFormat t)
+    | c::t -&gt; Other (c, parseFormat t)
+    | [] -&gt; End
+parseFormat (Seq.toList str)
+</code></pre>
+
+<p>```</p>
+
+<p>This might not be the most efficient or flexible parsing method, but that&rsquo;s not really the point of the current exercise and it&rsquo;s very clear what it&rsquo;s doing.</p>
+
+<p>Next, we want to create a <a href="http://msdn.microsoft.com/en-us/library/dd233212.aspx">quotation</a> that represents a curried function based on our format type. This is where I needed Tomas' help &ndash; it turns out there isn&rsquo;t any easy way to do this with the <code>&lt;@@ ... @@&gt;</code> syntax I&rsquo;ve usually used to build quotations for type providers.</p>
+
+<p>Tomas reminded me that the <code>Microsoft.FSharp.Quotations</code> namespace gives direct access to the underlying classes that represent the expression tree of the quotation. This allows us to build an expression tree recusively; check out <a href="http://stackoverflow.com/a/23375794/68457">Tomas' explanation</a>  of the technique for more details of how it works.</p>
+
+<p>```fsharp
+open System.Reflection
+open Microsoft.FSharp.Quotations</p>
+
+<p>(<em> &hellip; </em>)</p>
+
+<p>let rec invoker printers format =</p>
+
+<pre><code>match format with
+| End -&gt;
+    let arr = Expr.NewArray(typeof&lt;string&gt;, List.rev printers)
+    let conc = typeof&lt;string&gt;.GetMethod("Concat", [|typeof&lt;string[]&gt;|])
+    Expr.Call(conc, [arr])
+| Other (c, t) -&gt;
+    invoker (&lt;@@ string&lt;char&gt; c @@&gt; :: printers) t
+| FInt t -&gt;
+    let v = Var("v", typeof&lt;int&gt;)
+    let printer = &lt;@@ string&lt;int&gt; (%%(Expr.Var v)) @@&gt;
+    Expr.Lambda(v, invoker (printer::printers) t)
+| FString t -&gt;
+    let v = Var("v", typeof&lt;string&gt;)
+    let printer = &lt;@@ %%(Expr.Var v):string @@&gt;
+    Expr.Lambda(v, invoker (printer::printers) t)
+</code></pre>
+
+<p>```</p>
+
+<p>That&rsquo;s the hard stuff out of the way! Now we just have some type provider boiler plate. We&rsquo;re going to provide a type provider named <code>TPrint</code> which takes a single parameter (our format string). Once the parameter is supplied, we provide a single static property which is an FSharpFunc type which matches the signature required by the format string.</p>
+
+<p>```fsharp
+open System.Reflection
+open ProviderImplementation.ProvidedTypes
+open Microsoft.FSharp.Core.CompilerServices</p>
+
+<p>(<em> &hellip; </em>)</p>
+
+<p>let toMethod format =</p>
+
+<pre><code>let invokeCode =
+    invoker [] format
+let invokeType = invokeCode.Type
+ProvidedProperty("show", invokeType, IsStatic = true, GetterCode = fun _ -&gt; invokeCode)
+</code></pre>
+
+<p>[<TypeProvider>]
+type TPrintProvider (config : TypeProviderConfig) as this =</p>
+
+<pre><code>inherit TypeProviderForNamespaces ()
+
+let ns = "TypeSet.Provided"
+let asm = Assembly.GetExecutingAssembly()
+
+let tPrintProvider = ProvidedTypeDefinition(asm, ns, "TPrint", Some(typeof&lt;obj&gt;))
+
+let parameters = [ProvidedStaticParameter("FormatString", typeof&lt;string&gt;)]
+
+do tPrintProvider.DefineStaticParameters(parameters, fun typeName args -&gt;
+    let formatString = args.[0] :?&gt; string
+
+    let provider = ProvidedTypeDefinition(asm, ns, typeName, Some(typeof&lt;obj&gt;))
+    provider.HideObjectMethods &lt;- true
+
+    formatString |&gt; parseFormatString |&gt; toMethod |&gt; provider.AddMember
+
+    provider
+    )
+
+do
+    this.AddNamespace(ns, [tPrintProvider])
+</code></pre>
+
+<p>[&lt;assembly:TypeProviderAssembly>]
+do ()
+```</p>
+
+<p>So, put it all together and you get a type provider which allows you to do this:</p>
+
+<p>```fsharp
+TPrint&lt;&ldquo;A %s string! %s %d&rdquo;>.show &ldquo;hello&rdquo; &ldquo;world&rdquo; 32
+// val it : string = &ldquo;A hello string! world 32&rdquo;</p>
+
+<p>TPrint&lt;&ldquo;Number one: %d! Number two: %d! A string: %s!&rdquo;>.show 1 2 &ldquo;My string!&rdquo;
+// val it : string = &ldquo;Number one: 1! Number two: 2! A string: My string!!&rdquo;
+```</p>
+
+<p>So; nothing there that the built in <code>printf</code> doesn&rsquo;t already do for you. But, this does start opening up some options for providing much more idiomatic F# style APIs then I&rsquo;ve really seen so far from Type Providers, which tend to provide very OO style interfaces. Should be some interesting ideas in there to explore!</p>
+
+<p>Full code can be found <a href="https://github.com/mavnn/TypeSet">at Github</a>.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Type Providers From the First Floor]]></title>

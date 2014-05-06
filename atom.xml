@@ -4,7 +4,7 @@
   <title><![CDATA[Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2014-04-29T10:06:44+01:00</updated>
+  <updated>2014-05-06T16:26:08+01:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,210 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Type Safe Printf via Type Providers]]></title>
+    <link href="http://blog.mavnn.co.uk/type-safe-printf-via-type-providers/"/>
+    <updated>2014-05-06T15:33:15+01:00</updated>
+    <id>http://blog.mavnn.co.uk/type-safe-printf-via-type-providers</id>
+    <content type="html"><![CDATA[<p><a href="http://twitter.com/puffnfresh">Brian McKenna</a> posted an interesting <a href="http://www.youtube.com/watch?v=fVBck2Zngjo">video</a> and <a href="https://gist.github.com/puffnfresh/11202637">gist</a> on implementing a type safe printf in Idris with dependent types.</p>
+
+<p>This led me down a nice little rabbit hole wondering if something similar could be achieved with an F# type provider.</p>
+
+<p>With a <a href="http://stackoverflow.com/questions/23375469/how-can-i-build-an-arbitary-curried-function-in-an-f-type-provider">bit of help from Tomas</a> the final solution turned out to be surprisingly nice, although not quite so clean as the Idris original.</p>
+
+<!-- more -->
+
+
+<p>Taking the format string and parsing it looks very similar to the Idris version, what with the common ML history of the two languages:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">Format</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">FString</span> <span class="k">of</span> <span class="nc">Format</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">FInt</span> <span class="k">of</span> <span class="nc">Format</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Other</span> <span class="k">of</span> <span class="kt">char</span> <span class="o">*</span> <span class="nc">Format</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">End</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">parseFormatString</span> <span class="n">str</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="k">rec</span> <span class="n">parseFormat</span> <span class="n">chars</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">match</span> <span class="n">chars</span> <span class="k">with</span>
+</span><span class='line'>        <span class="o">|</span> <span class="sc">&#39;%&#39;</span><span class="o">::</span><span class="sc">&#39;d&#39;</span><span class="o">::</span><span class="n">t</span> <span class="o">-&gt;</span> <span class="nc">FInt</span> <span class="o">(</span><span class="n">parseFormat</span> <span class="n">t</span><span class="o">)</span>
+</span><span class='line'>        <span class="o">|</span> <span class="sc">&#39;%&#39;</span><span class="o">::</span><span class="sc">&#39;s&#39;</span><span class="o">::</span><span class="n">t</span> <span class="o">-&gt;</span> <span class="nc">FString</span> <span class="o">(</span><span class="n">parseFormat</span> <span class="n">t</span><span class="o">)</span>
+</span><span class='line'>        <span class="o">|</span> <span class="n">c</span><span class="o">::</span><span class="n">t</span> <span class="o">-&gt;</span> <span class="nc">Other</span> <span class="o">(</span><span class="n">c</span><span class="o">,</span> <span class="n">parseFormat</span> <span class="n">t</span><span class="o">)</span>
+</span><span class='line'>        <span class="o">|</span> <span class="bp">[]</span> <span class="o">-&gt;</span> <span class="nc">End</span>
+</span><span class='line'>    <span class="n">parseFormat</span> <span class="o">(</span><span class="nn">Seq</span><span class="p">.</span><span class="n">toList</span> <span class="n">str</span><span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This might not be the most efficient or flexible parsing method, but that&rsquo;s not really the point of the current exercise and it&rsquo;s very clear what it&rsquo;s doing.</p>
+
+<p>Next, we want to create a <a href="http://msdn.microsoft.com/en-us/library/dd233212.aspx">quotation</a> that represents a curried function based on our format type. This is where I needed Tomas&#8217; help &ndash; it turns out there isn&rsquo;t any easy way to do this with the <code>&lt;@@ ... @@&gt;</code> syntax I&rsquo;ve usually used to build quotations for type providers.</p>
+
+<p>Tomas reminded me that the <code>Microsoft.FSharp.Quotations</code> namespace gives direct access to the underlying classes that represent the expression tree of the quotation. This allows us to build an expression tree recusively; check out <a href="http://stackoverflow.com/a/23375794/68457">Tomas&#8217; explanation</a>  of the technique for more details of how it works.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Reflection</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nc">Quotations</span>
+</span><span class='line'>
+</span><span class='line'><span class="c">(* ... *)</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="k">rec</span> <span class="n">invoker</span> <span class="n">printers</span> <span class="n">format</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">match</span> <span class="n">format</span> <span class="k">with</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">End</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">arr</span> <span class="o">=</span> <span class="nn">Expr</span><span class="p">.</span><span class="nc">NewArray</span><span class="o">(</span><span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;,</span> <span class="nn">List</span><span class="p">.</span><span class="n">rev</span> <span class="n">printers</span><span class="o">)</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">conc</span> <span class="o">=</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;.</span><span class="nc">GetMethod</span><span class="o">(</span><span class="s2">&quot;Concat&quot;</span><span class="o">,</span> <span class="o">[|</span><span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="bp">[]</span><span class="o">&gt;|])</span>
+</span><span class='line'>        <span class="nn">Expr</span><span class="p">.</span><span class="nc">Call</span><span class="o">(</span><span class="n">conc</span><span class="o">,</span> <span class="o">[</span><span class="n">arr</span><span class="o">])</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Other</span> <span class="o">(</span><span class="n">c</span><span class="o">,</span> <span class="n">t</span><span class="o">)</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="n">invoker</span> <span class="o">(&lt;@@</span> <span class="kt">string</span><span class="o">&lt;</span><span class="kt">char</span><span class="o">&gt;</span> <span class="n">c</span> <span class="o">@@&gt;</span> <span class="o">::</span> <span class="n">printers</span><span class="o">)</span> <span class="n">t</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">FInt</span> <span class="n">t</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">v</span> <span class="o">=</span> <span class="nc">Var</span><span class="o">(</span><span class="s2">&quot;v&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;)</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">printer</span> <span class="o">=</span> <span class="o">&lt;@@</span> <span class="kt">string</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="o">(%%(</span><span class="nn">Expr</span><span class="p">.</span><span class="nc">Var</span> <span class="n">v</span><span class="o">))</span> <span class="o">@@&gt;</span>
+</span><span class='line'>        <span class="nn">Expr</span><span class="p">.</span><span class="nc">Lambda</span><span class="o">(</span><span class="n">v</span><span class="o">,</span> <span class="n">invoker</span> <span class="o">(</span><span class="n">printer</span><span class="o">::</span><span class="n">printers</span><span class="o">)</span> <span class="n">t</span><span class="o">)</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">FString</span> <span class="n">t</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">v</span> <span class="o">=</span> <span class="nc">Var</span><span class="o">(</span><span class="s2">&quot;v&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;)</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">printer</span> <span class="o">=</span> <span class="o">&lt;@@</span> <span class="o">%%(</span><span class="nn">Expr</span><span class="p">.</span><span class="nc">Var</span> <span class="n">v</span><span class="o">):</span><span class="kt">string</span> <span class="o">@@&gt;</span>
+</span><span class='line'>        <span class="nn">Expr</span><span class="p">.</span><span class="nc">Lambda</span><span class="o">(</span><span class="n">v</span><span class="o">,</span> <span class="n">invoker</span> <span class="o">(</span><span class="n">printer</span><span class="o">::</span><span class="n">printers</span><span class="o">)</span> <span class="n">t</span><span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>That&rsquo;s the hard stuff out of the way! Now we just have some type provider boiler plate. We&rsquo;re going to provide a type provider named <code>TPrint</code> which takes a single parameter (our format string). Once the parameter is supplied, we provide a single static property which is an FSharpFunc type which matches the signature required by the format string.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Reflection</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">ProviderImplementation</span><span class="p">.</span><span class="nc">ProvidedTypes</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nn">Core</span><span class="p">.</span><span class="nc">CompilerServices</span>
+</span><span class='line'>
+</span><span class='line'><span class="c">(* ... *)</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">toMethod</span> <span class="n">format</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">invokeCode</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">invoker</span> <span class="bp">[]</span> <span class="n">format</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">invokeType</span> <span class="o">=</span> <span class="n">invokeCode</span><span class="o">.</span><span class="nc">Type</span>
+</span><span class='line'>    <span class="nc">ProvidedProperty</span><span class="o">(</span><span class="s2">&quot;show&quot;</span><span class="o">,</span> <span class="n">invokeType</span><span class="o">,</span> <span class="nc">IsStatic</span> <span class="o">=</span> <span class="bp">true</span><span class="o">,</span> <span class="nc">GetterCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">invokeCode</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="nc">TypeProvider</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">type</span> <span class="nc">TPrintProvider</span> <span class="o">(</span><span class="n">config</span> <span class="o">:</span> <span class="nc">TypeProviderConfig</span><span class="o">)</span> <span class="k">as</span> <span class="n">this</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">inherit</span> <span class="nc">TypeProviderForNamespaces</span> <span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">ns</span> <span class="o">=</span> <span class="s2">&quot;TypeSet.Provided&quot;</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">asm</span> <span class="o">=</span> <span class="nn">Assembly</span><span class="p">.</span><span class="nc">GetExecutingAssembly</span><span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">tPrintProvider</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="s2">&quot;TPrint&quot;</span><span class="o">,</span> <span class="nc">Some</span><span class="o">(</span><span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;))</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">parameters</span> <span class="o">=</span> <span class="o">[</span><span class="nc">ProvidedStaticParameter</span><span class="o">(</span><span class="s2">&quot;FormatString&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;)]</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">do</span> <span class="n">tPrintProvider</span><span class="o">.</span><span class="nc">DefineStaticParameters</span><span class="o">(</span><span class="n">parameters</span><span class="o">,</span> <span class="k">fun</span> <span class="n">typeName</span> <span class="n">args</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">formatString</span> <span class="o">=</span> <span class="n">args</span><span class="o">.[</span><span class="mi">0</span><span class="o">]</span> <span class="o">:?&gt;</span> <span class="kt">string</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">let</span> <span class="n">provider</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="n">typeName</span><span class="o">,</span> <span class="nc">Some</span><span class="o">(</span><span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;))</span>
+</span><span class='line'>        <span class="n">provider</span><span class="o">.</span><span class="nc">HideObjectMethods</span> <span class="o">&lt;-</span> <span class="bp">true</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">formatString</span> <span class="o">|&gt;</span> <span class="n">parseFormatString</span> <span class="o">|&gt;</span> <span class="n">toMethod</span> <span class="o">|&gt;</span> <span class="n">provider</span><span class="o">.</span><span class="nc">AddMember</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">provider</span>
+</span><span class='line'>        <span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">do</span>
+</span><span class='line'>        <span class="n">this</span><span class="o">.</span><span class="nc">AddNamespace</span><span class="o">(</span><span class="n">ns</span><span class="o">,</span> <span class="o">[</span><span class="n">tPrintProvider</span><span class="o">])</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="n">assembly</span><span class="o">:</span><span class="nc">TypeProviderAssembly</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">do</span> <span class="bp">()</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So, put it all together and you get a type provider which allows you to do this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="nc">TPrint</span><span class="o">&lt;</span><span class="s2">&quot;A %s string! %s %d&quot;</span><span class="o">&gt;.</span><span class="n">show</span> <span class="s2">&quot;hello&quot;</span> <span class="s2">&quot;world&quot;</span> <span class="mi">32</span>
+</span><span class='line'><span class="c1">// val it : string = &quot;A hello string! world 32&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nc">TPrint</span><span class="o">&lt;</span><span class="s2">&quot;Number one: %d! Number two: %d! A string: %s!&quot;</span><span class="o">&gt;.</span><span class="n">show</span> <span class="mi">1</span> <span class="mi">2</span> <span class="s2">&quot;My string!&quot;</span>
+</span><span class='line'><span class="c1">// val it : string = &quot;Number one: 1! Number two: 2! A string: My string!!&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So; nothing there that the built in <code>printf</code> doesn&rsquo;t already do for you. But, this does start opening up some options for providing much more idiomatic F# style APIs then I&rsquo;ve really seen so far from Type Providers, which tend to provide very OO style interfaces. Should be some interesting ideas in there to explore!</p>
+
+<p>Full code can be found <a href="https://github.com/mavnn/TypeSet">at Github</a>.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Going Functionally SOLID]]></title>
@@ -3984,17 +4188,6 @@ pretty nice and readable now that the builder is fixed.</p>
     <id>http://blog.mavnn.co.uk/in-which-our-intrepid-author-de-sugars-a-mona/in-which-our-intrepid-author-de-sugars-a-mona</id>
     <content type="html"><![CDATA[<p>In my previous post ( <a href="http://blog.mavnn.co.uk/playing-with-error-handling-strategies">http://blog.mavnn.co.uk/playing-with-error-handling-strategies</a> ), Johann Deneux asked me whether my implementation of TryFinally actually worked. <p /> TD;LR: It works. But thank you Johann for making me check!</p>
 <p>Editted TD;LR: It&#8217;s broken, but not for the reason I thought. See the comments for details, and corrected code here&nbsp;<a href="http://blog.mavnn.co.uk/corrected-error-handling-computational-expres">http://blog.mavnn.co.uk/corrected-error-handling-computational-expres</a><p /> This gave me a bit of a pause, as it&#8217;s actually an implementation I took from another source. One I trust, but it was still embarrassing to realise I couldn&#8217;t answer this question with full confidence as I didn&#8217;t quite understand the code myself. <p /> In the end (especially given I&#8217;m planning to actually use this code in production at some point), I decided to go the whole hog and de-sugar a couple of simple versions of the computational expression. <p /> So, first, the audit monad as used in my example code from the last post with just a simple let binding: <p /> <script src="https://gist.github.com/4550342.js"></script><p /> This raised my confidence slightly - the code I&#8217;d written did what I expected. But, what happened when I tried to bind a disposable resource using use! rather than let!? Time for the moment of truth: <p /> <script src="https://gist.github.com/4550496.js"></script><p /> So there you have it. The code does actually behave as expected, protecting the use of the disposable resource and ensuring it&#8217;s disposal. And I can breath easy that my code is doing what I thought it should be. Hopefully this will also serve as a useful example for anyone else starting out on the happy road of using computational expressions.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Playing With Error Handling Strategies]]></title>
-    <link href="http://blog.mavnn.co.uk/playing-with-error-handling-strategies/index.html"/>
-    <updated>2013-01-14T00:00:00+00:00</updated>
-    <id>http://blog.mavnn.co.uk/playing-with-error-handling-strategies/playing-with-error-handling-strategies</id>
-    <content type="html"><![CDATA[<p>Taking a break from Fake for a moment (I&#8217;ll get back to it, I promise!) <p /> Note: this post assumes a basic understanding of computation expressions in F#; if you&#8217;re looking for a primer on them,&nbsp;<a href="http://en.wikibooks.org/wiki/F_Sharp_Programming/Computation_Expressions">http://en.wikibooks.org/wiki/F_Sharp_Programming/Computation_Expressions</a> <br />is a good place to start.</p>
-<p>Note 2: the code in this post is actually broken if you use a use! or try finally block within your audit block. Check out&nbsp;<a href="http://blog.mavnn.co.uk/corrected-error-handling-computational-expres" style="font-size: 13px;">http://blog.mavnn.co.uk/corrected-error-handling-computational-expres</a>&nbsp;for the corrected code.</p>
-<p><br />I had a series of small services I needed to add error handling to today to polish them up from nice clean prototype to production ready status. <p /> Thinking about the joys of re-implementing the same error handling strategy in each of them, it occurred to me that this was exactly the kind of thing that computational expressions were built for. But my requirements went a bit further than just log the error and continue: each of these services contain critical locations where if a error occurred, we didn&#8217;t just want it logged locally, but we wanted (in some cases) an alert sent to a remote auditing* server. <p /> Of course, mocking out the auditing service for testing is a bit of a pain in the backside, and how auditing is achieved shouldn&#8217;t really be the responsibility of these services anyway. <p /> So, I decided to experiment with a builder interface. <p /> Meet the IErrorHandlerBuilder interface: <p /> <script src="https://gist.github.com/4533440.js"></script><p /> Should look awfully familiar if you&#8217;ve recently checked out the msdn page on computational expressions: <a href="http://msdn.microsoft.com/en-us/library/dd233182.aspx">http://msdn.microsoft.com/en-us/library/dd233182.aspx</a> (except, you know, mine has the right signatures; that might want to be fixed at some point). <p /> How do we use it? <p /> Well, first we need an implementation. In fact, let&#8217;s have two. Our first candidate, the AuditBuilder, takes an unhealthy number of dependencies that (in turn) take an unhealthy number of dependencies that you almost certainly want to supply from an IoC container. <p /> <script src="https://gist.github.com/4533554.js"></script><p /> What does it do? Well, basically if any bound function throws it logs the error via log4net and our in house audit server and then returns None. Otherwise it returns Some result from the computation. Obviously, if a computation further up the chain has already thrown we already have a None and we just pass it along. TryFinally and Using are implemented to make sure that you can still use disposable resources as you would expect within the expression. <p /> Our second candidate is the TestErrorBuilder: <p /> <script src="https://gist.github.com/4533560.js"></script><p /> This is almost identical to the implementation above, except that it takes no dependencies at all and if there is an error it just logs to the console via printfn. Very useful for debugging - you might even want a unit test version that logs nothing, depending on your unit tests. <p /> And now, our preparation is complete. How do we use our new toy, you ask? <p /> Something like this: <p /> <script src="https://gist.github.com/4533619.js"></script><p /> This little service persists interesting email messages to a document store, and sends the contents back to you when you request them. If an email is not persisted, or a request for an email fails, we want a remote alert to be triggered in production. Both the persist and content requests are handled as RabbitMq messages (using the EasyNetQ client). <p /> So in the message handler callbacks, declare an audit { } block and let! bind our message. Then we simply pass that bound message on to a handling function or object and return the resulting value, safe in the knowledge that our hosting program will have supplied an appropriate IErrorHandlerBuilder for our current purposes. The beauty of all of this is that the service object does not need to know what the error handling strategy is, and the objects/functions doing the work do not need to worry about error handling at all. <p /> This technique is especially useful in situations where you are making use of asynchronous programming techniques such as agents and you really don&#8217;t want a single failure taking out your whole agent or async expression. If for some reason it&#8217;s important to your code what the error is, as well as knowing it&#8217;s been handled, it would be easy to modify this technique to return a Choice or custom MaybeError discriminated union that you could pull the exception out of later. <p /> It would also be helpful for managing things like SQL connections with multiple retry attempts: for testing you may not want that kind of complexity and you could pass in a simpler strategy builder, while testing your robust, multiple retry computational builder for use in actual deployed environments (test or production). <p /> And, of course, just knowing that builder interfaces are possible raises up a whole new world of possibilities. <p /> As always, I tend to write about stuff that is fresh and new to me (i.e. not fully considered and maybe fatally flawed). Comments and suggestions welcome. <p /> * To avoid any confusion, I should note that the word audit is used loosely in this blog post, with a meaning more related to a namespace within our code than the normal meaning of the word &#8216;audit&#8217;.</p>
 ]]></content>
   </entry>
   

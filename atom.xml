@@ -4,7 +4,7 @@
   <title><![CDATA[Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2014-05-06T16:26:08+01:00</updated>
+  <updated>2014-05-09T14:57:14+01:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,315 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Functionally SOLID 2]]></title>
+    <link href="http://blog.mavnn.co.uk/functionally-solid-2/"/>
+    <updated>2014-05-09T13:43:02+01:00</updated>
+    <id>http://blog.mavnn.co.uk/functionally-solid-2</id>
+    <content type="html"><![CDATA[<p><em>This post follows on directly from <a href="http://blog.mavnn.co.uk/going-functionally-solid">Going Functionally SOLID</a></em></p>
+
+<p>In our first session looking at <a href="http://en.wikipedia.org/wiki/Solid_%28object-oriented_design%29">SOLID</a> and functional programming, we tried to apply some SOLID principles to an example piece of code.</p>
+
+<p>We ended up with a set of interfaces like those below, and robot classes could then implement the interfaces to define their capabilities and state. I mentioned the example code was for a giant robot game, yes?</p>
+
+<!-- more -->
+
+
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">IDestructable</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Armour</span> <span class="o">:</span> <span class="kt">int</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Dodge</span> <span class="o">:</span> <span class="kt">int</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Hits</span> <span class="o">:</span> <span class="kt">int</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Destroyed</span> <span class="o">:</span> <span class="kt">bool</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">TakeDamage</span> <span class="o">:</span> <span class="kt">int</span> <span class="o">-&gt;</span> <span class="nc">IDestructable</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">IWalk</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Walk</span> <span class="o">:</span> <span class="nc">Direction</span> <span class="o">*</span> <span class="kt">int</span> <span class="o">-&gt;</span> <span class="nc">Location</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">IJump</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Jump</span> <span class="o">:</span> <span class="nc">Direction</span> <span class="o">*</span> <span class="kt">int</span> <span class="o">-&gt;</span> <span class="nc">Location</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">IFly</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Fly</span> <span class="o">:</span> <span class="nc">Direction</span> <span class="o">*</span> <span class="kt">int</span> <span class="o">-&gt;</span> <span class="nc">Location</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">IHazWeapon</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Fire</span> <span class="o">:</span> <span class="nc">IDestructable</span> <span class="o">*</span> <span class="kt">int</span> <span class="o">-&gt;</span> <span class="nc">IDestructable</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">IHazWeapons</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">WMDs</span> <span class="o">:</span> <span class="nc">List</span><span class="o">&lt;</span><span class="nc">IHazWeapon</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">IHazCannon</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">inherit</span> <span class="nc">IHazWeapon</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">IHazMissiles</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">inherit</span> <span class="nc">IHazWeapon</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">ITransforming</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Mode</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="o">``</span><span class="nc">Transform</span><span class="o">!``</span> <span class="o">:</span> <span class="kt">string</span> <span class="o">-&gt;</span> <span class="nc">ITransforming</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>For anyone who&rsquo;s worked with SOLID OO code before, this should be looking fairly familiar, and it should be obvious how you could build a class that accepted implementations of these interfaces in it&rsquo;s constructor and then carried the state of the robot (location, hits remaining, etc) around as mutable fields.</p>
+
+<p>But&hellip; this is a turn based game, and we&rsquo;ve decided that we want to use a <a href="en.wikipedia.org/wiki/Minimax">minimax</a> approach to choosing moves for the computer player. Minimax is effectively a tree search, which means that implementing it looks like it would be a prime moment for a bit of concurrency. Each branch of the tree can be calculated independently, after all.</p>
+
+<p>Unfortunately&hellip; our SOLID OO approach is not looking very thread safe. Functional programming revolves around the idea that code is <a href="http://en.wikipedia.org/wiki/Referential_transparency_%28computer_science%29">referentially transparent</a> and that data types are <a href="http://en.wikipedia.org/wiki/Immutable_object">immutable</a>. These two properties immediately lead to thread safe code.</p>
+
+<p>So the rest of the session was spent trying out how different parts of the API code be modelled in a more functional way &ndash; splitting out state into separate immutable value objects, using functions in the place of single method interfaces and playing with discriminated unions (not strictly functional programming related, but they do seem to crop up regularly in functional style languages).</p>
+
+<p>The end results, raw from the discussion, are below. A bit of a mix of the &ldquo;interface&rdquo; and experiments in how you would use it. I think it came out quite nicely, showing how all of the SOLID principles (apart from maybe &ldquo;L&rdquo;!) fall out naturally in nicely designed functional code just as they do in good OO code. In fact some of them, such as &ldquo;Interface Segregation&rdquo; and &ldquo;Single Responsibility&rdquo; are things you almost have to work to avoid &ndash; they both fall out naturally from passing around
+pure functions to implement behaviour.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+<span class='line-number'>85</span>
+<span class='line-number'>86</span>
+<span class='line-number'>87</span>
+<span class='line-number'>88</span>
+<span class='line-number'>89</span>
+<span class='line-number'>90</span>
+<span class='line-number'>91</span>
+<span class='line-number'>92</span>
+<span class='line-number'>93</span>
+<span class='line-number'>94</span>
+<span class='line-number'>95</span>
+<span class='line-number'>96</span>
+<span class='line-number'>97</span>
+<span class='line-number'>98</span>
+<span class='line-number'>99</span>
+<span class='line-number'>100</span>
+<span class='line-number'>101</span>
+<span class='line-number'>102</span>
+<span class='line-number'>103</span>
+<span class='line-number'>104</span>
+<span class='line-number'>105</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">Destructable</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span>
+</span><span class='line'>        <span class="nc">Armour</span> <span class="o">:</span> <span class="kt">int</span>
+</span><span class='line'>        <span class="nc">Dodge</span> <span class="o">:</span> <span class="kt">int</span>
+</span><span class='line'>        <span class="nc">Hits</span> <span class="o">:</span> <span class="kt">int</span>
+</span><span class='line'>        <span class="nc">Destroyed</span> <span class="o">:</span> <span class="kt">bool</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// Interface segregation and </span>
+</span><span class='line'><span class="c1">// Single responsibility at work</span>
+</span><span class='line'><span class="k">type</span> <span class="nc">WeaponFunc</span> <span class="o">=</span>
+</span><span class='line'>    <span class="nc">Destructable</span> <span class="o">-&gt;</span> <span class="kt">int</span> <span class="o">-&gt;</span> <span class="nc">Destructable</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">Weapon</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Missile</span> <span class="k">of</span> <span class="nc">WeaponFunc</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Cannon</span> <span class="k">of</span> <span class="nc">WeaponFunc</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">MoveFunc</span> <span class="o">=</span>
+</span><span class='line'>    <span class="nc">Location</span> <span class="o">-&gt;</span> <span class="o">(</span><span class="nc">Direction</span> <span class="o">*</span> <span class="kt">int</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="nc">Location</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">Move</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Run</span> <span class="k">of</span> <span class="nc">MoveFunc</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Jump</span> <span class="k">of</span> <span class="nc">MoveFunc</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Fly</span> <span class="k">of</span> <span class="nc">MoveFunc</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">Robot</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span>
+</span><span class='line'>        <span class="nc">Id</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>        <span class="nc">MovementTypes</span> <span class="o">:</span> <span class="nc">Move</span> <span class="kt">list</span>
+</span><span class='line'>        <span class="nc">Weapons</span> <span class="o">:</span> <span class="nc">Weapon</span> <span class="kt">list</span>
+</span><span class='line'>        <span class="nc">Location</span> <span class="o">:</span> <span class="nc">Location</span>
+</span><span class='line'>        <span class="nc">DamageStatus</span> <span class="o">:</span> <span class="nc">Destructable</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// Dependency inversion!</span>
+</span><span class='line'><span class="k">let</span> <span class="nc">GiantRobo</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span>
+</span><span class='line'>        <span class="nc">Id</span> <span class="o">=</span> <span class="s2">&quot;GiantRobo&quot;</span>
+</span><span class='line'>        <span class="nc">MovementTypes</span> <span class="o">=</span> <span class="o">[</span> <span class="nc">Run</span> <span class="o">&lt;|</span> <span class="k">fun</span> <span class="n">l</span> <span class="n">m</span> <span class="o">-&gt;</span> <span class="n">l</span> <span class="o">]</span>
+</span><span class='line'>        <span class="nc">Weapons</span> <span class="o">=</span> <span class="o">[</span> <span class="nc">Cannon</span> <span class="o">&lt;|</span> <span class="k">fun</span> <span class="n">d</span> <span class="n">i</span> <span class="o">-&gt;</span> <span class="n">d</span> <span class="o">]</span>
+</span><span class='line'>        <span class="nc">Location</span> <span class="o">=</span> <span class="o">{</span> <span class="nc">Position</span> <span class="o">=</span> <span class="o">(</span><span class="mi">0</span><span class="o">,</span> <span class="mi">0</span><span class="o">);</span> <span class="nc">Altitude</span> <span class="o">=</span> <span class="mi">0</span> <span class="o">}</span>
+</span><span class='line'>        <span class="nc">DamageStatus</span> <span class="o">=</span> <span class="o">{</span> <span class="nc">Armour</span> <span class="o">=</span> <span class="mi">10</span><span class="o">;</span> <span class="nc">Dodge</span> <span class="o">=</span> <span class="mi">5</span><span class="o">;</span> <span class="nc">Hits</span> <span class="o">=</span> <span class="mi">100</span><span class="o">;</span> <span class="nc">Destroyed</span> <span class="o">=</span> <span class="bp">false</span> <span class="o">}</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// Open/closed principle via higher order</span>
+</span><span class='line'><span class="c1">// functions</span>
+</span><span class='line'><span class="k">let</span> <span class="n">makeFly</span> <span class="n">runFunc</span> <span class="n">l</span> <span class="n">m</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">newPosition</span> <span class="o">=</span> <span class="n">runFunc</span> <span class="n">l</span> <span class="n">m</span>
+</span><span class='line'>    <span class="o">{</span> <span class="n">newPosition</span> <span class="k">with</span> <span class="nc">Altitude</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="nc">TinyRobo</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span>
+</span><span class='line'>        <span class="nc">Id</span> <span class="o">=</span> <span class="s2">&quot;TinyRobo&quot;</span>
+</span><span class='line'>        <span class="nc">MovementTypes</span> <span class="o">=</span> <span class="o">[</span> <span class="nc">Run</span> <span class="o">&lt;|</span> <span class="k">fun</span> <span class="n">l</span> <span class="n">m</span> <span class="o">-&gt;</span> <span class="o">{</span> <span class="n">l</span> <span class="k">with</span> <span class="nc">Position</span> <span class="o">=</span> <span class="o">(</span><span class="mi">10</span><span class="o">,</span> <span class="mi">10</span><span class="o">)</span> <span class="o">}</span> <span class="o">]</span>
+</span><span class='line'>        <span class="nc">Weapons</span> <span class="o">=</span> <span class="o">[</span> <span class="nc">Cannon</span> <span class="o">&lt;|</span> <span class="k">fun</span> <span class="n">d</span> <span class="n">i</span> <span class="o">-&gt;</span> <span class="n">d</span> <span class="o">]</span>
+</span><span class='line'>        <span class="nc">Location</span> <span class="o">=</span> <span class="o">{</span> <span class="nc">Position</span> <span class="o">=</span> <span class="o">(</span><span class="mi">0</span><span class="o">,</span> <span class="mi">0</span><span class="o">);</span> <span class="nc">Altitude</span> <span class="o">=</span> <span class="mi">0</span> <span class="o">}</span>
+</span><span class='line'>        <span class="nc">DamageStatus</span> <span class="o">=</span> <span class="o">{</span> <span class="nc">Armour</span> <span class="o">=</span> <span class="mi">10</span><span class="o">;</span> <span class="nc">Dodge</span> <span class="o">=</span> <span class="mi">5</span><span class="o">;</span> <span class="nc">Hits</span> <span class="o">=</span> <span class="mi">100</span><span class="o">;</span> <span class="nc">Destroyed</span> <span class="o">=</span> <span class="bp">false</span> <span class="o">}</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// Separating behaviour and state</span>
+</span><span class='line'><span class="k">module</span> <span class="nc">BlowThingsUp</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="nc">TakeDamage</span> <span class="n">destructable</span> <span class="n">damage</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">newHits</span> <span class="o">=</span> <span class="n">destructable</span><span class="o">.</span><span class="nc">Hits</span> <span class="o">-</span> <span class="n">damage</span>
+</span><span class='line'>        <span class="o">{</span>   <span class="n">destructable</span> <span class="k">with</span>
+</span><span class='line'>                <span class="nc">Hits</span> <span class="o">=</span> <span class="n">newHits</span>
+</span><span class='line'>                <span class="nc">Destroyed</span> <span class="o">=</span> <span class="n">newHits</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// Different possibilities for</span>
+</span><span class='line'><span class="c1">// extending that would normally be handled</span>
+</span><span class='line'><span class="c1">// by inheritance in OO</span>
+</span><span class='line'><span class="k">module</span> <span class="nc">TransformVF1</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">transform</span> <span class="n">robot</span> <span class="o">=</span>
+</span><span class='line'>        <span class="o">{</span>
+</span><span class='line'>            <span class="n">robot</span> <span class="k">with</span>
+</span><span class='line'>                <span class="nc">MovementTypes</span> <span class="o">=</span> <span class="o">[</span><span class="nc">Fly</span> <span class="o">&lt;|</span> <span class="k">fun</span> <span class="n">l</span> <span class="n">m</span> <span class="o">-&gt;</span> <span class="o">{</span> <span class="n">l</span> <span class="k">with</span> <span class="nc">Altitude</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">}]</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">TransformFunc</span> <span class="o">=</span>
+</span><span class='line'>    <span class="nc">Robot</span> <span class="o">-&gt;</span> <span class="nc">Robot</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">RobotModel</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">NormalRobot</span> <span class="k">of</span> <span class="nc">Robot</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">TransformingRobot</span> <span class="k">of</span> <span class="nc">Robot</span> <span class="o">*</span> <span class="nc">TransformFunc</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">MaybeTransformFunc</span> <span class="o">=</span>
+</span><span class='line'>    <span class="nc">MaybeTransformingRobot</span> <span class="o">-&gt;</span> <span class="nc">MaybeTransformingRobot</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">and</span> <span class="nc">MaybeTransformingRobot</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span>
+</span><span class='line'>        <span class="nc">Id</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>        <span class="nc">MovementTypes</span> <span class="o">:</span> <span class="nc">Move</span> <span class="kt">list</span>
+</span><span class='line'>        <span class="nc">Weapons</span> <span class="o">:</span> <span class="nc">Weapon</span> <span class="kt">list</span>
+</span><span class='line'>        <span class="nc">Location</span> <span class="o">:</span> <span class="nc">Location</span>
+</span><span class='line'>        <span class="nc">DamageStatus</span> <span class="o">:</span> <span class="nc">Destructable</span>
+</span><span class='line'>        <span class="nc">Transform</span> <span class="o">:</span> <span class="nc">MaybeTransformFunc</span> <span class="n">option</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="nc">Transform</span> <span class="n">mtr</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">match</span> <span class="n">mtr</span><span class="o">.</span><span class="nc">Transform</span> <span class="k">with</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="n">mtr</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Some</span> <span class="n">trans</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="n">trans</span> <span class="n">mtr</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Enjoy, and comments welcome &ndash; this was live coded in a group environment, so I&rsquo;m sure plenty of opportunities for nicer code were missed!</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Type Safe Printf via Type Providers]]></title>
@@ -4178,16 +4487,6 @@ the flaw in the original code was. I hope this example of a lazy
 computational expression is useful to other starting out down this
 rabbit hole of monadic weirdness. At least the resulting code looks
 pretty nice and readable now that the builder is fixed.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[In Which Our Intrepid Author De-sugars a Monad by Hand]]></title>
-    <link href="http://blog.mavnn.co.uk/in-which-our-intrepid-author-de-sugars-a-mona/index.html"/>
-    <updated>2013-01-16T00:00:00+00:00</updated>
-    <id>http://blog.mavnn.co.uk/in-which-our-intrepid-author-de-sugars-a-mona/in-which-our-intrepid-author-de-sugars-a-mona</id>
-    <content type="html"><![CDATA[<p>In my previous post ( <a href="http://blog.mavnn.co.uk/playing-with-error-handling-strategies">http://blog.mavnn.co.uk/playing-with-error-handling-strategies</a> ), Johann Deneux asked me whether my implementation of TryFinally actually worked. <p /> TD;LR: It works. But thank you Johann for making me check!</p>
-<p>Editted TD;LR: It&#8217;s broken, but not for the reason I thought. See the comments for details, and corrected code here&nbsp;<a href="http://blog.mavnn.co.uk/corrected-error-handling-computational-expres">http://blog.mavnn.co.uk/corrected-error-handling-computational-expres</a><p /> This gave me a bit of a pause, as it&#8217;s actually an implementation I took from another source. One I trust, but it was still embarrassing to realise I couldn&#8217;t answer this question with full confidence as I didn&#8217;t quite understand the code myself. <p /> In the end (especially given I&#8217;m planning to actually use this code in production at some point), I decided to go the whole hog and de-sugar a couple of simple versions of the computational expression. <p /> So, first, the audit monad as used in my example code from the last post with just a simple let binding: <p /> <script src="https://gist.github.com/4550342.js"></script><p /> This raised my confidence slightly - the code I&#8217;d written did what I expected. But, what happened when I tried to bind a disposable resource using use! rather than let!? Time for the moment of truth: <p /> <script src="https://gist.github.com/4550496.js"></script><p /> So there you have it. The code does actually behave as expected, protecting the use of the disposable resource and ensuring it&#8217;s disposal. And I can breath easy that my code is doing what I thought it should be. Hopefully this will also serve as a useful example for anyone else starting out on the happy road of using computational expressions.</p>
 ]]></content>
   </entry>
   

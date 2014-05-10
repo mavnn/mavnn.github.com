@@ -337,3 +337,4 @@ type VF1 (position) =
             x :> ITransforming
 ```
 
+*This series continues in the imaginatively named "[Functionally SOLID 2](/functionally-solid-2/)"*

@@ -4,7 +4,7 @@
   <title><![CDATA[Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2014-05-10T16:38:14+01:00</updated>
+  <updated>2014-05-30T14:54:09+01:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,169 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Tap, Tap, Tapping on the Door]]></title>
+    <link href="http://blog.mavnn.co.uk/tap/"/>
+    <updated>2014-05-30T11:45:35+01:00</updated>
+    <id>http://blog.mavnn.co.uk/tap</id>
+    <content type="html"><![CDATA[<p>In my investigations into <a href="http://blog.mavnn.co.uk/blog/categories/typeprovider/">type providers</a>, I started digging into a feature of F# called quotations. These blur the boundary between code and data; a representation of an expression tree that you can then evaluate or manipulate.</p>
+
+<p>Why is this useful? Well; it&rsquo;s used in a number of places in various F# libraries. As mentioned above, type providers use them as a mechanism for providing the invocation code for the types that are being provided. The compiler can then take that expression tree and turn in into clr code.</p>
+
+<p>They can also be useful as a way of defining code within your F# that can then be translated into other programming languages. The linq to sql implementation does this (turning your linq into SQL, fairly obviously!) while the FunScript project compiles your F# quotations into JavaScript.</p>
+
+<p>So; linked features, often used in concert: quotations allow you to generate expressions at runtime, manipulate them at run time and evaluate them at run time &ndash; where evaluation covers everything from running the code on the clr to outputting it as a different language.</p>
+
+<!-- more -->
+
+
+<p>Creating expressions is fairly straightforward. If you have a valid F# expression, you can wrap it in <code>&lt;@ ... @&gt;</code> (or <code>&lt;@@ ... @@&gt;</code>, see below&hellip;):</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">quote1</span> <span class="o">=</span> <span class="o">&lt;@</span> <span class="mi">1</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">@&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// val quote1 : Expr&lt;int&gt; = Call (None, op_Addition, [Value (1), Value (2)])</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">quote2</span> <span class="o">=</span> <span class="o">&lt;@@</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">@@&gt;;;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// val quote2 : Expr = Call (None, op_Addition, [Value (2), Value (1)])</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>What&rsquo;s the difference between the two? Well, the first with it&rsquo;s strong typing provides you with greater safety if you know what types you&rsquo;re expecting an expression tree to evaluate to &ndash; but those same type restraints prevent you from writing methods which can transform and return expressions whose types are unknown at compile time. There are also, apparently, some performance implications to carrying around the type information.</p>
+
+<p>You can also generate the expression trees directly using the <code>Expr</code> module in the <code>Microsoft.FSharp.Quotations</code> namespace.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nc">Quotations</span>
+</span><span class='line'>
+</span><span class='line'><span class="nn">Expr</span><span class="p">.</span><span class="nc">Call</span><span class="o">(</span><span class="n">typeof</span><span class="o">&lt;</span><span class="nn">System</span><span class="p">.</span><span class="nc">Math</span><span class="o">&gt;.</span><span class="nc">GetMethod</span><span class="o">(</span><span class="s2">&quot;Cos&quot;</span><span class="o">),</span> <span class="o">[</span><span class="nn">Expr</span><span class="p">.</span><span class="nc">Value</span><span class="o">(</span><span class="mi">1</span><span class="o">.</span><span class="mi">0</span><span class="o">)])</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// val it : Expr = Call (None, Cos, [Value (1.0)]) {CustomAttributes = [];</span>
+</span><span class='line'><span class="c1">//                                                 Type = System.Double;}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The above being identical to: <code>&lt;@@ System.Math.Cos(1.0) @@&gt;</code>. Building directly with the classes becomes especially useful when doing things like recursively building expression trees; the F# compilers type inference tends to get a little unhappy trying to infer the types of the quotations and the expressions you&rsquo;re splicing into them on occasion.</p>
+
+<p>Splicing?</p>
+
+<p>Okay, so I slightly snook that one in there. If you&rsquo;re building expressions with the <code>Expr</code> module it&rsquo;s obviously how you could create functions that could compose into larger expression trees. But the F# quotation syntax also allows you to do something similar, splicing values in with the <code>%</code> and <code>%%</code> operators.</p>
+
+<p>An example is worth 1,000 words in these situations:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">splice</span> <span class="n">otherExpr</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">&lt;@</span>
+</span><span class='line'>        <span class="nn">System</span><span class="p">.</span><span class="nn">Math</span><span class="p">.</span><span class="nc">Cos</span><span class="o">(%</span><span class="n">otherExpr</span><span class="o">)</span>
+</span><span class='line'>    <span class="o">@&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// val splice : otherExpr:Expr&lt;float&gt; -&gt; Expr&lt;float&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">complete</span> <span class="o">=</span> <span class="n">splice</span> <span class="o">&lt;@</span> <span class="mi">1</span><span class="o">.</span><span class="mi">0</span> <span class="o">@&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// val complete : Expr&lt;float&gt; = Call (None, Cos, [Value (1.0)])</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// And the untyped (and less safe) option:</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">splice&#39;</span> <span class="n">otherExpr</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">&lt;@@</span>
+</span><span class='line'>        <span class="nn">System</span><span class="p">.</span><span class="nn">Math</span><span class="p">.</span><span class="nc">Cos</span><span class="o">(%%</span><span class="n">otherExpr</span><span class="o">)</span>
+</span><span class='line'>    <span class="o">@@&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// val splice&#39; : otherExpr:Expr -&gt; Expr</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">complete&#39;</span> <span class="o">=</span> <span class="n">splice&#39;</span> <span class="o">&lt;@@</span> <span class="mi">1</span><span class="o">.</span><span class="mi">0</span> <span class="o">@@&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// val complete&#39; : Expr = Call (None, Cos, [Value (1.0)])</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>As an aside, the generic <code>Expr</code> type has the <code>Raw</code> property which exposes the untyped version of the quotation. Which, as quotations have value based equality, allows us to do this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="n">complete</span><span class="o">.</span><span class="nc">Raw</span> <span class="o">=</span> <span class="n">complete&#39;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// val it : bool = true</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And of course we can build up more complex trees if we wish:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">moreComplexComplete</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">value</span> <span class="o">=</span>
+</span><span class='line'>        <span class="o">&lt;@</span>
+</span><span class='line'>            <span class="nn">System</span><span class="p">.</span><span class="nn">Math</span><span class="p">.</span><span class="nc">Max</span><span class="o">(</span>
+</span><span class='line'>                <span class="o">-</span><span class="mi">0</span><span class="o">.</span><span class="mi">8</span><span class="o">,</span>
+</span><span class='line'>                <span class="nn">System</span><span class="p">.</span><span class="nn">Math</span><span class="p">.</span><span class="nc">Min</span><span class="o">(</span>
+</span><span class='line'>                    <span class="mi">0</span><span class="o">.</span><span class="mi">8</span><span class="o">,</span>
+</span><span class='line'>                    <span class="nn">System</span><span class="p">.</span><span class="nn">Math</span><span class="p">.</span><span class="nc">Sin</span><span class="o">(</span><span class="mi">2</span><span class="o">.</span><span class="mi">0</span><span class="o">)))</span>
+</span><span class='line'>        <span class="o">@&gt;</span>
+</span><span class='line'>    <span class="n">splice</span> <span class="n">value</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// val moreComplexComplete : Expr&lt;float&gt; =</span>
+</span><span class='line'><span class="c1">//   Call (None, Cos,</span>
+</span><span class='line'><span class="c1">//       [Call (None, Max,</span>
+</span><span class='line'><span class="c1">//              [Value (-0.8),</span>
+</span><span class='line'><span class="c1">//               Call (None, Min, [Value (0.8), Call (None, Sin, [Value (2.0)])])])])</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Tune in next time as we start to investigate manipulating and transforming quotations, and then in the last section we&rsquo;ll try and put it all together with some quotation evaluation.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Functionally SOLID 2]]></title>
@@ -4444,49 +4607,6 @@ all that, I hope you find it useful.</p>
 <p />
 <div>It&#8217;s not truly adaptive in the machine learning sense, but it gives a very good first cut that is an awful lot better than any fixed value could be.</div>
 </div>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Corrected Error Handling Computational Expression]]></title>
-    <link href="http://blog.mavnn.co.uk/corrected-error-handling-computational-expres/index.html"/>
-    <updated>2013-01-18T00:00:00+00:00</updated>
-    <id>http://blog.mavnn.co.uk/corrected-error-handling-computational-expres/corrected-error-handling-computational-expres</id>
-    <content type="html"><![CDATA[<p>I&rsquo;ve been wanting to write code like this in F#, and know that any
-exceptions within a bound expression in an audit { } block will not
-only get caught, but that an external auditing service will get
-notified that the operation has failed.</p>
-
-<p><script src="https://gist.github.com/4565937.js"></script></p>
-
-<p>Unfortunately, it turns out my code in my post on error handling
-( <a href="http://blog.mavnn.co.uk/playing-with-error-handling-strategies">http://blog.mavnn.co.uk/playing-with-error-handling-strategies</a> ) was
-flawed in its ability to handle errors. The irony has not escaped me.</p>
-
-<p>The issue is with the eager evaluation of arguments to the TryFinally
-method of the builder. If it takes you a while to work out what that
-means, don&rsquo;t worry: it took me about 2 days to wrap my head round it
-and work out how to correct the code to make it behave as I would have
-expected.</p>
-
-<p>To make things work correctly, the type returned by the computational
-expression pretty much has to be a deferred function of some kind.</p>
-
-<p>So, the Interface, now renamed IAuditBuilder, gains a couple of helper
-functions and becomes:</p>
-
-<p><script src="https://gist.github.com/4565812.js"></script></p>
-
-<p>The implementation of the TestAuditBuilder (only logs to console on
-error) becomes:</p>
-
-<p><script src="https://gist.github.com/4565838.js"></script></p>
-
-<p>So: many thanks to Johann Deneux for patiently pointing out to me what
-the flaw in the original code was. I hope this example of a lazy
-computational expression is useful to other starting out down this
-rabbit hole of monadic weirdness. At least the resulting code looks
-pretty nice and readable now that the builder is fixed.</p>
 ]]></content>
   </entry>
   

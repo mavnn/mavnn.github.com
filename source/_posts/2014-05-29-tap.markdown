@@ -1,0 +1,107 @@
+---
+layout: post
+title: "Tap, tap, tapping on the door"
+date: 2014-05-30 11:45:35 +0100
+comments: true
+categories: [fsharp,quotations]
+---
+In my investigations into [type providers](/blog/categories/typeprovider/), I started digging into a feature of F# called quotations. These blur the boundary between code and data; a representation of an expression tree that you can then evaluate or manipulate.
+
+Why is this useful? Well; it's used in a number of places in various F# libraries. As mentioned above, type providers use them as a mechanism for providing the invocation code for the types that are being provided. The compiler can then take that expression tree and turn in into clr code.
+
+They can also be useful as a way of defining code within your F# that can then be translated into other programming languages. The linq to sql implementation does this (turning your linq into SQL, fairly obviously!) while the FunScript project compiles your F# quotations into JavaScript.
+
+So; linked features, often used in concert: quotations allow you to generate expressions at runtime, manipulate them at run time and evaluate them at run time - where evaluation covers everything from running the code on the clr to outputting it as a different language.
+
+<!-- more -->
+
+Creating expressions is fairly straightforward. If you have a valid F# expression, you can wrap it in ``<@ ... @>`` (or ``<@@ ... @@>``, see below...):
+
+```fsharp
+let quote1 = <@ 1 + 2 @>
+
+// val quote1 : Expr<int> = Call (None, op_Addition, [Value (1), Value (2)])
+
+let quote2 = <@@ 2 + 1 @@>;;
+
+// val quote2 : Expr = Call (None, op_Addition, [Value (2), Value (1)])
+```
+
+What's the difference between the two? Well, the first with it's strong typing provides you with greater safety if you know what types you're expecting an expression tree to evaluate to - but those same type restraints prevent you from writing methods which can transform and return expressions whose types are unknown at compile time. There are also, apparently, some performance implications to carrying around the type information.
+
+You can also generate the expression trees directly using the ``Expr`` module in the ``Microsoft.FSharp.Quotations`` namespace.
+
+```fsharp
+open Microsoft.FSharp.Quotations
+
+Expr.Call(typeof<System.Math>.GetMethod("Cos"), [Expr.Value(1.0)])
+
+// val it : Expr = Call (None, Cos, [Value (1.0)]) {CustomAttributes = [];
+//                                                 Type = System.Double;}
+```
+
+The above being identical to: ``<@@ System.Math.Cos(1.0) @@>``. Building directly with the classes becomes especially useful when doing things like recursively building expression trees; the F# compilers type inference tends to get a little unhappy trying to infer the types of the quotations and the expressions you're splicing into them on occasion.
+
+Splicing?
+
+Okay, so I slightly snook that one in there. If you're building expressions with the ``Expr`` module it's obviously how you could create functions that could compose into larger expression trees. But the F# quotation syntax also allows you to do something similar, splicing values in with the ``%`` and ``%%`` operators.
+
+An example is worth 1,000 words in these situations:
+
+```fsharp
+let splice otherExpr =
+    <@
+        System.Math.Cos(%otherExpr)
+    @>
+
+// val splice : otherExpr:Expr<float> -> Expr<float>
+
+let complete = splice <@ 1.0 @>
+
+// val complete : Expr<float> = Call (None, Cos, [Value (1.0)])
+
+// And the untyped (and less safe) option:
+
+let splice' otherExpr =
+    <@@
+        System.Math.Cos(%%otherExpr)
+    @@>
+
+// val splice' : otherExpr:Expr -> Expr
+
+let complete' = splice' <@@ 1.0 @@>
+
+// val complete' : Expr = Call (None, Cos, [Value (1.0)])
+```
+
+As an aside, the generic ``Expr`` type has the ``Raw`` property which exposes the untyped version of the quotation. Which, as quotations have value based equality, allows us to do this:
+
+```fsharp
+complete.Raw = complete'
+
+// val it : bool = true
+```
+
+And of course we can build up more complex trees if we wish:
+
+```fsharp
+let moreComplexComplete =
+    let value =
+        <@ 
+            System.Math.Max(
+                -0.8, 
+                System.Math.Min(
+                    0.8, 
+                    System.Math.Sin(2.0))) 
+        @>
+    splice value
+
+// val moreComplexComplete : Expr<float> =
+//   Call (None, Cos,
+//       [Call (None, Max,
+//              [Value (-0.8),
+//               Call (None, Min, [Value (0.8), Call (None, Sin, [Value (2.0)])])])])
+```
+
+
+Tune in next time as we start to investigate manipulating and transforming quotations, and then in the last section we'll try and put it all together with some quotation evaluation.

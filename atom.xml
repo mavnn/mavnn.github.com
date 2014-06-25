@@ -4,7 +4,7 @@
   <title><![CDATA[Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2014-05-30T14:57:23+01:00</updated>
+  <updated>2014-06-25T21:33:23+01:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,533 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Property Checking Start Challenge]]></title>
+    <link href="http://blog.mavnn.co.uk/property-checking-start-challenge/"/>
+    <updated>2014-06-25T12:25:17+01:00</updated>
+    <id>http://blog.mavnn.co.uk/property-checking-start-challenge</id>
+    <content type="html"><![CDATA[<p>Almost a year ago now, I wrote up a <a href="http://blog.mavnn.co.uk/fscheck-breaking-your-code-in-new-and-exciting-ways/">blog post</a> on using <a href="https://github.com/fsharp/FsCheck">FsCheck</a>. I still rate it as an excellent tool, but unfortunately we don&rsquo;t manage to use it that much. The reasons for this basically boil down to the fact that a) we tend to forget it exists and b) a good deal of our code is written in C# or VB.net, and the original API is not very friendly from those languages.</p>
+
+<p>So as part of the <a href="http://15below.com/">15below</a> developer education sessions we&rsquo;re going to try an exercise to see if we can bring a bit more property based testing into our code base!</p>
+
+<!-- more -->
+
+
+<h2>Never trust the user&hellip;</h2>
+
+<p>One of the things we do quite a lot of as a company is sending either automated voice calls or SMS messages. The phone number we&rsquo;re trying to contact is often free text provided by the customer, while the voice/SMS companies tend to be very keen on phone numbers that are in (something at least similar to) the <a href="http://en.wikipedia.org/wiki/E.164">international E.164</a> phone number format.</p>
+
+<p>Unfortunately, users don&rsquo;t tend to very good at sticking to standards in free text fields &ndash; so it some point your code needs to make the call about whether you&rsquo;re convinced the phone number you have is valid or not&hellip;</p>
+
+<p>For the exercise, I&rsquo;ve created idiomatic stubs of a <code>PhoneNumber</code> class in both F# and C# with methods for creating them that check if the input string is valid. The C# version uses <code>PhoneNumber.TryParse</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+</pre></td><td class='code'><pre><code class='csharp'><span class='line'><span class="k">using</span> <span class="nn">System</span><span class="p">;</span>
+</span><span class='line'><span class="k">using</span> <span class="nn">System.Linq</span><span class="p">;</span>
+</span><span class='line'><span class="k">using</span> <span class="nn">System.Text.RegularExpressions</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">namespace</span> <span class="nn">CSharp.FsCheck</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="k">public</span> <span class="k">class</span> <span class="nc">PhoneNumber</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="k">public</span> <span class="kt">int</span> <span class="n">CountryCode</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">private</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+</span><span class='line'>        <span class="k">public</span> <span class="kt">int</span> <span class="n">IdentificationCode</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">private</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+</span><span class='line'>        <span class="k">public</span> <span class="kt">int</span> <span class="n">SubscriberNumber</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">private</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">private</span> <span class="nf">PhoneNumber</span><span class="p">()</span> <span class="p">{</span> <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">private</span> <span class="nf">PhoneNumber</span><span class="p">(</span><span class="kt">int</span> <span class="n">countryCode</span><span class="p">,</span> <span class="kt">int</span> <span class="n">identificationCode</span><span class="p">,</span> <span class="kt">int</span> <span class="n">subscriberNumber</span><span class="p">)</span>
+</span><span class='line'>        <span class="p">{</span>
+</span><span class='line'>            <span class="n">CountryCode</span> <span class="p">=</span> <span class="n">countryCode</span><span class="p">;</span>
+</span><span class='line'>            <span class="n">IdentificationCode</span> <span class="p">=</span> <span class="n">identificationCode</span><span class="p">;</span>
+</span><span class='line'>            <span class="n">SubscriberNumber</span> <span class="p">=</span> <span class="n">subscriberNumber</span><span class="p">;</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">public</span> <span class="k">static</span> <span class="kt">bool</span> <span class="nf">TryParse</span><span class="p">(</span><span class="kt">string</span> <span class="n">number</span><span class="p">,</span> <span class="k">out</span> <span class="n">PhoneNumber</span> <span class="n">ph</span><span class="p">)</span>
+</span><span class='line'>        <span class="p">{</span>
+</span><span class='line'>            <span class="kt">var</span> <span class="n">reg</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Regex</span><span class="p">(</span><span class="s">@&quot;\+(?&lt;cc&gt;\d+) (?&lt;ic&gt;\d+) (?&lt;sn&gt;\d+)&quot;</span><span class="p">);</span>
+</span><span class='line'>            <span class="k">if</span> <span class="p">(!</span><span class="n">reg</span><span class="p">.</span><span class="n">IsMatch</span><span class="p">(</span><span class="n">number</span><span class="p">))</span>
+</span><span class='line'>            <span class="p">{</span>
+</span><span class='line'>                <span class="n">ph</span> <span class="p">=</span> <span class="k">null</span><span class="p">;</span>
+</span><span class='line'>                <span class="k">return</span> <span class="k">false</span><span class="p">;</span>
+</span><span class='line'>            <span class="p">}</span>
+</span><span class='line'>            <span class="kt">var</span> <span class="n">match</span> <span class="p">=</span> <span class="n">reg</span><span class="p">.</span><span class="n">Match</span><span class="p">(</span><span class="n">number</span><span class="p">);</span>
+</span><span class='line'>            <span class="kt">var</span> <span class="n">countryCode</span> <span class="p">=</span> <span class="kt">int</span><span class="p">.</span><span class="n">Parse</span><span class="p">(</span><span class="n">match</span><span class="p">.</span><span class="n">Groups</span><span class="p">[</span><span class="s">&quot;cc&quot;</span><span class="p">].</span><span class="n">Value</span><span class="p">);</span>
+</span><span class='line'>            <span class="kt">var</span> <span class="n">identificationCode</span> <span class="p">=</span> <span class="kt">int</span><span class="p">.</span><span class="n">Parse</span><span class="p">(</span><span class="n">match</span><span class="p">.</span><span class="n">Groups</span><span class="p">[</span><span class="s">&quot;ic&quot;</span><span class="p">].</span><span class="n">Value</span><span class="p">);</span>
+</span><span class='line'>            <span class="kt">var</span> <span class="n">subscriberNumber</span> <span class="p">=</span> <span class="kt">int</span><span class="p">.</span><span class="n">Parse</span><span class="p">(</span><span class="n">match</span><span class="p">.</span><span class="n">Groups</span><span class="p">[</span><span class="s">&quot;sn&quot;</span><span class="p">].</span><span class="n">Value</span><span class="p">);</span>
+</span><span class='line'>            <span class="n">ph</span> <span class="p">=</span> <span class="k">new</span> <span class="n">PhoneNumber</span><span class="p">(</span><span class="n">countryCode</span><span class="p">,</span> <span class="n">identificationCode</span><span class="p">,</span> <span class="n">subscriberNumber</span><span class="p">);</span>
+</span><span class='line'>            <span class="k">return</span> <span class="k">true</span><span class="p">;</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Whilst the F# version uses a discriminated union:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nn">FSharp</span><span class="p">.</span><span class="nn">FsCheck</span><span class="p">.</span><span class="nc">PhoneNumber</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Text</span><span class="p">.</span><span class="nc">RegularExpressions</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">PossibleNumber</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span> <span class="nc">CountryCode</span> <span class="o">:</span> <span class="kt">int</span>
+</span><span class='line'>      <span class="nc">IdentificationCode</span> <span class="o">:</span> <span class="kt">int</span>
+</span><span class='line'>      <span class="nc">SubscriberNumber</span> <span class="o">:</span> <span class="kt">int</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">PhoneNumber</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">ValidPhoneNumber</span> <span class="k">of</span> <span class="nc">PossibleNumber</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">InvalidPhoneNumber</span> <span class="k">of</span> <span class="kt">string</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// Shadow the name so that no one else</span>
+</span><span class='line'><span class="c1">// can create &quot;ValidPhoneNumber&quot;</span>
+</span><span class='line'><span class="k">let</span> <span class="nc">ValidPhoneNumber</span> <span class="n">input</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">reg</span> <span class="o">=</span> <span class="nc">Regex</span><span class="o">(@</span><span class="s2">&quot;</span><span class="err">\</span><span class="s2">+(?&lt;cc&gt;</span><span class="err">\</span><span class="s2">d+) (?&lt;ic&gt;</span><span class="err">\</span><span class="s2">d+) (?&lt;sn&gt;</span><span class="err">\</span><span class="s2">d+)&quot;</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">match</span> <span class="n">reg</span><span class="o">.</span><span class="nc">IsMatch</span><span class="o">(</span><span class="n">input</span><span class="o">)</span> <span class="k">with</span>
+</span><span class='line'>    <span class="o">|</span> <span class="bp">true</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">reg</span><span class="o">.</span><span class="nc">Match</span><span class="o">(</span><span class="n">input</span><span class="o">).</span><span class="nc">Groups</span>
+</span><span class='line'>        <span class="nc">ValidPhoneNumber</span> <span class="o">{</span>
+</span><span class='line'>            <span class="nc">CountryCode</span> <span class="o">=</span> <span class="n">groups</span><span class="o">.[</span><span class="s2">&quot;cc&quot;</span><span class="o">].</span><span class="nc">Value</span> <span class="o">|&gt;</span> <span class="kt">int</span>
+</span><span class='line'>            <span class="nc">IdentificationCode</span> <span class="o">=</span> <span class="n">groups</span><span class="o">.[</span><span class="s2">&quot;ic&quot;</span><span class="o">].</span><span class="nc">Value</span> <span class="o">|&gt;</span> <span class="kt">int</span>
+</span><span class='line'>            <span class="nc">SubscriberNumber</span> <span class="o">=</span> <span class="n">groups</span><span class="o">.[</span><span class="s2">&quot;sn&quot;</span><span class="o">].</span><span class="nc">Value</span> <span class="o">|&gt;</span> <span class="kt">int</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>    <span class="o">|</span> <span class="bp">false</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="nc">InvalidPhoneNumber</span> <span class="s2">&quot;No good&quot;</span>
+</span><span class='line'>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The challenge will be to use property checking to take the stub to a class that fulfils the following properties:</p>
+
+<ul>
+<li>Country code between 1 and 3 digits</li>
+<li>Identification code 4 or less digits (may be missing)</li>
+<li>Subscription number between 1 and (15 &ndash; country code &ndash; identification code) digits</li>
+<li>Less than 15 total digits</li>
+</ul>
+
+
+<p>These all come straight from the specification &ndash; we&rsquo;re going to ignore country groups for now.</p>
+
+<p>Each of the two projects also includes a PropertyChecks file that contains the skeleton of an NUnit based FsCheck test suite. We only have an hour for our DevEd sessions, so the project includes a reasonable amount to get you going. Each one has a &ldquo;sanity check&rdquo; test with a known good phone number, and property based checks for the length of the country code and whether all valid numbers are recognised as valid. To make the second property test work, they also both include a custom
+generator for valid phone numbers.</p>
+
+<p>The C# version ended up looking like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+<span class='line-number'>85</span>
+<span class='line-number'>86</span>
+<span class='line-number'>87</span>
+<span class='line-number'>88</span>
+<span class='line-number'>89</span>
+<span class='line-number'>90</span>
+<span class='line-number'>91</span>
+<span class='line-number'>92</span>
+</pre></td><td class='code'><pre><code class='csharp'><span class='line'><span class="k">using</span> <span class="nn">System</span><span class="p">;</span>
+</span><span class='line'><span class="k">using</span> <span class="nn">System.Collections.Generic</span><span class="p">;</span>
+</span><span class='line'><span class="k">using</span> <span class="nn">System.Linq</span><span class="p">;</span>
+</span><span class='line'><span class="k">using</span> <span class="nn">System.Text</span><span class="p">;</span>
+</span><span class='line'><span class="k">using</span> <span class="nn">System.Threading.Tasks</span><span class="p">;</span>
+</span><span class='line'><span class="k">using</span> <span class="nn">NUnit.Framework</span><span class="p">;</span>
+</span><span class='line'><span class="k">using</span> <span class="nn">FsCheck.Fluent</span><span class="p">;</span>
+</span><span class='line'><span class="k">using</span> <span class="nn">FsCheck</span><span class="p">;</span>
+</span><span class='line'><span class="k">using</span> <span class="nn">Microsoft.FSharp.Collections</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">namespace</span> <span class="nn">CSharp.FsCheck</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'><span class="na">    [TestFixture]</span>
+</span><span class='line'>    <span class="k">public</span> <span class="k">class</span> <span class="nc">ManualChecks</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'><span class="na">        [Test]</span>
+</span><span class='line'>        <span class="k">public</span> <span class="k">void</span> <span class="nf">SanityCheck</span><span class="p">()</span>
+</span><span class='line'>        <span class="p">{</span>
+</span><span class='line'>            <span class="n">PhoneNumber</span> <span class="n">ph</span><span class="p">;</span>
+</span><span class='line'>            <span class="n">PhoneNumber</span><span class="p">.</span><span class="n">TryParse</span><span class="p">(</span><span class="s">&quot;+44 123 456789&quot;</span><span class="p">,</span> <span class="k">out</span> <span class="n">ph</span><span class="p">);</span>
+</span><span class='line'>            <span class="n">Assert</span><span class="p">.</span><span class="n">AreEqual</span><span class="p">(</span><span class="n">ph</span><span class="p">.</span><span class="n">CountryCode</span><span class="p">,</span> <span class="m">44</span><span class="p">);</span>
+</span><span class='line'>            <span class="n">Assert</span><span class="p">.</span><span class="n">AreEqual</span><span class="p">(</span><span class="n">ph</span><span class="p">.</span><span class="n">IdentificationCode</span><span class="p">,</span> <span class="m">123</span><span class="p">);</span>
+</span><span class='line'>            <span class="n">Assert</span><span class="p">.</span><span class="n">AreEqual</span><span class="p">(</span><span class="n">ph</span><span class="p">.</span><span class="n">SubscriberNumber</span><span class="p">,</span> <span class="m">456789</span><span class="p">);</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'><span class="na">    [TestFixture]</span>
+</span><span class='line'>    <span class="k">public</span> <span class="k">class</span> <span class="nc">PropertyChecks</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="k">public</span> <span class="k">class</span> <span class="nc">GeneratedValidNumber</span> <span class="p">{</span>
+</span><span class='line'>            <span class="k">public</span> <span class="kt">int</span> <span class="n">Country</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">private</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+</span><span class='line'>            <span class="k">public</span> <span class="kt">int?</span> <span class="n">Identification</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">private</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+</span><span class='line'>            <span class="k">public</span> <span class="kt">int</span> <span class="n">Subscriber</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">private</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+</span><span class='line'>            <span class="k">public</span> <span class="kt">string</span> <span class="n">InputString</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">private</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>            <span class="k">public</span> <span class="nf">GeneratedValidNumber</span><span class="p">(</span><span class="kt">int</span> <span class="n">country</span><span class="p">,</span> <span class="kt">int?</span> <span class="n">identification</span><span class="p">,</span> <span class="kt">int</span> <span class="n">subscriber</span><span class="p">)</span>
+</span><span class='line'>            <span class="p">{</span>
+</span><span class='line'>                <span class="n">Country</span> <span class="p">=</span> <span class="n">country</span><span class="p">;</span>
+</span><span class='line'>                <span class="n">Identification</span> <span class="p">=</span> <span class="n">identification</span><span class="p">;</span>
+</span><span class='line'>                <span class="n">Subscriber</span> <span class="p">=</span> <span class="n">subscriber</span><span class="p">;</span>
+</span><span class='line'>                <span class="kt">var</span> <span class="n">idString</span> <span class="p">=</span>
+</span><span class='line'>                    <span class="n">identification</span><span class="p">.</span><span class="n">HasValue</span> <span class="p">?</span> <span class="s">&quot; &quot;</span> <span class="p">+</span> <span class="n">identification</span><span class="p">.</span><span class="n">ToString</span><span class="p">()</span> <span class="p">:</span> <span class="s">&quot;&quot;</span><span class="p">;</span>
+</span><span class='line'>                <span class="n">InputString</span> <span class="p">=</span> <span class="s">&quot;+&quot;</span> <span class="p">+</span> <span class="n">country</span><span class="p">.</span><span class="n">ToString</span><span class="p">()</span> <span class="p">+</span> <span class="n">idString</span> <span class="p">+</span> <span class="s">&quot; &quot;</span> <span class="p">+</span> <span class="n">subscriber</span><span class="p">.</span><span class="n">ToString</span><span class="p">();</span>
+</span><span class='line'>            <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>            <span class="k">public</span> <span class="k">override</span> <span class="kt">string</span> <span class="nf">ToString</span><span class="p">()</span>
+</span><span class='line'>            <span class="p">{</span>
+</span><span class='line'>                <span class="k">return</span> <span class="s">&quot;&lt;&quot;</span> <span class="p">+</span> <span class="n">InputString</span> <span class="p">+</span> <span class="s">&quot;&gt;&quot;</span><span class="p">;</span>
+</span><span class='line'>            <span class="p">}</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">public</span> <span class="n">Gen</span><span class="p">&lt;</span><span class="n">GeneratedValidNumber</span><span class="p">&gt;</span> <span class="n">ValidPhoneNumberGenerator</span><span class="p">()</span>
+</span><span class='line'>        <span class="p">{</span>
+</span><span class='line'>            <span class="kt">var</span> <span class="n">nullableGen</span> <span class="p">=</span>
+</span><span class='line'>                <span class="k">from</span> <span class="n">i</span> <span class="k">in</span> <span class="n">Any</span><span class="p">.</span><span class="n">IntBetween</span><span class="p">(</span><span class="m">1</span><span class="p">,</span> <span class="m">9999</span><span class="p">)</span>
+</span><span class='line'>                <span class="k">select</span> <span class="k">new</span> <span class="n">Nullable</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">&gt;(</span><span class="n">i</span><span class="p">);</span>
+</span><span class='line'>            <span class="kt">var</span> <span class="n">numberGen</span> <span class="p">=</span>
+</span><span class='line'>                <span class="k">from</span> <span class="n">country</span> <span class="k">in</span> <span class="n">Any</span><span class="p">.</span><span class="n">IntBetween</span><span class="p">(</span><span class="m">1</span><span class="p">,</span> <span class="m">999</span><span class="p">)</span>
+</span><span class='line'>                <span class="k">from</span> <span class="n">identification</span> <span class="k">in</span> <span class="n">Any</span><span class="p">.</span><span class="n">GeneratorIn</span><span class="p">&lt;</span><span class="kt">int?</span><span class="p">&gt;(</span><span class="n">nullableGen</span><span class="p">,</span> <span class="n">Any</span><span class="p">.</span><span class="n">Value</span><span class="p">&lt;</span><span class="kt">int?</span><span class="p">&gt;(</span><span class="k">null</span><span class="p">))</span>
+</span><span class='line'>                <span class="k">from</span> <span class="n">subscriber</span> <span class="k">in</span> <span class="n">Any</span><span class="p">.</span><span class="n">IntBetween</span><span class="p">(</span><span class="m">1</span><span class="p">,</span> <span class="m">99999999</span><span class="p">)</span>
+</span><span class='line'>                <span class="k">select</span> <span class="k">new</span> <span class="nf">GeneratedValidNumber</span><span class="p">(</span><span class="n">country</span><span class="p">,</span> <span class="n">identification</span><span class="p">,</span> <span class="n">subscriber</span><span class="p">);</span>
+</span><span class='line'>            <span class="k">return</span> <span class="n">numberGen</span><span class="p">;</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'><span class="na">        [Test]</span>
+</span><span class='line'>        <span class="k">public</span> <span class="k">void</span> <span class="nf">CountryCodeLessThan4digits</span><span class="p">()</span>
+</span><span class='line'>        <span class="p">{</span>
+</span><span class='line'>            <span class="n">Spec</span><span class="p">.</span><span class="n">ForAny</span><span class="p">(</span>
+</span><span class='line'>                <span class="p">(</span><span class="n">DontSize</span><span class="p">&lt;</span><span class="kt">uint</span><span class="p">&gt;</span> <span class="n">country</span><span class="p">)</span> <span class="p">=&gt;</span>
+</span><span class='line'>                <span class="p">{</span>
+</span><span class='line'>                    <span class="kt">var</span> <span class="n">cc</span> <span class="p">=</span> <span class="n">country</span><span class="p">.</span><span class="n">Item</span><span class="p">;</span>
+</span><span class='line'>                    <span class="n">PhoneNumber</span> <span class="n">ph</span><span class="p">;</span>
+</span><span class='line'>                    <span class="kt">var</span> <span class="n">ec</span> <span class="p">=</span> <span class="n">PhoneNumber</span><span class="p">.</span><span class="n">TryParse</span><span class="p">(</span><span class="s">&quot;+&quot;</span> <span class="p">+</span> <span class="n">cc</span><span class="p">.</span><span class="n">ToString</span><span class="p">()</span> <span class="p">+</span> <span class="s">&quot; 1234 123456&quot;</span><span class="p">,</span> <span class="k">out</span> <span class="n">ph</span><span class="p">);</span>
+</span><span class='line'>                    <span class="k">return</span> <span class="n">ph</span><span class="p">.</span><span class="n">CountryCode</span> <span class="p">&lt;</span> <span class="m">1000</span><span class="p">;</span>
+</span><span class='line'>                <span class="p">})</span>
+</span><span class='line'>                <span class="p">.</span><span class="n">QuickCheckThrowOnFailure</span><span class="p">();</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="na">        [Test]</span>
+</span><span class='line'>        <span class="k">public</span> <span class="k">void</span> <span class="nf">ValidNumbersAreRecognized</span><span class="p">()</span>
+</span><span class='line'>        <span class="p">{</span>
+</span><span class='line'>            <span class="n">Spec</span><span class="p">.</span><span class="n">For</span><span class="p">(</span><span class="n">ValidPhoneNumberGenerator</span><span class="p">(),</span>
+</span><span class='line'>                <span class="p">(</span><span class="n">GeneratedValidNumber</span> <span class="n">n</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="p">{</span>
+</span><span class='line'>                    <span class="n">PhoneNumber</span> <span class="n">ph</span><span class="p">;</span>
+</span><span class='line'>                    <span class="k">return</span> <span class="n">PhoneNumber</span><span class="p">.</span><span class="n">TryParse</span><span class="p">(</span><span class="n">n</span><span class="p">.</span><span class="n">InputString</span><span class="p">,</span> <span class="k">out</span> <span class="n">ph</span><span class="p">);</span>
+</span><span class='line'>                <span class="p">})</span>
+</span><span class='line'>                <span class="p">.</span><span class="n">QuickCheckThrowOnFailure</span><span class="p">();</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>while the F# version looks like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nn">FSharp</span><span class="p">.</span><span class="nn">FsCheck</span><span class="p">.</span><span class="nc">PropertyChecks</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nc">FsCheck</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">NUnit</span><span class="p">.</span><span class="nc">Framework</span>
+</span><span class='line'><span class="k">open</span> <span class="nc">PhoneNumber</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">GeneratedValidNumber</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span> <span class="nc">Country</span> <span class="o">:</span> <span class="kt">int</span>
+</span><span class='line'>      <span class="nc">Identifier</span> <span class="o">:</span> <span class="kt">int</span> <span class="n">option</span>
+</span><span class='line'>      <span class="nc">Subscriber</span> <span class="o">:</span> <span class="kt">int</span>
+</span><span class='line'>      <span class="nc">InputString</span> <span class="o">:</span> <span class="kt">string</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">validNumberGen</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">gen</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">c</span> <span class="o">=</span> <span class="nn">Gen</span><span class="p">.</span><span class="n">choose</span> <span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="mi">999</span><span class="o">)</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">i</span> <span class="o">=</span> <span class="nn">Gen</span><span class="p">.</span><span class="n">oneof</span> <span class="o">[</span> <span class="n">gen</span> <span class="o">{</span> <span class="k">let</span><span class="o">!</span> <span class="n">i</span> <span class="o">=</span> <span class="nn">Gen</span><span class="p">.</span><span class="n">choose</span> <span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="mi">9999</span><span class="o">)</span>
+</span><span class='line'>                                   <span class="k">return</span> <span class="o">(</span><span class="nc">Some</span> <span class="n">i</span><span class="o">)</span> <span class="o">}</span>
+</span><span class='line'>                             <span class="n">gen</span> <span class="o">{</span> <span class="k">return</span> <span class="nc">None</span> <span class="o">}</span> <span class="o">]</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">maxSubLength</span> <span class="o">=</span>
+</span><span class='line'>            <span class="kt">float</span> <span class="o">&lt;|</span> <span class="mi">15</span> <span class="o">-</span> <span class="o">(</span><span class="n">c</span><span class="o">.</span><span class="nc">ToString</span><span class="bp">()</span><span class="o">.</span><span class="nc">Length</span><span class="o">)</span> <span class="o">-</span> <span class="o">(</span><span class="k">match</span> <span class="n">i</span> <span class="k">with</span>
+</span><span class='line'>                                                   <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="mi">0</span>
+</span><span class='line'>                                                   <span class="o">|</span> <span class="nc">Some</span> <span class="n">x</span> <span class="o">-&gt;</span> <span class="n">x</span><span class="o">.</span><span class="nc">ToString</span><span class="bp">()</span><span class="o">.</span><span class="nc">Length</span><span class="o">)</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">s</span> <span class="o">=</span> <span class="nn">Gen</span><span class="p">.</span><span class="n">choose</span> <span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="o">(</span><span class="kt">int</span> <span class="o">&lt;|</span> <span class="mi">10</span><span class="o">.</span> <span class="o">**</span> <span class="n">maxSubLength</span><span class="o">)</span> <span class="o">-</span> <span class="mi">1</span><span class="o">)</span>
+</span><span class='line'>        <span class="k">return</span> <span class="o">{</span> <span class="nc">Country</span> <span class="o">=</span> <span class="n">c</span>
+</span><span class='line'>                 <span class="nc">Identifier</span> <span class="o">=</span> <span class="n">i</span>
+</span><span class='line'>                 <span class="nc">Subscriber</span> <span class="o">=</span> <span class="n">s</span>
+</span><span class='line'>                 <span class="nc">InputString</span> <span class="o">=</span>
+</span><span class='line'>                     <span class="n">sprintf</span> <span class="s2">&quot;+%d%s %d&quot;</span> <span class="n">c</span> <span class="o">(</span><span class="k">match</span> <span class="n">i</span> <span class="k">with</span>
+</span><span class='line'>                                           <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="s2">&quot;&quot;</span>
+</span><span class='line'>                                           <span class="o">|</span> <span class="nc">Some</span> <span class="n">x</span> <span class="o">-&gt;</span> <span class="n">sprintf</span> <span class="s2">&quot; %d&quot;</span> <span class="n">x</span><span class="o">)</span> <span class="n">s</span> <span class="o">}</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">PhoneNumberGenerators</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">static</span> <span class="k">member</span> <span class="nc">Valid</span><span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>        <span class="o">{</span> <span class="k">new</span> <span class="nc">Arbitrary</span><span class="o">&lt;</span><span class="nc">GeneratedValidNumber</span><span class="o">&gt;</span><span class="bp">()</span> <span class="k">with</span>
+</span><span class='line'>            <span class="k">override</span> <span class="n">x</span><span class="o">.</span><span class="nc">Generator</span> <span class="o">=</span> <span class="n">validNumberGen</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="nc">Test</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">let</span> <span class="o">``</span><span class="nc">Sanity</span> <span class="n">check</span><span class="o">``</span><span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">match</span> <span class="nc">ValidPhoneNumber</span> <span class="s2">&quot;+44 1234 123456&quot;</span> <span class="k">with</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">ValidPhoneNumber</span> <span class="n">n</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="nn">Assert</span><span class="p">.</span><span class="nc">AreEqual</span><span class="o">(</span><span class="n">n</span><span class="o">.</span><span class="nc">CountryCode</span><span class="o">,</span> <span class="mi">44</span><span class="o">)</span>
+</span><span class='line'>        <span class="nn">Assert</span><span class="p">.</span><span class="nc">AreEqual</span><span class="o">(</span><span class="n">n</span><span class="o">.</span><span class="nc">IdentificationCode</span><span class="o">,</span> <span class="mi">1234</span><span class="o">)</span>
+</span><span class='line'>        <span class="nn">Assert</span><span class="p">.</span><span class="nc">AreEqual</span><span class="o">(</span><span class="n">n</span><span class="o">.</span><span class="nc">SubscriberNumber</span><span class="o">,</span> <span class="mi">123456</span><span class="o">)</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">InvalidPhoneNumber</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="nn">Assert</span><span class="p">.</span><span class="nc">Fail</span><span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="nc">Test</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">let</span> <span class="o">``</span><span class="nc">Insanity</span> <span class="n">check</span><span class="o">``</span><span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">match</span> <span class="nc">ValidPhoneNumber</span> <span class="s2">&quot;I&#39;m not a phone number&quot;</span> <span class="k">with</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">ValidPhoneNumber</span> <span class="n">n</span> <span class="o">-&gt;</span> <span class="nn">Assert</span><span class="p">.</span><span class="nc">Fail</span><span class="bp">()</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">InvalidPhoneNumber</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="nc">Test</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">let</span> <span class="o">``</span><span class="nc">Country</span> <span class="n">code</span> <span class="n">less</span> <span class="n">than</span> <span class="mi">4</span> <span class="n">digits</span><span class="o">``</span><span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">genNumber</span> <span class="o">(</span><span class="nc">DontSize</span><span class="o">(</span><span class="n">cc</span> <span class="o">:</span> <span class="kt">uint32</span><span class="o">))</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">match</span> <span class="nc">ValidPhoneNumber</span><span class="o">(</span><span class="s2">&quot;+&quot;</span> <span class="o">+</span> <span class="n">cc</span><span class="o">.</span><span class="nc">ToString</span><span class="bp">()</span> <span class="o">+</span> <span class="s2">&quot; 1234 123456&quot;</span><span class="o">)</span> <span class="k">with</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">ValidPhoneNumber</span> <span class="n">n</span> <span class="o">-&gt;</span> <span class="nn">Assert</span><span class="p">.</span><span class="nc">IsTrue</span><span class="o">(</span><span class="n">n</span><span class="o">.</span><span class="nn">CountryCode</span><span class="p">.</span><span class="nc">ToString</span><span class="bp">()</span><span class="o">.</span><span class="nc">Length</span> <span class="o">&lt;</span> <span class="mi">4</span><span class="o">)</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">InvalidPhoneNumber</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+</span><span class='line'>    <span class="nn">Check</span><span class="p">.</span><span class="nc">QuickThrowOnFailure</span> <span class="n">genNumber</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="nc">Test</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">let</span> <span class="o">``</span><span class="nc">Valid</span> <span class="n">numbers</span> <span class="n">are</span> <span class="n">counted</span> <span class="k">as</span> <span class="n">valid</span><span class="o">``</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>    <span class="nn">Arb</span><span class="p">.</span><span class="n">register</span><span class="o">&lt;</span><span class="nc">PhoneNumberGenerators</span><span class="o">&gt;</span> <span class="bp">()</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
+</span><span class='line'>    <span class="nn">Check</span><span class="p">.</span><span class="nc">VerboseThrowOnFailure</span> <span class="o">(</span>
+</span><span class='line'>        <span class="k">fun</span> <span class="o">(</span><span class="n">v</span><span class="o">:</span><span class="nc">GeneratedValidNumber</span><span class="o">)</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="k">match</span> <span class="nc">ValidPhoneNumber</span> <span class="n">v</span><span class="o">.</span><span class="nc">InputString</span> <span class="k">with</span>
+</span><span class='line'>            <span class="o">|</span> <span class="nc">ValidPhoneNumber</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">true</span>
+</span><span class='line'>            <span class="o">|</span> <span class="nc">InvalidPhoneNumber</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">false</span><span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>These run fine as NUnit tests &ndash; apart from the fact that in true TDD style, they fail.</p>
+
+<h2>The challenge!</h2>
+
+<p>So, the challenge (which is open to people outside 15below as well). Basically, fork the <a href="https://github.com/mavnn/DevEd.PropertyChecks">git repository</a> and then check out locally. This contains everything, including both projects and the binaries of all their dependencies to avoid any NuGet issues. Within 15below, we&rsquo;ll be working in pairs &ndash; otherwise when you&rsquo;re sitting at your own computer with &ldquo;real work&rdquo; to do, it&rsquo;s very hard to actually take the hour out on the exercise.</p>
+
+<p>In the order of your choice:</p>
+
+<ol>
+<li>Add property checks for the missing properties above</li>
+<li>Update the PhoneNumber class to pass all of the tests</li>
+<li><em>Extra credit</em>: Add a generator for local numbers from a known country (i.e. the UK) and property test your conversion method</li>
+<li><em>Extra credit 2</em>: complete any of all of the above in both F# and C#</li>
+<li><em>Completely carried away:</em> pick a real piece of production code and add a property test to it&hellip;</li>
+</ol>
+
+
+<p>Once you&rsquo;ve got as far as you&rsquo;re going to, commit your changes and push back up to GitHub, then send a pull request with progress back to the parent repository. I won&rsquo;t merge these, but the different implementations of both the phone number class and property tests will form the basis of the DevEd session the week after, possibly with votes for the most elegant/robust solutions. If you&rsquo;re not a member of staff here at 15below, I&rsquo;ll try and update your pull request with any
+feedback from our discussions!</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Tap, Tap, Tapping on the Door]]></title>
@@ -173,6 +700,8 @@
 
 
 <p>Tune in next time as we start to investigate manipulating and transforming quotations, and then in the last section we&rsquo;ll try and put it all together with some quotation evaluation.</p>
+
+<p><em>Yes, I know the title quote is inaccurate &ndash; but I&rsquo;m afraid I prefer it this way.</em></p>
 ]]></content>
   </entry>
   
@@ -4582,31 +5111,6 @@ all that, I hope you find it useful.</p>
 <p>&nbsp;</p>
 <p>&nbsp;</p>
 <p>&nbsp;</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[A Short Interlude Into Adaptive Polling]]></title>
-    <link href="http://blog.mavnn.co.uk/a-short-interlude-into-adaptive-polling-tag-f/index.html"/>
-    <updated>2013-01-22T00:00:00+00:00</updated>
-    <id>http://blog.mavnn.co.uk/a-short-interlude-into-adaptive-polling-tag-f/a-short-interlude-into-adaptive-polling-tag-f</id>
-    <content type="html"><![CDATA[<span style="font-family: arial,sans-serif; font-size: 13px;">Your windows service is watching an email inbox.</span><p /> <span style="font-family: arial,sans-serif; font-size: 13px;">How often should it poll?</span><p /><span style="font-family: arial,sans-serif; font-size: 13px;">Once every 5 minutes? Every 10? Then of course you realise that it should be different for every customer&#8230; or maybe every mailbox. You need more config!</span>
-<p />
-<div>Or not.<p /><span style="font-family: arial,sans-serif; font-size: 13px;">The real answer, of course, is something completely different: it&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">should poll a lot when a lot of emails are arriving, and not very much&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">when they aren&#8217;t.</span><p /> <span style="font-family: arial,sans-serif; font-size: 13px;">It took a lot longer than it should have done to get my maths brain&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">back on, but with the help of my wife I eventually settled on this&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">code for deciding the intervals between polls:</span><p /> 
-<div><script src="https://gist.github.com/4595744.js"></script></div>
-<p />
-<div>The &#8216;i&#8217; in this function is the number of times we&#8217;ve polled since the last time a new email was received (if one is received, we reset i to 0).</div>
-<p />
-<div>If you plot this out on a graph, you get something that looks like this:</div>
-<p />
-<div><img src="http://www.wolframalpha.com/share/img?i=d41d8cd98f00b204e9800998ecf8427ehd954rh40i&amp;f=HBQTQYZYGY4TOM3CGRSGMMBWGAYDCM3DGYZGMOBWGFRDANDCMUZAaaaa" alt="" /></div>
-<p />
-<div>(You can play with the shape of the graph at Wolfram|Alpha if you&#8217;re feeling really geeky :) -&nbsp;<a href="http://www.wolframalpha.com/share/clip?f=d41d8cd98f00b204e9800998ecf8427ehd954rh40i">http://www.wolframalpha.com/share/clip?f=d41d8cd98f00b204e9800998ecf8427ehd954rh40i</a>&nbsp;).</div>
-<p />
-<div>This gives us very aggressive polling for the first few minutes after discovering an email, then dropping off rapidly to close to the one every ten minutes mark that I decided was a reasonable background polling rate.</div>
-<p />
-<div>It&#8217;s not truly adaptive in the machine learning sense, but it gives a very good first cut that is an awful lot better than any fixed value could be.</div>
-</div>
 ]]></content>
   </entry>
   

@@ -1,0 +1,344 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: csharp | Mavnn's blog]]></title>
+  <link href="http://blog.mavnn.co.uk/blog/categories/csharp/atom.xml" rel="self"/>
+  <link href="http://blog.mavnn.co.uk/"/>
+  <updated>2014-06-25T21:33:23+01:00</updated>
+  <id>http://blog.mavnn.co.uk/</id>
+  <author>
+    <name><![CDATA[mavnn]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Property Checking Start Challenge]]></title>
+    <link href="http://blog.mavnn.co.uk/property-checking-start-challenge/"/>
+    <updated>2014-06-25T12:25:17+01:00</updated>
+    <id>http://blog.mavnn.co.uk/property-checking-start-challenge</id>
+    <content type="html"><![CDATA[<p>Almost a year ago now, I wrote up a <a href="/fscheck-breaking-your-code-in-new-and-exciting-ways/">blog post</a> on using <a href="https://github.com/fsharp/FsCheck">FsCheck</a>. I still rate it as an excellent tool, but unfortunately we don&rsquo;t manage to use it that much. The reasons for this basically boil down to the fact that a) we tend to forget it exists and b) a good deal of our code is written in C# or VB.net, and the original API is not very friendly from those languages.</p>
+
+<p>So as part of the <a href="http://15below.com/">15below</a> developer education sessions we&rsquo;re going to try an exercise to see if we can bring a bit more property based testing into our code base!</p>
+
+<!-- more -->
+
+
+<h2>Never trust the user&hellip;</h2>
+
+<p>One of the things we do quite a lot of as a company is sending either automated voice calls or SMS messages. The phone number we&rsquo;re trying to contact is often free text provided by the customer, while the voice/SMS companies tend to be very keen on phone numbers that are in (something at least similar to) the <a href="http://en.wikipedia.org/wiki/E.164">international E.164</a> phone number format.</p>
+
+<p>Unfortunately, users don&rsquo;t tend to very good at sticking to standards in free text fields &ndash; so it some point your code needs to make the call about whether you&rsquo;re convinced the phone number you have is valid or not&hellip;</p>
+
+<p>For the exercise, I&rsquo;ve created idiomatic stubs of a <code>PhoneNumber</code> class in both F# and C# with methods for creating them that check if the input string is valid. The C# version uses <code>PhoneNumber.TryParse</code>:</p>
+
+<p>```csharp
+using System;
+using System.Linq;
+using System.Text.RegularExpressions;</p>
+
+<p>namespace CSharp.FsCheck
+{</p>
+
+<pre><code>public class PhoneNumber
+{
+    public int CountryCode { get; private set; }
+    public int IdentificationCode { get; private set; }
+    public int SubscriberNumber { get; private set; }
+
+    private PhoneNumber() { }
+
+    private PhoneNumber(int countryCode, int identificationCode, int subscriberNumber)
+    {
+        CountryCode = countryCode;
+        IdentificationCode = identificationCode;
+        SubscriberNumber = subscriberNumber;
+    }
+
+    public static bool TryParse(string number, out PhoneNumber ph)
+    {
+        var reg = new Regex(@"\+(?&lt;cc&gt;\d+) (?&lt;ic&gt;\d+) (?&lt;sn&gt;\d+)");
+        if (!reg.IsMatch(number))
+        {
+            ph = null;
+            return false;
+        }
+        var match = reg.Match(number);
+        var countryCode = int.Parse(match.Groups["cc"].Value);
+        var identificationCode = int.Parse(match.Groups["ic"].Value);
+        var subscriberNumber = int.Parse(match.Groups["sn"].Value);
+        ph = new PhoneNumber(countryCode, identificationCode, subscriberNumber);
+        return true;
+    }
+}
+</code></pre>
+
+<p>}
+```</p>
+
+<p>Whilst the F# version uses a discriminated union:</p>
+
+<p>```fsharp
+module FSharp.FsCheck.PhoneNumber</p>
+
+<p>open System.Text.RegularExpressions</p>
+
+<p>type PossibleNumber =</p>
+
+<pre><code>{ CountryCode : int
+  IdentificationCode : int
+  SubscriberNumber : int }
+</code></pre>
+
+<p>type PhoneNumber =</p>
+
+<pre><code>| ValidPhoneNumber of PossibleNumber
+| InvalidPhoneNumber of string
+</code></pre>
+
+<p>// Shadow the name so that no one else
+// can create &ldquo;ValidPhoneNumber&rdquo;
+let ValidPhoneNumber input =</p>
+
+<pre><code>let reg = Regex(@"\+(?&lt;cc&gt;\d+) (?&lt;ic&gt;\d+) (?&lt;sn&gt;\d+)")
+match reg.IsMatch(input) with
+| true -&gt;
+    let groups = reg.Match(input).Groups
+    ValidPhoneNumber {
+        CountryCode = groups.["cc"].Value |&gt; int
+        IdentificationCode = groups.["ic"].Value |&gt; int
+        SubscriberNumber = groups.["sn"].Value |&gt; int
+    }
+| false -&gt;
+    InvalidPhoneNumber "No good"
+</code></pre>
+
+<p>```</p>
+
+<p>The challenge will be to use property checking to take the stub to a class that fulfils the following properties:</p>
+
+<ul>
+<li>Country code between 1 and 3 digits</li>
+<li>Identification code 4 or less digits (may be missing)</li>
+<li>Subscription number between 1 and (15 &ndash; country code &ndash; identification code) digits</li>
+<li>Less than 15 total digits</li>
+</ul>
+
+
+<p>These all come straight from the specification &ndash; we&rsquo;re going to ignore country groups for now.</p>
+
+<p>Each of the two projects also includes a PropertyChecks file that contains the skeleton of an NUnit based FsCheck test suite. We only have an hour for our DevEd sessions, so the project includes a reasonable amount to get you going. Each one has a &ldquo;sanity check&rdquo; test with a known good phone number, and property based checks for the length of the country code and whether all valid numbers are recognised as valid. To make the second property test work, they also both include a custom
+generator for valid phone numbers.</p>
+
+<p>The C# version ended up looking like this:</p>
+
+<p>```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using NUnit.Framework;
+using FsCheck.Fluent;
+using FsCheck;
+using Microsoft.FSharp.Collections;</p>
+
+<p>namespace CSharp.FsCheck
+{</p>
+
+<pre><code>[TestFixture]
+public class ManualChecks
+{
+    [Test]
+    public void SanityCheck()
+    {
+        PhoneNumber ph;
+        PhoneNumber.TryParse("+44 123 456789", out ph);
+        Assert.AreEqual(ph.CountryCode, 44);
+        Assert.AreEqual(ph.IdentificationCode, 123);
+        Assert.AreEqual(ph.SubscriberNumber, 456789);
+    }
+}
+
+
+[TestFixture]
+public class PropertyChecks
+{
+    public class GeneratedValidNumber {
+        public int Country { get; private set; }
+        public int? Identification { get; private set; }
+        public int Subscriber { get; private set; }
+        public string InputString { get; private set; }
+
+        public GeneratedValidNumber(int country, int? identification, int subscriber)
+        {
+            Country = country;
+            Identification = identification;
+            Subscriber = subscriber;
+            var idString =
+                identification.HasValue ? " " + identification.ToString() : "";
+            InputString = "+" + country.ToString() + idString + " " + subscriber.ToString();
+        }
+
+        public override string ToString()
+        {
+            return "&lt;" + InputString + "&gt;";
+        }
+    }
+
+    public Gen&lt;GeneratedValidNumber&gt; ValidPhoneNumberGenerator()
+    {
+        var nullableGen =
+            from i in Any.IntBetween(1, 9999)
+            select new Nullable&lt;int&gt;(i);
+        var numberGen =
+            from country in Any.IntBetween(1, 999)
+            from identification in Any.GeneratorIn&lt;int?&gt;(nullableGen, Any.Value&lt;int?&gt;(null))
+            from subscriber in Any.IntBetween(1, 99999999)
+            select new GeneratedValidNumber(country, identification, subscriber);
+        return numberGen;
+    }
+
+
+    [Test]
+    public void CountryCodeLessThan4digits()
+    {
+        Spec.ForAny(
+            (DontSize&lt;uint&gt; country) =&gt;
+            {
+                var cc = country.Item;
+                PhoneNumber ph;
+                var ec = PhoneNumber.TryParse("+" + cc.ToString() + " 1234 123456", out ph);
+                return ph.CountryCode &lt; 1000;
+            })
+            .QuickCheckThrowOnFailure();
+    }
+
+    [Test]
+    public void ValidNumbersAreRecognized()
+    {
+        Spec.For(ValidPhoneNumberGenerator(),
+            (GeneratedValidNumber n) =&gt; {
+                PhoneNumber ph;
+                return PhoneNumber.TryParse(n.InputString, out ph);
+            })
+            .QuickCheckThrowOnFailure();
+    }
+}
+</code></pre>
+
+<p>}
+```</p>
+
+<p>while the F# version looks like this:</p>
+
+<p>```fsharp
+module FSharp.FsCheck.PropertyChecks</p>
+
+<p>open FsCheck
+open NUnit.Framework
+open PhoneNumber</p>
+
+<p>type GeneratedValidNumber =</p>
+
+<pre><code>{ Country : int
+  Identifier : int option
+  Subscriber : int
+  InputString : string }
+</code></pre>
+
+<p>let validNumberGen =</p>
+
+<pre><code>gen { 
+    let! c = Gen.choose (1, 999)
+    let! i = Gen.oneof [ gen { let! i = Gen.choose (1, 9999)
+                               return (Some i) }
+                         gen { return None } ]
+    let maxSubLength = 
+        float &lt;| 15 - (c.ToString().Length) - (match i with
+                                               | None -&gt; 0
+                                               | Some x -&gt; x.ToString().Length)
+    let! s = Gen.choose (1, (int &lt;| 10. ** maxSubLength) - 1)
+    return { Country = c
+             Identifier = i
+             Subscriber = s
+             InputString = 
+                 sprintf "+%d%s %d" c (match i with
+                                       | None -&gt; ""
+                                       | Some x -&gt; sprintf " %d" x) s }
+}
+</code></pre>
+
+<p>type PhoneNumberGenerators =</p>
+
+<pre><code>static member Valid() =
+    { new Arbitrary&lt;GeneratedValidNumber&gt;() with
+        override x.Generator = validNumberGen }
+</code></pre>
+
+<p>[<Test>]
+let <code>Sanity check</code>() =</p>
+
+<pre><code>match ValidPhoneNumber "+44 1234 123456" with
+| ValidPhoneNumber n -&gt; 
+    Assert.AreEqual(n.CountryCode, 44)
+    Assert.AreEqual(n.IdentificationCode, 1234)
+    Assert.AreEqual(n.SubscriberNumber, 123456)
+| InvalidPhoneNumber _ -&gt; Assert.Fail()
+</code></pre>
+
+<p>[<Test>]
+let <code>Insanity check</code>() =</p>
+
+<pre><code>match ValidPhoneNumber "I'm not a phone number" with
+| ValidPhoneNumber n -&gt; Assert.Fail()
+| InvalidPhoneNumber _ -&gt; ()
+</code></pre>
+
+<p>[<Test>]
+let <code>Country code less than 4 digits</code>() =</p>
+
+<pre><code>let genNumber (DontSize(cc : uint32)) = 
+    match ValidPhoneNumber("+" + cc.ToString() + " 1234 123456") with
+    | ValidPhoneNumber n -&gt; Assert.IsTrue(n.CountryCode.ToString().Length &lt; 4)
+    | InvalidPhoneNumber _ -&gt; ()
+Check.QuickThrowOnFailure genNumber
+</code></pre>
+
+<p>[<Test>]
+let <code>Valid numbers are counted as valid</code> () =</p>
+
+<pre><code>Arb.register&lt;PhoneNumberGenerators&gt; () |&gt; ignore
+Check.VerboseThrowOnFailure (
+    fun (v:GeneratedValidNumber) -&gt;
+        match ValidPhoneNumber v.InputString with
+        | ValidPhoneNumber _ -&gt; true
+        | InvalidPhoneNumber _ -&gt; false)
+</code></pre>
+
+<p>```</p>
+
+<p>These run fine as NUnit tests &ndash; apart from the fact that in true TDD style, they fail.</p>
+
+<h2>The challenge!</h2>
+
+<p>So, the challenge (which is open to people outside 15below as well). Basically, fork the <a href="https://github.com/mavnn/DevEd.PropertyChecks">git repository</a> and then check out locally. This contains everything, including both projects and the binaries of all their dependencies to avoid any NuGet issues. Within 15below, we&rsquo;ll be working in pairs &ndash; otherwise when you&rsquo;re sitting at your own computer with &ldquo;real work&rdquo; to do, it&rsquo;s very hard to actually take the hour out on the exercise.</p>
+
+<p>In the order of your choice:</p>
+
+<ol>
+<li>Add property checks for the missing properties above</li>
+<li>Update the PhoneNumber class to pass all of the tests</li>
+<li><em>Extra credit</em>: Add a generator for local numbers from a known country (i.e. the UK) and property test your conversion method</li>
+<li><em>Extra credit 2</em>: complete any of all of the above in both F# and C#</li>
+<li><em>Completely carried away:</em> pick a real piece of production code and add a property test to it&hellip;</li>
+</ol>
+
+
+<p>Once you&rsquo;ve got as far as you&rsquo;re going to, commit your changes and push back up to GitHub, then send a pull request with progress back to the parent repository. I won&rsquo;t merge these, but the different implementations of both the phone number class and property tests will form the basis of the DevEd session the week after, possibly with votes for the most elegant/robust solutions. If you&rsquo;re not a member of staff here at 15below, I&rsquo;ll try and update your pull request with any
+feedback from our discussions!</p>
+]]></content>
+  </entry>
+  
+</feed>

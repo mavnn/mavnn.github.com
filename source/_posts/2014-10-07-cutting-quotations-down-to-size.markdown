@@ -203,7 +203,7 @@ let commute quote =
 
 Pretty simple: if we see a ``&&`` or a ``||`` as the top expression in a quotation, swap the arguments. There's no recursion, so we won't go through the tree swapping every ``&&`` or ``||`` expression, although we could if we wanted...
 
-We example:
+For example:
 
 ```fsharp
 // basic usage

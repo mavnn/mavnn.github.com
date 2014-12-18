@@ -31,6 +31,8 @@ I'll cut out the custom attributes from now on to make reading things a bit easi
 
 Next!
 
+<!-- more -->
+
 ```fsharp
 <@@ true && true @@>;;
 (* val it : Expr =

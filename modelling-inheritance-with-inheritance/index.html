@@ -1,0 +1,1420 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Modelling Inheritance With Inheritance - Mavnn's blog</title>
+  <meta name="author" content="mavnn">
+
+  
+  <meta name="description" content="This post is part of the F# Advent Calendar 2014, which is stuffed full of other interesting posts. Go have a read! Note: This post is epic in length &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://blog.mavnn.co.uk/modelling-inheritance-with-inheritance">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Mavnn's blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-37561687-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mavnn's blog</a></h1>
+  
+    <h2>Stuff from my brain</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:blog.mavnn.co.uk" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Modelling Inheritance With Inheritance</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-12-18T12:01:41+00:00" pubdate data-updated="true">Dec 18<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><blockquote><p>This post is part of the <a href="https://sergeytihon.wordpress.com/tag/fsadvent/">F# Advent Calendar</a> 2014, which is stuffed full of other interesting posts. Go have a read!</p></blockquote>
+
+<p>Note: This post is epic in length. If you just want to see the final resulting script of much silliness, skip straight to <a href="#conclusion">the conclusion</a>!</p>
+
+<p>Note 2: If you just want to see an example of a sane generated type provider, <a href="https://github.com/mavnn/FPDays.TypeProvider/">the code from my FPDays tutorial</a> is a much better bet.</p>
+
+<p>Note 3: There is a lot of code below. If you&rsquo;re viewing this on a desktop, I suggest collapsing the sidebar to the right otherwise you&rsquo;ll have a lot of horizontal scroll bars. If you&rsquo;re on a mobile device, you might want to bookmark for later.</p>
+
+<p>So&hellip; I&rsquo;ve been playing with generated (not erased) type providers for a bit, and meaning to write something up about them. Most of the documentation out there is for erased type providers, and to be honest they have a lot of advantages in terms of performance.</p>
+
+<p>But they also have two fundamental limitations:</p>
+
+<ul>
+<li>You can&rsquo;t used erased F# types in any other .net language</li>
+<li>You can&rsquo;t use reflection on erased types (even in F#)</li>
+</ul>
+
+
+<p>So let&rsquo;s see if we can have a play with generated types, and then &ndash; given this is Christmas, and all &ndash; let&rsquo;s see if we can build Jesus&#8217; family tree in the .net type system. After all, if you&rsquo;re going to use inheritance to model something, how about modelling inheritance?</p>
+
+<blockquote><p>If you need a reminder of type provider basics, check out <a href="http://blog.mavnn.co.uk/type-providers-from-the-ground-up/">Type Providers from the Ground Up</a></p></blockquote>
+
+<p>Let&rsquo;s start with a really basic example of a generative type provider. We&rsquo;ll just create a single type with a static property on it.</p>
+
+<p>First, our input. We&rsquo;re going to grab <a href="https://www.biblegateway.com/passage/?search=matthew+1%3A2-16&amp;version=NIV">the genealogy of Jesus from Matthew</a> and then massage the content just enough that the first name on each line is a &ldquo;parent&rdquo;, and any other names on a line are&hellip; other people. We&rsquo;ll assume they&rsquo;re siblings, although actually not all of them are.</p>
+
+<pre><code>Abraham was the father of Isaac,
+Isaac the father of Jacob,
+Jacob the father of Judah and his brothers,
+Judah the father of Perez and Zerah, whose mother was Tamar,
+Perez the father of Hezron,
+Hezron the father of Ram,
+Ram the father of Amminadab,
+... (some other people here) ...
+Akim the father of Elihud,
+Elihud the father of Eleazar,
+Eleazar the father of Matthan,
+Matthan the father of Jacob,
+Jacob the father of Joseph, the husband of Mary, 
+and Mary was the mother of Jesus who is called the Messiah.
+</code></pre>
+
+<p>For round one, we&rsquo;re just going to put this string into a type as a property.</p>
+
+<p>Our type provider file looks a bit like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nc">AdventProvider</span>
+</span><span class='line'><span class="o">#</span><span class="k">if</span> <span class="nc">INTERACTIVE</span>
+</span><span class='line'><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;paket-files/fsprojects/FSharp.TypeProviders.StarterPack/src/ProvidedTypes.fsi&quot;</span>
+</span><span class='line'><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;paket-files/fsprojects/FSharp.TypeProviders.StarterPack/src/ProvidedTypes.fs&quot;</span>
+</span><span class='line'><span class="o">#</span><span class="n">endif</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Reflection</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">ProviderImplementation</span><span class="p">.</span><span class="nc">ProvidedTypes</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nn">Core</span><span class="p">.</span><span class="nc">CompilerServices</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nc">Quotations</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="nc">TypeProvider</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">type</span> <span class="nc">AdventProvider</span> <span class="o">(</span><span class="n">cfg</span> <span class="o">:</span> <span class="nc">TypeProviderConfig</span><span class="o">)</span> <span class="k">as</span> <span class="n">this</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">inherit</span> <span class="nc">TypeProviderForNamespaces</span> <span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">ns</span> <span class="o">=</span> <span class="s2">&quot;Advent.Provided&quot;</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">asm</span> <span class="o">=</span> <span class="nn">Assembly</span><span class="p">.</span><span class="nc">GetExecutingAssembly</span><span class="bp">()</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">tempAsmPath</span> <span class="o">=</span> <span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">ChangeExtension</span><span class="o">(</span><span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">GetTempFileName</span><span class="bp">()</span><span class="o">,</span> <span class="s2">&quot;.dll&quot;</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">tempAsm</span> <span class="o">=</span> <span class="nc">ProvidedAssembly</span> <span class="n">tempAsmPath</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">t</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="s2">&quot;Family&quot;</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;,</span> <span class="nc">IsErased</span> <span class="o">=</span> <span class="bp">false</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">parameters</span> <span class="o">=</span> <span class="o">[</span><span class="nc">ProvidedStaticParameter</span><span class="o">(</span><span class="s2">&quot;Genealogy&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;)]</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">do</span>
+</span><span class='line'>        <span class="n">t</span><span class="o">.</span><span class="nc">DefineStaticParameters</span><span class="o">(</span>
+</span><span class='line'>            <span class="n">parameters</span><span class="o">,</span>
+</span><span class='line'>            <span class="k">fun</span> <span class="n">typeName</span> <span class="n">args</span> <span class="o">-&gt;</span>
+</span><span class='line'>                <span class="k">let</span> <span class="n">genealogy</span> <span class="o">=</span> <span class="n">args</span><span class="o">.[</span><span class="mi">0</span><span class="o">]</span> <span class="o">:?&gt;</span> <span class="kt">string</span>
+</span><span class='line'>                <span class="k">let</span> <span class="n">inputFile</span> <span class="o">=</span>
+</span><span class='line'>                    <span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">Combine</span><span class="o">(</span><span class="n">cfg</span><span class="o">.</span><span class="nc">ResolutionFolder</span><span class="o">,</span> <span class="n">genealogy</span><span class="o">)</span>
+</span><span class='line'>                <span class="k">let</span> <span class="n">raw</span> <span class="o">=</span>
+</span><span class='line'>                    <span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">File</span><span class="p">.</span><span class="nc">ReadAllLines</span> <span class="n">inputFile</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="k">let</span> <span class="n">g</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span>
+</span><span class='line'>                            <span class="n">asm</span><span class="o">,</span>
+</span><span class='line'>                            <span class="n">ns</span><span class="o">,</span>
+</span><span class='line'>                            <span class="n">typeName</span><span class="o">,</span>
+</span><span class='line'>                            <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;,</span>
+</span><span class='line'>                            <span class="nc">IsErased</span> <span class="o">=</span> <span class="bp">false</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="k">let</span> <span class="n">s</span> <span class="o">=</span> <span class="nc">ProvidedProperty</span><span class="o">(</span><span class="s2">&quot;Raw&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;,</span> <span class="nc">IsStatic</span> <span class="o">=</span> <span class="bp">true</span><span class="o">)</span>
+</span><span class='line'>                <span class="k">let</span> <span class="n">rawStr</span> <span class="o">=</span> <span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">raw</span>
+</span><span class='line'>                <span class="n">s</span><span class="o">.</span><span class="nc">GetterCode</span> <span class="o">&lt;-</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="nn">Expr</span><span class="p">.</span><span class="nc">Value</span> <span class="n">rawStr</span>
+</span><span class='line'>                <span class="n">g</span><span class="o">.</span><span class="nc">AddMember</span> <span class="n">s</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="n">tempAsm</span><span class="o">.</span><span class="nc">AddTypes</span> <span class="o">[</span><span class="n">g</span><span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="n">g</span>
+</span><span class='line'>            <span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">do</span>
+</span><span class='line'>        <span class="n">this</span><span class="o">.</span><span class="nc">RegisterRuntimeAssemblyLocationAsProbingFolder</span> <span class="n">cfg</span>
+</span><span class='line'>        <span class="n">tempAsm</span><span class="o">.</span><span class="nc">AddTypes</span> <span class="o">[</span><span class="n">t</span><span class="o">]</span>
+</span><span class='line'>        <span class="n">this</span><span class="o">.</span><span class="nc">AddNamespace</span><span class="o">(</span><span class="n">ns</span><span class="o">,</span> <span class="o">[</span><span class="n">t</span><span class="o">])</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="n">assembly</span><span class="o">:</span><span class="nc">TypeProviderAssembly</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">do</span> <span class="bp">()</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>What&rsquo;s with the <code>#if INTERACTIVE</code> bits? Well, that&rsquo;ll be the subject of another blog post soon; I&rsquo;m doing must of my type provider dev in Vim these days to avoid the Visual Studio restart cycle, so I thought I might as well skip the fsproj file completely.</p>
+
+<p>In the actual provider itself, there&rsquo;s a few new things to note if you&rsquo;ve only previously done erased type provider development.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">tempAsmPath</span> <span class="o">=</span> <span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">ChangeExtension</span><span class="o">(</span><span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">GetTempFileName</span><span class="bp">()</span><span class="o">,</span> <span class="s2">&quot;.dll&quot;</span><span class="o">)</span>
+</span><span class='line'><span class="k">let</span> <span class="n">tempAsm</span> <span class="o">=</span> <span class="nc">ProvidedAssembly</span> <span class="n">tempAsmPath</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Generative type providers, unlike erased type providers, actually pass IL (.net byte code) to the compiler rather than just a quotation. To achieve that, we need to write the IL into an actual assembly that the compiler will then merge into the dll it&rsquo;s compiling.</p>
+
+<p>Let&rsquo;s try that again, slower. The compiler will be building a piece of code that uses your type provider into <code>Output.dll</code>. It will call into your type provider, which needs to write the IL of the type/codes it&rsquo;s generating to disk into <code>Temp.dll</code>. The compiler will then take the IL from <code>Temp.dll</code> and insert it into <code>Output.dll</code>. At this point, we have no further use for <code>Temp.dll</code>, hence why we&rsquo;re using <code>GetTempFileName</code> to get a file in the OS temporary file
+folder.</p>
+
+<p>The <code>ProvidedTypes</code> API knows how to create these temporary dlls, so we wrap our filename in the <code>ProvidedAssembly</code> type.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">do</span>
+</span><span class='line'>    <span class="n">this</span><span class="o">.</span><span class="nc">RegisterRuntimeAssemblyLocationAsProbingFolder</span> <span class="n">cfg</span>
+</span><span class='line'>    <span class="n">tempAsm</span><span class="o">.</span><span class="nc">AddTypes</span> <span class="o">[</span><span class="n">t</span><span class="o">]</span>
+</span><span class='line'>    <span class="n">this</span><span class="o">.</span><span class="nc">AddNamespace</span><span class="o">(</span><span class="n">ns</span><span class="o">,</span> <span class="o">[</span><span class="n">t</span><span class="o">])</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We also need to specify which types need adding to the temporary assembly. Here we&rsquo;re specifying that the parameterized type (the one that takes a filename) should be added; on line 46 of the main code you&rsquo;ll see the type generated when a parameter is supplied being added. We also need to tell the type provider where the runtime dll is being created &ndash; fortunately, a helper method works this out for us when given the config item from the type provider constructor.</p>
+
+<p>It&rsquo;s important to note that nested types <em>should not</em> be added to the temporary assembly. That&rsquo;s handled by adding the root.</p>
+
+<p>So, if you compile this code down you can invoke it like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="o">#!/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">env</span> <span class="n">fsharpi</span>
+</span><span class='line'><span class="c1">// Put all of this in a file called something like Families.fsx</span>
+</span><span class='line'><span class="c1">// Yes, that hashbang line means if you make it executable it</span>
+</span><span class='line'><span class="c1">// will run on linux/mac</span>
+</span><span class='line'><span class="o">#</span><span class="n">r</span> <span class="o">@</span><span class="s2">&quot;AdventProvider.dll&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nc">AdventProvider</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Advent</span><span class="p">.</span><span class="nc">Provided</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">JesusGenerations</span> <span class="o">=</span> <span class="nc">Family</span><span class="o">&lt;</span><span class="s2">&quot;Genealogy.txt&quot;</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">printfn</span> <span class="s2">&quot;%s&quot;</span> <span class="nn">JesusGenerations</span><span class="p">.</span><span class="nc">Raw</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Excellent! A real, valid .net type. You can only invoke the type provider from F#, but the types generated are usable across the .net language universe &ndash; and reflection works fine.</p>
+
+<p>So&hellip; phase two. Let&rsquo;s see if we can parse something sane out of our plain text mess to turn into types. I&rsquo;m not going to go into this in detail, but because I wanted to avoid the complication of external dependencies I just wrote a very simple regex based parser for this.</p>
+
+<p>Behold! The <code>Parser.fs</code> file:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nc">Parser</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Text</span><span class="p">.</span><span class="nc">RegularExpressions</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">Person</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span>
+</span><span class='line'>        <span class="nc">Name</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>        <span class="nc">Heir</span> <span class="o">:</span> <span class="nc">Person</span> <span class="n">option</span>
+</span><span class='line'>        <span class="nc">Others</span> <span class="o">:</span> <span class="kt">string</span> <span class="kt">list</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">namesRegex</span> <span class="o">=</span> <span class="nc">Regex</span><span class="o">(@</span><span class="s2">&quot;(?&lt;name&gt;[A-Z][a-z]+)&quot;</span><span class="o">,</span> <span class="nn">RegexOptions</span><span class="p">.</span><span class="nc">Compiled</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="nc">ParseToNames</span> <span class="n">line</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">namesRegex</span><span class="o">.</span><span class="nc">Matches</span><span class="o">(</span><span class="n">line</span><span class="o">)</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">cast</span><span class="o">&lt;</span><span class="nc">Match</span><span class="o">&gt;</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">m</span> <span class="o">-&gt;</span> <span class="n">m</span><span class="o">.</span><span class="nn">Groups</span><span class="p">.</span><span class="err">[&quot;</span><span class="n">name</span><span class="s2">&quot;].Value)</span>
+</span><span class='line'><span class="s2">    |&gt; Seq.filter (fun n -&gt; n &lt;&gt; &quot;</span><span class="nc">King</span><span class="s2">&quot; &amp;&amp; n &lt;&gt; &quot;</span><span class="nc">Messiah</span><span class="s2">&quot; &amp;&amp; n &lt;&gt; &quot;</span><span class="nc">Babylon</span><span class="s2">&quot;)</span>
+</span><span class='line'><span class="s2">    |&gt; Seq.toList</span>
+</span><span class='line'><span class="s2">    |&gt; function h::t -&gt; h, t | [] -&gt; failwith &quot;</span><span class="nc">No</span> <span class="n">blank</span> <span class="n">lines</span><span class="o">!</span><span class="s2">&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="s2">let rec NamesToPerson names =</span>
+</span><span class='line'><span class="s2">    match names with</span>
+</span><span class='line'><span class="s2">    | [] -&gt; None</span>
+</span><span class='line'><span class="s2">    | (father,others)::t -&gt;</span>
+</span><span class='line'><span class="s2">        let heir =</span>
+</span><span class='line'><span class="s2">            match t with</span>
+</span><span class='line'><span class="s2">            | [] -&gt; None</span>
+</span><span class='line'><span class="s2">            | (heir, _)::_ -&gt; Some heir</span>
+</span><span class='line'><span class="s2">        Some {</span>
+</span><span class='line'><span class="s2">            Name = father</span>
+</span><span class='line'><span class="s2">            Heir = NamesToPerson t</span>
+</span><span class='line'><span class="s2">            Others =</span>
+</span><span class='line'><span class="s2">                others</span>
+</span><span class='line'><span class="s2">                |&gt; List.filter</span>
+</span><span class='line'><span class="s2">                    (fun c -&gt;</span>
+</span><span class='line'><span class="s2">                        match heir with</span>
+</span><span class='line'><span class="s2">                        | Some h -&gt; c &lt;&gt; h</span>
+</span><span class='line'><span class="s2">                        | None -&gt; true)</span>
+</span><span class='line'><span class="s2">        }</span>
+</span><span class='line'>
+</span><span class='line'><span class="s2">let Parse lines =</span>
+</span><span class='line'><span class="s2">    lines</span>
+</span><span class='line'><span class="s2">    |&gt; List.map ParseToNames</span>
+</span><span class='line'><span class="s2">    |&gt; NamesToPerson</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Nb. Never, ever, ever build a parser like this for production code. Treat this as a &ldquo;how not to build a parser&rdquo; example, and go read something like <a href="http://trelford.com/blog/post/parser.aspx">Phil&rsquo;s excellent parsing posts</a> instead.</p>
+
+<p>So&hellip; what can we do this this?</p>
+
+<p>Let&rsquo;s start be parsing our file, and seeing if we can build a nested set of types representing the family tree.</p>
+
+<p>Recursive type building! Go!</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nc">AdventProvider</span>
+</span><span class='line'><span class="o">#</span><span class="k">if</span> <span class="nc">INTERACTIVE</span>
+</span><span class='line'><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;paket-files/fsprojects/FSharp.TypeProviders.StarterPack/src/ProvidedTypes.fsi&quot;</span>
+</span><span class='line'><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;paket-files/fsprojects/FSharp.TypeProviders.StarterPack/src/ProvidedTypes.fs&quot;</span>
+</span><span class='line'><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;Parser.fs&quot;</span>
+</span><span class='line'><span class="o">#</span><span class="n">endif</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Reflection</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">ProviderImplementation</span><span class="p">.</span><span class="nc">ProvidedTypes</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nn">Core</span><span class="p">.</span><span class="nc">CompilerServices</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nc">Quotations</span>
+</span><span class='line'><span class="k">open</span> <span class="nc">Parser</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="nc">TypeProvider</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">type</span> <span class="nc">AdventProvider</span> <span class="o">(</span><span class="n">cfg</span> <span class="o">:</span> <span class="nc">TypeProviderConfig</span><span class="o">)</span> <span class="k">as</span> <span class="n">this</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">inherit</span> <span class="nc">TypeProviderForNamespaces</span> <span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">ns</span> <span class="o">=</span> <span class="s2">&quot;Advent.Provided&quot;</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">asm</span> <span class="o">=</span> <span class="nn">Assembly</span><span class="p">.</span><span class="nc">GetExecutingAssembly</span><span class="bp">()</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">tempAsmPath</span> <span class="o">=</span> <span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">ChangeExtension</span><span class="o">(</span><span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">GetTempFileName</span><span class="bp">()</span><span class="o">,</span> <span class="s2">&quot;.dll&quot;</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">tempAsm</span> <span class="o">=</span> <span class="nc">ProvidedAssembly</span> <span class="n">tempAsmPath</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">t</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="s2">&quot;Family&quot;</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;,</span> <span class="nc">IsErased</span> <span class="o">=</span> <span class="bp">false</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">parameters</span> <span class="o">=</span> <span class="o">[</span><span class="nc">ProvidedStaticParameter</span><span class="o">(</span><span class="s2">&quot;Genealogy&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;)]</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">do</span>
+</span><span class='line'>        <span class="n">t</span><span class="o">.</span><span class="nc">DefineStaticParameters</span><span class="o">(</span>
+</span><span class='line'>            <span class="n">parameters</span><span class="o">,</span>
+</span><span class='line'>            <span class="k">fun</span> <span class="n">typeName</span> <span class="n">args</span> <span class="o">-&gt;</span>
+</span><span class='line'>                <span class="k">let</span> <span class="n">genealogy</span> <span class="o">=</span> <span class="n">args</span><span class="o">.[</span><span class="mi">0</span><span class="o">]</span> <span class="o">:?&gt;</span> <span class="kt">string</span>
+</span><span class='line'>                <span class="k">let</span> <span class="n">inputFile</span> <span class="o">=</span>
+</span><span class='line'>                    <span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">Combine</span><span class="o">(</span><span class="n">cfg</span><span class="o">.</span><span class="nc">ResolutionFolder</span><span class="o">,</span> <span class="n">genealogy</span><span class="o">)</span>
+</span><span class='line'>                <span class="k">let</span> <span class="n">raw</span> <span class="o">=</span>
+</span><span class='line'>                    <span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">File</span><span class="p">.</span><span class="nc">ReadAllLines</span> <span class="n">inputFile</span>
+</span><span class='line'>                <span class="k">let</span> <span class="n">input</span> <span class="o">=</span>
+</span><span class='line'>                    <span class="n">raw</span>
+</span><span class='line'>                    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">toList</span>
+</span><span class='line'>                    <span class="o">|&gt;</span> <span class="nc">Parse</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="k">let</span> <span class="n">g</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span>
+</span><span class='line'>                            <span class="n">asm</span><span class="o">,</span>
+</span><span class='line'>                            <span class="n">ns</span><span class="o">,</span>
+</span><span class='line'>                            <span class="n">typeName</span><span class="o">,</span>
+</span><span class='line'>                            <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;,</span>
+</span><span class='line'>                            <span class="nc">IsErased</span> <span class="o">=</span> <span class="bp">false</span><span class="o">)</span>
+</span><span class='line'>                <span class="n">g</span><span class="o">.</span><span class="nc">SetAttributes</span> <span class="o">(</span><span class="nn">TypeAttributes</span><span class="p">.</span><span class="nc">Public</span> <span class="o">|||</span> <span class="nn">TypeAttributes</span><span class="p">.</span><span class="nc">Class</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="k">let</span> <span class="n">s</span> <span class="o">=</span> <span class="nc">ProvidedProperty</span><span class="o">(</span><span class="s2">&quot;Raw&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;,</span> <span class="nc">IsStatic</span> <span class="o">=</span> <span class="bp">true</span><span class="o">)</span>
+</span><span class='line'>                <span class="k">let</span> <span class="n">rawStr</span> <span class="o">=</span> <span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">raw</span>
+</span><span class='line'>                <span class="n">s</span><span class="o">.</span><span class="nc">GetterCode</span> <span class="o">&lt;-</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="nn">Expr</span><span class="p">.</span><span class="nc">Value</span> <span class="n">rawStr</span>
+</span><span class='line'>                <span class="n">g</span><span class="o">.</span><span class="nc">AddMember</span> <span class="n">s</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="k">let</span> <span class="k">rec</span> <span class="n">personToType</span> <span class="o">(</span><span class="n">father</span> <span class="o">:</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">)</span> <span class="o">(</span><span class="n">person</span> <span class="o">:</span> <span class="nc">Person</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>                    <span class="k">let</span> <span class="n">t</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">person</span><span class="o">.</span><span class="nc">Name</span><span class="o">,</span> <span class="nc">Some</span> <span class="o">(</span><span class="n">father</span> <span class="o">:&gt;</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Type</span><span class="o">),</span> <span class="nc">IsErased</span> <span class="o">=</span> <span class="bp">false</span><span class="o">)</span>
+</span><span class='line'>                    <span class="n">t</span><span class="o">.</span><span class="nc">SetAttributes</span> <span class="o">(</span><span class="nn">TypeAttributes</span><span class="p">.</span><span class="nc">Class</span> <span class="o">|||</span> <span class="nn">TypeAttributes</span><span class="p">.</span><span class="nc">Public</span><span class="o">)</span>
+</span><span class='line'>                    <span class="n">father</span><span class="o">.</span><span class="nc">AddMember</span> <span class="n">t</span>
+</span><span class='line'>                    <span class="k">match</span> <span class="n">person</span><span class="o">.</span><span class="nc">Heir</span> <span class="k">with</span>
+</span><span class='line'>                    <span class="o">|</span> <span class="nc">Some</span> <span class="n">p</span> <span class="o">-&gt;</span> <span class="n">personToType</span> <span class="n">t</span> <span class="n">p</span>
+</span><span class='line'>                    <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="k">match</span> <span class="n">input</span> <span class="k">with</span>
+</span><span class='line'>                <span class="o">|</span> <span class="nc">Some</span> <span class="n">p</span> <span class="o">-&gt;</span>
+</span><span class='line'>                    <span class="n">personToType</span> <span class="n">g</span> <span class="n">p</span>
+</span><span class='line'>                <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span>
+</span><span class='line'>                    <span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="n">tempAsm</span><span class="o">.</span><span class="nc">AddTypes</span> <span class="o">[</span><span class="n">g</span><span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="n">g</span>
+</span><span class='line'>            <span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">do</span>
+</span><span class='line'>        <span class="n">this</span><span class="o">.</span><span class="nc">RegisterRuntimeAssemblyLocationAsProbingFolder</span> <span class="n">cfg</span>
+</span><span class='line'>        <span class="n">tempAsm</span><span class="o">.</span><span class="nc">AddTypes</span> <span class="o">[</span><span class="n">t</span><span class="o">]</span>
+</span><span class='line'>        <span class="n">this</span><span class="o">.</span><span class="nc">AddNamespace</span><span class="o">(</span><span class="n">ns</span><span class="o">,</span> <span class="o">[</span><span class="n">t</span><span class="o">])</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="n">assembly</span><span class="o">:</span><span class="nc">TypeProviderAssembly</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">do</span> <span class="bp">()</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>It&rsquo;s not looking too bad&hellip; but we&rsquo;re also getting our first hint of trouble to come. The first time I tried to use this provider, I didn&rsquo;t have lines 46 and 55. It turns out that the default attributes of a <code>ProvidedTypeDefinition</code> set the <code>Sealed</code> attribute on the class that&rsquo;s generated. If you then try and build a type that inherits from it, you get an error when you try and consume the types from the provider.</p>
+
+<p>But, hey? We&rsquo;ve worked around that, right? I&rsquo;m sure there&rsquo;s no reason it&rsquo;s set that way by default&hellip;</p>
+
+<p>And: we have types. Lots of types:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="o">#!/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">env</span> <span class="n">fsharpi</span>
+</span><span class='line'><span class="o">#</span><span class="n">r</span> <span class="o">@</span><span class="s2">&quot;AdventProvider.dll&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nc">AdventProvider</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Advent</span><span class="p">.</span><span class="nc">Provided</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">JesusGenerations</span> <span class="o">=</span> <span class="nc">Family</span><span class="o">&lt;</span><span class="s2">&quot;Genealogy.txt&quot;</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">printfn</span> <span class="s2">&quot;%s&quot;</span> <span class="nn">JesusGenerations</span><span class="p">.</span><span class="nc">Raw</span>
+</span><span class='line'>
+</span><span class='line'><span class="nn">JesusGenerations</span><span class="p">.</span><span class="nn">Abraham</span><span class="p">.</span><span class="nn">Isaac</span><span class="p">.</span><span class="nn">Jacob</span><span class="p">.</span><span class="nn">Judah</span><span class="p">.</span><span class="nn">Perez</span><span class="p">.</span><span class="nn">Hezron</span><span class="p">.</span><span class="nn">Ram</span><span class="p">.</span><span class="nc">Amminadab</span>
+</span><span class='line'><span class="c1">// ... there&#39;s more where that came from</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We can even do things like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="nc">DescendedFromAbraham</span> <span class="o">(</span><span class="n">person</span> <span class="o">:</span> <span class="nn">JesusGenerations</span><span class="p">.</span><span class="nc">Abraham</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="bp">true</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Compile time family tree checking &ndash; pretty nifty. Except&hellip; when we try and call this function we realise we have a problem. None of these classes have constructors.</p>
+
+<p>Hmmm.</p>
+
+<p>Let&rsquo;s try and add one. Nothing fancy &ndash; just a default constructor.</p>
+
+<p>We&rsquo;ll replace the <code>personToType</code> method with this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="k">rec</span> <span class="n">personToType</span> <span class="o">(</span><span class="n">father</span> <span class="o">:</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">)</span> <span class="o">(</span><span class="n">person</span> <span class="o">:</span> <span class="nc">Person</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">t</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">person</span><span class="o">.</span><span class="nc">Name</span><span class="o">,</span> <span class="nc">Some</span> <span class="o">(</span><span class="n">father</span> <span class="o">:&gt;</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Type</span><span class="o">),</span> <span class="nc">IsErased</span> <span class="o">=</span> <span class="bp">false</span><span class="o">)</span>
+</span><span class='line'>    <span class="n">t</span><span class="o">.</span><span class="nc">SetAttributes</span> <span class="o">(</span><span class="nn">TypeAttributes</span><span class="p">.</span><span class="nc">Class</span> <span class="o">|||</span> <span class="nn">TypeAttributes</span><span class="p">.</span><span class="nc">Public</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">c</span> <span class="o">=</span> <span class="nc">ProvidedConstructor</span><span class="o">(</span><span class="bp">[]</span><span class="o">)</span>
+</span><span class='line'>    <span class="n">c</span><span class="o">.</span><span class="nc">InvokeCode</span> <span class="o">&lt;-</span>
+</span><span class='line'>        <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="k">match</span> <span class="n">args</span> <span class="k">with</span>
+</span><span class='line'>            <span class="o">|</span> <span class="bp">[]</span> <span class="o">-&gt;</span>
+</span><span class='line'>                <span class="n">failwith</span> <span class="s2">&quot;Generated constructors should always pass the instance as the first argument!&quot;</span>
+</span><span class='line'>            <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
+</span><span class='line'>                <span class="o">&lt;@@</span> <span class="bp">()</span> <span class="o">@@&gt;</span>
+</span><span class='line'>    <span class="n">t</span><span class="o">.</span><span class="nc">AddMember</span> <span class="n">c</span>
+</span><span class='line'>    <span class="n">father</span><span class="o">.</span><span class="nc">AddMember</span> <span class="n">t</span>
+</span><span class='line'>    <span class="k">match</span> <span class="n">person</span><span class="o">.</span><span class="nc">Heir</span> <span class="k">with</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Some</span> <span class="n">p</span> <span class="o">-&gt;</span> <span class="n">personToType</span> <span class="n">t</span> <span class="n">p</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>All looks good. In here you can see one of the first differences between erased and generated type. For a generated type, the first input arg to the constructor is the instance of the type to be initialized &ndash; and the return type of the constructor should be null.</p>
+
+<p>The only problem is that our type provider errors immediately on usage with an &ldquo;Argument cannot be null. Parameter name: obj&rdquo; error. Not immediately informative.</p>
+
+<p>A quick check with a type provider providing a single type later, we can confirm that the constructor above is valid; sounds like we&rsquo;re having issues with the fact that we&rsquo;re inheriting from a provided type. Maybe they&rsquo;re sealed for a reason after all. Still; we&rsquo;re not to be deterred so easily!</p>
+
+<p><em>Cue dramatic music of choice!</em></p>
+
+<p>Taking an guess, we&rsquo;ll assume this might have something to do with the <code>JesusGenerations</code> type not having a constructor; we&rsquo;ll add one and try again and&hellip; no dice. Same error.</p>
+
+<p>Which is round about the time I noticed that provided constructors also have a <code>BaseConstructorCall</code> property. Time for a slightly more invasive rewrite, leaving us an overall type provider that looks like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+<span class='line-number'>85</span>
+<span class='line-number'>86</span>
+<span class='line-number'>87</span>
+<span class='line-number'>88</span>
+<span class='line-number'>89</span>
+<span class='line-number'>90</span>
+<span class='line-number'>91</span>
+<span class='line-number'>92</span>
+<span class='line-number'>93</span>
+<span class='line-number'>94</span>
+<span class='line-number'>95</span>
+<span class='line-number'>96</span>
+<span class='line-number'>97</span>
+<span class='line-number'>98</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nc">AdventProvider</span>
+</span><span class='line'><span class="o">#</span><span class="k">if</span> <span class="nc">INTERACTIVE</span>
+</span><span class='line'><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;paket-files/fsprojects/FSharp.TypeProviders.StarterPack/src/ProvidedTypes.fsi&quot;</span>
+</span><span class='line'><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;paket-files/fsprojects/FSharp.TypeProviders.StarterPack/src/ProvidedTypes.fs&quot;</span>
+</span><span class='line'><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;Parser.fs&quot;</span>
+</span><span class='line'><span class="o">#</span><span class="n">endif</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Reflection</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">ProviderImplementation</span><span class="p">.</span><span class="nc">ProvidedTypes</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nn">Core</span><span class="p">.</span><span class="nc">CompilerServices</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nc">Quotations</span>
+</span><span class='line'><span class="k">open</span> <span class="nc">Parser</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="nc">TypeProvider</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">type</span> <span class="nc">AdventProvider</span> <span class="o">(</span><span class="n">cfg</span> <span class="o">:</span> <span class="nc">TypeProviderConfig</span><span class="o">)</span> <span class="k">as</span> <span class="n">this</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">inherit</span> <span class="nc">TypeProviderForNamespaces</span> <span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">ns</span> <span class="o">=</span> <span class="s2">&quot;Advent.Provided&quot;</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">asm</span> <span class="o">=</span> <span class="nn">Assembly</span><span class="p">.</span><span class="nc">GetExecutingAssembly</span><span class="bp">()</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">tempAsmPath</span> <span class="o">=</span> <span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">ChangeExtension</span><span class="o">(</span><span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">GetTempFileName</span><span class="bp">()</span><span class="o">,</span> <span class="s2">&quot;.dll&quot;</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">tempAsm</span> <span class="o">=</span> <span class="nc">ProvidedAssembly</span> <span class="n">tempAsmPath</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">t</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="s2">&quot;Family&quot;</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;,</span> <span class="nc">IsErased</span> <span class="o">=</span> <span class="bp">false</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">parameters</span> <span class="o">=</span> <span class="o">[</span><span class="nc">ProvidedStaticParameter</span><span class="o">(</span><span class="s2">&quot;Genealogy&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;)]</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">do</span>
+</span><span class='line'>        <span class="n">t</span><span class="o">.</span><span class="nc">DefineStaticParameters</span><span class="o">(</span>
+</span><span class='line'>            <span class="n">parameters</span><span class="o">,</span>
+</span><span class='line'>            <span class="k">fun</span> <span class="n">typeName</span> <span class="n">args</span> <span class="o">-&gt;</span>
+</span><span class='line'>                <span class="k">let</span> <span class="n">genealogy</span> <span class="o">=</span> <span class="n">args</span><span class="o">.[</span><span class="mi">0</span><span class="o">]</span> <span class="o">:?&gt;</span> <span class="kt">string</span>
+</span><span class='line'>                <span class="k">let</span> <span class="n">inputFile</span> <span class="o">=</span>
+</span><span class='line'>                    <span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">Combine</span><span class="o">(</span><span class="n">cfg</span><span class="o">.</span><span class="nc">ResolutionFolder</span><span class="o">,</span> <span class="n">genealogy</span><span class="o">)</span>
+</span><span class='line'>                <span class="k">let</span> <span class="n">raw</span> <span class="o">=</span>
+</span><span class='line'>                    <span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">File</span><span class="p">.</span><span class="nc">ReadAllLines</span> <span class="n">inputFile</span>
+</span><span class='line'>                <span class="k">let</span> <span class="n">input</span> <span class="o">=</span>
+</span><span class='line'>                    <span class="n">raw</span>
+</span><span class='line'>                    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">toList</span>
+</span><span class='line'>                    <span class="o">|&gt;</span> <span class="nc">Parse</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="k">let</span> <span class="n">g</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span>
+</span><span class='line'>                            <span class="n">asm</span><span class="o">,</span>
+</span><span class='line'>                            <span class="n">ns</span><span class="o">,</span>
+</span><span class='line'>                            <span class="n">typeName</span><span class="o">,</span>
+</span><span class='line'>                            <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;,</span>
+</span><span class='line'>                            <span class="nc">IsErased</span> <span class="o">=</span> <span class="bp">false</span><span class="o">)</span>
+</span><span class='line'>                <span class="n">g</span><span class="o">.</span><span class="nc">SetAttributes</span> <span class="o">(</span><span class="nn">TypeAttributes</span><span class="p">.</span><span class="nc">Public</span> <span class="o">|||</span> <span class="nn">TypeAttributes</span><span class="p">.</span><span class="nc">Class</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="k">let</span> <span class="n">s</span> <span class="o">=</span> <span class="nc">ProvidedProperty</span><span class="o">(</span><span class="s2">&quot;Raw&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;,</span> <span class="nc">IsStatic</span> <span class="o">=</span> <span class="bp">true</span><span class="o">)</span>
+</span><span class='line'>                <span class="k">let</span> <span class="n">rawStr</span> <span class="o">=</span> <span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">raw</span>
+</span><span class='line'>                <span class="n">s</span><span class="o">.</span><span class="nc">GetterCode</span> <span class="o">&lt;-</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="nn">Expr</span><span class="p">.</span><span class="nc">Value</span> <span class="n">rawStr</span>
+</span><span class='line'>                <span class="n">g</span><span class="o">.</span><span class="nc">AddMember</span> <span class="n">s</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="k">let</span> <span class="n">c</span> <span class="o">=</span> <span class="nc">ProvidedConstructor</span><span class="o">(</span><span class="bp">[]</span><span class="o">)</span>
+</span><span class='line'>                <span class="n">c</span><span class="o">.</span><span class="nc">InvokeCode</span> <span class="o">&lt;-</span>
+</span><span class='line'>                    <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span>
+</span><span class='line'>                        <span class="k">match</span> <span class="n">args</span> <span class="k">with</span>
+</span><span class='line'>                        <span class="o">|</span> <span class="bp">[]</span> <span class="o">-&gt;</span>
+</span><span class='line'>                            <span class="n">failwith</span> <span class="s2">&quot;Generated constructors should always pass the instance as the first argument!&quot;</span>
+</span><span class='line'>                        <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
+</span><span class='line'>                            <span class="o">&lt;@@</span> <span class="bp">()</span> <span class="o">@@&gt;</span>
+</span><span class='line'>                <span class="n">g</span><span class="o">.</span><span class="nc">AddMember</span> <span class="n">c</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="k">let</span> <span class="k">rec</span> <span class="n">personToType</span> <span class="o">(</span><span class="n">father</span> <span class="o">:</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">)</span> <span class="n">fatherCtor</span> <span class="o">(</span><span class="n">person</span> <span class="o">:</span> <span class="nc">Person</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>                    <span class="k">let</span> <span class="n">t</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">person</span><span class="o">.</span><span class="nc">Name</span><span class="o">,</span> <span class="nc">Some</span> <span class="o">(</span><span class="n">father</span> <span class="o">:&gt;</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Type</span><span class="o">),</span> <span class="nc">IsErased</span> <span class="o">=</span> <span class="bp">false</span><span class="o">)</span>
+</span><span class='line'>                    <span class="n">t</span><span class="o">.</span><span class="nc">SetAttributes</span> <span class="o">(</span><span class="nn">TypeAttributes</span><span class="p">.</span><span class="nc">Class</span> <span class="o">|||</span> <span class="nn">TypeAttributes</span><span class="p">.</span><span class="nc">Public</span><span class="o">)</span>
+</span><span class='line'>                    <span class="k">let</span> <span class="n">c</span> <span class="o">=</span> <span class="nc">ProvidedConstructor</span><span class="o">(</span><span class="bp">[]</span><span class="o">)</span>
+</span><span class='line'>                    <span class="n">c</span><span class="o">.</span><span class="nc">BaseConstructorCall</span> <span class="o">&lt;-</span> <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">(</span><span class="n">fatherCtor</span><span class="o">,</span> <span class="n">args</span><span class="o">)</span>
+</span><span class='line'>                    <span class="n">c</span><span class="o">.</span><span class="nc">InvokeCode</span> <span class="o">&lt;-</span>
+</span><span class='line'>                        <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span>
+</span><span class='line'>                            <span class="k">match</span> <span class="n">args</span> <span class="k">with</span>
+</span><span class='line'>                            <span class="o">|</span> <span class="bp">[]</span> <span class="o">-&gt;</span>
+</span><span class='line'>                                <span class="n">failwith</span> <span class="s2">&quot;Generated constructors should always pass the instance as the first argument!&quot;</span>
+</span><span class='line'>                            <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
+</span><span class='line'>                                <span class="o">&lt;@@</span> <span class="bp">()</span> <span class="o">@@&gt;</span>
+</span><span class='line'>                    <span class="n">t</span><span class="o">.</span><span class="nc">AddMember</span> <span class="n">c</span>
+</span><span class='line'>                    <span class="n">father</span><span class="o">.</span><span class="nc">AddMember</span> <span class="n">t</span>
+</span><span class='line'>                    <span class="k">match</span> <span class="n">person</span><span class="o">.</span><span class="nc">Heir</span> <span class="k">with</span>
+</span><span class='line'>                    <span class="o">|</span> <span class="nc">Some</span> <span class="n">p</span> <span class="o">-&gt;</span> <span class="n">personToType</span> <span class="n">t</span> <span class="n">c</span> <span class="n">p</span>
+</span><span class='line'>                    <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="k">match</span> <span class="n">input</span> <span class="k">with</span>
+</span><span class='line'>                <span class="o">|</span> <span class="nc">Some</span> <span class="n">p</span> <span class="o">-&gt;</span>
+</span><span class='line'>                    <span class="n">personToType</span> <span class="n">g</span> <span class="n">c</span> <span class="n">p</span>
+</span><span class='line'>                <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span>
+</span><span class='line'>                    <span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="n">tempAsm</span><span class="o">.</span><span class="nc">AddTypes</span> <span class="o">[</span><span class="n">g</span><span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="n">g</span>
+</span><span class='line'>            <span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">do</span>
+</span><span class='line'>        <span class="n">this</span><span class="o">.</span><span class="nc">RegisterRuntimeAssemblyLocationAsProbingFolder</span> <span class="n">cfg</span>
+</span><span class='line'>        <span class="n">tempAsm</span><span class="o">.</span><span class="nc">AddTypes</span> <span class="o">[</span><span class="n">t</span><span class="o">]</span>
+</span><span class='line'>        <span class="n">this</span><span class="o">.</span><span class="nc">AddNamespace</span><span class="o">(</span><span class="n">ns</span><span class="o">,</span> <span class="o">[</span><span class="n">t</span><span class="o">])</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="n">assembly</span><span class="o">:</span><span class="nc">TypeProviderAssembly</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">do</span> <span class="bp">()</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>It all builds, we can reference it&hellip; and then we get:</p>
+
+<pre><code>The type provider 'AdventProvider+AdventProvider' reported an error: User defined subclasses of System.Type are not yet supported
+</code></pre>
+
+<p>Hmm. Irritating. Especially as the error message is actually incorrect; we&rsquo;re not subclassing System.Type and we know that that was working correctly as the types were being generated correctly before we tried to add constructors to them. But it looks like we might have hit the limits of what the current type provider implementation allows.</p>
+
+<p>But we&rsquo;re still not quite done yet; let&rsquo;s turn the insanity up a notch.</p>
+
+<p><em>Cue your choice of even more dramatic music or Benny Hill here</em></p>
+
+<p>As well as actual inheritance in .net, we have interfaces which can be used to model inheritance. Let&rsquo;s have a last throw of the dice, and see whether we can create generated interfaces to do compile time ancestry checking.</p>
+
+<p>Adding an <code>Interface</code> at every level turns out to be fairly easy, and it appears we can create generated interfaces &ndash; a useful trick to have up your sleeve. Let&rsquo;s have a look what that looks like:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nc">AdventProvider</span>
+</span><span class='line'><span class="o">#</span><span class="k">if</span> <span class="nc">INTERACTIVE</span>
+</span><span class='line'><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;paket-files/fsprojects/FSharp.TypeProviders.StarterPack/src/ProvidedTypes.fsi&quot;</span>
+</span><span class='line'><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;paket-files/fsprojects/FSharp.TypeProviders.StarterPack/src/ProvidedTypes.fs&quot;</span>
+</span><span class='line'><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;Parser.fs&quot;</span>
+</span><span class='line'><span class="o">#</span><span class="n">endif</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Reflection</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">ProviderImplementation</span><span class="p">.</span><span class="nc">ProvidedTypes</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nn">Core</span><span class="p">.</span><span class="nc">CompilerServices</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nc">Quotations</span>
+</span><span class='line'><span class="k">open</span> <span class="nc">Parser</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="nc">TypeProvider</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">type</span> <span class="nc">AdventProvider</span> <span class="o">(</span><span class="n">cfg</span> <span class="o">:</span> <span class="nc">TypeProviderConfig</span><span class="o">)</span> <span class="k">as</span> <span class="n">this</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">inherit</span> <span class="nc">TypeProviderForNamespaces</span> <span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">ns</span> <span class="o">=</span> <span class="s2">&quot;Advent.Provided&quot;</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">asm</span> <span class="o">=</span> <span class="nn">Assembly</span><span class="p">.</span><span class="nc">GetExecutingAssembly</span><span class="bp">()</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">tempAsmPath</span> <span class="o">=</span> <span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">ChangeExtension</span><span class="o">(</span><span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">GetTempFileName</span><span class="bp">()</span><span class="o">,</span> <span class="s2">&quot;.dll&quot;</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">tempAsm</span> <span class="o">=</span> <span class="nc">ProvidedAssembly</span> <span class="n">tempAsmPath</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">t</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="s2">&quot;Family&quot;</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;,</span> <span class="nc">IsErased</span> <span class="o">=</span> <span class="bp">false</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">parameters</span> <span class="o">=</span> <span class="o">[</span><span class="nc">ProvidedStaticParameter</span><span class="o">(</span><span class="s2">&quot;Genealogy&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;)]</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">do</span>
+</span><span class='line'>        <span class="n">t</span><span class="o">.</span><span class="nc">DefineStaticParameters</span><span class="o">(</span>
+</span><span class='line'>            <span class="n">parameters</span><span class="o">,</span>
+</span><span class='line'>            <span class="k">fun</span> <span class="n">typeName</span> <span class="n">args</span> <span class="o">-&gt;</span>
+</span><span class='line'>                <span class="k">let</span> <span class="n">genealogy</span> <span class="o">=</span> <span class="n">args</span><span class="o">.[</span><span class="mi">0</span><span class="o">]</span> <span class="o">:?&gt;</span> <span class="kt">string</span>
+</span><span class='line'>                <span class="k">let</span> <span class="n">inputFile</span> <span class="o">=</span>
+</span><span class='line'>                    <span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">Combine</span><span class="o">(</span><span class="n">cfg</span><span class="o">.</span><span class="nc">ResolutionFolder</span><span class="o">,</span> <span class="n">genealogy</span><span class="o">)</span>
+</span><span class='line'>                <span class="k">let</span> <span class="n">raw</span> <span class="o">=</span>
+</span><span class='line'>                    <span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">File</span><span class="p">.</span><span class="nc">ReadAllLines</span> <span class="n">inputFile</span>
+</span><span class='line'>                <span class="k">let</span> <span class="n">input</span> <span class="o">=</span>
+</span><span class='line'>                    <span class="n">raw</span>
+</span><span class='line'>                    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">toList</span>
+</span><span class='line'>                    <span class="o">|&gt;</span> <span class="nc">Parse</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="k">let</span> <span class="n">g</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span>
+</span><span class='line'>                            <span class="n">asm</span><span class="o">,</span>
+</span><span class='line'>                            <span class="n">ns</span><span class="o">,</span>
+</span><span class='line'>                            <span class="n">typeName</span><span class="o">,</span>
+</span><span class='line'>                            <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;,</span>
+</span><span class='line'>                            <span class="nc">IsErased</span> <span class="o">=</span> <span class="bp">false</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="k">let</span> <span class="n">s</span> <span class="o">=</span> <span class="nc">ProvidedProperty</span><span class="o">(</span><span class="s2">&quot;Raw&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;,</span> <span class="nc">IsStatic</span> <span class="o">=</span> <span class="bp">true</span><span class="o">)</span>
+</span><span class='line'>                <span class="k">let</span> <span class="n">rawStr</span> <span class="o">=</span> <span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">raw</span>
+</span><span class='line'>                <span class="n">s</span><span class="o">.</span><span class="nc">GetterCode</span> <span class="o">&lt;-</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="nn">Expr</span><span class="p">.</span><span class="nc">Value</span> <span class="n">rawStr</span>
+</span><span class='line'>                <span class="n">g</span><span class="o">.</span><span class="nc">AddMember</span> <span class="n">s</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="k">let</span> <span class="k">rec</span> <span class="n">personToType</span> <span class="o">(</span><span class="n">father</span> <span class="o">:</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">)</span> <span class="o">(</span><span class="n">fatherInterfaces</span> <span class="o">:</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Type</span> <span class="kt">list</span><span class="o">)</span> <span class="o">(</span><span class="n">person</span> <span class="o">:</span> <span class="nc">Person</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>                    <span class="k">let</span> <span class="n">t</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">person</span><span class="o">.</span><span class="nc">Name</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;,</span> <span class="nc">IsErased</span> <span class="o">=</span> <span class="bp">false</span><span class="o">)</span>
+</span><span class='line'>                    <span class="k">let</span> <span class="n">parentInterface</span> <span class="o">=</span>
+</span><span class='line'>                        <span class="k">match</span> <span class="n">fatherInterfaces</span> <span class="k">with</span>
+</span><span class='line'>                        <span class="o">|</span> <span class="bp">[]</span> <span class="o">-&gt;</span> <span class="nc">None</span>
+</span><span class='line'>                        <span class="o">|</span> <span class="n">h</span><span class="o">::_</span> <span class="o">-&gt;</span> <span class="nc">Some</span> <span class="n">h</span>
+</span><span class='line'>                    <span class="k">let</span> <span class="n">i</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="s2">&quot;I&quot;</span> <span class="o">+</span> <span class="n">person</span><span class="o">.</span><span class="nc">Name</span><span class="o">,</span> <span class="nc">None</span><span class="o">,</span> <span class="nc">IsErased</span> <span class="o">=</span> <span class="bp">false</span><span class="o">)</span>
+</span><span class='line'>                    <span class="n">i</span><span class="o">.</span><span class="nc">SetAttributes</span> <span class="o">(</span><span class="nn">TypeAttributes</span><span class="p">.</span><span class="nc">Public</span> <span class="o">|||</span> <span class="nn">TypeAttributes</span><span class="p">.</span><span class="nc">Interface</span> <span class="o">|||</span> <span class="nn">TypeAttributes</span><span class="p">.</span><span class="nc">Abstract</span><span class="o">)</span>
+</span><span class='line'>                    <span class="n">father</span><span class="o">.</span><span class="nc">AddMembers</span> <span class="o">[</span><span class="n">t</span><span class="o">;</span><span class="n">i</span><span class="o">]</span>
+</span><span class='line'>                    <span class="k">match</span> <span class="n">person</span><span class="o">.</span><span class="nc">Heir</span> <span class="k">with</span>
+</span><span class='line'>                    <span class="o">|</span> <span class="nc">Some</span> <span class="n">p</span> <span class="o">-&gt;</span> <span class="n">personToType</span> <span class="n">t</span> <span class="o">(</span><span class="n">i</span> <span class="o">:&gt;</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Type</span><span class="o">::</span><span class="n">fatherInterfaces</span><span class="o">)</span> <span class="n">p</span>
+</span><span class='line'>                    <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="k">match</span> <span class="n">input</span> <span class="k">with</span>
+</span><span class='line'>                <span class="o">|</span> <span class="nc">Some</span> <span class="n">p</span> <span class="o">-&gt;</span>
+</span><span class='line'>                    <span class="n">personToType</span> <span class="n">g</span> <span class="bp">[]</span> <span class="n">p</span>
+</span><span class='line'>                <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span>
+</span><span class='line'>                    <span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="n">tempAsm</span><span class="o">.</span><span class="nc">AddTypes</span> <span class="o">[</span><span class="n">g</span><span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="n">g</span>
+</span><span class='line'>            <span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">do</span>
+</span><span class='line'>        <span class="n">this</span><span class="o">.</span><span class="nc">RegisterRuntimeAssemblyLocationAsProbingFolder</span> <span class="n">cfg</span>
+</span><span class='line'>        <span class="n">tempAsm</span><span class="o">.</span><span class="nc">AddTypes</span> <span class="o">[</span><span class="n">t</span><span class="o">]</span>
+</span><span class='line'>        <span class="n">this</span><span class="o">.</span><span class="nc">AddNamespace</span><span class="o">(</span><span class="n">ns</span><span class="o">,</span> <span class="o">[</span><span class="n">t</span><span class="o">])</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="n">assembly</span><span class="o">:</span><span class="nc">TypeProviderAssembly</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">do</span> <span class="bp">()</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Line 58 and 59 do all the work &ndash; normally an interface has no base type, and we need to reset the type attributes to make the interface look like an interface to the compiler. This all works well &ndash; but doesn&rsquo;t, of course, give us any inheritance. Lets see if we can use those &ldquo;fatherInterfaces&rdquo; I&rsquo;ve fed into the function to get us any closer.</p>
+
+<p>A brief experiment with <code>IDisposable</code> shows us that if we change the base type of the interface to <code>Some typeof&lt;System.IDisposable&gt;</code>, that actually works. Again &ndash; useful type provider knowledge, but doesn&rsquo;t help us here. No dice on using the parent interface as the base type &ndash; we just start getting into more of the problems we were having above inheriting from other generated types.</p>
+
+<p>So let&rsquo;s see what happens if instead we use implement interface instead of trying to inherit the interface; it seems about as reasonable as anything else we&rsquo;re tried so far&hellip;</p>
+
+<p>We&rsquo;ll add this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="n">fatherInterfaces</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">iter</span> <span class="n">i</span><span class="o">.</span><span class="nc">AddInterfaceImplementation</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>after line 59 of the version above and see what happens.</p>
+
+<h2><a name="conclusion"></a> Conclusion</h2>
+
+<p>And suddenly&hellip; hey presto! We can do things like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="o">#!/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">env</span> <span class="n">fsharpi</span>
+</span><span class='line'><span class="o">#</span><span class="n">r</span> <span class="o">@</span><span class="s2">&quot;AdventProvider.dll&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nc">AdventProvider</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Advent</span><span class="p">.</span><span class="nc">Provided</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">JesusGenerations</span> <span class="o">=</span> <span class="nc">Family</span><span class="o">&lt;</span><span class="s2">&quot;Genealogy.txt&quot;</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">printfn</span> <span class="s2">&quot;%s&quot;</span> <span class="o">(</span><span class="nn">JesusGenerations</span><span class="p">.</span><span class="nn">Raw</span><span class="p">.</span><span class="nc">Substring</span><span class="o">(</span><span class="mi">0</span><span class="o">,</span> <span class="mi">20</span><span class="o">)</span> <span class="o">+</span> <span class="s2">&quot;...&quot;</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">descendentOfAbraham</span> <span class="o">(_</span> <span class="o">:</span> <span class="o">#</span><span class="nn">JesusGenerations</span><span class="p">.</span><span class="nc">IAbraham</span><span class="o">)</span> <span class="o">=</span> <span class="bp">true</span>
+</span><span class='line'><span class="k">let</span> <span class="n">descendentOfDavid</span>
+</span><span class='line'>        <span class="o">(_</span> <span class="o">:</span>
+</span><span class='line'>            <span class="o">#</span><span class="nn">JesusGenerations</span>
+</span><span class='line'>                <span class="p">.</span><span class="nn">Abraham</span>
+</span><span class='line'>                <span class="p">.</span><span class="nn">Isaac</span>
+</span><span class='line'>                <span class="p">.</span><span class="nn">Jacob</span>
+</span><span class='line'>                <span class="p">.</span><span class="nn">Judah</span>
+</span><span class='line'>                <span class="p">.</span><span class="nn">Perez</span>
+</span><span class='line'>                <span class="p">.</span><span class="nn">Hezron</span>
+</span><span class='line'>                <span class="p">.</span><span class="nn">Ram</span>
+</span><span class='line'>                <span class="p">.</span><span class="nn">Amminadab</span>
+</span><span class='line'>                <span class="p">.</span><span class="nn">Nahshon</span>
+</span><span class='line'>                <span class="p">.</span><span class="nn">Salmon</span>
+</span><span class='line'>                <span class="p">.</span><span class="nn">Boaz</span>
+</span><span class='line'>                <span class="p">.</span><span class="nn">Obed</span>
+</span><span class='line'>                <span class="p">.</span><span class="nn">Jesse</span>
+</span><span class='line'>                <span class="p">.</span><span class="nc">IDavid</span><span class="o">)</span> <span class="o">=</span> <span class="bp">true</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// This compiles...</span>
+</span><span class='line'><span class="n">printfn</span> <span class="s2">&quot;%A&quot;</span> <span class="o">&lt;|</span> <span class="n">descendentOfAbraham</span> <span class="o">({</span> <span class="k">new</span> <span class="nn">JesusGenerations</span><span class="p">.</span><span class="nn">Abraham</span><span class="p">.</span><span class="nc">IIsaac</span> <span class="o">})</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// So does this:</span>
+</span><span class='line'><span class="n">printfn</span> <span class="s2">&quot;%A&quot;</span> <span class="o">&lt;|</span>
+</span><span class='line'>    <span class="n">descendentOfDavid</span>
+</span><span class='line'>        <span class="o">({</span> <span class="k">new</span> <span class="nn">JesusGenerations</span>
+</span><span class='line'>                <span class="p">.</span><span class="nn">Abraham</span>
+</span><span class='line'>                <span class="p">.</span><span class="nn">Isaac</span>
+</span><span class='line'>                <span class="p">.</span><span class="nn">Jacob</span>
+</span><span class='line'>                <span class="p">.</span><span class="nn">Judah</span>
+</span><span class='line'>                <span class="p">.</span><span class="nn">Perez</span>
+</span><span class='line'>                <span class="p">.</span><span class="nn">Hezron</span>
+</span><span class='line'>                <span class="p">.</span><span class="nn">Ram</span>
+</span><span class='line'>                <span class="p">.</span><span class="nn">Amminadab</span>
+</span><span class='line'>                <span class="p">.</span><span class="nn">Nahshon</span>
+</span><span class='line'>                <span class="p">.</span><span class="nn">Salmon</span>
+</span><span class='line'>                <span class="p">.</span><span class="nn">Boaz</span>
+</span><span class='line'>                <span class="p">.</span><span class="nn">Obed</span>
+</span><span class='line'>                <span class="p">.</span><span class="nn">Jesse</span>
+</span><span class='line'>                <span class="p">.</span><span class="nn">David</span>
+</span><span class='line'>                <span class="p">.</span><span class="nn">Solomon</span>
+</span><span class='line'>                <span class="p">.</span><span class="nn">Rehoboam</span>
+</span><span class='line'>                <span class="p">.</span><span class="nc">IAbijah</span> <span class="o">})</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// This doesn&#39;t - how cool is that?</span>
+</span><span class='line'><span class="c">(* printfn &quot;%A&quot; &lt;|</span>
+</span><span class='line'><span class="c">    descendentOfDavid ({ new JesusGenerations.Abraham.IIsaac }) *)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Which personally I think is pretty awesome.</p>
+
+<p>There is, unfortunately, only one problem. Whilst we now have compile time propositional logic&hellip; unfortunately our code fails at runtime with a type load error. Whilst the compiler is happy with the IL my random hacking has turned at, apparently the runtime is not.</p>
+
+<p>Maybe next year&hellip;</p>
+
+<p>I hope you enjoyed this random journey down the rabbit hole of type providers; and if you&rsquo;re interested in looking into the genealogy a bit further <a href="http://christianity.about.com/od/biblefactsandlists/a/jesusgenealogy.htm">this article</a> gives a brief overview of a few things, like why we think Jesus has two different genealogies in the bible and how Jewish genealogies didn&rsquo;t always include every generation.</p>
+
+<p>See you next time: and if anyone can get the inheritance to work properly, I&rsquo;ll owe you a beverage of (reasonable) choice!</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">mavnn</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-12-18T12:01:41+00:00" pubdate data-updated="true">Dec 18<span>th</span>, 2014</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/fsadvent/'>FsAdvent</a>, <a class='category' href='/blog/categories/fsharp/'>fsharp</a>, <a class='category' href='/blog/categories/typeprovider/'>typeprovider</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://blog.mavnn.co.uk/modelling-inheritance-with-inheritance/" data-via="mavnn" data-counturl="http://blog.mavnn.co.uk/modelling-inheritance-with-inheritance/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/cutting-quotations-down-to-size/" title="Previous Post: Cutting Quotations Down to Size">&laquo; Cutting Quotations Down to Size</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/modelling-inheritance-with-inheritance/">Modelling Inheritance With Inheritance</a>
+      </li>
+    
+      <li class="post">
+        <a href="/cutting-quotations-down-to-size/">Cutting Quotations Down to Size</a>
+      </li>
+    
+      <li class="post">
+        <a href="/remote-working/">If I Ruled the World... Remote Working</a>
+      </li>
+    
+      <li class="post">
+        <a href="/property-checking-start-challenge/">Property Checking Start Challenge</a>
+      </li>
+    
+      <li class="post">
+        <a href="/tap/">Tap, Tap, Tapping on the Door</a>
+      </li>
+    
+  </ul>
+</section>
+<section>
+  <h1>Tip the author</h1>
+  <p><script data-gittip-username="mavnn"
+        data-gittip-widget="button"
+        src="//gttp.co/v1.js"></script></p>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/mavnn">@mavnn</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'mavnn',
+            count: 3,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/+MichaelNewtonmavnn?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2014 - mavnn -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mavnn';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://blog.mavnn.co.uk/modelling-inheritance-with-inheritance/';
+        var disqus_url = 'http://blog.mavnn.co.uk/modelling-inheritance-with-inheritance/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

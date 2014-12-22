@@ -655,3 +655,7 @@ Maybe next year...
 I hope you enjoyed this random journey down the rabbit hole of type providers; and if you're interested in looking into the genealogy a bit further [this article](http://christianity.about.com/od/biblefactsandlists/a/jesusgenealogy.htm) gives a brief overview of a few things, like why we think Jesus has two different genealogies in the bible and how Jewish genealogies didn't always include every generation.
 
 See you next time: and if anyone can get the inheritance to work properly, I'll owe you a beverage of (reasonable) choice!
+
+The code from this blog post can, as normal be found on github in the [Advent2014](https://github.com/mavnn/Advent2014) repository.
+
+It's set up to be developed in Vim or Emacs without project files on a nix system, but it will probably play nicely with Visual Studio as well.

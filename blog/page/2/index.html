@@ -9,7 +9,7 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="While type providers are incredibly powerful, the ProvidedTypes api for creating them is sometimes a bit rough around the edges. And not always as &hellip;">
+  <meta name="description" content="As of a few days ago, the embedded module was merged into Suave master. Enjoy! I&rsquo;m a great fan of Suave for simple web development in F#. I &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -77,6 +77,222 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/single-file-websites-with-suave/">Single File Websites With Suave</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-02-28T09:54:46+00:00" pubdate data-updated="true">Feb 28<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><blockquote><p>As of a few days ago, the embedded module <a href="https://github.com/SuaveIO/suave/pull/100/files">was merged</a> into Suave master. Enjoy!</p></blockquote>
+
+<p>I&rsquo;m a great fan of <a href="http://suave.io/">Suave</a> for simple web development in F#. I highly recommend checking out the site for details, but in the mean time I&rsquo;d like to share a little trick I&rsquo;ve been using for rapid prototyping that I&rsquo;m finding very useful.</p>
+
+<p>The Suave.Http module contains a few helpers for serving static files from disk. Unfortunately, depending on use case and deployment strategy, relying on the location of a bunch of files on disk can be problematic.</p>
+
+<p>So (open source to the rescue!) I cracked open the code and wrote a small alternative implementation that serves files from the current assembly&rsquo;s embedded resources. I&rsquo;m finding it especially useful for single page JavaScript apps where you have a small number of resources and then a lot of end points providing api functionality.</p>
+
+<p>Setting up your website looks something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nc">Website</span>
+</span><span class='line'><span class="k">open</span> <span class="nc">System</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Suave</span><span class="p">.</span><span class="nc">Http</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Suave</span><span class="p">.</span><span class="nc">Types</span>
+</span><span class='line'><span class="k">open</span> <span class="nc">Embedded</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">app</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">choose</span> <span class="o">[</span>
+</span><span class='line'>        <span class="c1">// serve the embedded index.html for &quot;/&quot;</span>
+</span><span class='line'>        <span class="nc">GET</span> <span class="o">&gt;&gt;=</span> <span class="n">url</span> <span class="s2">&quot;/&quot;</span> <span class="o">&gt;&gt;=</span> <span class="n">resource</span> <span class="s2">&quot;index.html&quot;</span>
+</span><span class='line'>        <span class="c1">// check if the request matches the name of an embedded resource</span>
+</span><span class='line'>        <span class="c1">// if it does, serve it up with a reasonable cache</span>
+</span><span class='line'>        <span class="nc">GET</span> <span class="o">&gt;&gt;=</span> <span class="n">browse_embedded</span>
+</span><span class='line'>        <span class="c1">// If it doesn&#39;t, try and trigger your api end points</span>
+</span><span class='line'>        <span class="nc">GET</span> <span class="o">&gt;&gt;=</span> <span class="n">url</span> <span class="s2">&quot;/json&quot;</span> <span class="o">&gt;&gt;==</span> <span class="o">(</span><span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">serveJson</span> <span class="o">&lt;|</span> <span class="n">makeData</span><span class="bp">()</span><span class="o">)</span>
+</span><span class='line'>        <span class="nc">GET</span> <span class="o">&gt;&gt;=</span> <span class="n">url</span> <span class="s2">&quot;/carrier&quot;</span> <span class="o">&gt;&gt;==</span> <span class="o">(</span><span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">getCarrierCodes</span> <span class="bp">()</span><span class="o">)</span>
+</span><span class='line'>        <span class="c1">// Nothing else has worked - 404</span>
+</span><span class='line'>        <span class="nc">NOT_FOUND</span> <span class="s2">&quot;Sorry, couldn&#39;t find your page&quot;</span>
+</span><span class='line'>    <span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">web_server</span> <span class="n">default_config</span> <span class="n">app</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And the embedded module looks like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nc">Embedded</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nc">System</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">IO</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Reflection</span>
+</span><span class='line'><span class="k">open</span> <span class="nc">Suave</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Suave</span><span class="p">.</span><span class="nc">Http</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Suave</span><span class="p">.</span><span class="nc">Types</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Suave</span><span class="p">.</span><span class="nc">Socket</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">ass</span> <span class="o">=</span> <span class="nn">Assembly</span><span class="p">.</span><span class="nc">GetExecutingAssembly</span><span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">resources</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">ass</span><span class="o">.</span><span class="nc">GetManifestResourceNames</span><span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="nc">CACHE_CONTROL_MAX_AGE</span> <span class="o">=</span> <span class="mi">600</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">lastModified</span> <span class="o">=</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">UtcNow</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">send_embedded</span> <span class="n">resourceName</span> <span class="n">r</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">write_embedded</span> <span class="n">file</span> <span class="o">(</span><span class="n">r</span> <span class="o">:</span> <span class="nc">HttpRequest</span><span class="o">)</span> <span class="o">=</span> <span class="n">async</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">use</span> <span class="n">s</span> <span class="o">=</span> <span class="n">ass</span><span class="o">.</span><span class="nc">GetManifestResourceStream</span><span class="o">(</span><span class="n">resourceName</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="nc">Length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="n">L</span> <span class="k">then</span>
+</span><span class='line'>        <span class="k">do</span><span class="o">!</span> <span class="n">async_writeln</span> <span class="n">r</span><span class="o">.</span><span class="n">connection</span> <span class="o">(</span><span class="n">sprintf</span> <span class="s2">&quot;Content-Length: %d&quot;</span> <span class="n">s</span><span class="o">.</span><span class="nc">Length</span><span class="o">)</span> <span class="n">r</span><span class="o">.</span><span class="n">line_buffer</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">do</span><span class="o">!</span> <span class="n">async_writeln</span> <span class="n">r</span><span class="o">.</span><span class="n">connection</span> <span class="s2">&quot;&quot;</span> <span class="n">r</span><span class="o">.</span><span class="n">line_buffer</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="nc">Length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="n">L</span> <span class="k">then</span>
+</span><span class='line'>        <span class="k">do</span><span class="o">!</span> <span class="n">transfer_x</span> <span class="n">r</span><span class="o">.</span><span class="n">connection</span> <span class="n">s</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">async</span> <span class="o">{</span> <span class="k">do</span><span class="o">!</span> <span class="n">response_f</span> <span class="mi">200</span> <span class="s2">&quot;OK&quot;</span> <span class="o">(</span><span class="n">write_embedded</span> <span class="n">resourceName</span><span class="o">)</span> <span class="n">r</span> <span class="o">}</span> <span class="o">|&gt;</span> <span class="n">succeed</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">resource</span> <span class="n">resourceName</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">if</span> <span class="n">resources</span> <span class="o">|&gt;</span> <span class="nn">Array</span><span class="p">.</span><span class="n">exists</span> <span class="o">((=)</span> <span class="n">resourceName</span><span class="o">)</span> <span class="k">then</span>
+</span><span class='line'>      <span class="k">let</span> <span class="n">send_it</span> <span class="o">_</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">mimes</span> <span class="o">=</span> <span class="n">mime_type</span> <span class="o">&lt;|</span> <span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">GetExtension</span> <span class="n">resourceName</span>
+</span><span class='line'>        <span class="o">#</span><span class="k">if</span> <span class="nc">DEBUG</span>
+</span><span class='line'>        <span class="n">set_mime_type</span> <span class="n">mimes</span>
+</span><span class='line'>        <span class="o">&gt;&gt;</span> <span class="n">send_embedded</span> <span class="o">(</span><span class="n">resourceName</span><span class="o">)</span>
+</span><span class='line'>        <span class="o">#</span><span class="k">else</span>
+</span><span class='line'>        <span class="n">set_header</span> <span class="s2">&quot;Cache-Control&quot;</span> <span class="o">(</span><span class="n">sprintf</span> <span class="s2">&quot;max-age=%d&quot;</span> <span class="nc">CACHE_CONTROL_MAX_AGE</span><span class="o">)</span>
+</span><span class='line'>        <span class="o">&gt;&gt;</span> <span class="n">set_header</span> <span class="s2">&quot;Last-Modified&quot;</span> <span class="o">(</span><span class="n">lastModified</span><span class="o">.</span><span class="nc">ToString</span><span class="o">(</span><span class="s2">&quot;R&quot;</span><span class="o">))</span>
+</span><span class='line'>        <span class="o">&gt;&gt;</span> <span class="n">set_header</span> <span class="s2">&quot;Expires&quot;</span> <span class="o">(</span><span class="nn">DateTime</span><span class="p">.</span><span class="nn">UtcNow</span><span class="p">.</span><span class="nc">AddSeconds</span><span class="o">(</span><span class="kt">float</span><span class="o">(</span><span class="nc">CACHE_CONTROL_MAX_AGE</span><span class="o">)).</span><span class="nc">ToString</span><span class="o">(</span><span class="s2">&quot;R&quot;</span><span class="o">))</span>
+</span><span class='line'>        <span class="o">&gt;&gt;</span> <span class="n">set_mime_type</span> <span class="n">mimes</span>
+</span><span class='line'>        <span class="o">&gt;&gt;</span> <span class="n">send_embedded</span> <span class="o">(</span><span class="n">resourceName</span><span class="o">)</span>
+</span><span class='line'>        <span class="o">#</span><span class="n">endif</span>
+</span><span class='line'>      <span class="n">warbler</span> <span class="o">(</span> <span class="k">fun</span> <span class="o">(</span><span class="n">r</span><span class="o">:</span><span class="nc">HttpRequest</span><span class="o">)</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">modified_since</span> <span class="o">=</span> <span class="o">(</span><span class="n">r</span><span class="o">.</span><span class="n">headers</span> <span class="o">?</span> <span class="o">``</span><span class="k">if</span><span class="o">-</span><span class="n">modified</span><span class="o">-</span><span class="n">since</span><span class="o">``</span> <span class="o">)</span>
+</span><span class='line'>        <span class="k">match</span> <span class="n">modified_since</span> <span class="k">with</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">Some</span> <span class="n">v</span> <span class="o">-&gt;</span> <span class="k">let</span> <span class="n">date</span> <span class="o">=</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">Parse</span> <span class="n">v</span>
+</span><span class='line'>                    <span class="k">if</span> <span class="n">lastModified</span> <span class="o">&gt;</span> <span class="n">date</span> <span class="k">then</span> <span class="n">send_it</span> <span class="bp">()</span>
+</span><span class='line'>                    <span class="k">else</span> <span class="nc">NOT_MODIFIED</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">None</span>   <span class="o">-&gt;</span> <span class="n">send_it</span> <span class="bp">()</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">else</span>
+</span><span class='line'>      <span class="n">never</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">browse_embedded</span> <span class="o">:</span> <span class="nc">WebPart</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">warbler</span> <span class="o">(</span><span class="k">fun</span> <span class="n">req</span> <span class="o">-&gt;</span> <span class="n">resource</span> <span class="o">(</span><span class="n">req</span><span class="o">.</span><span class="n">url</span><span class="o">.</span><span class="nc">TrimStart</span><span class="o">([|</span> <span class="sc">&#39;/&#39;</span> <span class="o">|])))</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><a href="https://twitter.com/ad3mar">@ad3mar</a> if you feel like rolling this into Suave, you can consider it licenced under what ever is most convenient. An official licence file would make me much happier using Suave in production, by the way (hint, hint).</p>
+
+<p>Edit: ad3mar has pointed out in the comments that Suave is already Apache2 licensed, I just failed to find the file last time I looked.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -970,49 +1186,6 @@ System.Console.ReadLine() |&gt; ignore</code></pre></noscript></div>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/useful-find-a-decent-windows-console/">Useful Find: A Decent Windows Console</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-07-09T16:12:00+01:00" pubdate data-updated="true">Jul 9<span>th</span>, 2013</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>New machine, new Octopress set up. On Windows, no less.</p>
-
-<p>So let&rsquo;s hope a blog post actually appears!</p>
-
-<p>Just in case it does, I&rsquo;ll include a useful piece of side
-info &ndash; a actually decent Windows console called ConEmu.</p>
-
-<p>I&rsquo;ll leave you with <a href="http://www.hanselman.com/blog/ConEmuTheWindowsTerminalConsolePromptWeveBeenWaitingFor.aspx">Scott Hanselman&rsquo;s excellent review</a>.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/3/">&larr; Older</a>
@@ -1030,6 +1203,10 @@ info &ndash; a actually decent Windows console called ConEmu.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/keeping-up-with-the-latest-hammer/">Keeping Up With the Latest Hammer</a>
+      </li>
+    
+      <li class="post">
         <a href="/modelling-inheritance-with-inheritance/">Modelling Inheritance With Inheritance</a>
       </li>
     
@@ -1043,10 +1220,6 @@ info &ndash; a actually decent Windows console called ConEmu.</p>
     
       <li class="post">
         <a href="/property-checking-start-challenge/">Property Checking Start Challenge</a>
-      </li>
-    
-      <li class="post">
-        <a href="/tap/">Tap, Tap, Tapping on the Door</a>
       </li>
     
   </ul>

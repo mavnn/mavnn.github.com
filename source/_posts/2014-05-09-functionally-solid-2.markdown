@@ -50,7 +50,7 @@ type ITransforming =
 
 For anyone who's worked with SOLID OO code before, this should be looking fairly familiar, and it should be obvious how you could build a class that accepted implementations of these interfaces in it's constructor and then carried the state of the robot (location, hits remaining, etc) around as mutable fields.
 
-But... this is a turn based game, and we've decided that we want to use a [minimax](en.wikipedia.org/wiki/Minimax) approach to choosing moves for the computer player. Minimax is effectively a tree search, which means that implementing it looks like it would be a prime moment for a bit of concurrency. Each branch of the tree can be calculated independently, after all.
+But... this is a turn based game, and we've decided that we want to use a [minimax](http://en.wikipedia.org/wiki/Minimax) approach to choosing moves for the computer player. Minimax is effectively a tree search, which means that implementing it looks like it would be a prime moment for a bit of concurrency. Each branch of the tree can be calculated independently, after all.
 
 Unfortunately... our SOLID OO approach is not looking very thread safe. Functional programming revolves around the idea that code is [referentially transparent](http://en.wikipedia.org/wiki/Referential_transparency_%28computer_science%29) and that data types are [immutable](http://en.wikipedia.org/wiki/Immutable_object). These two properties immediately lead to thread safe code.
 

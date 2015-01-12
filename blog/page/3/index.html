@@ -306,7 +306,7 @@ all that, I hope you find it useful.</p>
       
   <header>
     
-      <h1 class="entry-title"><a href="/a-short-interlude-into-adaptive-polling-tag-f/index.html">A Short Interlude Into Adaptive Polling</a></h1>
+      <h1 class="entry-title"><a href="/a-short-interlude-into-adaptive-polling-tag-f/">A Short Interlude Into Adaptive Polling</a></h1>
     
     
       <p class="meta">
@@ -329,23 +329,44 @@ all that, I hope you find it useful.</p>
   </header>
 
 
-  <div class="entry-content"><span style="font-family: arial,sans-serif; font-size: 13px;">Your windows service is watching an email inbox.</span><p /> <span style="font-family: arial,sans-serif; font-size: 13px;">How often should it poll?</span><p /><span style="font-family: arial,sans-serif; font-size: 13px;">Once every 5 minutes? Every 10? Then of course you realise that it should be different for every customer&#8230; or maybe every mailbox. You need more config!</span>
-<p />
-<div>Or not.<p /><span style="font-family: arial,sans-serif; font-size: 13px;">The real answer, of course, is something completely different: it&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">should poll a lot when a lot of emails are arriving, and not very much&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">when they aren&#8217;t.</span><p /> <span style="font-family: arial,sans-serif; font-size: 13px;">It took a lot longer than it should have done to get my maths brain&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">back on, but with the help of my wife I eventually settled on this&nbsp;</span><span style="font-family: arial,sans-serif; font-size: 13px;">code for deciding the intervals between polls:</span><p /> 
-<div><script src="https://gist.github.com/4595744.js"></script></div>
-<p />
-<div>The &#8216;i&#8217; in this function is the number of times we&#8217;ve polled since the last time a new email was received (if one is received, we reset i to 0).</div>
-<p />
-<div>If you plot this out on a graph, you get something that looks like this:</div>
-<p />
-<div><img src="http://www.wolframalpha.com/share/img?i=d41d8cd98f00b204e9800998ecf8427ehd954rh40i&amp;f=HBQTQYZYGY4TOM3CGRSGMMBWGAYDCM3DGYZGMOBWGFRDANDCMUZAaaaa" alt="" /></div>
-<p />
-<div>(You can play with the shape of the graph at Wolfram|Alpha if you&#8217;re feeling really geeky :) -&nbsp;<a href="http://www.wolframalpha.com/share/clip?f=d41d8cd98f00b204e9800998ecf8427ehd954rh40i">http://www.wolframalpha.com/share/clip?f=d41d8cd98f00b204e9800998ecf8427ehd954rh40i</a>&nbsp;).</div>
-<p />
-<div>This gives us very aggressive polling for the first few minutes after discovering an email, then dropping off rapidly to close to the one every ten minutes mark that I decided was a reasonable background polling rate.</div>
-<p />
-<div>It&#8217;s not truly adaptive in the machine learning sense, but it gives a very good first cut that is an awful lot better than any fixed value could be.</div>
-</div>
+  <div class="entry-content"><p>Your windows service is watching an email inbox.</p>
+
+<p>How often should it poll?</p>
+
+<p>Once every 5 minutes? Every 10? Then of course you realise that it should be different for every customer… or maybe every mailbox. You need more config!</p>
+
+<h3>Or not.</h3>
+
+<p>The real answer, of course, is something completely different: it should poll a lot when a lot of emails are arriving, and not very much when they aren’t.</p>
+
+<p>It took a lot longer than it should have done to get my maths brain back on, but with the help of my wife I eventually settled on this code for deciding the intervals between polls:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">interval</span> <span class="n">i</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">x</span> <span class="o">=</span> <span class="kt">float</span> <span class="n">i</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">maxWait</span> <span class="o">=</span> <span class="mi">60</span><span class="o">.</span> <span class="o">*</span> <span class="mi">10</span><span class="o">.</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">raisePower</span> <span class="n">x</span> <span class="o">=</span> <span class="n">pown</span> <span class="o">(</span><span class="n">x</span> <span class="o">/</span><span class="mi">10</span><span class="o">.)</span> <span class="mi">4</span>
+</span><span class='line'>    <span class="o">(</span><span class="n">maxWait</span> <span class="o">*</span> <span class="o">(</span><span class="n">raisePower</span> <span class="n">x</span><span class="o">))</span> <span class="o">/</span> <span class="o">(</span><span class="n">raisePower</span> <span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="o">.)</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="o">(*)</span> <span class="mi">1000</span><span class="o">.</span> <span class="o">|&gt;</span> <span class="kt">int</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The ‘i’ in this function is the number of times we’ve polled since the last time a new email was received (if one is received, we reset i to 0).</p>
+
+<p>If you plot this out on a graph, you get something that looks like this:</p>
+
+<p><img src="http://www.wolframalpha.com/share/img?i=d41d8cd98f00b204e9800998ecf8427ehd954rh40i&amp;f=HBQTQYZYGY4TOM3CGRSGMMBWGAYDCM3DGYZGMOBWGFRDANDCMUZAaaaa" alt="" /></p>
+
+<p>You can play with the shape of the graph at <a href="http://www.wolframalpha.com/share/clip?f=d41d8cd98f00b204e9800998ecf8427ehd954rh40i">Wolfram|Alpha if you&rsquo;re feeling really geeky</a> :).</p>
+
+<p>This gives us very aggressive polling for the first few minutes after discovering an email, then dropping off rapidly to close to the one every ten minutes mark that I decided was a reasonable background polling rate.</p>
+
+<p>It&rsquo;s not truly adaptive in the machine learning sense, but it gives a very good first cut that is an awful lot better than any fixed value could be.</p>
 </div>
   
   
@@ -738,7 +759,7 @@ source, with all the niceties like intellisense that you would want.</p>
     </div>
   </div>
   <footer role="contentinfo"><p>
-  Copyright &copy; 2014 - mavnn -
+  Copyright &copy; 2015 - mavnn -
   <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
 </p>
 

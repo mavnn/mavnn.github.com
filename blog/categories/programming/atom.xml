@@ -4,7 +4,7 @@
   <title><![CDATA[Category: programming | Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/blog/categories/programming/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2015-01-14T11:01:43+00:00</updated>
+  <updated>2015-01-20T15:40:28+00:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,109 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Difficult vs Impossible]]></title>
+    <link href="http://blog.mavnn.co.uk/difficult-vs-impossible/"/>
+    <updated>2015-01-20T15:40:57+00:00</updated>
+    <id>http://blog.mavnn.co.uk/difficult-vs-impossible</id>
+    <content type="html"><![CDATA[<p>Although <a href="/keeping-up-with-the-latest-hammer/">programming is young</a> and we often don&rsquo;t know much about the &ldquo;best&rdquo; way to do things, we&rsquo;re not totally shooting in the dark.</p>
+
+<p>Every so often, you come up against problems that people have investigated in detail, and given programming&rsquo;s mathematical roots this even leads on occasion to a proof about a certain type of system. It would be impossible to keep up with all of the research; but there are a few places where it&rsquo;s very helpful to know about general results.</p>
+
+<p>I&rsquo;m going to claim here that it makes a big difference to how you handle feature requests both as a developer, and as a business, when you&rsquo;re asked to produce systems which are actually impossible.</p>
+
+<p>Let&rsquo;s take the one that comes up most often in my experience&hellip; Consistency in distributed systems.</p>
+
+<p>So &ndash; this comes up the moment that somebody (customer, internal stakeholder, whatever) declares that having just a single service running on a single server is just not reliable enough. At some point, something will go wrong &ndash; and when it does, the service is a SPOF (single point of failure) and your processes which use it stop.</p>
+
+<blockquote><p>Unacceptable!</p>
+
+<p><cite>Every product owner, ever</cite></p></blockquote>
+
+<p>&ldquo;We must have a cluster!&rdquo; the service developer is told. &ldquo;Load balancing!&rdquo;</p>
+
+<p>&ldquo;Hmmmm.&rdquo; says the developer to themselves. &ldquo;Distributed computing. That can get a little tricky. Let&rsquo;s see if I can nail down the actual requirements a bit more.&rdquo;</p>
+
+<p>The Q&amp;A session goes something a bit like this:</p>
+
+<ul>
+<li>Dev: So&hellip; Let&rsquo;s start easy and assume two nodes for now. How important is it that <strong>every</strong> write is replicated to both nodes before it&rsquo;s readable?</li>
+<li>PO: Critical!</li>
+<li>Dev: And&hellip; How important is it that the system stays available when one node is down?</li>
+<li>PO: Critical!</li>
+<li>Dev <em>pausing</em>: Ah&hellip; We won&rsquo;t be able to replicate writes at that point &ndash; the second node is down.</li>
+<li>PO: Oh. Right, makes sense &ndash; read availability is critical though.</li>
+<li>Dev: It would make life easier if writes can only be made to one of the two nodes &ndash; let&rsquo;s call it master. That OK?</li>
+<li>PO <em>thinks for while</em>: OK. It&rsquo;s not ideal, but we&rsquo;ve got a deadline. Go for it.</li>
+<li>Dev: How about consistency &ndash; if Bob writes to the first node, and then immediately reads from the second, is it okay if he gets slightly out of date data?</li>
+<li>PO: Absolutely not.</li>
+<li>Dev: OK. Give me a moment.</li>
+<li>PO: Just a moment &ndash; one last thing! This has to be super user friendly to use. So make sure it&rsquo;s completely transparent to the client consumer that they&rsquo;re talking to a cluster.</li>
+<li>Dev: &hellip;right.</li>
+</ul>
+
+
+<p>Little known to our PO, their requirements are at this point strictly impossible. The impossibility here is a particular edge case; what happens if the &ldquo;master&rdquo; node receives a write, sends it to the &ldquo;slave&rdquo; to replicate, but then <strong>never gets a response</strong>. What does it do? Return an error to the client? Well &ndash; no. If the slave comes back up, and the replication had been successful before the slave became unavailable, then we&rsquo;d have an inconsistent history between slave and master.</p>
+
+<p>Does it return a success? Well &ndash; no. In that case, we&rsquo;re violating our restriction that every write is replicated before it&rsquo;s considered available to read.</p>
+
+<p>So it has to return something else &ndash; a &ldquo;pending&rdquo;, &ldquo;this write will probably be replicated some day&rdquo; response. But that violates the restriction that it shouldn&rsquo;t add any complexity to the consumer. We now have a corner case that the server can&rsquo;t handle, so it has to be passed back to the client.</p>
+
+<p>After this first write, we do have a little bit more flexibility &ndash; we can stop accepting new writes until we&rsquo;ve heard from the slave that it&rsquo;s back up and available and just throw an error. But we&rsquo;re still left with that first, awkward write to deal with. (Perceptive readers will also realise that this set up actually leaves us less reliable for writes than a single node solution &ndash; proofs left as an exercise to the reader).</p>
+
+<p>In reality, this impossibility is a subset of the more widely know CAP theorem: a distributed system cannot be always &ldquo;Consistent&rdquo; and always &ldquo;Available&rdquo; and still behave predictably under network &ldquo;Partitions&rdquo;. The three terms in CAP have pretty specific meanings &ndash; check out a nice introduction at <a href="http://codahale.com/you-cant-sacrifice-partition-tolerance/">You Can&rsquo;t Sacrifice Partition Tolerance</a>.</p>
+
+<p>This is the point where reality diverges, Sliding Doors style, depending on what the developer does next. The branches are numerous, but let&rsquo;s have a look at some of the most common. As an aside, I&rsquo;ve fallen into pretty much all of these categories at different points.</p>
+
+<h3>Option 1: The developer doesn&rsquo;t know this is impossible either</h3>
+
+<p>At this point, we end up with a response that goes something along the lines of: &ldquo;Well &ndash; I can do you a temporary solution where we return a pending result in situation x. Bit of a pain; put it on the technical debt register, and we&rsquo;ll sort it out when we have a bit more time.&rdquo;</p>
+
+<p>Or: &ldquo;I can&rsquo;t think of a completely fool proof solution right now; how about in situation x we return a failure for now. It&rsquo;ll be a bit confusing when a user gets told the write failed, and then it shows up later &ndash; but we&rsquo;ll get it sorted before the final release.&rdquo;</p>
+
+<p>Neither of these solutions are wrong, as such: but the building of impossible expectations will inevitably sour the relationship between product owner and developer, and can cause serious business issues if an external customer has been promised impossible results. There may even be direct financial penalty clauses involved.</p>
+
+<h3>Option 2: The developer knows it&rsquo;s impossible, and thinks the product owner does too</h3>
+
+<p>Here the developer <strong>says</strong> &ldquo;Well, I can return a pending result&hellip;&rdquo; and the PO adds mentally &ldquo;&hellip;which is a OK stop gap measure, I&rsquo;ll schedule some time to clean it up later.&rdquo;</p>
+
+<p>This leads to pretty much the same outcomes as &ldquo;Option 1&rdquo;, except the developer gets an unhealthy injection of smug self-righteousness for knowing that he never promised the impossible. In general, this is not helpful.</p>
+
+<h3>Option 3: The developer knows it&rsquo;s impossible, tries to explain&hellip; And fails</h3>
+
+<p>This is very similar in outcome to Options 1 &amp; 2. Just more frustrating to the developer, especially if the product owner then claims the developer is &ldquo;negative&rdquo; or &ldquo;incompetent&rdquo;.</p>
+
+<h3>Option 4: The developer knows it&rsquo;s impossible and explains to the product owner how and why</h3>
+
+<p>This is hard on two levels. On the first: the proof of why something can&rsquo;t be done might be genuinely difficult to understand.  On the second: it can be hard to work out if you&rsquo;ve avoided Option 3, or if people are just nodding and smiling.</p>
+
+<p>We nearly hit one of these scenarios this week; fortunately our QA department spotted the mismatch in expectations (yay QA!). Where things got a bit strange is that it was raised as Option 3: &ldquo;hey! Can we put a bit more effort in, and make this nicer to use?&rdquo; At the QAT phase this much easier to deal with though &ndash; you don&rsquo;t have angry customers, commercial agreements and these other bits hanging over your heads (well &ndash; not if you&rsquo;re writing an internal service anyway).</p>
+
+<h2>What can we take away from all of this?</h2>
+
+<p>A few things.</p>
+
+<h3>Developers</h3>
+
+<ol>
+<li>As a developer, you must know the basics of the domain you&rsquo;re working in. Keep on learning, folks.</li>
+<li>You must be able to communicate as a developer. A lot of developers are introverts, myself included. This is not an excuse. Introvert means that you can&rsquo;t recharge around other people, not that you can&rsquo;t talk to them.</li>
+<li>You cannot remove your developers from your customer communications, or completely separate commercial proposals and technical evaluation. You must have technical input into your business process, because sometimes its isn&rsquo;t a question of how much time you spend, how well you design or how skilled a developer you assign to the problem: it might just be impossible.</li>
+</ol>
+
+
+<h3>&ldquo;Product Owners&rdquo; (whatever your actual job title is)</h3>
+
+<ol>
+<li>Listen to your developers, and pay attention to the wording. If they say something is impossible (not hard, not delayed) check you understand why.</li>
+<li>Be careful how you define the business problem to your developers. You may end up specifying a problem that is unsolvable if you end up layering up too many technical restrictions &ndash; while your developer may be able to suggest something that meets the business criteria without falling foul of technical (or more importantly mathematical) limitations to what is possible.</li>
+<li>If you place a technical requirement (&ldquo;it must be clustered &ndash; no single points of failure!&rdquo;) make sure you understand the technical trade offs that you are imposing. This may take a long time. Alternatively, and preferably, rephrase your requirement to be your actual business requirement (&ldquo;We promised 98% uptime &ndash; what&rsquo;s your design to make sure it happens?&rdquo;).</li>
+<li>You must be able and willing to say &ldquo;no&rdquo; to a customer when they ask for something impossible. You can offer alternatives, work arounds &ndash; but don&rsquo;t promise the impossible. It will come back, and it will hurt you.</li>
+</ol>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Keeping Up with the Latest Hammer]]></title>
@@ -1249,126 +1352,6 @@ let ctor = ProvidedConstructor(</p>
 <p>If you want to see and play with the code, the version for this post can be found in <a href="https://github.com/mavnn/Mavnn.Blog.TypeProvider/tree/FirstFloor">the FirstFloor branch of the project on GitHub</a>.</p>
 
 <p>As with the first post in the series, let me know your questions and comments.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Single file websites with Suave]]></title>
-    <link href="http://blog.mavnn.co.uk/single-file-websites-with-suave/"/>
-    <updated>2014-02-28T09:54:46+00:00</updated>
-    <id>http://blog.mavnn.co.uk/single-file-websites-with-suave</id>
-    <content type="html"><![CDATA[<blockquote><p>As of a few days ago, the embedded module <a href="https://github.com/SuaveIO/suave/pull/100/files">was merged</a> into Suave master. Enjoy!</p></blockquote>
-
-<p>I&rsquo;m a great fan of <a href="http://suave.io/">Suave</a> for simple web development in F#. I highly recommend checking out the site for details, but in the mean time I&rsquo;d like to share a little trick I&rsquo;ve been using for rapid prototyping that I&rsquo;m finding very useful.</p>
-
-<p>The Suave.Http module contains a few helpers for serving static files from disk. Unfortunately, depending on use case and deployment strategy, relying on the location of a bunch of files on disk can be problematic.</p>
-
-<p>So (open source to the rescue!) I cracked open the code and wrote a small alternative implementation that serves files from the current assembly&rsquo;s embedded resources. I&rsquo;m finding it especially useful for single page JavaScript apps where you have a small number of resources and then a lot of end points providing api functionality.</p>
-
-<p>Setting up your website looks something like this:</p>
-
-<p>``` fsharp
-module Website
-open System
-open Suave.Http
-open Suave.Types
-open Embedded</p>
-
-<p>let app =</p>
-
-<pre><code>choose [
-    // serve the embedded index.html for "/"
-    GET &gt;&gt;= url "/" &gt;&gt;= resource "index.html"
-    // check if the request matches the name of an embedded resource
-    // if it does, serve it up with a reasonable cache
-    GET &gt;&gt;= browse_embedded
-    // If it doesn't, try and trigger your api end points
-    GET &gt;&gt;= url "/json" &gt;&gt;== (fun _ -&gt; serveJson &lt;| makeData())
-    GET &gt;&gt;= url "/carrier" &gt;&gt;== (fun _ -&gt; getCarrierCodes ())
-    // Nothing else has worked - 404
-    NOT_FOUND "Sorry, couldn't find your page"
-]
-</code></pre>
-
-<p>web_server default_config app
-```</p>
-
-<p>And the embedded module looks like this:</p>
-
-<p>``` fsharp
-module Embedded</p>
-
-<p>open System
-open System.IO
-open System.Reflection
-open Suave
-open Suave.Http
-open Suave.Types
-open Suave.Socket</p>
-
-<p>let private ass = Assembly.GetExecutingAssembly()</p>
-
-<p>let private resources =</p>
-
-<pre><code>ass.GetManifestResourceNames()
-</code></pre>
-
-<p>let private CACHE_CONTROL_MAX_AGE = 600</p>
-
-<p>let private lastModified = DateTime.UtcNow</p>
-
-<p>let private send_embedded resourceName r =</p>
-
-<pre><code>let write_embedded file (r : HttpRequest) = async {
-  use s = ass.GetManifestResourceStream(resourceName)
-
-  if s.Length &gt; 0L then
-    do! async_writeln r.connection (sprintf "Content-Length: %d" s.Length) r.line_buffer
-
-  do! async_writeln r.connection "" r.line_buffer
-
-  if s.Length &gt; 0L then
-    do! transfer_x r.connection s }
-
-async { do! response_f 200 "OK" (write_embedded resourceName) r } |&gt; succeed
-</code></pre>
-
-<p>let resource resourceName =</p>
-
-<pre><code>if resources |&gt; Array.exists ((=) resourceName) then
-  let send_it _ = 
-    let mimes = mime_type &lt;| IO.Path.GetExtension resourceName
-    #if DEBUG
-    set_mime_type mimes 
-    &gt;&gt; send_embedded (resourceName)
-    #else
-    set_header "Cache-Control" (sprintf "max-age=%d" CACHE_CONTROL_MAX_AGE)
-    &gt;&gt; set_header "Last-Modified" (lastModified.ToString("R"))
-    &gt;&gt; set_header "Expires" (DateTime.UtcNow.AddSeconds(float(CACHE_CONTROL_MAX_AGE)).ToString("R")) 
-    &gt;&gt; set_mime_type mimes 
-    &gt;&gt; send_embedded (resourceName)
-    #endif
-  warbler ( fun (r:HttpRequest) -&gt;
-    let modified_since = (r.headers ? ``if-modified-since`` )
-    match modified_since with
-    | Some v -&gt; let date = DateTime.Parse v
-                if lastModified &gt; date then send_it ()
-                else NOT_MODIFIED
-    | None   -&gt; send_it ())
-else
-  never
-</code></pre>
-
-<p>let browse_embedded : WebPart =</p>
-
-<pre><code>warbler (fun req -&gt; resource (req.url.TrimStart([| '/' |])))
-</code></pre>
-
-<p>```</p>
-
-<p><a href="https://twitter.com/ad3mar">@ad3mar</a> if you feel like rolling this into Suave, you can consider it licenced under what ever is most convenient. An official licence file would make me much happier using Suave in production, by the way (hint, hint).</p>
-
-<p>Edit: ad3mar has pointed out in the comments that Suave is already Apache2 licensed, I just failed to find the file last time I looked.</p>
 ]]></content>
   </entry>
   

@@ -4,7 +4,7 @@
   <title><![CDATA[Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2015-01-14T11:01:43+00:00</updated>
+  <updated>2015-01-20T15:40:28+00:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,109 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Difficult vs Impossible]]></title>
+    <link href="http://blog.mavnn.co.uk/difficult-vs-impossible/"/>
+    <updated>2015-01-20T15:40:57+00:00</updated>
+    <id>http://blog.mavnn.co.uk/difficult-vs-impossible</id>
+    <content type="html"><![CDATA[<p>Although <a href="http://blog.mavnn.co.uk/keeping-up-with-the-latest-hammer/">programming is young</a> and we often don&rsquo;t know much about the &ldquo;best&rdquo; way to do things, we&rsquo;re not totally shooting in the dark.</p>
+
+<p>Every so often, you come up against problems that people have investigated in detail, and given programming&rsquo;s mathematical roots this even leads on occasion to a proof about a certain type of system. It would be impossible to keep up with all of the research; but there are a few places where it&rsquo;s very helpful to know about general results.</p>
+
+<p>I&rsquo;m going to claim here that it makes a big difference to how you handle feature requests both as a developer, and as a business, when you&rsquo;re asked to produce systems which are actually impossible.</p>
+
+<p>Let&rsquo;s take the one that comes up most often in my experience&hellip; Consistency in distributed systems.</p>
+
+<p>So &ndash; this comes up the moment that somebody (customer, internal stakeholder, whatever) declares that having just a single service running on a single server is just not reliable enough. At some point, something will go wrong &ndash; and when it does, the service is a SPOF (single point of failure) and your processes which use it stop.</p>
+
+<blockquote><p>Unacceptable!</p>
+
+<p><cite>Every product owner, ever</cite></p></blockquote>
+
+<p>&ldquo;We must have a cluster!&rdquo; the service developer is told. &ldquo;Load balancing!&rdquo;</p>
+
+<p>&ldquo;Hmmmm.&rdquo; says the developer to themselves. &ldquo;Distributed computing. That can get a little tricky. Let&rsquo;s see if I can nail down the actual requirements a bit more.&rdquo;</p>
+
+<p>The Q&amp;A session goes something a bit like this:</p>
+
+<ul>
+<li>Dev: So&hellip; Let&rsquo;s start easy and assume two nodes for now. How important is it that <strong>every</strong> write is replicated to both nodes before it&rsquo;s readable?</li>
+<li>PO: Critical!</li>
+<li>Dev: And&hellip; How important is it that the system stays available when one node is down?</li>
+<li>PO: Critical!</li>
+<li>Dev <em>pausing</em>: Ah&hellip; We won&rsquo;t be able to replicate writes at that point &ndash; the second node is down.</li>
+<li>PO: Oh. Right, makes sense &ndash; read availability is critical though.</li>
+<li>Dev: It would make life easier if writes can only be made to one of the two nodes &ndash; let&rsquo;s call it master. That OK?</li>
+<li>PO <em>thinks for while</em>: OK. It&rsquo;s not ideal, but we&rsquo;ve got a deadline. Go for it.</li>
+<li>Dev: How about consistency &ndash; if Bob writes to the first node, and then immediately reads from the second, is it okay if he gets slightly out of date data?</li>
+<li>PO: Absolutely not.</li>
+<li>Dev: OK. Give me a moment.</li>
+<li>PO: Just a moment &ndash; one last thing! This has to be super user friendly to use. So make sure it&rsquo;s completely transparent to the client consumer that they&rsquo;re talking to a cluster.</li>
+<li>Dev: &hellip;right.</li>
+</ul>
+
+
+<p>Little known to our PO, their requirements are at this point strictly impossible. The impossibility here is a particular edge case; what happens if the &ldquo;master&rdquo; node receives a write, sends it to the &ldquo;slave&rdquo; to replicate, but then <strong>never gets a response</strong>. What does it do? Return an error to the client? Well &ndash; no. If the slave comes back up, and the replication had been successful before the slave became unavailable, then we&rsquo;d have an inconsistent history between slave and master.</p>
+
+<p>Does it return a success? Well &ndash; no. In that case, we&rsquo;re violating our restriction that every write is replicated before it&rsquo;s considered available to read.</p>
+
+<p>So it has to return something else &ndash; a &ldquo;pending&rdquo;, &ldquo;this write will probably be replicated some day&rdquo; response. But that violates the restriction that it shouldn&rsquo;t add any complexity to the consumer. We now have a corner case that the server can&rsquo;t handle, so it has to be passed back to the client.</p>
+
+<p>After this first write, we do have a little bit more flexibility &ndash; we can stop accepting new writes until we&rsquo;ve heard from the slave that it&rsquo;s back up and available and just throw an error. But we&rsquo;re still left with that first, awkward write to deal with. (Perceptive readers will also realise that this set up actually leaves us less reliable for writes than a single node solution &ndash; proofs left as an exercise to the reader).</p>
+
+<p>In reality, this impossibility is a subset of the more widely know CAP theorem: a distributed system cannot be always &ldquo;Consistent&rdquo; and always &ldquo;Available&rdquo; and still behave predictably under network &ldquo;Partitions&rdquo;. The three terms in CAP have pretty specific meanings &ndash; check out a nice introduction at <a href="http://codahale.com/you-cant-sacrifice-partition-tolerance/">You Can&rsquo;t Sacrifice Partition Tolerance</a>.</p>
+
+<p>This is the point where reality diverges, Sliding Doors style, depending on what the developer does next. The branches are numerous, but let&rsquo;s have a look at some of the most common. As an aside, I&rsquo;ve fallen into pretty much all of these categories at different points.</p>
+
+<h3>Option 1: The developer doesn&rsquo;t know this is impossible either</h3>
+
+<p>At this point, we end up with a response that goes something along the lines of: &ldquo;Well &ndash; I can do you a temporary solution where we return a pending result in situation x. Bit of a pain; put it on the technical debt register, and we&rsquo;ll sort it out when we have a bit more time.&rdquo;</p>
+
+<p>Or: &ldquo;I can&rsquo;t think of a completely fool proof solution right now; how about in situation x we return a failure for now. It&rsquo;ll be a bit confusing when a user gets told the write failed, and then it shows up later &ndash; but we&rsquo;ll get it sorted before the final release.&rdquo;</p>
+
+<p>Neither of these solutions are wrong, as such: but the building of impossible expectations will inevitably sour the relationship between product owner and developer, and can cause serious business issues if an external customer has been promised impossible results. There may even be direct financial penalty clauses involved.</p>
+
+<h3>Option 2: The developer knows it&rsquo;s impossible, and thinks the product owner does too</h3>
+
+<p>Here the developer <strong>says</strong> &ldquo;Well, I can return a pending result&hellip;&rdquo; and the PO adds mentally &ldquo;&hellip;which is a OK stop gap measure, I&rsquo;ll schedule some time to clean it up later.&rdquo;</p>
+
+<p>This leads to pretty much the same outcomes as &ldquo;Option 1&rdquo;, except the developer gets an unhealthy injection of smug self-righteousness for knowing that he never promised the impossible. In general, this is not helpful.</p>
+
+<h3>Option 3: The developer knows it&rsquo;s impossible, tries to explain&hellip; And fails</h3>
+
+<p>This is very similar in outcome to Options 1 &amp; 2. Just more frustrating to the developer, especially if the product owner then claims the developer is &ldquo;negative&rdquo; or &ldquo;incompetent&rdquo;.</p>
+
+<h3>Option 4: The developer knows it&rsquo;s impossible and explains to the product owner how and why</h3>
+
+<p>This is hard on two levels. On the first: the proof of why something can&rsquo;t be done might be genuinely difficult to understand.  On the second: it can be hard to work out if you&rsquo;ve avoided Option 3, or if people are just nodding and smiling.</p>
+
+<p>We nearly hit one of these scenarios this week; fortunately our QA department spotted the mismatch in expectations (yay QA!). Where things got a bit strange is that it was raised as Option 3: &ldquo;hey! Can we put a bit more effort in, and make this nicer to use?&rdquo; At the QAT phase this much easier to deal with though &ndash; you don&rsquo;t have angry customers, commercial agreements and these other bits hanging over your heads (well &ndash; not if you&rsquo;re writing an internal service anyway).</p>
+
+<h2>What can we take away from all of this?</h2>
+
+<p>A few things.</p>
+
+<h3>Developers</h3>
+
+<ol>
+<li>As a developer, you must know the basics of the domain you&rsquo;re working in. Keep on learning, folks.</li>
+<li>You must be able to communicate as a developer. A lot of developers are introverts, myself included. This is not an excuse. Introvert means that you can&rsquo;t recharge around other people, not that you can&rsquo;t talk to them.</li>
+<li>You cannot remove your developers from your customer communications, or completely separate commercial proposals and technical evaluation. You must have technical input into your business process, because sometimes its isn&rsquo;t a question of how much time you spend, how well you design or how skilled a developer you assign to the problem: it might just be impossible.</li>
+</ol>
+
+
+<h3>&ldquo;Product Owners&rdquo; (whatever your actual job title is)</h3>
+
+<ol>
+<li>Listen to your developers, and pay attention to the wording. If they say something is impossible (not hard, not delayed) check you understand why.</li>
+<li>Be careful how you define the business problem to your developers. You may end up specifying a problem that is unsolvable if you end up layering up too many technical restrictions &ndash; while your developer may be able to suggest something that meets the business criteria without falling foul of technical (or more importantly mathematical) limitations to what is possible.</li>
+<li>If you place a technical requirement (&ldquo;it must be clustered &ndash; no single points of failure!&rdquo;) make sure you understand the technical trade offs that you are imposing. This may take a long time. Alternatively, and preferably, rephrase your requirement to be your actual business requirement (&ldquo;We promised 98% uptime &ndash; what&rsquo;s your design to make sure it happens?&rdquo;).</li>
+<li>You must be able and willing to say &ldquo;no&rdquo; to a customer when they ask for something impossible. You can offer alternatives, work arounds &ndash; but don&rsquo;t promise the impossible. It will come back, and it will hurt you.</li>
+</ol>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Keeping Up With the Latest Hammer]]></title>
@@ -6639,264 +6742,6 @@ namespace NuGet.Common
 <p>I&rsquo;ve got a week or two to prepare, so what I&rsquo;m really hoping for at this point is suggestions and ideas from people for how to improve this as a session idea, things that threw you when you first started writing F# you think should be covered, whether you think this is a stupid idea for a session from the concept up, etc. Once the session is completed I&rsquo;ll be posting the slides and hopefully a screen cast of it as I did last time for use by <a href="" title="http://fsharp.org">fsharp.org</a>.</p>
 
 <p>Suggestions on the piece of C# code to translate would also be appreciated &ndash; either in terms of ideas of the type of code, or actual open source code that would serve as a code starting point.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[FsCheck - Breaking Your Code in New and Exciting Ways]]></title>
-    <link href="http://blog.mavnn.co.uk/fscheck-breaking-your-code-in-new-and-exciting-ways/"/>
-    <updated>2013-07-12T11:55:00+01:00</updated>
-    <id>http://blog.mavnn.co.uk/fscheck-breaking-your-code-in-new-and-exciting-ways</id>
-    <content type="html"><![CDATA[<p><a href="https://github.com/fsharp/FsCheck">FsCheck</a> is a property based testing library for .net. Based on <a href="http://book.realworldhaskell.org/read/testing-and-quality-assurance.html">QuickCheck</a> and <a href="https://github.com/rickynils/scalacheck">scalacheck</a> it can be easily called from any .net language.</p>
-
-<p>But what is property based testing? It&rsquo;s a technique that allows us to define &lsquo;properties&rsquo; for our code, and then let the library try and find input values that break these properties. Let&rsquo;s take an example and see what happens.</p>
-
-<h3>The Brief</h3>
-
-<p>I&rsquo;ve been tasked with writing the backend of a public facing endpoint. Customers can pass user defined input into the endpoint, and we&rsquo;ll add it to their &lsquo;booking&rsquo;. Once they have called the service once with any particular input, we should ignore any further calls with the same value.</p>
-
-<p>Previous architectural decisions mean that we are storing the bookings as XML documents.</p>
-
-<p>(Why yes, I do know this is slightly contrived. Thank you for asking. Hopefully though, you should begin to see similarities to real scenarios you&rsquo;ve coded against.)</p>
-
-<h3>What can we get out of this?</h3>
-
-<p>Well, as well as any normal exploratory unit tests we may decide to write (which I&rsquo;ll ignore for this article to keep things succinct) we can determine a few properties that should always hold true in the brief above:</p>
-
-<ul>
-<li>Repeatedly calling the code with the same input xml document and the same input text should always give us the same result. I.E., the code should be idempotent.</li>
-<li>Our code should never remove nodes from the XML. The result document will always be the same or longer than the original.</li>
-<li>The input is supplied by the customer. It&rsquo;s about as trustworthy as a hungry stoat on speed.</li>
-</ul>
-
-
-<h3>Let&rsquo;s get started</h3>
-
-<p>Let&rsquo;s start off with the core &lsquo;business logic&rsquo; function of this code. We&rsquo;ll ignore for this post how the input gets to the function, and how the document is persisted. It&rsquo;s signature (F# style) will be:</p>
-
-<pre><code>val AddEnhancement :
-  xDoc:System.Xml.Linq.XDocument -&gt; input:string -&gt; System.Xml.Linq.XDocument
-</code></pre>
-
-<p>After referencing <code>System.Xml</code> and <code>System.Xml.Linq</code>, our first, very naive, attempt at the implementation looks like this:</p>
-
-<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part1.fs'></script>
-<noscript><pre><code>let AddEnhancement (xDoc : XDocument) (input : string) =
-    xDoc.Root.Add(XElement(XName.Get &quot;Enhancement&quot;, input))
-    xDoc</code></pre></noscript></div>
-
-
-<p>We know this isn&rsquo;t right &ndash; it&rsquo;s blatantly not idempotent. So let&rsquo;s try and get our failing test.</p>
-
-<p>Although FsCheck does expose a set of NUnit plugin attributes, for this blog post I&rsquo;m just going to run the tests via a console app. So; add a new F# console app to your solution, add references to <code>System.Xml</code>, <code>System.Xml.Linq</code> and your library project then grab FsCheck (it&rsquo;s on NuGet) and we&rsquo;ll see what we can do.</p>
-
-<p>First, we&rsquo;ll need to add a property that we want to test. A property is simply a function that takes a data type FsCheck knows how to generate, and returns a bool. FsCheck knows how to generate strings, so our idempotence property looks something like this:</p>
-
-<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part2.fs'></script>
-<noscript><pre><code>open FsCheck
-open DevEd.FsCheck
-open System.Xml.Linq
-
-let baseDoc = &quot;&lt;root /&gt;&quot;
-
-let ``Add enhancement must be idompotent`` input =
-    let xml1 = XDocument.Parse baseDoc
-    let xml2 = XDocument.Parse baseDoc
-    (AddEnhancement xml1 input).ToString() =
-        (AddEnhancement (AddEnhancement xml2 input) input).ToString()</code></pre></noscript></div>
-
-
-<p>Looking good. How do we run it? Just add this to the end of the file:</p>
-
-<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part3.fs'></script>
-<noscript><pre><code>Check.Quick ``Add enhancement must be idompotent``
-
-System.Console.ReadLine() |&gt; ignore</code></pre></noscript></div>
-
-
-<p>And hey presto:</p>
-
-<p><img src="http://blog.mavnn.co.uk/images/FsCheck1.png" alt="&quot;&quot; broke my code :(" /></p>
-
-<p>Failing test. Interestingly (and if you check the documents, not coincidently), FsCheck has found the &lsquo;simplest&rsquo; possible failure case: <code>""</code>. Of course, it was helped on this occasion by the fact it was also the first input it tried.</p>
-
-<p>So; let&rsquo;s add some checking to <code>AddEnhancement</code> to make sure we don&rsquo;t re-add the same input more than once.</p>
-
-<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part4.fs'></script>
-<noscript><pre><code>let AddEnhancement (xDoc : XDocument) (input : string) =
-    if 
-        xDoc.Root.Elements(XName.Get &quot;Enhancement&quot;)
-        |&gt; Seq.exists (fun e -&gt; e.Value = input)
-        |&gt; not then
-            xDoc.Root.Add(XElement(XName.Get &quot;Enhancement&quot;, input))
-    xDoc
-</code></pre></noscript></div>
-
-
-<p>And re-run the test and&hellip; oops.</p>
-
-<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part5.txt'></script>
-<noscript><pre><code>System.ArgumentException was unhandled by user code
-  HResult=-2147024809
-  Message=' ', hexadecimal value 0x18, is an invalid character.
-  Source=System.Xml
-  StackTrace:
-       at System.Xml.XmlEncodedRawTextWriter.InvalidXmlChar(Int32 ch, Char* pDst, Boolean entitize)
-       at System.Xml.XmlEncodedRawTextWriter.WriteElementTextBlock(Char* pSrc, Char* pSrcEnd)
-       at System.Xml.XmlEncodedRawTextWriter.WriteString(String text)
-       at System.Xml.XmlEncodedRawTextWriterIndent.WriteString(String text)
-       at System.Xml.XmlWellFormedWriter.WriteString(String text)
-       at System.Xml.Linq.ElementWriter.WriteElement(XElement e)
-       at System.Xml.Linq.XElement.WriteTo(XmlWriter writer)
-       at System.Xml.Linq.XContainer.WriteContentTo(XmlWriter writer)
-       at System.Xml.Linq.XNode.GetXmlString(SaveOptions o)
-       at System.Xml.Linq.XNode.ToString()
-       at Program.Add enhancement must be idompotent(String input) in C:\Users\michael.newton\documents\visual studio 2012\Projects\DevEd.FsCheck\TestRunner\Program.fs:line 10
-       at Program.clo@13.Invoke(String input) in C:\Users\michael.newton\documents\visual studio 2012\Projects\DevEd.FsCheck\TestRunner\Program.fs:line 13
-       at FsCheck.Testable.evaluate[a,b](FSharpFunc`2 body, a a)
-  InnerException: 
-</code></pre></noscript></div>
-
-
-<p>And this is where the full power of FsCheck starts becoming apparent. I know my input is untrusted, so I&rsquo;ve told it to generate <em>any</em> string. And it believed me, and has created an input string that breaks <code>System.Xml.XmlEncodedRawTextWriter.WriteElementTextBlock</code>. This is not a unit test I would have thought to write myself, as I&rsquo;d managed to miss that the fact that <a href="http://blog.mark-mclaren.info/2007/02/invalid-xml-characters-when-valid-utf8_5873.html">not all utf-8 characters are valid in utf-8 encoded xml</a>. In fact, it took me more than a few minutes to work out why it was throwing.</p>
-
-<p>At this point FsCheck has revealed to us that our initial brief is actually incomplete; we&rsquo;ve told the customer that we&rsquo;re willing to accept utf-8 strings as input, but our storage mechanism doesn&rsquo;t support all utf-8 strings. To even get FsCheck to run, we&rsquo;ll have to decide on an error handling strategy &ndash; and importantly, it will have to be a strategy that still fulfils the initial properties specified (unless we decide that what we&rsquo;ve discovered so fundamentally breaks our initial assumptions that they need to be re-visited).</p>
-
-<p>This is a toy project so I&rsquo;m going to bail slightly on this one: I&rsquo;m going to assume that invalid values just add an error node with a &lsquo;cleaned&rsquo; version of the input which could then be reviewed by a human at a later date. This has the advantage that it still fulfils all of our properties above.</p>
-
-<p>Fortunately for us, in .NET 4.0 and above there is a function in the <code>System.Xml</code> namespace called <code>XmlConvert.IsXmlChar</code> which does roughly what you would expect from the name. Let&rsquo;s add an invalid character filter, and an active pattern to tell us if any characters have been removed:</p>
-
-<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part6.fs'></script>
-<noscript><pre><code>let filterInvalidChars (input : string) =
-    input
-    |&gt; Seq.filter (fun c -&gt; XmlConvert.IsXmlChar c)
-    |&gt; Seq.map string
-    |&gt; String.concat &quot;&quot;    
-
-let (|ValidXml|InvalidXml|) str =
-    let filtered = filterInvalidChars str
-    if String.length filtered = String.length str then
-        ValidXml str
-    else
-        InvalidXml filtered
-</code></pre></noscript></div>
-
-
-<p>Now we can amend <code>AddEnhancement</code> to add enhancement nodes for valid XML text or an error node for sanitized invalid XML text:</p>
-
-<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part7.fs'></script>
-<noscript><pre><code>let AddEnhancement (xDoc : XDocument) (input : string) =
-    match input with
-    | ValidXml text -&gt;
-        if xDoc.Root.Elements(XName.Get &quot;Enhancement&quot;) |&gt; Seq.exists(fun enhance -&gt; enhance.Value = text) then
-            None
-        else
-            Some &lt;| XElement(XName.Get &quot;Enhancement&quot;, text)
-    | InvalidXml text -&gt;
-        if xDoc.Root.Elements(XName.Get &quot;Error&quot;) |&gt; Seq.exists(fun error -&gt; error.Value = text) then
-            None
-        else
-            Some &lt;| XElement(XName.Get &quot;Error&quot;, text)</code></pre></noscript></div>
-
-
-<p>And when we run FsCheck again:</p>
-
-<p><img src="http://blog.mavnn.co.uk/images/FsCheck2.png" alt="Hurrah!" /></p>
-
-<p>Excellent stuff.</p>
-
-<p>As a bonus extra, I&rsquo;ve included below a somewhat expanded version of the test code. Remember I said that FsCheck already knows how to generate strings? Unfortunately it doesn&rsquo;t know how to generate XML out of the box, but I was pleasantly surprised how quick and easy it was to write a naive XML generator. It generates <a href="https://gist.github.com/mavnn/5976004#file-example-xml">XML like this</a>. Also, check out the <code>CheckAll</code> function used at the end which allows you to build and run &lsquo;property classes&rsquo; to group families of properties together.</p>
-
-<p>And, of course, per the specification, it checks that the 3rd property above holds true (that adding enhancements never reduces the size of the document).</p>
-
-<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part8.fs'></script>
-<noscript><pre><code>module FsCheck.Examples.Tests
-
-open FsCheck
-open DevEd.FsCheck
-open System.Xml.Linq
-
-let baseDocText = &quot;&quot;&quot;&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
-&lt;root /&gt;
-&quot;&quot;&quot;
-
-type XmlTree = 
-    | NodeName of string
-    | Container of string * List&lt;XmlTree&gt;
-
-let nodeNames = 
-    [&quot;myNode&quot;;
-     &quot;myOtherNode&quot;;
-     &quot;someDifferentNode&quot;]
-
-let tree = 
-    let rec tree' s = 
-        match s with
-        | 0 -&gt; Gen.map NodeName (Gen.elements nodeNames)
-        | n when n &gt; 0 -&gt; 
-            let subtrees = 
-                Gen.sized &lt;| fun s -&gt; 
-                    Gen.resize (s
-                                |&gt; float
-                                |&gt; sqrt
-                                |&gt; int) (Gen.listOf(tree'(n / 2)))
-            Gen.oneof 
-                [Gen.map NodeName (Gen.elements nodeNames);
-                 
-                 Gen.map2 (fun name contents -&gt; Container(name, contents)) 
-                     (Gen.elements nodeNames) subtrees]
-        | _ -&gt; invalidArg &quot;s&quot; &quot;Size most be positive.&quot;
-    Gen.sized tree'
-
-let treeToXDoc xmlTree = 
-    let rec inner currentNode children = 
-        let childMatch child = 
-            match child with
-            | NodeName name -&gt; XElement(XName.Get name)
-            | Container(name, contents) -&gt; 
-                let element = XElement(XName.Get name)
-                inner element contents
-        currentNode.Add(List.map childMatch children |&gt; List.toArray)
-        currentNode
-    match xmlTree with
-    | NodeName name -&gt; XDocument(XElement(XName.Get name))
-    | Container(name, contents) -&gt; 
-        let doc = XDocument(XElement(XName.Get name))
-        inner doc.Root contents |&gt; ignore
-        doc
-
-type XmlGenerator() = 
-    static member XmlTree() = 
-        { new Arbitrary&lt;XmlTree&gt;() with
-              member x.Generator = tree
-              member x.Shrinker t = 
-                  match t with
-                  | NodeName _ -&gt; Seq.empty
-                  | Container(name, contents) -&gt; 
-                      match contents with
-                      | [] -&gt; seq { yield NodeName name }
-                      | c -&gt; 
-                          seq { 
-                              for n in c -&gt; n } }
-
-type XmlUpdaterProperties() = 
-    static member ``AddEnhancement is idempotent``(data : string) = 
-        ((AddEnhancement &lt;| AddEnhancement (XDocument.Parse baseDocText) data) data)
-            .ToString() = (AddEnhancement (XDocument.Parse baseDocText) data)
-            .ToString()
-    static member ``AddEnhancement is idempotent on different xml structures``(xmlDoc : XmlTree, 
-                                                                           data : string) = 
-        (AddEnhancement (treeToXDoc xmlDoc) data).ToString() = (AddEnhancement (AddEnhancement (treeToXDoc xmlDoc) data) data)
-            .ToString()
-    static member ``AddEnhancement never reduces the number of nodes`` (xmlDoc : XmlTree, data : string) =
-        Seq.length ((treeToXDoc xmlDoc).DescendantNodes()) = Seq.length ((AddEnhancement (treeToXDoc xmlDoc) data).DescendantNodes())
-
-Arb.register&lt;XmlGenerator&gt;() |&gt; ignore
-Check.QuickAll&lt;XmlUpdaterProperties&gt;()
-System.Console.ReadLine() |&gt; ignore</code></pre></noscript></div>
-
-
-<p>Thanks for reading this far. If you want to play yourself, a full copy of the example code is <a href="https://github.com/mavnn/DevEd.FsCheck">on GitHub</a> with an MIT license.</p>
 ]]></content>
   </entry>
   

@@ -1,0 +1,468 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Persistent Data Structures - Mavnn's blog</title>
+  <meta name="author" content="mavnn">
+
+  
+  <meta name="description" content="In last weeks Developer Education session at 15below we had a look at immutable and persistent data structures, and why you&rsquo;d want to use them &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+  <link rel="canonical" href="http://blog.mavnn.co.uk/persistent-data-structures/">
+  <link href="/favicon.ico" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Mavnn's blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-37561687-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mavnn's blog</a></h1>
+  
+    <h2>Stuff from my brain</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:blog.mavnn.co.uk" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Persistent Data Structures</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-02-02T15:36:51+00:00" pubdate data-updated="true">Feb 2<span>nd</span>, 2015</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>In last weeks <a href="/keeping-up-with-the-latest-hammer/">Developer Education session</a> at <a href="http://15below.com">15below</a> we had a look at immutable and persistent data structures, and why you&rsquo;d want to use them.</p>
+
+<blockquote><p>TD;LR version: are you writing performance critical, real time code? Do you have less memory available than a low end smart phone? No?</p>
+
+<p>Use immutable data types everywhere you can.</p></blockquote>
+
+<p>The session was inspired by <a href="https://twitter.com/ScottWlaschin">Scott Wlaschin</a>&rsquo;s excellent <a href="http://fsharpforfunandprofit.com/posts/is-your-language-unreasonable/">is your programming language unreasonable?</a> post. If you haven&rsquo;t read it yet, go and do so &ndash; it&rsquo;s much better than the rest of this post, and you can always come back here later if you remember.</p>
+
+<p>One of the points that Scott raises is that code written with mutable data structures (ones that you can change after they&rsquo;ve been created) is very hard to reason about. In the very literal sense of working out the reason why things happen.</p>
+
+<!-- more -->
+
+
+<p>So we kicked off with a couple of examples of the dangers of mutability. Consider the following C# code.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class='csharp'><span class='line'><span class="k">static</span> <span class="k">void</span> <span class="nf">Main</span><span class="p">(</span><span class="kt">string</span><span class="p">[]</span> <span class="n">args</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="kt">var</span> <span class="n">mercurial</span> <span class="p">=</span> <span class="k">new</span> <span class="n">List</span><span class="p">&lt;</span><span class="kt">string</span><span class="p">&gt;</span> <span class="p">{</span> <span class="s">&quot;Bob&quot;</span> <span class="p">};</span>
+</span><span class='line'>    <span class="n">DoWork</span><span class="p">(</span><span class="n">mercurial</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">mercurial</span><span class="p">.</span><span class="n">First</span><span class="p">()</span> <span class="p">==</span> <span class="s">&quot;Bob&quot;</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">&quot;Yay! We have Bob!&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">DoSomeOtherWork</span><span class="p">();</span>
+</span><span class='line'>    <span class="c1">// Actually get around to doing some work.</span>
+</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">mercurial</span><span class="p">.</span><span class="n">First</span><span class="p">()</span> <span class="p">==</span> <span class="s">&quot;Bob&quot;</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">&quot;Success&quot;</span><span class="p">);</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>    <span class="k">else</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">&quot;Oops, I updated {0}&#39;s record by mistake.&quot;</span><span class="p">,</span> <span class="n">mercurial</span><span class="p">.</span><span class="n">First</span><span class="p">());</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">Console</span><span class="p">.</span><span class="n">ReadLine</span><span class="p">();</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Does it update Bob&rsquo;s record, or someone else&rsquo;s? Well &ndash; this is Scott&rsquo;s point. We&rsquo;ve passed the mutable <code>mercurial</code> object (here a <code>List</code>, but it could be anything mutable) into a function (<code>DoWork</code>), and now we don&rsquo;t know what will be done to it. Even if we check that it has the value we were expecting (line 6) there&rsquo;s no guarantee that it won&rsquo;t be changed under our nose. Which in fact, it is, because the rest of the code looks like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='csharp'><span class='line'><span class="k">private</span> <span class="k">static</span> <span class="k">void</span> <span class="nf">DoSomeOtherWork</span><span class="p">()</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="n">System</span><span class="p">.</span><span class="n">Threading</span><span class="p">.</span><span class="n">Thread</span><span class="p">.</span><span class="n">Sleep</span><span class="p">(</span><span class="m">500</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">private</span> <span class="k">static</span> <span class="k">async</span> <span class="k">void</span> <span class="nf">DoWork</span><span class="p">(</span><span class="n">List</span><span class="p">&lt;</span><span class="kt">string</span><span class="p">&gt;</span> <span class="n">Mercurial</span><span class="p">)</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="k">new</span> <span class="n">Immutable</span><span class="p">.</span><span class="n">Thing</span><span class="p">(</span><span class="s">&quot;Hello world&quot;</span><span class="p">,</span> <span class="m">1</span><span class="p">);</span>
+</span><span class='line'>    <span class="k">await</span> <span class="n">Task</span><span class="p">.</span><span class="n">Delay</span><span class="p">(</span><span class="m">100</span><span class="p">);</span>
+</span><span class='line'>    <span class="n">Mercurial</span><span class="p">.</span><span class="n">Clear</span><span class="p">();</span>
+</span><span class='line'>    <span class="n">Mercurial</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="s">&quot;Fred&quot;</span><span class="p">);</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This example is clearly contrived &ndash; but these kinds of bugs crop up in code a lot, and it doesn&rsquo;t even need to be asynchronous for it to happen.</p>
+
+<p>We then discussed equality, and the fact that it can be very hard to decide what equality means for a mutable object. Is a customer object the same as another customer object because they both have the same Id? Because they&rsquo;re both the same object in memory? Because they have the same value in all of their fields? What happens if one of the fields is changed? Overriding equality in .net <a href="http://visualstudiomagazine.com/articles/2011/02/01/equality-in-net.aspx">is not trivial</a>.</p>
+
+<p>Immutable objects cannot be changed, which means that they are nearly always defined as having value based equality. If all of the fields are equal, the object is equal &ndash; and it can&rsquo;t change, so you don&rsquo;t have to worry about it shifting under you. This is such a useful property (especially if you&rsquo;re loading data from another source that you want to run comparisons on) that we&rsquo;ve even had occasions here where we&rsquo;ve considered implementing our data types as <a href="https://msdn.microsoft.com/en-us/library/dd233184.aspx">F# records</a> even when writing C# services.</p>
+
+<p>For example, you can define an F# record like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="c1">// Yes, this is the entire file</span>
+</span><span class='line'><span class="k">module</span> <span class="nc">Immutable</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">Thing</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span>
+</span><span class='line'>        <span class="nc">One</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>        <span class="nc">Two</span> <span class="o">:</span> <span class="kt">int</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And then use it from C# like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='csharp'><span class='line'><span class="c1">// You do need to reference the project with Thing in</span>
+</span><span class='line'><span class="k">static</span> <span class="kt">bool</span> <span class="nf">UseRecordTypeFromCSharp</span><span class="p">()</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="kt">var</span> <span class="n">myThing</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Immutable</span><span class="p">.</span><span class="n">Thing</span><span class="p">(</span><span class="s">&quot;Hello&quot;</span><span class="p">,</span> <span class="m">11</span><span class="p">);</span>
+</span><span class='line'>    <span class="kt">var</span> <span class="n">myThing2</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Immutable</span><span class="p">.</span><span class="n">Thing</span><span class="p">(</span><span class="s">&quot;Hello&quot;</span><span class="p">,</span> <span class="m">11</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">return</span> <span class="n">myThing</span> <span class="p">==</span> <span class="n">myThing2</span><span class="p">;</span> <span class="c1">// Always returns true</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>If all you need is an immutable collection, rather than an immutable
+object with nice value based properties then you don&rsquo;t even need to
+leave the comfort of your C# window. Microsoft themselves have bought
+into the concept of immutable data structures sufficiently to release
+an <a href="https://msdn.microsoft.com/en-us/library/dn385366%28v=vs.110%29.aspx">Immutable Collections</a> library.</p>
+
+<h3>But what about the memory? Think of the RAM, the poor RAM!</h3>
+
+<p>We also discussed the downsides of immutable data types. There are two concerns which are raised most frequently. The first is performance &ndash; in .net, using immutable data structures and then doing a lot of transforms on the data will create a lot of objects. This can have a significant effect in very performance critical areas of your code. This is a valid concern where performance is paramount, and the normal way around this is to wrap a private mutable object (or raw array, for
+that matter) in a function that does all of your heavy manipulation. In that way you can take advantage of the speed of imperative coding techniques whilst keeping their scope small enough to reason about the effects.</p>
+
+<p>Of course, even if <strong>speed</strong> isn&rsquo;t of paramount importance &ndash; what about <strong>memory</strong>? After all, these allocations must be adding up on the memory side of things as well, no?</p>
+
+<p>Well, not as much as you might think, for two reasons. One is that if your code is asynchronous, you&rsquo;re almost certainly taking copies of your mutable data structures all over the place anyway to guarantee thread safety. Well, either that or you&rsquo;re taking a lot of locks, and you&rsquo;re back into performance issues.</p>
+
+<p>The second, and much more interesting, reason is that a very bright guy called Chris Okasaki realised back in 1996 (despite the recent surge of interest in functional programming, it&rsquo;s not new&hellip;) that you can take advantage of the fact that an object is immutable to avoid copying all of it when a new, similar object is required.</p>
+
+<p>For example, if you add a new object to the end of an immutable list, the new list you get back doesn&rsquo;t need to be a complete copy &ndash; it can just be the single new item with a pointer back to the original list. To the person using the list, it appears to be a three item list and they are none the wiser. Because it&rsquo;s immutable, the first two values never change, so it&rsquo;s never a concern to you whether your list is a completely new one, or a &ldquo;pointer&rdquo; list. Okasaki called these data
+types &ldquo;persistent&rdquo; data types as they &ldquo;persists&rdquo; a previous version of itself when &ldquo;modified&rdquo;. You can read more about them in a <a href="https://en.wikipedia.org/wiki/Persistent_data_structure">surprisingly complete wikipedia article</a>.</p>
+
+<p>In .net land, both the F# immutable records and collections, and the System.Collections.Immutable library from Microsoft mentioned above are persistent data types. So unless you&rsquo;re extremely memory constrained, you should be good to go.</p>
+
+<p>And there you have it. An introduction to immutable data types: officially approved for use almost everywhere by your local Technical Architect.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">mavnn</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-02-02T15:36:51+00:00" pubdate data-updated="true">Feb 2<span>nd</span>, 2015</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/15below/'>15below</a>, <a class='category' href='/blog/categories/programming/'>programming</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://blog.mavnn.co.uk/persistent-data-structures/" data-via="mavnn" data-counturl="http://blog.mavnn.co.uk/persistent-data-structures/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/difficult-vs-impossible/" title="Previous Post: Difficult vs Impossible">&laquo; Difficult vs Impossible</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/persistent-data-structures/">Persistent Data Structures</a>
+      </li>
+    
+      <li class="post">
+        <a href="/difficult-vs-impossible/">Difficult vs Impossible</a>
+      </li>
+    
+      <li class="post">
+        <a href="/keeping-up-with-the-latest-hammer/">Keeping Up With the Latest Hammer</a>
+      </li>
+    
+      <li class="post">
+        <a href="/modelling-inheritance-with-inheritance/">Modelling Inheritance With Inheritance</a>
+      </li>
+    
+      <li class="post">
+        <a href="/cutting-quotations-down-to-size/">Cutting Quotations Down to Size</a>
+      </li>
+    
+  </ul>
+</section>
+<section>
+  <h1>Tip the author</h1>
+  <p><script data-gittip-username="mavnn"
+        data-gittip-widget="button"
+        src="//gttp.co/v1.js"></script></p>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/mavnn">@mavnn</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'mavnn',
+            count: 3,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/+MichaelNewtonmavnn?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - mavnn -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mavnn';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://blog.mavnn.co.uk/persistent-data-structures/';
+        var disqus_url = 'http://blog.mavnn.co.uk/persistent-data-structures/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

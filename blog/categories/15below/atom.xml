@@ -4,7 +4,7 @@
   <title><![CDATA[Category: 15below | Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/blog/categories/15below/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2015-01-20T15:40:28+00:00</updated>
+  <updated>2015-02-02T16:41:32+00:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,142 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Persistent Data Structures]]></title>
+    <link href="http://blog.mavnn.co.uk/persistent-data-structures/"/>
+    <updated>2015-02-02T15:36:51+00:00</updated>
+    <id>http://blog.mavnn.co.uk/persistent-data-structures</id>
+    <content type="html"><![CDATA[<p>In last weeks <a href="/keeping-up-with-the-latest-hammer/">Developer Education session</a> at <a href="http://15below.com">15below</a> we had a look at immutable and persistent data structures, and why you&rsquo;d want to use them.</p>
+
+<blockquote><p>TD;LR version: are you writing performance critical, real time code? Do you have less memory available than a low end smart phone? No?</p>
+
+<p>Use immutable data types everywhere you can.</p></blockquote>
+
+<p>The session was inspired by <a href="https://twitter.com/ScottWlaschin">Scott Wlaschin</a>&rsquo;s excellent <a href="http://fsharpforfunandprofit.com/posts/is-your-language-unreasonable/">is your programming language unreasonable?</a> post. If you haven&rsquo;t read it yet, go and do so &ndash; it&rsquo;s much better than the rest of this post, and you can always come back here later if you remember.</p>
+
+<p>One of the points that Scott raises is that code written with mutable data structures (ones that you can change after they&rsquo;ve been created) is very hard to reason about. In the very literal sense of working out the reason why things happen.</p>
+
+<!-- more -->
+
+
+<p>So we kicked off with a couple of examples of the dangers of mutability. Consider the following C# code.</p>
+
+<p>``` csharp
+static void Main(string[] args)
+{</p>
+
+<pre><code>var mercurial = new List&lt;string&gt; { "Bob" };
+DoWork(mercurial);
+
+if (mercurial.First() == "Bob")
+{
+    Console.WriteLine("Yay! We have Bob!");
+}
+
+DoSomeOtherWork();
+// Actually get around to doing some work.
+if (mercurial.First() == "Bob")
+{
+    Console.WriteLine("Success");
+}
+else
+{
+    Console.WriteLine("Oops, I updated {0}'s record by mistake.", mercurial.First());
+}
+
+Console.ReadLine();
+</code></pre>
+
+<p>}
+```</p>
+
+<p>Does it update Bob&rsquo;s record, or someone else&rsquo;s? Well &ndash; this is Scott&rsquo;s point. We&rsquo;ve passed the mutable <code>mercurial</code> object (here a <code>List</code>, but it could be anything mutable) into a function (<code>DoWork</code>), and now we don&rsquo;t know what will be done to it. Even if we check that it has the value we were expecting (line 6) there&rsquo;s no guarantee that it won&rsquo;t be changed under our nose. Which in fact, it is, because the rest of the code looks like this:</p>
+
+<p>``` csharp
+private static void DoSomeOtherWork()
+{</p>
+
+<pre><code>System.Threading.Thread.Sleep(500);
+</code></pre>
+
+<p>}</p>
+
+<p>private static async void DoWork(List<string> Mercurial)
+{</p>
+
+<pre><code>new Immutable.Thing("Hello world", 1);
+await Task.Delay(100);
+Mercurial.Clear();
+Mercurial.Add("Fred");
+</code></pre>
+
+<p>}
+```</p>
+
+<p>This example is clearly contrived &ndash; but these kinds of bugs crop up in code a lot, and it doesn&rsquo;t even need to be asynchronous for it to happen.</p>
+
+<p>We then discussed equality, and the fact that it can be very hard to decide what equality means for a mutable object. Is a customer object the same as another customer object because they both have the same Id? Because they&rsquo;re both the same object in memory? Because they have the same value in all of their fields? What happens if one of the fields is changed? Overriding equality in .net <a href="http://visualstudiomagazine.com/articles/2011/02/01/equality-in-net.aspx">is not trivial</a>.</p>
+
+<p>Immutable objects cannot be changed, which means that they are nearly always defined as having value based equality. If all of the fields are equal, the object is equal &ndash; and it can&rsquo;t change, so you don&rsquo;t have to worry about it shifting under you. This is such a useful property (especially if you&rsquo;re loading data from another source that you want to run comparisons on) that we&rsquo;ve even had occasions here where we&rsquo;ve considered implementing our data types as <a href="https://msdn.microsoft.com/en-us/library/dd233184.aspx">F# records</a> even when writing C# services.</p>
+
+<p>For example, you can define an F# record like this:</p>
+
+<p>``` fsharp
+// Yes, this is the entire file
+module Immutable</p>
+
+<p>type Thing =</p>
+
+<pre><code>{
+    One : string
+    Two : int
+}
+</code></pre>
+
+<p>```</p>
+
+<p>And then use it from C# like this:</p>
+
+<p>``` csharp
+// You do need to reference the project with Thing in
+static bool UseRecordTypeFromCSharp()
+{</p>
+
+<pre><code>var myThing = new Immutable.Thing("Hello", 11);
+var myThing2 = new Immutable.Thing("Hello", 11);
+
+return myThing == myThing2; // Always returns true
+</code></pre>
+
+<p>}
+```</p>
+
+<p>If all you need is an immutable collection, rather than an immutable
+object with nice value based properties then you don&rsquo;t even need to
+leave the comfort of your C# window. Microsoft themselves have bought
+into the concept of immutable data structures sufficiently to release
+an <a href="https://msdn.microsoft.com/en-us/library/dn385366%28v=vs.110%29.aspx">Immutable Collections</a> library.</p>
+
+<h3>But what about the memory? Think of the RAM, the poor RAM!</h3>
+
+<p>We also discussed the downsides of immutable data types. There are two concerns which are raised most frequently. The first is performance &ndash; in .net, using immutable data structures and then doing a lot of transforms on the data will create a lot of objects. This can have a significant effect in very performance critical areas of your code. This is a valid concern where performance is paramount, and the normal way around this is to wrap a private mutable object (or raw array, for
+that matter) in a function that does all of your heavy manipulation. In that way you can take advantage of the speed of imperative coding techniques whilst keeping their scope small enough to reason about the effects.</p>
+
+<p>Of course, even if <strong>speed</strong> isn&rsquo;t of paramount importance &ndash; what about <strong>memory</strong>? After all, these allocations must be adding up on the memory side of things as well, no?</p>
+
+<p>Well, not as much as you might think, for two reasons. One is that if your code is asynchronous, you&rsquo;re almost certainly taking copies of your mutable data structures all over the place anyway to guarantee thread safety. Well, either that or you&rsquo;re taking a lot of locks, and you&rsquo;re back into performance issues.</p>
+
+<p>The second, and much more interesting, reason is that a very bright guy called Chris Okasaki realised back in 1996 (despite the recent surge of interest in functional programming, it&rsquo;s not new&hellip;) that you can take advantage of the fact that an object is immutable to avoid copying all of it when a new, similar object is required.</p>
+
+<p>For example, if you add a new object to the end of an immutable list, the new list you get back doesn&rsquo;t need to be a complete copy &ndash; it can just be the single new item with a pointer back to the original list. To the person using the list, it appears to be a three item list and they are none the wiser. Because it&rsquo;s immutable, the first two values never change, so it&rsquo;s never a concern to you whether your list is a completely new one, or a &ldquo;pointer&rdquo; list. Okasaki called these data
+types &ldquo;persistent&rdquo; data types as they &ldquo;persists&rdquo; a previous version of itself when &ldquo;modified&rdquo;. You can read more about them in a <a href="https://en.wikipedia.org/wiki/Persistent_data_structure">surprisingly complete wikipedia article</a>.</p>
+
+<p>In .net land, both the F# immutable records and collections, and the System.Collections.Immutable library from Microsoft mentioned above are persistent data types. So unless you&rsquo;re extremely memory constrained, you should be good to go.</p>
+
+<p>And there you have it. An introduction to immutable data types: officially approved for use almost everywhere by your local Technical Architect.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Keeping Up with the Latest Hammer]]></title>
@@ -844,18 +980,6 @@ all that, I hope you find it useful.</p>
 <p><div><script src='https://gist.github.com/mavnn/5983379.js'></script>
 <noscript><pre><code></code></pre></noscript></div>
 </p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Throttling the level of concurrency in F#]]></title>
-    <link href="http://blog.mavnn.co.uk/throttling-the-level-of-concurrency-in-f/index.html"/>
-    <updated>2013-02-15T00:00:00+00:00</updated>
-    <id>http://blog.mavnn.co.uk/throttling-the-level-of-concurrency-in-f/throttling-the-level-of-concurrency-in-f</id>
-    <content type="html"><![CDATA[<div>Async.Parallel |&gt; Async.RunSynchronously is great for running a load of stuff in parallel in F#, as long as you don&#39;t mind them all running at the same time.</div>
-
-
-<p><p /><div>Often, though, you want to map across a sequence and run functions on the elements in parallel, but with a limit to how many are being processed concurrently. Whether you&#39;re doing something CPU heavy and there&#39;s no point running more than the number of processors on the box, or whether you know that you&#39;ll swamp a remote server if you just dump all of your connections on it at once, this issue comes up surprisingly often.</div> <p /><div>As a first stab, you might be tempted to do something like this (if you think like I do):</div><p /><div><script src="https://gist.github.com/4961072.js"></script><br /> </div><p /><div>In a word: don&#39;t. The contention in the Semaphore make this enormously inefficient with even a few hundred tasks.</div><p /><div>In the end, the simplest  implementation I could come up with that didn&#39;t involve dragging in external dependencies was the following:</div> <p /><div><script src="https://gist.github.com/4961056.js"></script><br /></div><p /><div>If anyone has a simpler implementation, leave a comment and let me know!</div></p>
 ]]></content>
   </entry>
   

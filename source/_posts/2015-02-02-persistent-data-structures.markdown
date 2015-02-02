@@ -5,9 +5,9 @@ date: 2015-02-02 15:36:51 +0000
 comments: true
 categories: [15below,programming]
 ---
-In last weeks [Developer Education session](/keeping-up-with-the-latest-hammer/) at [15below](http://15below.com) we had a look at immutable and persistent data structures, and why you'd want to use them.
+In last week's [Developer Education session](/keeping-up-with-the-latest-hammer/) at [15below](http://15below.com) we had a look at immutable and persistent data structures, and why you'd want to use them.
 
-> TD;LR version: are you writing performance critical, real time code? Do you have less memory available than a low end smart phone? No?
+> TL;DR version: are you writing performance critical, real time code? Do you have less memory available than a low end smart phone? No?
 >
 > Use immutable data types everywhere you can.
 
@@ -112,8 +112,8 @@ Well, not as much as you might think, for two reasons. One is that if your code 
 The second, and much more interesting, reason is that a very bright guy called Chris Okasaki realised back in 1996 (despite the recent surge of interest in functional programming, it's not new...) that you can take advantage of the fact that an object is immutable to avoid copying all of it when a new, similar object is required.
 
 For example, if you add a new object to the end of an immutable list, the new list you get back doesn't need to be a complete copy - it can just be the single new item with a pointer back to the original list. To the person using the list, it appears to be a three item list and they are none the wiser. Because it's immutable, the first two values never change, so it's never a concern to you whether your list is a completely new one, or a "pointer" list. Okasaki called these data
-types "persistent" data types as they "persists" a previous version of itself when "modified". You can read more about them in a [surprisingly complete wikipedia article](https://en.wikipedia.org/wiki/Persistent_data_structure).
+types "persistent" data types as they "persist" a previous version of themselves when "modified". You can read more about them in a [surprisingly complete wikipedia article](https://en.wikipedia.org/wiki/Persistent_data_structure).
 
-In .net land, both the F# immutable records and collections, and the System.Collections.Immutable library from Microsoft mentioned above are persistent data types. So unless you're extremely memory constrained, you should be good to go.
+In .net land, both the F# immutable records and collections, and the ``System.Collections.Immutable`` library from Microsoft mentioned above are persistent data types. So unless you're extremely memory constrained, you should be good to go.
 
 And there you have it. An introduction to immutable data types: officially approved for use almost everywhere by your local Technical Architect.

@@ -64,7 +64,8 @@ private static async void DoWork(List<string> Mercurial)
 
 This example is clearly contrived - but these kinds of bugs crop up in code a lot, and it doesn't even need to be asynchronous for it to happen.
 
-We then discussed equality, and the fact that it can be very hard to decide what equality means for a mutable object. Is a customer object the same as another customer object because they both have the same Id? Because they're both the same object in memory? Because they have the same value in all of their fields? What happens if one of the fields is changed? Overriding equality in .net [is not trivial](http://visualstudiomagazine.com/articles/2011/02/01/equality-in-net.aspx).
+We then discussed equality, and the fact that it can be very hard to decide what equality means for a mutable object. Is a customer object the same as another customer object because they both have the same Id? Because they're both the same object in memory? Because they have the same value in all of their fields? What happens if one of the fields is changed? Overriding equality in .net [is not trivial](http://visualstudiomagazine.com/articles/2011/02/01/equality-in-net.aspx). Edit: found a
+better article on the subject of [C# equality](http://www.aaronstannard.com/overriding-equality-in-dotnet/) by Aaron Stannard.
 
 Immutable objects cannot be changed, which means that they are nearly always defined as having value based equality. If all of the fields are equal, the object is equal - and it can't change, so you don't have to worry about it shifting under you. This is such a useful property (especially if you're loading data from another source that you want to run comparisons on) that we've even had occasions here where we've considered implementing our data types as [F# records](https://msdn.microsoft.com/en-us/library/dd233184.aspx) even when writing C# services.
 

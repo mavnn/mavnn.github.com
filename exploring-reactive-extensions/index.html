@@ -1,0 +1,488 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Exploring Reactive Extensions - Mavnn's blog</title>
+  <meta name="author" content="mavnn">
+
+  
+  <meta name="description" content="The Reactive Extensions project is &ldquo;a library for composing asynchronous and event-based programs using observable sequences and LINQ-style &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+  <link rel="canonical" href="http://blog.mavnn.co.uk/exploring-reactive-extensions/">
+  <link href="/favicon.ico" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Mavnn's blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-37561687-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mavnn's blog</a></h1>
+  
+    <h2>Stuff from my brain</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:blog.mavnn.co.uk" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Exploring Reactive Extensions</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-02-09T13:01:36+00:00" pubdate data-updated="true">Feb 9<span>th</span>, 2015</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>The <a href="http://rx.codeplex.com/">Reactive Extensions</a> project is &ldquo;a library for composing asynchronous and event-based programs using observable sequences and LINQ-style query operators&rdquo;. That doesn&rsquo;t immediately give most people an intuitive grasp of exactly what it is &ndash; but it&rsquo;s a useful addition to the toolset so we put together a practical for people to experiment with.</p>
+
+<p>At it&rsquo;s simplest, RX (as it&rsquo;s called&hellip; the Nuget package you&rsquo;re looking for is <a href="https://www.nuget.org/packages/Rx-Main">Rx-Main</a>, obviously!) allows you to create an <code>IObservable</code> object which you can then&hellip; erm&hellip; observe.</p>
+
+<!--more-->
+
+
+<p><code>IObservable</code> objects can, in turn, be observed by other <code>IObservable</code>s via a series of extension methods, and they will react when the original observable publishes a change. Hence &ldquo;Reactive Extensions&rdquo;. These extensions include all the normal Linq like things you&rsquo;ve come to know and expect in .net (<code>.Where</code> for filtering, <code>.Select</code> for mapping, etc) and also a selection of time based extensions which are the real meat of the reactive programming model. Things like <code>.Delay</code>, which
+holds changes for a period of time before passing them on to subscribers. Or <code>.Throttle</code>, which throttles how quickly events can be passed through, and throws away events that are occurring too rapidly.</p>
+
+<p>The best explanation of the various methods I&rsquo;ve seen is actually the <a href="http://reactivex.io/RxJava/javadoc/">reactivex.io javadocs</a>, which have diagram pictorially depicting the effect of each method. Although it&rsquo;s for Java, the method names are the same. For example, the <a href="http://reactivex.io/RxJava/javadoc/">sample method</a> comes with the following diagram:</p>
+
+<p><img src="https://raw.githubusercontent.com/wiki/ReactiveX/RxJava/images/rx-operators/sample.s.png" alt="Sample method image" /></p>
+
+<p>It shows quite nicely that sample will pick the last event of each interval (if there are any), and publish on only that.</p>
+
+<p>The final part of the puzzle, once you&rsquo;ve done all your filtering, mapping, delaying and sampling is to hook up a Publish callback on your final <code>IObservable</code>.</p>
+
+<p>Let&rsquo;s get to the example code!</p>
+
+<h3>The scenario</h3>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+</pre></td><td class='code'><pre><code class='csharp'><span class='line'><span class="k">using</span> <span class="nn">System</span><span class="p">;</span>
+</span><span class='line'><span class="k">using</span> <span class="nn">System.Collections.Generic</span><span class="p">;</span>
+</span><span class='line'><span class="k">using</span> <span class="nn">System.Linq</span><span class="p">;</span>
+</span><span class='line'><span class="k">using</span> <span class="nn">System.Text</span><span class="p">;</span>
+</span><span class='line'><span class="k">using</span> <span class="nn">System.Threading.Tasks</span><span class="p">;</span>
+</span><span class='line'><span class="k">using</span> <span class="nn">System.Reactive</span><span class="p">;</span>
+</span><span class='line'><span class="k">using</span> <span class="nn">System.Reactive.Linq</span><span class="p">;</span>
+</span><span class='line'><span class="k">using</span> <span class="nn">ReactiveTester.Shared</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">namespace</span> <span class="nn">EventTester</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="k">class</span> <span class="nc">Program</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="k">static</span> <span class="k">void</span> <span class="nf">Handler</span><span class="p">(</span><span class="n">Tuple</span><span class="p">&lt;</span><span class="n">Guid</span><span class="p">,</span> <span class="kt">string</span><span class="p">&gt;</span> <span class="n">tuple</span><span class="p">)</span>
+</span><span class='line'>        <span class="p">{</span>
+</span><span class='line'>            <span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">&quot;{0} - {1}&quot;</span><span class="p">,</span> <span class="n">tuple</span><span class="p">.</span><span class="n">Item1</span><span class="p">,</span> <span class="n">tuple</span><span class="p">.</span><span class="n">Item2</span><span class="p">);</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">static</span> <span class="k">void</span> <span class="nf">Error</span><span class="p">(</span><span class="n">Exception</span> <span class="n">e</span><span class="p">)</span>
+</span><span class='line'>        <span class="p">{</span>
+</span><span class='line'>            <span class="kt">var</span> <span class="n">err</span> <span class="p">=</span> <span class="n">Console</span><span class="p">.</span><span class="n">OpenStandardError</span><span class="p">();</span>
+</span><span class='line'>            <span class="k">using</span> <span class="p">(</span><span class="kt">var</span> <span class="n">writer</span> <span class="p">=</span> <span class="k">new</span> <span class="n">System</span><span class="p">.</span><span class="n">IO</span><span class="p">.</span><span class="n">StreamWriter</span><span class="p">(</span><span class="n">err</span><span class="p">,</span> <span class="n">Console</span><span class="p">.</span><span class="n">OutputEncoding</span><span class="p">))</span>
+</span><span class='line'>            <span class="p">{</span>
+</span><span class='line'>                <span class="n">writer</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">&quot;{0}&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">);</span>
+</span><span class='line'>            <span class="p">}</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">static</span> <span class="k">void</span> <span class="nf">Main</span><span class="p">(</span><span class="kt">string</span><span class="p">[]</span> <span class="n">args</span><span class="p">)</span>
+</span><span class='line'>        <span class="p">{</span>
+</span><span class='line'>            <span class="c1">// Nice docs (although Java): http://reactivex.io/RxJava/javadoc/rx/Observable.html</span>
+</span><span class='line'>            <span class="c1">// The challenge:</span>
+</span><span class='line'>            <span class="c1">// The ChangeReceiver will fire an event every time a change is received.</span>
+</span><span class='line'>            <span class="c1">// Events can be:</span>
+</span><span class='line'>            <span class="c1">// &quot;Ignore!&quot; -&gt; don&#39;t do anything</span>
+</span><span class='line'>            <span class="c1">// &quot;Change!&quot; -&gt; send notification to staff and customers</span>
+</span><span class='line'>            <span class="c1">// &quot;StaffOnly!&quot; -&gt; send notification to staff</span>
+</span><span class='line'>            <span class="c1">// &quot;CustomerOnly!&quot; -&gt; send notification to customer only</span>
+</span><span class='line'>            <span class="c1">//</span>
+</span><span class='line'>            <span class="c1">// Staff must be notified within 3 seconds.</span>
+</span><span class='line'>            <span class="c1">// Customers most be notified between 5 and 7 seconds.</span>
+</span><span class='line'>            <span class="n">using</span><span class="p">(</span><span class="kt">var</span> <span class="n">pub</span> <span class="p">=</span> <span class="k">new</span> <span class="n">ChangeReceiver</span><span class="p">(</span><span class="s">&quot;tcp://*:5555&quot;</span><span class="p">))</span>
+</span><span class='line'>            <span class="p">{</span>
+</span><span class='line'>                <span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">&quot;Listening...&quot;</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="kt">var</span> <span class="n">staffSender</span> <span class="p">=</span> <span class="k">new</span> <span class="n">NotificationSender</span><span class="p">(</span><span class="s">&quot;tcp://localhost:5556&quot;</span><span class="p">);</span>
+</span><span class='line'>                <span class="kt">var</span> <span class="n">customerSender</span> <span class="p">=</span> <span class="k">new</span> <span class="n">NotificationSender</span><span class="p">(</span><span class="s">&quot;tcp://localhost:5557&quot;</span><span class="p">);</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="kt">var</span> <span class="n">obs</span> <span class="p">=</span> <span class="n">Observable</span><span class="p">.</span><span class="n">FromEventPattern</span><span class="p">&lt;</span><span class="n">Tuple</span><span class="p">&lt;</span><span class="n">Guid</span><span class="p">,</span> <span class="kt">string</span><span class="p">&gt;&gt;(</span><span class="n">pub</span><span class="p">,</span> <span class="s">&quot;ChangeRecieved&quot;</span><span class="p">).</span><span class="n">Select</span><span class="p">(</span><span class="n">ep</span> <span class="p">=&gt;</span> <span class="n">ep</span><span class="p">.</span><span class="n">EventArgs</span><span class="p">);</span>
+</span><span class='line'>                <span class="n">obs</span><span class="p">.</span><span class="n">Subscribe</span><span class="p">&lt;</span><span class="n">Tuple</span><span class="p">&lt;</span><span class="n">Guid</span><span class="p">,</span> <span class="kt">string</span><span class="p">&gt;&gt;(</span><span class="n">Handler</span><span class="p">);</span>
+</span><span class='line'>                <span class="n">obs</span><span class="p">.</span><span class="n">Select</span><span class="p">(</span><span class="n">t</span> <span class="p">=&gt;</span> <span class="n">t</span><span class="p">.</span><span class="n">Item1</span><span class="p">).</span><span class="n">Subscribe</span><span class="p">(</span><span class="n">guid</span> <span class="p">=&gt;</span> <span class="n">customerSender</span><span class="p">.</span><span class="n">Send</span><span class="p">(</span><span class="n">guid</span><span class="p">));</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="c1">//var err = Observable.FromEventPattern&lt;Exception&gt;(pub, &quot;OnError&quot;).Select(ep =&gt; ep.EventArgs);</span>
+</span><span class='line'>                <span class="c1">//err.Subscribe&lt;Exception&gt;(Error);</span>
+</span><span class='line'>
+</span><span class='line'>                <span class="n">pub</span><span class="p">.</span><span class="n">Start</span><span class="p">();</span>
+</span><span class='line'>                <span class="n">Console</span><span class="p">.</span><span class="n">ReadLine</span><span class="p">();</span>
+</span><span class='line'>                <span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">&quot;Closing down.&quot;</span><span class="p">);</span>
+</span><span class='line'>            <span class="p">}</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The challenge was to complete the C# program above.</p>
+
+<p>Want to follow along at home? The <a href="https://github.com/mavnn/RX-Practical">example code is on github</a>. Mind out &ndash; it&rsquo;s a bit big, as I included all of the binaries to get people going faster. The file in question is in the <code>EventTester</code> project as <code>Program.cs</code>.</p>
+
+<p>The other program in the project (<code>ReactiveTester</code>) is test server. Right click on the solution, &ldquo;Set StartUp projects&rdquo; to run both on start up and hit <code>F5</code>. You should get two consoles pop up, something like this:</p>
+
+<p><img src="/images/Reactive1.PNG" alt="/images/Reactive1.PNG" /></p>
+
+<p>What&rsquo;s going on here? Well, as company <a href="http://15below.com">15below</a> deal with travel passenger communications, so the example stays close to home. The &ldquo;server&rdquo; (ReactiveTester, on the right) is masquerading as both an IROP (irregular operations, i.e. your flight has been cancelled due to insufficient chicken sarnies) system and as the staff and travellers who need to be told about events that are happening.</p>
+
+<p>We&rsquo;re skipping any business logic identifying event types here, so for our purposes there are 4 types of events the system can issue.</p>
+
+<ul>
+<li>&ldquo;Ignore!&rdquo; &ndash;> we don&rsquo;t care about these</li>
+<li>&ldquo;Change!&rdquo; &ndash;> both staff and travellers should be told about these</li>
+<li>&ldquo;StaffOnly!&rdquo; &ndash;> only staff need to know about these ones</li>
+<li>&ldquo;CustomerOnly!&rdquo; &ndash;> staff don&rsquo;t care about these, only tell the customer</li>
+</ul>
+
+
+<p>Our C# program then has a <code>ChangeReceiver</code> type that fires an event when a change is received, and a <code>NotificationSender</code> type it can use to send notifications out with. In reality, these go back to <code>ReactiveTester</code> that will then tell you if the notification arrived within the allowed window for either customer or staff.</p>
+
+<p>The practical kicked off with the code at the state above. As you can see at line 48 we&rsquo;ve hooked up an observable object to the ChangeReceiver&rsquo;s ChangeReceived event &ndash; now we can observe events. We&rsquo;ve then hooked up a subscriber that fires the <code>Handler</code> method (line 14) which prints all changes to the command line. And a second subscriber that first maps the identifier/message tuple to the identifier and then sends a customer notification.</p>
+
+<p>But wait&hellip;! Our test server keeps on saying &ldquo;Customer: early&rdquo;? And &ldquo;No guid xxx found&rdquo;? What gives?</p>
+
+<p>Well&hellip; most travel companies are very keen for their staff to know about service alterations before customers. So the requirements we&rsquo;ve been given are that staff should be notified within 3 seconds &ndash; but customers only between 5 and 7 seconds. (In real life, these timings would probably be in minutes, obviously).</p>
+
+<p>And the missing guid warnings are because the customers only care about some of the event types (see above). And, of course, the staff aren&rsquo;t getting any notifications at all, so their always complaining about them being late.</p>
+
+<p>Your mission, should you choose to accept it: make everyone happy!</p>
+
+<p>We had 3 teams take up the challenge; I&rsquo;ve posted their solutions in <a href="to%20avoid%20accidental%20spoilers%20:">a separate solutions post</a></p>
+
+<p>P.S. A couple of people were interested in how the server worked. It&rsquo;s my very first attempt at writing both <a href="https://github.com/Hopac/Hopac">Hopac</a> and <a href="https://github.com/zeromq/fszmq">fszmq</a> (an F# zeromq wrapper library). I&rsquo;m hugely impressed by both, but wouldn&rsquo;t recommend my code in that repository as an introduction to either!</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">mavnn</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-02-09T13:01:36+00:00" pubdate data-updated="true">Feb 9<span>th</span>, 2015</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/15below/'>15below</a>, <a class='category' href='/blog/categories/practical/'>practical</a>, <a class='category' href='/blog/categories/programming/'>programming</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://blog.mavnn.co.uk/exploring-reactive-extensions/" data-via="mavnn" data-counturl="http://blog.mavnn.co.uk/exploring-reactive-extensions/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/persistent-data-structures/" title="Previous Post: Persistent Data Structures">&laquo; Persistent Data Structures</a>
+      
+      
+        <a class="basic-alignment right" href="/rx-solutions/" title="Next Post: RX Solutions">RX Solutions &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/rx-solutions/">RX Solutions</a>
+      </li>
+    
+      <li class="post">
+        <a href="/exploring-reactive-extensions/">Exploring Reactive Extensions</a>
+      </li>
+    
+      <li class="post">
+        <a href="/persistent-data-structures/">Persistent Data Structures</a>
+      </li>
+    
+      <li class="post">
+        <a href="/difficult-vs-impossible/">Difficult vs Impossible</a>
+      </li>
+    
+      <li class="post">
+        <a href="/keeping-up-with-the-latest-hammer/">Keeping Up With the Latest Hammer</a>
+      </li>
+    
+  </ul>
+</section>
+<section>
+  <h1>Tip the author</h1>
+  <p><script data-gittip-username="mavnn"
+        data-gittip-widget="button"
+        src="//gttp.co/v1.js"></script></p>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/mavnn">@mavnn</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'mavnn',
+            count: 3,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/+MichaelNewtonmavnn?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - mavnn -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mavnn';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://blog.mavnn.co.uk/exploring-reactive-extensions/';
+        var disqus_url = 'http://blog.mavnn.co.uk/exploring-reactive-extensions/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

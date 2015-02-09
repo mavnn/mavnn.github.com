@@ -4,7 +4,7 @@
   <title><![CDATA[Category: 15below | Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/blog/categories/15below/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2015-02-04T09:55:32+00:00</updated>
+  <updated>2015-02-09T14:49:37+00:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,271 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[RX Solutions]]></title>
+    <link href="http://blog.mavnn.co.uk/rx-solutions/"/>
+    <updated>2015-02-09T14:15:45+00:00</updated>
+    <id>http://blog.mavnn.co.uk/rx-solutions</id>
+    <content type="html"><![CDATA[<p>This post contains solutions to the <a href="/exploring-reactive-extensions/">Reactive Extensions practical</a> post.</p>
+
+<!--more-->
+
+
+<p>The base program looks like this (as in the previous post):</p>
+
+<p>``` csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Reactive;
+using System.Reactive.Linq;
+using ReactiveTester.Shared;</p>
+
+<p>namespace EventTester
+{</p>
+
+<pre><code>class Program
+{
+    static void Handler(Tuple&lt;Guid, string&gt; tuple)
+    {
+        Console.WriteLine("{0} - {1}", tuple.Item1, tuple.Item2);
+    }
+
+    static void Error(Exception e)
+    {
+        var err = Console.OpenStandardError();
+        using (var writer = new System.IO.StreamWriter(err, Console.OutputEncoding))
+        {
+            writer.WriteLine("{0}", e);
+        }
+    }
+
+    static void Main(string[] args)
+    {
+        // Nice docs (although Java): http://reactivex.io/RxJava/javadoc/rx/Observable.html
+        // The challenge:
+        // The ChangeReceiver will fire an event every time a change is received.
+        // Events can be:
+        // "Ignore!" -&gt; don't do anything
+        // "Change!" -&gt; send notification to staff and customers
+        // "StaffOnly!" -&gt; send notification to staff
+        // "CustomerOnly!" -&gt; send notification to customer only
+        //
+        // Staff must be notified within 3 seconds.
+        // Customers most be notified between 5 and 7 seconds.
+        using(var pub = new ChangeReceiver("tcp://*:5555"))
+        {
+            Console.WriteLine("Listening...");
+
+            var staffSender = new NotificationSender("tcp://localhost:5556");
+            var customerSender = new NotificationSender("tcp://localhost:5557");
+
+            var obs = Observable.FromEventPattern&lt;Tuple&lt;Guid, string&gt;&gt;(pub, "ChangeRecieved").Select(ep =&gt; ep.EventArgs);
+            obs.Subscribe&lt;Tuple&lt;Guid, string&gt;&gt;(Handler);
+            obs.Select(t =&gt; t.Item1).Subscribe(guid =&gt; customerSender.Send(guid));
+
+            //var err = Observable.FromEventPattern&lt;Exception&gt;(pub, "OnError").Select(ep =&gt; ep.EventArgs);
+            //err.Subscribe&lt;Exception&gt;(Error);
+
+            pub.Start();
+            Console.ReadLine();
+            Console.WriteLine("Closing down.");
+        }
+    }
+}
+</code></pre>
+
+<p>}
+```</p>
+
+<p>None of the teams bothered with helper methods or anything refined like that &ndash; they only had about 40 minutes to produce anything it all. So, in each of the following cases, replace line 50 in the original code block with the submitted solution.</p>
+
+<h3>Attempt 1:</h3>
+
+<p>Simple, readable and minimalistic, our first contenders went with this.</p>
+
+<p>``` csharp
+obs.Where(t=>t.Item2 == &ldquo;StaffOnly!&rdquo; || t.Item2 == &ldquo;Change!&rdquo;).Select(t => t.Item1).Subscribe(guid => staffSender.Send(guid));</p>
+
+<p>obs.Where(t=>t.Item2 == &ldquo;CustomerOnly!&rdquo; || t.Item2 == &ldquo;Change!&rdquo;).Delay(TimeSpan.FromSeconds(5)).Select(t => t.Item1).Subscribe(guid => customerSender.Send(guid));
+```</p>
+
+<p>As you can see, staff are notified immediately on either a <code>StaffOnly!</code> or <code>Change!</code> event &ndash; while customer events are delayed 5 seconds.</p>
+
+<h3>Attempt 2:</h3>
+
+<p>Group 2 played with RX&rsquo;s <code>GroupBy</code> method, which creates an Observable of Observables &ndash; each one of which only gets events that match the partitioning function.</p>
+
+<p>Interesting stuff, although probably slightly overkill with 4 pre-known options.</p>
+
+<p>```csharp
+obs.GroupBy(x => x.Item2)</p>
+
+<pre><code>.Subscribe(o =&gt;
+{
+    o.Where(x =&gt; x.Item2 == "StaffOnly!" || x.Item2 == "Change!")
+        .Select(x =&gt; x.Item1)
+        .Subscribe(staffSender.Send);
+    o.Where(x =&gt; x.Item2 == "CustomerOnly!" || x.Item2 == "Change!")
+        .Select(t =&gt; t.Item1)
+        .Delay(TimeSpan.FromSeconds(6))
+        .Subscribe(customerSender.Send);
+});
+</code></pre>
+
+<p>```</p>
+
+<p>It also still does the job fine.</p>
+
+<h3>Attempt 3:</h3>
+
+<p>With high points on pragmatism and clarity, group 3 just went with the absolute simplest solution. Just have 4 separate observables:</p>
+
+<p><code>csharp
+obs.Where(t =&gt; t.Item2.Equals("StaffOnly!")).Subscribe(staffOnly =&gt; staffSender.Send(staffOnly.Item1));
+obs.Where(t =&gt; t.Item2.Equals("CustomerOnly!")).Delay(TimeSpan.FromSeconds(5)).Subscribe(customerOnly =&gt; customerSender.Send(customerOnly.Item1));
+obs.Where(t =&gt; t.Item2.Equals("Change!")).Delay(TimeSpan.FromSeconds(5)).Subscribe(s =&gt; customerSender.Send(s.Item1));
+obs.Where(t =&gt; t.Item2.Equals("Change!")).Subscribe(s =&gt; staffSender.Send(s.Item1));
+</code></p>
+
+<p>There&rsquo;s obviously much more to RX than you can learn in a single 1 hour practical session, but hopefully this gives you a feel and (if you followed along) takes away some of the fear of trying out this useful part of the .net ecosystem.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Exploring Reactive Extensions]]></title>
+    <link href="http://blog.mavnn.co.uk/exploring-reactive-extensions/"/>
+    <updated>2015-02-09T13:01:36+00:00</updated>
+    <id>http://blog.mavnn.co.uk/exploring-reactive-extensions</id>
+    <content type="html"><![CDATA[<p>The <a href="http://rx.codeplex.com/">Reactive Extensions</a> project is &ldquo;a library for composing asynchronous and event-based programs using observable sequences and LINQ-style query operators&rdquo;. That doesn&rsquo;t immediately give most people an intuitive grasp of exactly what it is &ndash; but it&rsquo;s a useful addition to the toolset so we put together a practical for people to experiment with.</p>
+
+<p>At it&rsquo;s simplest, RX (as it&rsquo;s called&hellip; the Nuget package you&rsquo;re looking for is <a href="https://www.nuget.org/packages/Rx-Main">Rx-Main</a>, obviously!) allows you to create an <code>IObservable</code> object which you can then&hellip; erm&hellip; observe.</p>
+
+<!--more-->
+
+
+<p><code>IObservable</code> objects can, in turn, be observed by other <code>IObservable</code>s via a series of extension methods, and they will react when the original observable publishes a change. Hence &ldquo;Reactive Extensions&rdquo;. These extensions include all the normal Linq like things you&rsquo;ve come to know and expect in .net (<code>.Where</code> for filtering, <code>.Select</code> for mapping, etc) and also a selection of time based extensions which are the real meat of the reactive programming model. Things like <code>.Delay</code>, which
+holds changes for a period of time before passing them on to subscribers. Or <code>.Throttle</code>, which throttles how quickly events can be passed through, and throws away events that are occurring too rapidly.</p>
+
+<p>The best explanation of the various methods I&rsquo;ve seen is actually the <a href="http://reactivex.io/RxJava/javadoc/">reactivex.io javadocs</a>, which have diagram pictorially depicting the effect of each method. Although it&rsquo;s for Java, the method names are the same. For example, the <a href="http://reactivex.io/RxJava/javadoc/">sample method</a> comes with the following diagram:</p>
+
+<p><img src="https://raw.githubusercontent.com/wiki/ReactiveX/RxJava/images/rx-operators/sample.s.png" alt="Sample method image" /></p>
+
+<p>It shows quite nicely that sample will pick the last event of each interval (if there are any), and publish on only that.</p>
+
+<p>The final part of the puzzle, once you&rsquo;ve done all your filtering, mapping, delaying and sampling is to hook up a Publish callback on your final <code>IObservable</code>.</p>
+
+<p>Let&rsquo;s get to the example code!</p>
+
+<h3>The scenario</h3>
+
+<p>``` csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Reactive;
+using System.Reactive.Linq;
+using ReactiveTester.Shared;</p>
+
+<p>namespace EventTester
+{</p>
+
+<pre><code>class Program
+{
+    static void Handler(Tuple&lt;Guid, string&gt; tuple)
+    {
+        Console.WriteLine("{0} - {1}", tuple.Item1, tuple.Item2);
+    }
+
+    static void Error(Exception e)
+    {
+        var err = Console.OpenStandardError();
+        using (var writer = new System.IO.StreamWriter(err, Console.OutputEncoding))
+        {
+            writer.WriteLine("{0}", e);
+        }
+    }
+
+    static void Main(string[] args)
+    {
+        // Nice docs (although Java): http://reactivex.io/RxJava/javadoc/rx/Observable.html
+        // The challenge:
+        // The ChangeReceiver will fire an event every time a change is received.
+        // Events can be:
+        // "Ignore!" -&gt; don't do anything
+        // "Change!" -&gt; send notification to staff and customers
+        // "StaffOnly!" -&gt; send notification to staff
+        // "CustomerOnly!" -&gt; send notification to customer only
+        //
+        // Staff must be notified within 3 seconds.
+        // Customers most be notified between 5 and 7 seconds.
+        using(var pub = new ChangeReceiver("tcp://*:5555"))
+        {
+            Console.WriteLine("Listening...");
+
+            var staffSender = new NotificationSender("tcp://localhost:5556");
+            var customerSender = new NotificationSender("tcp://localhost:5557");
+
+            var obs = Observable.FromEventPattern&lt;Tuple&lt;Guid, string&gt;&gt;(pub, "ChangeRecieved").Select(ep =&gt; ep.EventArgs);
+            obs.Subscribe&lt;Tuple&lt;Guid, string&gt;&gt;(Handler);
+            obs.Select(t =&gt; t.Item1).Subscribe(guid =&gt; customerSender.Send(guid));
+
+            //var err = Observable.FromEventPattern&lt;Exception&gt;(pub, "OnError").Select(ep =&gt; ep.EventArgs);
+            //err.Subscribe&lt;Exception&gt;(Error);
+
+            pub.Start();
+            Console.ReadLine();
+            Console.WriteLine("Closing down.");
+        }
+    }
+}
+</code></pre>
+
+<p>}
+```</p>
+
+<p>The challenge was to complete the C# program above.</p>
+
+<p>Want to follow along at home? The <a href="https://github.com/mavnn/RX-Practical">example code is on github</a>. Mind out &ndash; it&rsquo;s a bit big, as I included all of the binaries to get people going faster. The file in question is in the <code>EventTester</code> project as <code>Program.cs</code>.</p>
+
+<p>The other program in the project (<code>ReactiveTester</code>) is test server. Right click on the solution, &ldquo;Set StartUp projects&rdquo; to run both on start up and hit <code>F5</code>. You should get two consoles pop up, something like this:</p>
+
+<p><img src="/images/Reactive1.PNG" alt="/images/Reactive1.PNG" /></p>
+
+<p>What&rsquo;s going on here? Well, as company <a href="http://15below.com">15below</a> deal with travel passenger communications, so the example stays close to home. The &ldquo;server&rdquo; (ReactiveTester, on the right) is masquerading as both an IROP (irregular operations, i.e. your flight has been cancelled due to insufficient chicken sarnies) system and as the staff and travellers who need to be told about events that are happening.</p>
+
+<p>We&rsquo;re skipping any business logic identifying event types here, so for our purposes there are 4 types of events the system can issue.</p>
+
+<ul>
+<li>&ldquo;Ignore!&rdquo; &ndash;> we don&rsquo;t care about these</li>
+<li>&ldquo;Change!&rdquo; &ndash;> both staff and travellers should be told about these</li>
+<li>&ldquo;StaffOnly!&rdquo; &ndash;> only staff need to know about these ones</li>
+<li>&ldquo;CustomerOnly!&rdquo; &ndash;> staff don&rsquo;t care about these, only tell the customer</li>
+</ul>
+
+
+<p>Our C# program then has a <code>ChangeReceiver</code> type that fires an event when a change is received, and a <code>NotificationSender</code> type it can use to send notifications out with. In reality, these go back to <code>ReactiveTester</code> that will then tell you if the notification arrived within the allowed window for either customer or staff.</p>
+
+<p>The practical kicked off with the code at the state above. As you can see at line 48 we&rsquo;ve hooked up an observable object to the ChangeReceiver&rsquo;s ChangeReceived event &ndash; now we can observe events. We&rsquo;ve then hooked up a subscriber that fires the <code>Handler</code> method (line 14) which prints all changes to the command line. And a second subscriber that first maps the identifier/message tuple to the identifier and then sends a customer notification.</p>
+
+<p>But wait&hellip;! Our test server keeps on saying &ldquo;Customer: early&rdquo;? And &ldquo;No guid xxx found&rdquo;? What gives?</p>
+
+<p>Well&hellip; most travel companies are very keen for their staff to know about service alterations before customers. So the requirements we&rsquo;ve been given are that staff should be notified within 3 seconds &ndash; but customers only between 5 and 7 seconds. (In real life, these timings would probably be in minutes, obviously).</p>
+
+<p>And the missing guid warnings are because the customers only care about some of the event types (see above). And, of course, the staff aren&rsquo;t getting any notifications at all, so their always complaining about them being late.</p>
+
+<p>Your mission, should you choose to accept it: make everyone happy!</p>
+
+<p>We had 3 teams take up the challenge; I&rsquo;ve posted their solutions in <a href="to%20avoid%20accidental%20spoilers%20:">a separate solutions post</a></p>
+
+<p>P.S. A couple of people were interested in how the server worked. It&rsquo;s my very first attempt at writing both <a href="https://github.com/Hopac/Hopac">Hopac</a> and <a href="https://github.com/zeromq/fszmq">fszmq</a> (an F# zeromq wrapper library). I&rsquo;m hugely impressed by both, but wouldn&rsquo;t recommend my code in that repository as an introduction to either!</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Persistent Data Structures]]></title>
@@ -543,444 +808,6 @@ module TransformVF1 =</p>
 <p>```</p>
 
 <p>Enjoy, and comments welcome &ndash; this was live coded in a group environment, so I&rsquo;m sure plenty of opportunities for nicer code were missed!</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Going Functionally SOLID]]></title>
-    <link href="http://blog.mavnn.co.uk/going-functionally-solid/"/>
-    <updated>2014-04-11T11:45:47+01:00</updated>
-    <id>http://blog.mavnn.co.uk/going-functionally-solid</id>
-    <content type="html"><![CDATA[<p><em>The one giant robot every programmer should know and love! Meet Big O!</em></p>
-
-<p><img src="/images/Big_o.jpg" alt="Big O" /></p>
-
-<p><em>For all your algorithmic complexity needs. And any giant mecha in need of a good pounding.</em></p>
-
-<p>And now, back to your regularly scheduled blog post&hellip;</p>
-
-<p>Inspired both by <a href="http://blog.ploeh.dk/2014/03/10/solid-the-next-step-is-functional/">Mark Seemann&rsquo;s excellent blog post</a> and by my ongoing campaign to introduce functional programming techniques to <a href="http://www.15below.com/">15below</a> developers who aren&rsquo;t familiar with them yet, I decided it was time to run a mini-series on applying good principles like <a href="http://en.wikipedia.org/wiki/Solid_%28object-oriented_design%29">SOLID</a> in a functional world.</p>
-
-<p>We run weekly one hour &ldquo;Developer Education&rdquo; sessions. For this series I started with a badly written piece of code (it came naturally, given I had limited prep time&hellip;) in a style of someone who has kind of heard about SOLID and functional programming:</p>
-
-<ul>
-<li><strong>SOLID</strong>: &ldquo;So, eh, I need some interfaces and things. Concrete bad, interface good. In wonder what the whole DI thing is?&rdquo;</li>
-<li><strong>Functional</strong>: &ldquo;And, erm. Chainable functions? Fluent APIs, maybe? That&rsquo;s kind of functional, right?&rdquo;</li>
-</ul>
-
-
-<!-- More -->
-
-
-<p>And then we had a open house suggesting modifications to the code where I made the changes live as we went along. In this first session, we only got as far as making the code a bit more solid &ndash; tune back in next month for the make it functional session..</p>
-
-<p>Deciding that we needed a more interesting example domain than sending emails for once, I decided to go the whole hog. Below you&rsquo;ll find the before and after versions of &ldquo;HeavyGearSOLID&rdquo;&rsquo;s unit representation code.</p>
-
-<p>Because everything is better with giant robots.</p>
-
-<p>The session was a fun change of pace from other things we&rsquo;ve done, and sparked off a nice bit of discussion (although not as much as I hoped&hellip; heckle more, 15below people!). I&rsquo;m quite looking forward to the next part of the series.</p>
-
-<h2>Before</h2>
-
-<p><code>` fsharp
-namespace</code>メタルギアソリッド``</p>
-
-<p>open System
-open Utils</p>
-
-<p>type IMecha =</p>
-
-<pre><code>abstract Walk : Direction * int -&gt; IMecha
-abstract Jump : Direction * int -&gt; IMecha
-abstract Fly : Direction * int -&gt; IMecha
-abstract Position : int * int
-abstract Hits : int
-abstract Destroyed : bool
-abstract Dodge : int
-abstract Armour : int
-abstract TakeDamage : int -&gt; IMecha
-abstract FireCannon : IMecha * int -&gt; IMecha
-abstract FireMissiles : IMecha * int -&gt; IMecha
-</code></pre>
-
-<p>type GiantRobo (position) =</p>
-
-<pre><code>let _position = ref position
-let _hits = ref 100
-let _destroyed = ref false
-let _dodge = ref 5
-let _armour = ref 20
-let rand = Random()
-interface IMecha with
-    member x.Walk (dir, distance) =
-        let iMecha = x :&gt; IMecha
-        if distance &gt; 4 then
-            failwith "GiantRobo is slow!"
-        else
-            _position := Move (!_position) dir distance
-            iMecha
-    member x.Jump (_, _) =
-        raise &lt;| NotImplementedException("GiantRobo can't jump")
-    member x.Fly (_, _) =
-        raise &lt;| NotImplementedException("GiantRobo can't fly")
-    member x.Position =
-        !_position
-    member x.Hits =
-        !_hits                        
-    member x.Destroyed =
-        !_destroyed
-    member x.Dodge =
-        !_dodge
-    member x.Armour =
-        !_armour
-    member x.TakeDamage damage =
-        _hits := !_hits - damage
-        _destroyed := !_hits &lt;= 0
-        x :&gt; IMecha
-    member x.FireCannon (target, roll) =
-        if roll &gt; target.Dodge then
-            target.TakeDamage (max 0 (60 - target.Armour))
-        else
-            target
-    member x.FireMissiles (target, roll) =
-        raise &lt;| NotImplementedException("Giant Robo has no missiles")
-</code></pre>
-
-<p>type ITransformingMecha =</p>
-
-<pre><code>inherit IMecha
-abstract Mode : string
-abstract ``Transform!`` : string -&gt; ITransformingMecha
-</code></pre>
-
-<p>type VF1 (position) =</p>
-
-<pre><code>let _position = ref position
-let _hits = ref 50
-let _destroyed = ref false
-let _dodge = ref 10
-let _armour = ref 10
-let _mode = ref "Battroid"
-interface ITransformingMecha with
-    member x.Walk (dir, distance) =
-        let iMecha = x :&gt; IMecha
-        if !_mode = "Fighter" then failwith "No legs in Fighter mode!"
-        if distance &gt; 6 then
-            failwith "VF-1 isn't that fast!"
-        else
-            _position := Move (!_position) dir distance
-            iMecha
-    member x.Jump (dir, distance) =
-        let iMecha = x :&gt; IMecha
-        if !_mode = "Fighter" then failwith "Jumping in Fighter mode makes no sense!"
-        let maxDistance =
-            match !_mode with
-            | "GERWALK" -&gt; 8
-            | "Battroid" -&gt; 6
-            | _ -&gt; failwith "No good"
-        if distance &gt; maxDistance then
-            failwith "VF-1 isn't that fast!"
-        else
-            _position := Move (!_position) dir distance
-            iMecha
-    member x.Fly (dir, distance) =
-        let iMecha = x :&gt; IMecha
-        if !_mode = "Battroid" then failwith "Battroid mode can't fly"
-        let maxDistance =
-            match !_mode with
-            | "Fighter" -&gt; 20
-            | "GERWALK" -&gt; 15
-            | _ -&gt; failwith "No good"
-        if distance &gt; maxDistance then
-            failwith "VF-1 isn't that fast!"
-        else
-            _position := Move (!_position) dir distance
-            iMecha
-    member x.Position =
-        !_position
-    member x.Hits =
-        !_hits                        
-    member x.Destroyed =
-        !_destroyed
-    member x.Dodge =
-        !_dodge
-    member x.Armour =
-        !_armour
-    member x.TakeDamage damage =
-        _hits := !_hits - damage
-        _destroyed := !_hits &lt;= 0
-        x :&gt; IMecha
-    member x.FireCannon (target, roll) =
-        if roll &gt; target.Dodge then
-            target.TakeDamage (max 0 (20 - target.Armour))
-        else
-            target
-    member x.FireMissiles (target, roll) =
-        if roll &gt; (target.Dodge / 2) then
-            target.TakeDamage (max 0 (60 - target.Armour))
-        else
-            target
-    member x.Mode =
-        !_mode
-    member x.``Transform!`` mode =
-        match mode with
-        | "Fighter" -&gt;
-            _mode := "Fighter"
-        | "GERWALK" -&gt;
-            _mode := "GERWALK"
-        | "Battroid" -&gt;
-            _mode := "Battroid"
-        | _ -&gt;
-            failwith "Not a valid VF-1 mode"
-        x :&gt; ITransformingMecha
-</code></pre>
-
-<p>```</p>
-
-<h2>After</h2>
-
-<p><code>` fsharp
-namespace</code>メタルギアソリッド``</p>
-
-<p>open System
-open Utils</p>
-
-<p>type Location =</p>
-
-<pre><code>{
-    Position : int * int
-    Altitude : int
-}
-</code></pre>
-
-<p>type IDestructable =</p>
-
-<pre><code>abstract Armour : int
-abstract Dodge : int
-abstract Hits : int
-abstract Destroyed : bool
-abstract TakeDamage : int -&gt; IDestructable
-</code></pre>
-
-<p>type IWalk =</p>
-
-<pre><code>abstract Walk : Direction * int -&gt; Location
-</code></pre>
-
-<p>type IJump =</p>
-
-<pre><code>abstract Jump : Direction * int -&gt; Location
-</code></pre>
-
-<p>type IFly =</p>
-
-<pre><code>abstract Fly : Direction * int -&gt; Location
-</code></pre>
-
-<p>type IHazWeapon =</p>
-
-<pre><code>abstract Fire : IDestructable * int -&gt; IDestructable
-</code></pre>
-
-<p>type IHazWeapons =</p>
-
-<pre><code>abstract WMDs : List&lt;IHazWeapon&gt;
-</code></pre>
-
-<p>type IHazCannon =</p>
-
-<pre><code>inherit IHazWeapon
-</code></pre>
-
-<p>type IHazMissiles =</p>
-
-<pre><code>inherit IHazWeapon
-</code></pre>
-
-<p>type NormalDestructable (hits, dodge, armour) =</p>
-
-<pre><code>let _hits = ref 100
-let _destroyed = ref false
-let _dodge = ref 5
-let _armour = ref 20
-interface IDestructable with
-    member x.Hits =
-        !_hits                        
-    member x.Destroyed =
-        !_destroyed
-    member x.Dodge =
-        !_dodge
-    member x.Armour =
-        !_armour
-    member x.TakeDamage damage =
-        _hits := !_hits - damage
-        _destroyed := !_hits &lt;= 0
-        x :&gt; IDestructable
-</code></pre>
-
-<p>type GiantRobo (position, destructable : #IDestructable) =</p>
-
-<pre><code>let _position = ref position
-member x.Position =
-    !_position
-interface IWalk with
-    member x.Walk (dir, distance) =
-        if distance &gt; 4 then
-            failwith "GiantRobo is slow!"
-        else
-            { Position = Move (!_position) dir distance; Altitude = 0 }
-interface IDestructable with
-    member x.Hits = destructable.Hits
-    member x.Destroyed = destructable.Destroyed
-    member x.Dodge = destructable.Dodge
-    member x.Armour = destructable.Armour
-    member x.TakeDamage damage = destructable.TakeDamage damage
-interface IHazWeapons with
-    member x.WMDs =
-        [{ new IHazCannon with 
-            member x.Fire (target, roll) =
-                if roll &gt; target.Dodge then
-                    target.TakeDamage (max 0 (60 - target.Armour))
-                else
-                    target }]
-</code></pre>
-
-<p>type ITransforming =</p>
-
-<pre><code>abstract Mode : string
-abstract ``Transform!`` : string -&gt; ITransforming
-</code></pre>
-
-<p>type VF1 (position) =</p>
-
-<pre><code>let _position = ref position
-let _mode = ref "Battroid"
-member x.Position =
-    !_position
-interface IWalk with
-    member x.Walk (dir, distance) =
-        if !_mode = "Fighter" then failwith "No legs in Fighter mode!"
-        if distance &gt; 6 then
-            failwith "VF-1 isn't that fast!"
-        else
-            { Position = Move (!_position) dir distance; Altitude = 0 }
-interface IJump with
-    member x.Jump (dir, distance) =
-        if !_mode = "Fighter" then failwith "Jumping in Fighter mode makes no sense!"
-        let maxDistance =
-            match !_mode with
-            | "GERWALK" -&gt; 8
-            | "Battroid" -&gt; 6
-            | _ -&gt; failwith "No good"
-        if distance &gt; maxDistance then
-            failwith "VF-1 isn't that fast!"
-        else
-            { Position = Move (!_position) dir distance; Altitude = 0 }
-interface IFly with
-    member x.Fly (dir, distance) =
-        if !_mode = "Battroid" then failwith "Battroid mode can't fly"
-        let maxDistance =
-            match !_mode with
-            | "Fighter" -&gt; 20
-            | "GERWALK" -&gt; 15
-            | _ -&gt; failwith "No good"
-        if distance &gt; maxDistance then
-            failwith "VF-1 isn't that fast!"
-        else
-            { Position = Move (!_position) dir distance; Altitude = 0 }
-interface IHazWeapons with
-    member x.WMDs =
-        [
-            { new IHazCannon with
-                member x.Fire (target, roll) =
-                    if roll &gt; target.Dodge then
-                        target.TakeDamage (max 0 (20 - target.Armour))
-                    else
-                        target };
-             { new IHazMissiles with
-                member x.Fire (target, roll) =
-                    if roll &gt; (target.Dodge / 2) then
-                        target.TakeDamage (max 0 (60 - target.Armour))
-                    else
-                        target }
-        ]
-interface ITransforming with
-    member x.Mode =
-        !_mode
-    member x.``Transform!`` mode =
-        match mode with
-        | "Fighter" -&gt;
-            _mode := "Fighter"
-        | "GERWALK" -&gt;
-            _mode := "GERWALK"
-        | "Battroid" -&gt;
-            _mode := "Battroid"
-        | _ -&gt;
-            failwith "Not a valid VF-1 mode"
-        x :&gt; ITransforming
-</code></pre>
-
-<p>```</p>
-
-<p><em>This series continues in the imaginatively named &ldquo;<a href="/functionally-solid-2/">Functionally SOLID 2</a>&rdquo;</em></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Coding Hygiene: Moving from project references to NuGet dependencies]]></title>
-    <link href="http://blog.mavnn.co.uk/coding-hygiene-moving-from-project-references-to-nuget-dependencies/"/>
-    <updated>2013-03-08T17:08:00+00:00</updated>
-    <id>http://blog.mavnn.co.uk/coding-hygiene-moving-from-project-references-to-nuget-dependencies</id>
-    <content type="html"><![CDATA[<p>So, first post with the new blogging engine. Let&rsquo;s see how it goes.</p>
-
-<p>Our code base at <a href="http://15below.com">15below</a> started it&rsquo;s life a fair
-while ago, well before any form of .NET package management became
-practical. Because of that, we ended up building a lot of code in
-&lsquo;lockstep&rsquo; with project references in code as there was no sensible way
-of taking versioned binary dependencies.</p>
-
-<p>That&rsquo;s fine and all, but it encourages bad code hygiene: rather than
-having sharply defined contracts between components, if you&rsquo;ve got them
-all open in the same solution it becomes far too tempting to just nudge
-changes around as it&rsquo;s convenient at the time. Changes can infect other
-pieces of code, and the power of automatic refactoring across the entire
-solution becomes intoxicating.</p>
-
-<p>The result? It becomes very hard to do incremental builds (or
-deployments, for that matter). This in turn makes for a long feed back
-cycle between making a change, and being able to see it rolled out to a
-testing environment.</p>
-
-<p>So as part of the ongoing refactoring that any long lived code base needs to
-keep it maintainable and under control, we&rsquo;ve embarked on the process of
-splitting our code down into more logically separated repositories that
-reference each other via NuGet. This will require us to start being much
-more disciplined in our <a href="http://semver.org">semantic versioning</a> than we
-have been in the past, but will also allow us to build and deploy
-incrementally and massively reduce our feed back times.</p>
-
-<p>As part of splitting out the first logical division (I&rsquo;d like to say
-<a href="http://en.wikipedia.org/wiki/Domain-driven_design">domain</a> but we&rsquo;re
-not there yet!), I created the new repository and got the included
-assemblies up and building on TeamCity. It was only then (stupidly) that
-I realised that we had several hundred project references to these
-assemblies in our code. There was no way I was going to update them all
-by hand, so after a few hours development we now have a script for
-idempotently updating a project reference in a [cs|vb|fs]proj file to a
-NuGet reference. It does require you to do one update manually first;
-especially with assemblies that are strongly signed, I chickened out of
-trying to generate the reference nodes that needed to be added
-automatically. The script also makes sure that you end up with a
-packages.config file with the project that includes the new dependency.</p>
-
-<p>It should be noted that this script has only seen minimal testing, was
-coded up for one time use and does not come with a warranty of any kind!
-Use at your own risk, and once you understand what it&rsquo;s doing. But for
-all that, I hope you find it useful.</p>
-
-<p><div><script src='https://gist.github.com/mavnn/5983379.js'></script>
-<noscript><pre><code></code></pre></noscript></div>
-</p>
 ]]></content>
   </entry>
   

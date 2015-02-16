@@ -4,7 +4,7 @@
   <title><![CDATA[Category: fake | Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/blog/categories/fake/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2015-02-12T20:51:14+00:00</updated>
+  <updated>2015-02-16T10:08:57+00:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -73,13 +73,105 @@ all that, I hope you find it useful.</p>
   
   <entry>
     <title type="html"><![CDATA[Throttling the level of concurrency in F#]]></title>
-    <link href="http://blog.mavnn.co.uk/throttling-the-level-of-concurrency-in-f/index.html"/>
+    <link href="http://blog.mavnn.co.uk/throttling-the-level-of-concurrency-in-f/"/>
     <updated>2013-02-15T00:00:00+00:00</updated>
-    <id>http://blog.mavnn.co.uk/throttling-the-level-of-concurrency-in-f/throttling-the-level-of-concurrency-in-f</id>
-    <content type="html"><![CDATA[<div>Async.Parallel |&gt; Async.RunSynchronously is great for running a load of stuff in parallel in F#, as long as you don&#39;t mind them all running at the same time.</div>
+    <id>http://blog.mavnn.co.uk/throttling-the-level-of-concurrency-in-f</id>
+    <content type="html"><![CDATA[<p>Async.Parallel |> Async.RunSynchronously is great for running a load of stuff in parallel in F#, as long as you don&rsquo;t mind them all running at the same time.</p>
 
+<p>Often, though, you want to map across a sequence and run functions on the elements in parallel, but with a limit to how many are being processed concurrently. Whether you&rsquo;re doing something CPU heavy and there&rsquo;s no point running more than the number of processors on the box, or whether you know that you&rsquo;ll swamp a remote server if you just dump all of your connections on it at once, this issue comes up surprisingly often.</p>
 
-<p><p /><div>Often, though, you want to map across a sequence and run functions on the elements in parallel, but with a limit to how many are being processed concurrently. Whether you&#39;re doing something CPU heavy and there&#39;s no point running more than the number of processors on the box, or whether you know that you&#39;ll swamp a remote server if you just dump all of your connections on it at once, this issue comes up surprisingly often.</div> <p /><div>As a first stab, you might be tempted to do something like this (if you think like I do):</div><p /><div><script src="https://gist.github.com/4961072.js"></script><br /> </div><p /><div>In a word: don&#39;t. The contention in the Semaphore make this enormously inefficient with even a few hundred tasks.</div><p /><div>In the end, the simplest  implementation I could come up with that didn&#39;t involve dragging in external dependencies was the following:</div> <p /><div><script src="https://gist.github.com/4961056.js"></script><br /></div><p /><div>If anyone has a simpler implementation, leave a comment and let me know!</div></p>
+<p>As a first stab, you might be tempted to do something like this (if you think like I do):</p>
+
+<p>``` fsharp
+let inline doParallelWithThrottle limit f items =</p>
+
+<pre><code>use sem = new System.Threading.Semaphore(limit, limit)
+items
+|&gt; Seq.map (fun element -&gt; async {
+        sem.WaitOne() |&gt; ignore
+        let result = Async.RunSynchronously &lt;| async { return f element }
+        sem.Release() |&gt; ignore
+        return result
+    })
+|&gt; Async.Parallel
+|&gt; Async.RunSynchronously
+</code></pre>
+
+<p>```</p>
+
+<p>In a word: don&rsquo;t. The contention in the Semaphore make this enormously inefficient with even a few hundred tasks.</p>
+
+<p>In the end, the simplest  implementation I could come up with that didn&rsquo;t involve dragging in external dependencies was the following:</p>
+
+<p>``` fsharp
+open System.Collections.Concurrent</p>
+
+<p>type JobRequest&lt;&rsquo;T> =</p>
+
+<pre><code>{
+    Id : int
+    WorkItem : 'T
+}
+</code></pre>
+
+<p>type WorkRequest&lt;&rsquo;T> =</p>
+
+<pre><code>| Job of JobRequest&lt;'T&gt;
+| End
+</code></pre>
+
+<p>let inline doParallelWithThrottle&lt;&lsquo;a, 'b> limit f items =</p>
+
+<pre><code>let itemArray = Seq.toArray items
+let itemCount = Array.length itemArray
+let resultMap = ConcurrentDictionary&lt;int, 'b&gt;()
+use block = new BlockingCollection&lt;WorkRequest&lt;'a&gt;&gt;(1)
+use completeBlock = new BlockingCollection&lt;unit&gt;(1)
+let monitor = 
+    MailboxProcessor.Start(fun inbox -&gt;
+        let rec inner complete =
+            async {
+                do! inbox.Receive()
+                if complete + 1 = limit then
+                    completeBlock.Add(())
+                    return ()
+                else
+                    return! inner &lt;| complete + 1
+            }
+        inner 0)
+let createAgent () =
+    MailboxProcessor.Start(
+        fun inbox -&gt;
+            let rec inner () = async {
+                    let! request = async { return block.Take() }
+                    match request with
+                    | Job job -&gt;
+                        let! result = async { return f (job.WorkItem) }
+                        resultMap.AddOrUpdate(job.Id, result, fun _ _ -&gt; result) |&gt; ignore
+                        return! inner ()
+                    | End  -&gt;
+                        monitor.Post ()                            
+                        return ()
+                }
+            inner ()
+    )
+let agents =
+    [| for i in 1..limit -&gt; createAgent() |]
+itemArray
+|&gt; Array.mapi (fun i item -&gt; Job { Id = i; WorkItem = item })
+|&gt; Array.iter (block.Add)
+
+[1..limit]
+|&gt; Seq.iter (fun x -&gt; block.Add(End))
+
+completeBlock.Take()
+let results = Array.zeroCreate itemCount
+resultMap
+|&gt; Seq.iter (fun kv -&gt; results.[kv.Key] &lt;- kv.Value)
+results
+</code></pre>
+
+<p>```</p>
 ]]></content>
   </entry>
   

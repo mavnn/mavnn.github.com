@@ -4,7 +4,7 @@
   <title><![CDATA[Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2015-02-16T10:08:57+00:00</updated>
+  <updated>2015-02-16T12:42:32+00:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,229 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Testing ProvidedType.fs by Example]]></title>
+    <link href="http://blog.mavnn.co.uk/testing-providedtype-dot-fs/"/>
+    <updated>2015-02-16T12:12:56+00:00</updated>
+    <id>http://blog.mavnn.co.uk/testing-providedtype-dot-fs</id>
+    <content type="html"><![CDATA[<p>The <a href="https://github.com/fsprojects/FSharp.TypeProviders.StarterPack">Type Provider Starter Pack</a> was designed with two purposes initially. Firstly, to be a canonical repository for the ProvidedTypes files which provide a source file based API for creating type providers. And secondly, to be a set of tutorials and examples for people wanting to dip their toes into building type providers for the first time.</p>
+
+<p>To be honest, it&rsquo;s not been doing a complete job of either:</p>
+
+<ul>
+<li>I think most people are using it as the source of ProvidedTypes.fs and .fsi now days, but it didn&rsquo;t provide any infrastructure or testing for progressing the library.</li>
+<li>The &ldquo;examples&rdquo; were limited to a link to my <a href="http://blog.mavnn.co.uk/type-providers-from-the-ground-up/">tutorial on building type providers</a></li>
+</ul>
+
+
+<p>Today, that&rsquo;s changed. And I need your help!</p>
+
+<h3>Testing ProvidedTypes</h3>
+
+<p>Once I started thinking about it, it became clear that the code needed for basic type provider examples, and the code needed to test ProvidedTypes.fs were basically identical.</p>
+
+<p>So I implemented a system for compiling and testing example .fsx scripts within the Starter Pack repository.</p>
+
+<p>Want to help out? As long as you have some basic git and F# knowledge, it&rsquo;s easy!</p>
+
+<!-- more -->
+
+
+<h4>Fork the repository and pull down a clone</h4>
+
+<h4>Add an example to the <code>/examples</code> directory</h4>
+
+<p>Structure the example as below and save it as an .fsx file:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="o">#</span><span class="k">if</span> <span class="nc">INTERACTIVE</span>
+</span><span class='line'><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;../src/ProvidedTypes.fsi&quot;</span>
+</span><span class='line'><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;../src/ProvidedTypes.fs&quot;</span>
+</span><span class='line'><span class="o">#</span><span class="n">endif</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nn">ProviderImplementation</span><span class="p">.</span><span class="nc">ProvidedTypes</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nn">Core</span><span class="p">.</span><span class="nc">CompilerServices</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Reflection</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="nc">TypeProvider</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">type</span> <span class="nc">BasicProvider</span> <span class="o">(</span><span class="n">config</span> <span class="o">:</span> <span class="nc">TypeProviderConfig</span><span class="o">)</span> <span class="k">as</span> <span class="n">this</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">inherit</span> <span class="nc">TypeProviderForNamespaces</span> <span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">ns</span> <span class="o">=</span> <span class="s2">&quot;StaticProperty.Provided&quot;</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">asm</span> <span class="o">=</span> <span class="nn">Assembly</span><span class="p">.</span><span class="nc">GetExecutingAssembly</span><span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">createTypes</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">myType</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="s2">&quot;MyType&quot;</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;)</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">myProp</span> <span class="o">=</span> <span class="nc">ProvidedProperty</span><span class="o">(</span><span class="s2">&quot;MyProperty&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;,</span> <span class="nc">IsStatic</span> <span class="o">=</span> <span class="bp">true</span><span class="o">,</span>
+</span><span class='line'>                                        <span class="nc">GetterCode</span> <span class="o">=</span> <span class="o">(</span><span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="s2">&quot;Hello world&quot;</span> <span class="o">@@&gt;))</span>
+</span><span class='line'>        <span class="n">myType</span><span class="o">.</span><span class="nc">AddMember</span><span class="o">(</span><span class="n">myProp</span><span class="o">)</span>
+</span><span class='line'>        <span class="o">[</span><span class="n">myType</span><span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">do</span>
+</span><span class='line'>        <span class="n">this</span><span class="o">.</span><span class="nc">AddNamespace</span><span class="o">(</span><span class="n">ns</span><span class="o">,</span> <span class="n">createTypes</span><span class="bp">()</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="n">assembly</span><span class="o">:</span><span class="nc">TypeProviderAssembly</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">do</span> <span class="bp">()</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The <code>#if INTERACTIVE</code> block at the top will allow you to write your example in Visual Studio, without us requiring a separate project for each example provider.</p>
+
+<h4>Add a set of tests in a .fsx script in the <code>/examples</code> directory</h4>
+
+<p>The test file for the example above looks like this, and again should be saved as an .fsx file:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="o">#</span><span class="k">if</span> <span class="nc">INTERACTIVE</span>
+</span><span class='line'><span class="o">#</span><span class="n">r</span> <span class="o">@</span><span class="s2">&quot;../packages/Nunit.Runners/tools/nunit.framework.dll&quot;</span>
+</span><span class='line'><span class="o">#</span><span class="n">r</span> <span class="o">@</span><span class="s2">&quot;../test/StaticProperty.dll&quot;</span>
+</span><span class='line'><span class="o">#</span><span class="n">endif</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nn">NUnit</span><span class="p">.</span><span class="nc">Framework</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">StaticProperty</span><span class="p">.</span><span class="nc">Provided</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="nc">Test</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">let</span> <span class="o">``</span><span class="nc">Static</span> <span class="n">property</span> <span class="n">should</span> <span class="n">have</span> <span class="n">been</span> <span class="n">created</span><span class="o">``</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>    <span class="nn">Assert</span><span class="p">.</span><span class="nc">AreEqual</span><span class="o">(</span><span class="s2">&quot;Hello world&quot;</span><span class="o">,</span> <span class="nn">MyType</span><span class="p">.</span><span class="nc">MyProperty</span><span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Note the two #r references at the top. Remember what you choose to call the dll!</p>
+
+<h4>Hooking up the examples so they get built and tested</h4>
+
+<p>The main build file is where the magic happens &ndash; <a href="https://github.com/fsprojects/FSharp.TypeProviders.StarterPack/blob/master/build.fsx">build.fsx</a> in the root directory.</p>
+
+<p>Squirrelled away in there is a target called <code>Examples</code>. It&rsquo;s contents look like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">examples</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">[</span>
+</span><span class='line'>        <span class="o">{</span>
+</span><span class='line'>            <span class="nc">Name</span> <span class="o">=</span> <span class="s2">&quot;StaticProperty&quot;</span>
+</span><span class='line'>            <span class="nc">ProviderSourceFiles</span> <span class="o">=</span> <span class="o">[</span><span class="s2">&quot;StaticProperty.fsx&quot;</span><span class="o">]</span>
+</span><span class='line'>            <span class="nc">TestSourceFiles</span> <span class="o">=</span> <span class="o">[</span><span class="s2">&quot;StaticProperty.Tests.fsx&quot;</span><span class="o">]</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>        <span class="o">{</span>
+</span><span class='line'>            <span class="nc">Name</span> <span class="o">=</span> <span class="s2">&quot;ErasedWithConstructor&quot;</span>
+</span><span class='line'>            <span class="nc">ProviderSourceFiles</span> <span class="o">=</span> <span class="o">[</span><span class="s2">&quot;ErasedWithConstructor.fsx&quot;</span><span class="o">]</span>
+</span><span class='line'>            <span class="nc">TestSourceFiles</span> <span class="o">=</span> <span class="o">[</span><span class="s2">&quot;ErasedWithConstructor.Tests.fsx&quot;</span><span class="o">]</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>    <span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">testNunitDll</span> <span class="o">=</span> <span class="n">testDir</span> <span class="o">@@</span> <span class="s2">&quot;nunit.framework.dll&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">do</span>
+</span><span class='line'>    <span class="k">if</span> <span class="nn">File</span><span class="p">.</span><span class="nc">Exists</span> <span class="n">testNunitDll</span> <span class="k">then</span>
+</span><span class='line'>        <span class="nn">File</span><span class="p">.</span><span class="nc">Delete</span> <span class="n">testNunitDll</span>
+</span><span class='line'>    <span class="nn">File</span><span class="p">.</span><span class="nc">Copy</span> <span class="o">(</span><span class="n">nunitDir</span> <span class="o">@@</span> <span class="s2">&quot;nunit.framework.dll&quot;</span><span class="o">,</span> <span class="n">testNunitDll</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">fromExampleDir</span> <span class="n">filenames</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">filenames</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">filename</span> <span class="o">-&gt;</span> <span class="n">exampleDir</span> <span class="o">@@</span> <span class="n">filename</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">examples</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">iter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">example</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="c1">// Compile type provider</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">output</span> <span class="o">=</span> <span class="n">testDir</span> <span class="o">@@</span> <span class="n">example</span><span class="o">.</span><span class="nc">Name</span> <span class="o">+</span> <span class="s2">&quot;.dll&quot;</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">setOpts</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">def</span> <span class="o">-&gt;</span> <span class="o">{</span> <span class="n">def</span> <span class="k">with</span> <span class="nc">Output</span> <span class="o">=</span> <span class="n">output</span><span class="o">;</span> <span class="nc">FscTarget</span> <span class="o">=</span> <span class="nn">FscTarget</span><span class="p">.</span><span class="nc">Library</span> <span class="o">}</span>
+</span><span class='line'>        <span class="nc">Fsc</span> <span class="n">setOpts</span> <span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">concat</span> <span class="o">[</span><span class="n">pt</span><span class="o">;</span><span class="n">fromExampleDir</span> <span class="n">example</span><span class="o">.</span><span class="nc">ProviderSourceFiles</span><span class="o">])</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="c1">// Compile test dll</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">setTestOpts</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">def</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="o">{</span> <span class="n">def</span> <span class="k">with</span>
+</span><span class='line'>                <span class="nc">Output</span> <span class="o">=</span> <span class="n">testDir</span> <span class="o">@@</span> <span class="n">example</span><span class="o">.</span><span class="nc">Name</span> <span class="o">+</span> <span class="s2">&quot;.Tests.dll&quot;</span>
+</span><span class='line'>                <span class="nc">FscTarget</span> <span class="o">=</span> <span class="nn">FscTarget</span><span class="p">.</span><span class="nc">Library</span>
+</span><span class='line'>                <span class="nc">References</span> <span class="o">=</span> <span class="o">[</span><span class="n">output</span><span class="o">;</span><span class="n">nunitDir</span> <span class="o">@@</span> <span class="s2">&quot;nunit.framework.dll&quot;</span><span class="o">]</span> <span class="o">}</span>
+</span><span class='line'>        <span class="nc">Fsc</span> <span class="n">setTestOpts</span> <span class="o">(</span><span class="n">fromExampleDir</span> <span class="n">example</span><span class="o">.</span><span class="nc">TestSourceFiles</span><span class="o">)</span>
+</span><span class='line'>    <span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>You will need to add your example to the <code>examples</code> list at the top of the target. <code>Name</code> is the name of the dll that will be produced for your type provider. <code>ProviderSourceFiles</code> is the fsx file with your type provider example code. And <code>TestSourceFiles</code> is the code of your tests.</p>
+
+<p>If you check further down, the call to the compiler to compile your provider will automatically prepend the ProvidedTypes files, so there&rsquo;s no need to list those. And the call to the compiler to run your tests will have references added for the provider you just built and <code>nunit.framework.dll</code>.</p>
+
+<p>So what are you waiting for? Get writing some examples!</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Good Developer CVs (Résumés)]]></title>
@@ -85,7 +308,7 @@ management responsibility. We&rsquo;re hiring developers, and while we&rsquo;ll 
 
 <p>So, there you have. My own personal list of things that increase or decrease your chances that I&rsquo;ll recommend you&rsquo;re interviewed.</p>
 
-<p>If you think that you&rsquo;d be interested in working for the type of company that uses this type of criteria&hellip; well, oddly enough we&rsquo;re hiring at the moment. Ping me or drop a note through to <a href="&#x6d;&#97;&#105;&#108;&#x74;&#111;&#x3a;&#x6a;&#111;&#98;&#x73;&#x40;&#x31;&#53;&#98;&#x65;&#108;&#111;&#x77;&#x2e;&#99;&#111;&#x6d;&#x2e;">&#106;&#x6f;&#x62;&#x73;&#64;&#49;&#x35;&#98;&#x65;&#x6c;&#x6f;&#x77;&#x2e;&#99;&#x6f;&#109;&#x2e;</a></p>
+<p>If you think that you&rsquo;d be interested in working for the type of company that uses this type of criteria&hellip; well, oddly enough we&rsquo;re hiring at the moment. Ping me or drop a note through to <a href="&#x6d;&#x61;&#105;&#108;&#116;&#111;&#x3a;&#x6a;&#x6f;&#98;&#115;&#x40;&#x31;&#x35;&#98;&#101;&#x6c;&#x6f;&#x77;&#x2e;&#99;&#x6f;&#x6d;&#46;">&#106;&#x6f;&#98;&#115;&#x40;&#x31;&#53;&#x62;&#x65;&#108;&#x6f;&#x77;&#x2e;&#x63;&#111;&#109;&#x2e;</a></p>
 ]]></content>
   </entry>
   
@@ -6134,136 +6357,6 @@ rewrite to see if we can get all of our quotations into better shape.</p>
 <p>Any questions or corrections, fire away. As mentioned, this is very much the first time I&rsquo;ve used type providers &ndash; but even this level of usage is providing a goodly amount of value for us.</p>
 
 <p>And if you&rsquo;re ready for the next challenge&hellip; off to <a href="http://blog.mavnn.co.uk/type-providers-from-the-first-floor/">part 2</a> with you!</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[To Infinity and Beyond]]></title>
-    <link href="http://blog.mavnn.co.uk/to-infinity/"/>
-    <updated>2013-10-31T07:41:00+00:00</updated>
-    <id>http://blog.mavnn.co.uk/to-infinity</id>
-    <content type="html"><![CDATA[<p>So, a couple of weeks ago I went to the Brighton Functional Programmers meet up. It was a fun night, and at one point I ended up live coding in front of a room of functional programmers trying to give examples of lazy and strict evaluation.</p>
-
-<p>The canonical go to tool for the job, is of course the infinite sequence and being stared at by a bunch of people and having syntax highlighting but no compiler, the first thing my brain pulled out of the air was this:</p>
-
-<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part1.fs'></script>
-<noscript><pre><code>let ones =
-    seq {
-        while true do
-            yield 1
-    }
-// seq [1; 1; 1; 1; ...]</code></pre></noscript></div>
-
-
-<p>Which prompted one of the people attending (hi <a href="https://twitter.com/milessabin">Miles!</a>) to comment &ldquo;let&rsquo;s see that in Haskell without the bizarre looping generator&rdquo;. Roughly &ndash; I&rsquo;m slightly paraphrasing here given the couple of weeks in between. He has a bit of a point, this isn&rsquo;t the most functional looking sequence generator in the world, and it looks like quite a lot of code to just generate a lot of ones.</p>
-
-<p>As always in these situations, I had of course thought of several other alternatives before I even reached my chair, so I thought I&rsquo;d have a quick survey of them and their advantages and disadvantages.</p>
-
-<p>My first thought was that I&rsquo;d missed the obvious and succinct option of just generating a range. In F# (as in Haskell) the 1 .. 10 notation generates a list of the integers from 1 to 10. Unfortunately:</p>
-
-<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part2.fs'></script>
-<noscript><pre><code>// Can't do this, unfortunately
-// seq { 1 .. }
-//
-// or this:
-// seq { 1 .. 0 .. 2 }
-//
-// Which I thought might be a nice hack.
-</code></pre></noscript></div>
-
-
-<p>Unlike Haskell, you can&rsquo;t have an unbounded range, nor can you set the &ldquo;step&rdquo; to zero to just keep on generating the same number. So you&rsquo;re limited to generating very big, but definitely not infinite sequences:</p>
-
-<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part3.fs'></script>
-<noscript><pre><code>let notInfiniteOrOnes = seq { 1 .. System.Int32.MaxValue }
-// seq [1; 2; 3; 4; ...]
-
-let notInfinite = seq { for _ in 1 .. System.Int32.MaxValue -&gt; 1 }
-// seq [1; 1; 1; 1; ...]
-</code></pre></noscript></div>
-
-
-<p>But hey! We&rsquo;re in functional world. So if we can&rsquo;t use sneaky built in syntax constructs, the next obvious choice is a recursive function:</p>
-
-<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part4.fs'></script>
-<noscript><pre><code>let ones' =
-    let rec gen () =
-        seq {
-            yield 1
-            yield! gen ()
-        }
-    gen ()
-// seq [1; 1; 1; 1; ...]
-</code></pre></noscript></div>
-
-
-<p>This is definitely infinite, and definitely functional in style. Bit verbose, of course, but it least it won&rsquo;t stack overflow as F# implements tail call recursion. It&rsquo;s verbose, but it does also have its advantages. It&rsquo;s trivial to pass things round in the recursive function (previous values from the sequence, etc) making this a very flexible way of generating sequences.</p>
-
-<p>And, of course, let&rsquo;s not ignore the standard library. The <code>Seq</code> module gives us a couple of methods designed specifically for generating (potentially) infinite sequences.</p>
-
-<p><code>Seq.initInfinite</code> just takes a function that returns a sequence value based on the index of that value:</p>
-
-<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part5.fs'></script>
-<noscript><pre><code>let ones'' = Seq.initInfinite (fun _ -&gt; 1)
-// seq [1; 1; 1; 1; ...]
-</code></pre></noscript></div>
-
-
-<p>As long as a simple mapping from index to value exists, this is both clear and concise. In theory, of course, it also suffers from the same issue as my range generators above: if your index exceeds the valid size of an Int32 you&rsquo;re out of luck.</p>
-
-<p><code>Seq.unfold</code> may seem less intuitive, but in my mind is the more flexible and powerful solution. I tend to come across examples where it&rsquo;s easier to generate a sequence based on either some state or the previous term than by index, and that&rsquo;s exactly what unfold allows you to do:</p>
-
-<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part6.fs'></script>
-<noscript><pre><code>let ones''' = Seq.unfold (fun _ -&gt; Some (1, ())) ()
-// seq [1; 1; 1; 1; ...]
-</code></pre></noscript></div>
-
-
-<p>It will also happily generate sequences forever if your generating function allows.</p>
-
-<p>So, how does it actually work? Let&rsquo;s look at a (slightly) more complex example that actually makes use of some state:</p>
-
-<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part7.fs'></script>
-<noscript><pre><code>let moreInterestingUnfold =
-    Seq.unfold
-        (fun state -&gt;
-            Some (state, state + 1)) 1
-// seq [1; 2; 3; 4; ...]
-</code></pre></noscript></div>
-
-
-<p>What&rsquo;s going on here then? Well, <code>unfold</code> takes two arguments. The first is a function that takes a &lsquo;State and returns an Option&lt;&rsquo;T * &#8216;State>. In our simple example above, both &#8216;State and &rsquo;T are of type <code>int</code> but there&rsquo;s no requirement for them to be of the same type. If at any point the function returns <code>None</code>, the sequence ends. In our example, we always return <code>Some</code>, so our sequence is infinite (at least until it runs out of integers) and we&rsquo;re return a tuple of two values &ndash; the first of which will be used as the next term in the sequence, and the second which will become the new state.</p>
-
-<p>The second argument to <code>unfold</code> is the starting state. In our case, this means the number that will be the first term in the sequence, and then we&rsquo;ll add one to it each time.</p>
-
-<p>Let&rsquo;s round this out with an example that uses different types for the state and the terms of the sequence, which will hopefully now make some sense:</p>
-
-<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part8.fs'></script>
-<noscript><pre><code>type Time =
-    {
-        Hour : int
-        Minute : int
-    }
-
-let addMinute time =
-    match time with
-    | { Hour = 23; Minute = 59 } -&gt;
-        { Hour = 0; Minute = 0 }
-    | { Minute = 59 } -&gt;
-        { Hour = time.Hour + 1; Minute = 0 }
-    | _ -&gt;
-        { Hour = time.Hour; Minute = time.Minute + 1 }
-
-let unfold' =
-    Seq.unfold
-        (fun state -&gt;
-            Some (sprintf &quot;%02d:%02d&quot; state.Hour state.Minute, addMinute state)
-            ) { Hour = 22; Minute = 59 }
-// seq [&quot;23:59&quot;; &quot;00:00&quot;; &quot;00:01&quot;; &quot;00:02&quot;; ...]
-</code></pre></noscript></div>
-
-
-<p>I&rsquo;m sure that you&rsquo;ve always needed a convenient way of cycling through every minute of the day repeatedly, with a nice readable string representation.</p>
 ]]></content>
   </entry>
   

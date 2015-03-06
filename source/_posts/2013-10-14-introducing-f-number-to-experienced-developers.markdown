@@ -5,7 +5,7 @@ date: 2013-10-14 12:30
 comments: true
 categories: [fsharp, programming, teaching]
 ---
-So, as a follow up to [this post]("http://blog.mavnn.co.uk/teaching-f-number-to-c-number-devs/") I'm in the final stages of preparing a presentation for this Friday introducing an audience of (mostly) fairly experienced developers to F# and F# syntax. The main reason for this is to get a number of people up to speed enough on reading F# that they can have a better experience at [the Progressive F# Tutorials]("http://skillsmatter.com/event/scala/progressive-f-tutorials-2013") at the end of the month. So the aim here isn't to get people fully autonomous and writing code *right now*, but to allow them to read the bulk of the example code in the tutorials and follow what's going on.
+So, as a follow up to [this post](http://blog.mavnn.co.uk/teaching-f-number-to-c-number-devs/) I'm in the final stages of preparing a presentation for this Friday introducing an audience of (mostly) fairly experienced developers to F# and F# syntax. The main reason for this is to get a number of people up to speed enough on reading F# that they can have a better experience at [the Progressive F# Tutorials](http://skillsmatter.com/event/scala/progressive-f-tutorials-2013) at the end of the month. So the aim here isn't to get people fully autonomous and writing code *right now*, but to allow them to read the bulk of the example code in the tutorials and follow what's going on.
 
 The general approach I've gone for is to set up a Git repository that has a series of tagged snap shots I can check out as I work through the concepts I'm planning to cover. This will enable me to actually demonstrate and run pieces of code, answer questions and make live modifications and then always jump back to a known starting point for the next section of the talk. Given the people involved have all done some .net development and I don't need to cover things like Visual Studio usage and projects, all of the code is contained in a single Program.fs file in a console app. I've included the snapshot of the file from each tagged commit below, with a brief overview of what I'm planning to introduce before skipping to the next snapshot.
 
@@ -25,13 +25,25 @@ So, show me the codez:
 
 Nothing too exciting here :). This is just a place holder while giving the introduction, although I will also point out the lack of required boiler plate compared to C#.
 
-{% gist 6973457 part1.fs %}
+``` fsharp
+// Let's send an email!
+```
 
 ## Tag '2'
 
 Introduce the `open` keyword, `let` for value assignment, and give people a feel that they're not completely leaving their nice safe .net world behind.
 
-{% gist 6973457 part2.fs %}
+``` fsharp
+// Let's send an email!
+ 
+open System.Net.Mail
+ 
+// We only use the 'new' keyword here because SmtpClient is disposable
+let smtpClient = new SmtpClient("smtp.local")
+ 
+// And given it's disposable, we should really dispose of it...
+smtpClient.Dispose()
+```
 
 ## Tag '3'
 
@@ -39,25 +51,133 @@ Talk about functions, show parameter application, introduce the pipe operator.
 
 Some discussion about type inference will probably happen here.
 
-{% gist 6973457 part3.fs %}
+``` fsharp
+open System.Net.Mail
+ 
+let smtpClient = new SmtpClient("smtp.local")
+ 
+// This is a function
+let sendMessage client message =
+    // We'd better do something here to actually
+    // send a message...
+    printfn "I haven't sent a mail message!"
+    ()
+ 
+sendMessage smtpClient "My message"
+ 
+smtpClient.Dispose()
+ 
+// And we'll add this so we can see the output
+// before it disappears
+System.Console.ReadLine() |> ignore
+// This line would be the same as writing:
+//
+// ignore (System.Console.Readline())
+//
+// but you have to admit that this is a bit 
+// more readable
+```
 
 ## Tag '4'
 
 Introduce the `use` keyword, show property assignment with `<-`.
 
-{% gist 6973457 part4.fs %}
+``` fsharp
+open System.Net.Mail
+ 
+let smtpClient = new SmtpClient("smtp.local")
+ 
+let sendMessage client message =
+    (* Because we used 'use' this will get
+    disposed at the end of the declaring
+    scope *)
+    use mailMessage = new MailMessage("me@example.com", "you@example.com")
+    (* This is have you assign a parameter *)
+    mailMessage.Subject <- "Message subject"
+    mailMessage.Body <- message
+    smtpClient.Send mailMessage
+    printfn "I've sent a mail message!"
+ 
+sendMessage smtpClient "My message"
+ 
+smtpClient.Dispose()
+System.Console.ReadLine() |> ignore
+```
 
 ## Tag '5'
 
 List syntax and introduce the `Seq` module. Example of currying.
 
-{% gist 6973457 part5.fs %}
+``` fsharp
+open System.Net.Mail
+ 
+let smtpClient = new SmtpClient("smtp.local")
+ 
+let sendMessage client message =
+    use mailMessage = new MailMessage("me@example.com", "you@example.com")
+    mailMessage.Subject <- "Message subject"
+    mailMessage.Body <- message
+    smtpClient.Send mailMessage
+    printfn "I've sent a mail message!"
+ 
+(* But really, what you want computers for
+is doing the same thing lots of times... *)
+let myMessages =
+    [
+        "My first message"
+        "My second message"
+        "My third and final message"
+    ]
+ 
+myMessages
+|> Seq.iter (sendMessage smtpClient)
+(* Let's have some vindaloo with that map *)
+ 
+smtpClient.Dispose()
+System.Console.ReadLine() |> ignore
+```
 
 ## Tag '6'
 
 An async workflow. Turns out that `SmtpClient` is not as clean for that as you would hope - it's async send methods don't appear to be thread safe (wait, what?) and even the relatively recent looking `SendMailAsync` method returns a `Task` rather than a `Task<'T>`. Having said that, it shows that even in less than ideal circumstances, you can leverage the `async` stuff even when interfacing with older .net code from other languages.
 
-{% gist 6973457 part6.fs %}
+``` fsharp
+open System.Net.Mail
+ 
+ 
+(* But really, what you want computers for
+is doing the same thing lots of times... 
+at the same time! *)
+let sendMessage message =
+    async {
+        // Move the client inside because...
+        // have _you_ checked if it's thread safe?
+        use smtpClient = new SmtpClient("smtp.local")
+        use mailMessage = new MailMessage("me@example.com", "you@example.com")
+        mailMessage.Subject <- "Message subject"
+        mailMessage.Body <- message
+        do!
+            smtpClient.SendMailAsync(mailMessage)
+            |> Async.AwaitIAsyncResult
+            |> Async.Ignore
+        printfn "I've sent a mail message!"
+    }
+ 
+let myMessages =
+    [
+        "My first message"
+        "My second message"
+        "My third and final message"
+    ]
+ 
+myMessages
+|> Seq.map sendMessage
+|> Async.Parallel
+|> Async.RunSynchronously
+|> fun _ -> printfn "Finished all sends!"
+ 
+System.Console.ReadLine() |> ignore
+```
 
 ## Tag '7'
 
@@ -65,13 +185,89 @@ Tuples! Showing both construction and deconstruction syntax. Also discuss that t
 
 In the live coding for this one, I'll make sure to demonstrate adding and removing brackets in different places.
 
-{% gist 6973457 part7.fs %}
+``` fsharp
+open System.Net.Mail
+ 
+let sendMessage messageDetails =
+    async {
+        let address, body = messageDetails
+        use smtpClient = new SmtpClient("smtp.local")
+        use mailMessage = new MailMessage("me@example.com", address)
+        mailMessage.Subject <- "Message subject"
+        mailMessage.Body <- body
+        do!
+            smtpClient.SendMailAsync(mailMessage)
+            |> Async.AwaitIAsyncResult
+            |> Async.Ignore
+        printfn "I've sent a mail message!"
+    }
+ 
+ 
+(* But we probably don't want to send all of these
+to the same person. *)
+let myMessages =
+    [
+        "first@example.com", "My first message"
+        "secord@example.com", "My second message"
+        "third@example.com", "My third and final message"
+    ]
+ 
+myMessages
+|> Seq.map sendMessage
+|> Async.Parallel
+|> Async.RunSynchronously
+|> fun _ -> printfn "Finished all sends!"
+ 
+System.Console.ReadLine() |> ignore
+```
 
 ## Tag '8'
 
 Record syntax.
 
-{% gist 6973457 part8.fs %}
+``` fsharp
+open System.Net.Mail
+ 
+(* How about if I want to pass lots of different bits
+of information in? *)
+type messageDetails =
+    {
+        toAddress : string
+        fromAddress : string
+        body : string
+    }
+ 
+let sendMessage messageDetails =
+    async {
+        use smtpClient = new SmtpClient("smtp.local")
+        use mailMessage = 
+            new MailMessage(
+                messageDetails.fromAddress,
+                messageDetails.toAddress)
+        mailMessage.Subject <- "Message subject"
+        mailMessage.Body <- messageDetails.body
+        do!
+            smtpClient.SendMailAsync(mailMessage)
+            |> Async.AwaitIAsyncResult
+            |> Async.Ignore
+        printfn "I've sent a mail message!"
+    }
+ 
+let myMessages =
+    [
+        { toAddress = "first@example.com"; fromAddress = "official@example.com"; body = "My first message" }
+        { toAddress = "second@example.com"; fromAddress = "personal@example.com"; body = "My second message" }
+        { toAddress = "first@example.com"; fromAddress = "official@example.com"; body = "My third message" }
+    ]
+ 
+myMessages
+|> Seq.map sendMessage
+|> Async.Parallel
+|> Async.RunSynchronously
+|> fun _ -> printfn "Finished all sends!"
+ 
+System.Console.ReadLine() |> ignore
+```
 
 ## Tag '9'
 
@@ -81,13 +277,205 @@ Also has a 2nd, maybe slightly more idiomatic implementation of an async workflo
 
 I'm hoping to get at least this far in the session. The rest of it would be nice, but if we get here then I'll be happy I've covered at least the basics.
 
-{% gist 6973457 part9.fs %}
+``` fsharp
+open System.IO
+open System.Net
+open System.Net.Mail
+ 
+(* But some people have given us mobile
+numbers rather than email addresses *)
+type EmailDetails =
+    {
+        toAddress : string
+        fromAddress : string
+        body : string
+    }
+ 
+type SmsDetails =
+    {
+        toNumber : string
+        fromNumber : string
+        message : string
+    }
+ 
+type MessageDetails =
+    | Email of EmailDetails
+    | Sms of SmsDetails
+ 
+let sendEmail messageDetails =
+    async {
+        use smtpClient = new SmtpClient("smtp.local")
+        use mailMessage = 
+            new MailMessage(
+                messageDetails.fromAddress,
+                messageDetails.toAddress)
+        mailMessage.Subject <- "Message subject"
+        mailMessage.Body <- messageDetails.body
+        do!
+            smtpClient.SendMailAsync(mailMessage)
+            |> Async.AwaitIAsyncResult
+            |> Async.Ignore
+        printfn "I've sent a mail message!"
+    }
+ 
+let sendSms messageDetails =
+    async {
+        let http = HttpWebRequest.Create("http://sms.local") :?> HttpWebRequest
+        http.Method <- "POST"
+        let messagePayload =
+            sprintf
+                "To: %s\nFrom: %s\nMessage: %s"
+                messageDetails.toNumber
+                messageDetails.fromNumber
+                messageDetails.message
+        using 
+            (http.GetRequestStream())
+            (fun stream -> 
+                use sw = new StreamWriter(stream)
+                sw.Write(messagePayload))
+        let! response = http.GetResponseAsync() |> Async.AwaitTask
+        if (response :?> HttpWebResponse).StatusCode <> HttpStatusCode.OK then
+            failwith "Http request failed!"
+        printfn "I've sent an SMS!"
+    }
+ 
+let sendMessage message =
+    match message with
+    | Email details -> sendEmail details
+    | Sms details -> sendSms details
+ 
+let myMessages =
+    [
+        Email { toAddress = "first@example.com"; fromAddress = "official@example.com"; body = "My first message" }
+        Email { toAddress = "second@example.com"; fromAddress = "personal@example.com"; body = "My second message" }
+        Email { toAddress = "first@example.com"; fromAddress = "official@example.com"; body = "My third message" }
+        Sms { toNumber = "+447777123123"; fromNumber = "+447888321321"; message = "Hello by sms" }
+        Sms { toNumber = "+447777123124"; fromNumber = "+447888321321"; message = "Hello by sms x2" }
+        Sms { toNumber = "+447777123123"; fromNumber = "+447888321321"; message = "Hello by sms x3" }
+    ]
+ 
+myMessages
+|> Seq.map sendMessage
+|> Async.Parallel
+|> Async.RunSynchronously
+|> fun _ -> printfn "Finished all sends!"
+ 
+System.Console.ReadLine() |> ignore
+```
 
 ## Tag '10'
 
 Validation with Active patterns.
 
-{% gist 6973457 part10.fs %}
+``` fsharp
+open System.IO
+open System.Net
+open System.Net.Mail
+ 
+type EmailDetails =
+    {
+        toAddress : string
+        fromAddress : string
+        body : string
+    }
+ 
+type SmsDetails =
+    {
+        toNumber : string
+        fromNumber : string
+        message : string
+    }
+ 
+type MessageDetails =
+    | Email of EmailDetails
+    | Sms of SmsDetails
+ 
+(* But what if some people have given us invalid data?
+
+Our SMS sender requires full numbers with national
+codes - let's add some validation! *)
+let (|ValidSmsRequest|InvalidSmsRequest|) details =
+    // Hmm. Bananas. My favourite.
+    let regex = System.Text.RegularExpressions.Regex(@"^\+\d\d")
+    if regex.IsMatch(details.toNumber) && regex.IsMatch(details.fromNumber) then
+        ValidSmsRequest details
+    else
+        InvalidSmsRequest "You must include the +xx country prefix on mobile numbers."
+ 
+let sendEmail messageDetails =
+    async {
+        use smtpClient = new SmtpClient("smtp.local")
+        use mailMessage = 
+            new MailMessage(
+                messageDetails.fromAddress,
+                messageDetails.toAddress)
+        mailMessage.Subject <- "Message subject"
+        mailMessage.Body <- messageDetails.body
+        do!
+            smtpClient.SendMailAsync(mailMessage)
+            |> Async.AwaitIAsyncResult
+            |> Async.Ignore
+        printfn "I've sent a mail message!"
+    }
+ 
+(* We've moved the SMS post logic into this method
+without change - no validation here.
+
+We've marked it private so no one else can call it
+by mistake *)
+let private postSms messageDetails =
+    async {
+        let http = HttpWebRequest.Create("http://sms.local") :?> HttpWebRequest
+        http.Method <- "POST"
+        let messagePayload =
+            sprintf
+                "To: %s\nFrom: %s\nMessage: %s"
+                messageDetails.toNumber
+                messageDetails.fromNumber
+                messageDetails.message
+        using 
+            (http.GetRequestStream())
+            (fun stream -> 
+                use sw = new StreamWriter(stream)
+                sw.Write(messagePayload))
+        let! response = http.GetResponseAsync() |> Async.AwaitTask
+        if (response :?> HttpWebResponse).StatusCode <> HttpStatusCode.OK then
+            failwith "Http request failed!"
+        printfn "I've sent an SMS!"
+    }
+ 
+(* And this is where we do our validation *)
+let sendSms messageDetails =
+    match messageDetails with
+    | ValidSmsRequest details -> postSms details
+    | InvalidSmsRequest error -> async { printfn "Sms sending error: %s" error }
+ 
+let sendMessage message =
+    match message with
+    | Email details -> sendEmail details
+    | Sms details -> sendSms details
+ 
+let myMessages =
+    [
+        Email { toAddress = "first@example.com"; fromAddress = "official@example.com"; body = "My first message" }
+        Email { toAddress = "second@example.com"; fromAddress = "personal@example.com"; body = "My second message" }
+        Email { toAddress = "first@example.com"; fromAddress = "official@example.com"; body = "My third message" }
+        Sms { toNumber = "+447777123123"; fromNumber = "+447888321321"; message = "Hello by sms" }
+        Sms { toNumber = "+447777123124"; fromNumber = "+447888321321"; message = "Hello by sms x2" }
+        Sms { toNumber = "+447777123123"; fromNumber = "+447888321321"; message = "Hello by sms x3" }
+        Sms { toNumber = "447777123123"; fromNumber = "+447888321321"; message = "I won't be sent!" }
+        Sms { toNumber = "+447777123123"; fromNumber = "+ab7888321321"; message = "Neither will I!" }
+        Sms { toNumber = "Bob"; fromNumber = "+ab7888321321"; message = "..and I definitely won't!" }
+    ]
+ 
+myMessages
+|> Seq.map sendMessage
+|> Async.Parallel
+|> Async.RunSynchronously
+|> fun _ -> printfn "Finished all sends!"
+ 
+System.Console.ReadLine() |> ignore
+```
 
 ## Tag '11'
 
@@ -99,4 +487,193 @@ The extra credit section! I very much doubt I'll get this far in a one hour sess
 * a bit more of a workout of the `Seq` module
 * we can have a lot of discussion of lazy evaluation, because this code is just insanely broken without it
 
-{% gist 6973457 part11.fs %}
+``` fsharp
+open System
+open System.IO
+open System.Net
+open System.Net.Mail
+open System.Text.RegularExpressions
+ 
+type EmailDetails =
+    {
+        toAddress : string
+        fromAddress : string
+        body : string
+    }
+ 
+type SmsDetails =
+    {
+        toNumber : string
+        fromNumber : string
+        message : string
+    }
+ 
+type MessageDetails =
+    | Email of EmailDetails
+    | Sms of SmsDetails
+ 
+let (|ValidSmsRequest|InvalidSmsRequest|) details =
+    let regex = Regex(@"^\+\d\d")
+    if regex.IsMatch(details.toNumber) && regex.IsMatch(details.fromNumber) then
+        ValidSmsRequest details
+    else
+        InvalidSmsRequest "You must include the +xx country prefix on mobile numbers."
+ 
+let sendEmail messageDetails =
+    async {
+        use smtpClient = new SmtpClient("smtp.local")
+        use mailMessage = 
+            new MailMessage(
+                messageDetails.fromAddress,
+                messageDetails.toAddress)
+        mailMessage.Subject <- "Message subject"
+        mailMessage.Body <- messageDetails.body
+        do!
+            smtpClient.SendMailAsync(mailMessage)
+            |> Async.AwaitIAsyncResult
+            |> Async.Ignore
+        printfn "I've sent a mail message!"
+    }
+ 
+let private postSms messageDetails =
+    async {
+        let http = HttpWebRequest.Create("http://sms.local") :?> HttpWebRequest
+        http.Method <- "POST"
+        let messagePayload =
+            sprintf
+                "To: %s\nFrom: %s\nMessage: %s"
+                messageDetails.toNumber
+                messageDetails.fromNumber
+                messageDetails.message
+        using 
+            (http.GetRequestStream())
+            (fun stream -> 
+                use sw = new StreamWriter(stream)
+                sw.Write(messagePayload))
+        let! response = http.GetResponseAsync() |> Async.AwaitTask
+        if (response :?> HttpWebResponse).StatusCode <> HttpStatusCode.OK then
+            failwith "Http request failed!"
+        printfn "I've sent an SMS!"
+    }
+ 
+let sendSms messageDetails =
+    match messageDetails with
+    | ValidSmsRequest details -> postSms details
+    | InvalidSmsRequest error -> async { printfn "Sms sending error: %s" error }
+ 
+let sendMessage message =
+    match message with
+    | Email details -> sendEmail details
+    | Sms details -> sendSms details
+    
+(* And now for something completely different...
+
+Let's send a bunch of actors and celebrities a selection 
+of astronomical data. Because, you know. Why not?
+
+If you're running this code at home, you'll need
+to install the nuget package from the packages.config
+file *)
+open FSharp.Data
+let FreebaseKey =
+    let rec getKey (dir : DirectoryInfo) =
+        match dir.EnumerateFiles("freebase.key") with
+        | files when Seq.isEmpty files -> getKey (dir.Parent)
+        | files -> (Seq.head files).OpenText().ReadToEnd().Trim()
+    let dir = DirectoryInfo(Directory.GetCurrentDirectory())
+    getKey dir
+ 
+type FreebaseProvider = FreebaseDataProvider<Key="api key goes here">
+ 
+let freebase = FreebaseProvider.GetDataContext()
+ 
+(* If you don't have an api key you can delete lines
+88 to the end of this comment, and uncomment the line below.
+
+It will limit how many times you can run the program
+before it starts throwing authentication errors,
+though - there's a fairly strict rate limit. *)
+//let freebase = FreebaseData.GetDataContext()
+ 
+let actors =
+    freebase.``Arts and Entertainment``.Film.``Film actors``
+    |> Seq.filter (fun a -> not <| Seq.isEmpty a.``Film performances``)
+    (* You get a (virtual) cookie if you can work out
+    why I've added the filter below *)
+    |> Seq.filter (fun a -> 
+        (a.``Film performances`` |> Seq.head)
+            .Film.Name.[0 .. 0]
+        |> Regex("[a-zA-Z]").IsMatch)
+    |> Seq.filter (fun a -> not <| Seq.isEmpty a.``Country of nationality``)
+    |> Seq.take 20
+ 
+let encode (str : string) =
+    let clean = Regex("\W")
+    clean.Replace(str, "-")
+ 
+let emailAddresses =
+    seq { for actor in actors -> 
+            let name = actor.Name |> encode
+            let domain =
+                (actor.``Film performances`` |> Seq.head).Film.Name
+                |> encode
+            let countryCode =
+                match (actor.``Country of nationality`` |> Seq.head).``ISO Alpha 2`` with
+                | alpha when Seq.isEmpty alpha ->
+                    "com"
+                | alpha when (Seq.head alpha).ToLower() = "us" ->
+                    "com"
+                | alpha -> sprintf "co.%s" <| (Seq.head alpha).ToLower()
+            sprintf "%s@%s.%s"
+                name
+                domain
+                countryCode }
+ 
+(* We're going to need 20 planets for our 20 celebrities,
+so we'll repeat the planets as many times as we need *)
+let planets =
+    seq {
+        while true do
+            yield! freebase.``Science and Technology``.Astronomy.Planets
+    }
+ 
+let messages =
+    seq { for planet in planets ->
+            sprintf """Hi there!
+We thought you might be interested to know that:
+
+The planet %s has:
+%d moons!
+An average orbital velocity of %Am/s!
+
+And is also known as:
+%s
+
+Regards,
+
+Astro
+                """
+                planet.Name
+                (planet.``Orbited by`` |> Seq.length)
+                planet.``Average Orbital Speed``
+                (planet.``Also known as`` |> String.concat ", ") }
+ 
+let combineAddressAndMessage (address, message) =
+    Email {
+        toAddress = address
+        fromAddress = "astro@random.org"
+        body = message
+    }
+ 
+let myMessages =
+    Seq.zip emailAddresses messages
+    |> Seq.map combineAddressAndMessage
+ 
+myMessages
+|> Seq.map sendMessage
+|> Async.Parallel
+|> Async.RunSynchronously
+|> fun _ -> printfn "Finished all sends!"
+ 
+System.Console.ReadLine() |> ignore
+```

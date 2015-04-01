@@ -40,9 +40,9 @@ management responsibility. We're hiring developers, and while we'll expect a sen
 
 ### Don't give in depth technical examples that give me the fear
 
-We got a CV from someone who had recently written a desktop application that used, I quote, "all the multithreading techniques". Really? All of them? In one app? An interesting design decision.
+We got a CV from someone who had recently written a desktop application that used every multithreading techniques. Really? All of them? In one app? An interesting design decision.
 
-Fortunately for my curiosity, but not for his interview chances, he proceeded to list "all" of the techniques:
+Fortunately for my curiosity, he proceeded to list every multithreading techniques:
 
 * ManualResetEvent
 * BackgroundWorker
@@ -50,9 +50,11 @@ Fortunately for my curiosity, but not for his interview chances, he proceeded to
 
 In 2015 this is not the way to highlight your expertise in writing asynchronous and concurrent reliable, maintainable code. If someone wrote code like this within the company, the code review would immediately result in some pair programming on "here's all the easier, more reliable ways you could have done this." From an applicant applying for a senior role it's an instant fail.
 
+The problem is not here that someone didn't know how to write concurrent code: not every developer has reason to have learnt those skills. The problem is using a subject where you have very little expertise to try and boost your technical credentials.
+
 Three things to take away here:
 
-1. Don't claim to be an expert on something unless you're certain that you actually are
+1. Don't claim to be an expert on something unless you're certain that you actually are.
 2. Did something in a previous job in a way you wouldn't now? List the result, not the detail of the technique
 3. If you need ManualResetEvent you're probably doing something very wrong
 

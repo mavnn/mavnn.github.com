@@ -9,7 +9,7 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="Almost a year ago now, I wrote up a blog post on using FsCheck. I still rate it as an excellent tool, but unfortunately we don&rsquo;t manage to use &hellip;">
+  <meta name="description" content="Welcome to a new category of posts for my blog. It&rsquo;s the &ldquo;Rule the World&rdquo; category, where I spout opinions on a subject with gay &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -78,6 +78,51 @@ ga('send', 'pageview');
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/remote-working/">If I Ruled the World&#8230; Remote Working</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-07-15T20:43:06+01:00" pubdate data-updated="true">Jul 15<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Welcome to a new category of posts for my blog. It&rsquo;s the &ldquo;Rule the World&rdquo; category, where I spout opinions on a subject with gay abandon, even if I can&rsquo;t actually offer that much beyond anecdotal evidence to back the opinion up.</p>
+
+<p>On this occasion I even feel justified as someone has actively asked my opinion about something.</p>
+
+<p>Well, that was foolish now, wasn&rsquo;t it?</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/remote-working/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -687,90 +732,6 @@ ga('send', 'pageview');
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/type-providers-from-the-ground-up/">Type Providers From the Ground Up</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-12-05T11:28:00+00:00" pubdate data-updated="true">Dec 5<span>th</span>, 2013</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><em>This post is part of a series: <a href="/type-providers-from-the-first-floor/">part 2</a> follows on directly from this post.</em></p>
-
-<p>In the ground tradition of blog posts as both documentation and augmented memory, I&rsquo;ve just added our first <a href="http://blogs.msdn.com/b/dsyme/archive/2013/01/30/twelve-type-providers-in-pictures.aspx">Type Provider</a> to the code base. Time to write up the details before a) I forget them and b) anyone else needs to modify the code.</p>
-
-<p>So, first things first. Before we get to the actual problem space at hand, let&rsquo;s try and provide a type. Any type&hellip;</p>
-
-<p>1) Create yourself a new Visual Studio F# library project (2012 or up should work).</p>
-
-<p>2a) Install the <a href="https://www.nuget.org/packages/FSharp.TypeProviders.StarterPack/">F# TypeProvider Starter Pack</a> or</p>
-
-<p>2b) add <a href="https://raw.github.com/fsharp/FSharp.Data/master/src/CommonProviderImplementation/ProvidedTypes.fs">ProvidedTypes.fs</a> and <a href="https://raw.github.com/fsharp/FSharp.Data/master/src/CommonProviderImplementation/ProvidedTypes.fsi">ProvidedTypes.fsi</a> to the project as the first couple of files.</p>
-
-<p>In either case, make sure that the .fsi file appears before the .fs file in your project listing, and that both appear before any type provider code &ndash; you will probably have to manually re-order them.</p>
-
-<p>These are provided as code files rather than as compiled dlls due to complications with security and AppDomains when referencing dlls in the type provider assembly. For now just add them in &ndash; you really don&rsquo;t want to be re-creating the code in there by hand.</p>
-
-<p>3) Replace the contents of Library1.fs with something like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nn">Mavnn</span><span class="p">.</span><span class="nn">Blog</span><span class="p">.</span><span class="nc">TypeProvider</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">open</span> <span class="nn">ProviderImplementation</span><span class="p">.</span><span class="nc">ProvidedTypes</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nn">Core</span><span class="p">.</span><span class="nc">CompilerServices</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">[&lt;</span><span class="nc">TypeProvider</span><span class="o">&gt;]</span>
-</span><span class='line'><span class="k">type</span> <span class="nc">MavnnProvider</span> <span class="o">(</span><span class="n">config</span> <span class="o">:</span> <span class="nc">TypeProviderConfig</span><span class="o">)</span> <span class="k">as</span> <span class="n">this</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">inherit</span> <span class="nc">TypeProviderForNamespaces</span> <span class="bp">()</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">[&lt;</span><span class="n">assembly</span><span class="o">:</span><span class="nc">TypeProviderAssembly</span><span class="o">&gt;]</span>
-</span><span class='line'><span class="k">do</span> <span class="bp">()</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>So, that&rsquo;s great and it builds. We have a type provider class and an assembly that knows it&rsquo;s a type providing assembly. Unfortunately, it doesn&rsquo;t actually provide any types yet. Let&rsquo;s try it.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/type-providers-from-the-ground-up/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/3/">&larr; Older</a>
@@ -788,6 +749,10 @@ ga('send', 'pageview');
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/lambdacon-2015/">LambdaCon 2015</a>
+      </li>
+    
+      <li class="post">
         <a href="/testing-providedtype-dot-fs/">Testing ProvidedType.fs by Example</a>
       </li>
     
@@ -801,10 +766,6 @@ ga('send', 'pageview');
     
       <li class="post">
         <a href="/exploring-reactive-extensions/">Exploring Reactive Extensions</a>
-      </li>
-    
-      <li class="post">
-        <a href="/persistent-data-structures/">Persistent Data Structures</a>
       </li>
     
   </ul>

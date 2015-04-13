@@ -137,10 +137,21 @@ ga('send', 'pageview');
 
 <p>After referencing <code>System.Xml</code> and <code>System.Xml.Linq</code>, our first, very naive, attempt at the implementation looks like this:</p>
 
-<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part1.fs'></script>
-<noscript><pre><code>let AddEnhancement (xDoc : XDocument) (input : string) =
-    xDoc.Root.Add(XElement(XName.Get &quot;Enhancement&quot;, input))
-    xDoc</code></pre></noscript></div>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nn">DevEd</span><span class="p">.</span><span class="nc">FsCheck</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Xml</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Xml</span><span class="p">.</span><span class="nc">Linq</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="nc">AddEnhancement</span> <span class="o">(</span><span class="n">xDoc</span> <span class="o">:</span> <span class="nc">XDocument</span><span class="o">)</span> <span class="o">(</span><span class="n">input</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">xDoc</span><span class="o">.</span><span class="nn">Root</span><span class="p">.</span><span class="nc">Add</span><span class="o">(</span><span class="nc">XElement</span><span class="o">(</span><span class="nn">XName</span><span class="p">.</span><span class="nc">Get</span> <span class="s2">&quot;Enhancement&quot;</span><span class="o">,</span> <span class="n">input</span><span class="o">))</span>
+</span><span class='line'>    <span class="n">xDoc</span>
+</span></code></pre></td></tr></table></div></figure>
 
 
 <p>We know this isn&rsquo;t right &ndash; it&rsquo;s blatantly not idempotent. So let&rsquo;s try and get our failing test.</p>
@@ -149,26 +160,40 @@ ga('send', 'pageview');
 
 <p>First, we&rsquo;ll need to add a property that we want to test. A property is simply a function that takes a data type FsCheck knows how to generate, and returns a bool. FsCheck knows how to generate strings, so our idempotence property looks something like this:</p>
 
-<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part2.fs'></script>
-<noscript><pre><code>open FsCheck
-open DevEd.FsCheck
-open System.Xml.Linq
-
-let baseDoc = &quot;&lt;root /&gt;&quot;
-
-let ``Add enhancement must be idompotent`` input =
-    let xml1 = XDocument.Parse baseDoc
-    let xml2 = XDocument.Parse baseDoc
-    (AddEnhancement xml1 input).ToString() =
-        (AddEnhancement (AddEnhancement xml2 input) input).ToString()</code></pre></noscript></div>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nc">FsCheck</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">DevEd</span><span class="p">.</span><span class="nc">FsCheck</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Xml</span><span class="p">.</span><span class="nc">Linq</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">baseDoc</span> <span class="o">=</span> <span class="s2">&quot;&lt;root /&gt;&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="o">``</span><span class="nc">Add</span> <span class="n">enhancement</span> <span class="n">must</span> <span class="n">be</span> <span class="n">idempotent</span><span class="o">``</span> <span class="n">input</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">xml1</span> <span class="o">=</span> <span class="nn">XDocument</span><span class="p">.</span><span class="nc">Parse</span> <span class="n">baseDoc</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">xml2</span> <span class="o">=</span> <span class="nn">XDocument</span><span class="p">.</span><span class="nc">Parse</span> <span class="n">baseDoc</span>
+</span><span class='line'>    <span class="o">(</span><span class="nc">AddEnhancement</span> <span class="n">xml1</span> <span class="n">input</span><span class="o">).</span><span class="nc">ToString</span><span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>        <span class="o">(</span><span class="nc">AddEnhancement</span> <span class="o">(</span><span class="nc">AddEnhancement</span> <span class="n">xml2</span> <span class="n">input</span><span class="o">)</span> <span class="n">input</span><span class="o">).</span><span class="nc">ToString</span><span class="bp">()</span>
+</span></code></pre></td></tr></table></div></figure>
 
 
 <p>Looking good. How do we run it? Just add this to the end of the file:</p>
 
-<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part3.fs'></script>
-<noscript><pre><code>Check.Quick ``Add enhancement must be idompotent``
-
-System.Console.ReadLine() |&gt; ignore</code></pre></noscript></div>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="nn">Check</span><span class="p">.</span><span class="nc">Quick</span> <span class="o">``</span><span class="nc">Add</span> <span class="n">enhancement</span> <span class="n">must</span> <span class="n">be</span> <span class="n">idempotent</span><span class="o">``</span>
+</span><span class='line'>
+</span><span class='line'><span class="nn">System</span><span class="p">.</span><span class="nn">Console</span><span class="p">.</span><span class="nc">ReadLine</span><span class="bp">()</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
+</span></code></pre></td></tr></table></div></figure>
 
 
 <p>And hey presto:</p>
@@ -179,40 +204,64 @@ System.Console.ReadLine() |&gt; ignore</code></pre></noscript></div>
 
 <p>So; let&rsquo;s add some checking to <code>AddEnhancement</code> to make sure we don&rsquo;t re-add the same input more than once.</p>
 
-<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part4.fs'></script>
-<noscript><pre><code>let AddEnhancement (xDoc : XDocument) (input : string) =
-    if 
-        xDoc.Root.Elements(XName.Get &quot;Enhancement&quot;)
-        |&gt; Seq.exists (fun e -&gt; e.Value = input)
-        |&gt; not then
-            xDoc.Root.Add(XElement(XName.Get &quot;Enhancement&quot;, input))
-    xDoc
-</code></pre></noscript></div>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="nc">AddEnhancement</span> <span class="o">(</span><span class="n">xDoc</span> <span class="o">:</span> <span class="nc">XDocument</span><span class="o">)</span> <span class="o">(</span><span class="n">input</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">if</span>
+</span><span class='line'>        <span class="n">xDoc</span><span class="o">.</span><span class="nn">Root</span><span class="p">.</span><span class="nc">Elements</span><span class="o">(</span><span class="nn">XName</span><span class="p">.</span><span class="nc">Get</span> <span class="s2">&quot;Enhancement&quot;</span><span class="o">)</span>
+</span><span class='line'>        <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">exists</span> <span class="o">(</span><span class="k">fun</span> <span class="n">e</span> <span class="o">-&gt;</span> <span class="n">e</span><span class="o">.</span><span class="nc">Value</span> <span class="o">=</span> <span class="n">input</span><span class="o">)</span>
+</span><span class='line'>        <span class="o">|&gt;</span> <span class="ow">not</span> <span class="k">then</span>
+</span><span class='line'>            <span class="n">xDoc</span><span class="o">.</span><span class="nn">Root</span><span class="p">.</span><span class="nc">Add</span><span class="o">(</span><span class="nc">XElement</span><span class="o">(</span><span class="nn">XName</span><span class="p">.</span><span class="nc">Get</span> <span class="s2">&quot;Enhancement&quot;</span><span class="o">,</span> <span class="n">input</span><span class="o">))</span>
+</span><span class='line'>    <span class="n">xDoc</span>
+</span></code></pre></td></tr></table></div></figure>
 
 
 <p>And re-run the test and&hellip; oops.</p>
 
-<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part5.txt'></script>
-<noscript><pre><code>System.ArgumentException was unhandled by user code
-  HResult=-2147024809
-  Message=' ', hexadecimal value 0x18, is an invalid character.
-  Source=System.Xml
-  StackTrace:
-       at System.Xml.XmlEncodedRawTextWriter.InvalidXmlChar(Int32 ch, Char* pDst, Boolean entitize)
-       at System.Xml.XmlEncodedRawTextWriter.WriteElementTextBlock(Char* pSrc, Char* pSrcEnd)
-       at System.Xml.XmlEncodedRawTextWriter.WriteString(String text)
-       at System.Xml.XmlEncodedRawTextWriterIndent.WriteString(String text)
-       at System.Xml.XmlWellFormedWriter.WriteString(String text)
-       at System.Xml.Linq.ElementWriter.WriteElement(XElement e)
-       at System.Xml.Linq.XElement.WriteTo(XmlWriter writer)
-       at System.Xml.Linq.XContainer.WriteContentTo(XmlWriter writer)
-       at System.Xml.Linq.XNode.GetXmlString(SaveOptions o)
-       at System.Xml.Linq.XNode.ToString()
-       at Program.Add enhancement must be idompotent(String input) in C:\Users\michael.newton\documents\visual studio 2012\Projects\DevEd.FsCheck\TestRunner\Program.fs:line 10
-       at Program.clo@13.Invoke(String input) in C:\Users\michael.newton\documents\visual studio 2012\Projects\DevEd.FsCheck\TestRunner\Program.fs:line 13
-       at FsCheck.Testable.evaluate[a,b](FSharpFunc`2 body, a a)
-  InnerException: 
-</code></pre></noscript></div>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="nn">System</span><span class="p">.</span><span class="nc">ArgumentException</span> <span class="n">was</span> <span class="n">unhandled</span> <span class="n">by</span> <span class="n">user</span> <span class="n">code</span>
+</span><span class='line'>  <span class="nc">HResult</span><span class="o">=-</span><span class="mi">2147024809</span>
+</span><span class='line'>  <span class="nc">Message</span><span class="o">=</span><span class="sc">&#39; &#39;</span><span class="o">,</span> <span class="n">hexadecimal</span> <span class="n">value</span> <span class="mi">0</span><span class="n">x18</span><span class="o">,</span> <span class="n">is</span> <span class="n">an</span> <span class="n">invalid</span> <span class="n">character</span><span class="o">.</span>
+</span><span class='line'>  <span class="nc">Source</span><span class="o">=</span><span class="nn">System</span><span class="p">.</span><span class="nc">Xml</span>
+</span><span class='line'>  <span class="nc">StackTrace</span><span class="o">:</span>
+</span><span class='line'>       <span class="n">at</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Xml</span><span class="p">.</span><span class="nn">XmlEncodedRawTextWriter</span><span class="p">.</span><span class="nc">InvalidXmlChar</span><span class="o">(</span><span class="nc">Int32</span> <span class="n">ch</span><span class="o">,</span> <span class="nc">Char</span><span class="o">*</span> <span class="n">pDst</span><span class="o">,</span> <span class="nc">Boolean</span> <span class="n">entitize</span><span class="o">)</span>
+</span><span class='line'>       <span class="n">at</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Xml</span><span class="p">.</span><span class="nn">XmlEncodedRawTextWriter</span><span class="p">.</span><span class="nc">WriteElementTextBlock</span><span class="o">(</span><span class="nc">Char</span><span class="o">*</span> <span class="n">pSrc</span><span class="o">,</span> <span class="nc">Char</span><span class="o">*</span> <span class="n">pSrcEnd</span><span class="o">)</span>
+</span><span class='line'>       <span class="n">at</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Xml</span><span class="p">.</span><span class="nn">XmlEncodedRawTextWriter</span><span class="p">.</span><span class="nc">WriteString</span><span class="o">(</span><span class="nc">String</span> <span class="n">text</span><span class="o">)</span>
+</span><span class='line'>       <span class="n">at</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Xml</span><span class="p">.</span><span class="nn">XmlEncodedRawTextWriterIndent</span><span class="p">.</span><span class="nc">WriteString</span><span class="o">(</span><span class="nc">String</span> <span class="n">text</span><span class="o">)</span>
+</span><span class='line'>       <span class="n">at</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Xml</span><span class="p">.</span><span class="nn">XmlWellFormedWriter</span><span class="p">.</span><span class="nc">WriteString</span><span class="o">(</span><span class="nc">String</span> <span class="n">text</span><span class="o">)</span>
+</span><span class='line'>       <span class="n">at</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Xml</span><span class="p">.</span><span class="nn">Linq</span><span class="p">.</span><span class="nn">ElementWriter</span><span class="p">.</span><span class="nc">WriteElement</span><span class="o">(</span><span class="nc">XElement</span> <span class="n">e</span><span class="o">)</span>
+</span><span class='line'>       <span class="n">at</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Xml</span><span class="p">.</span><span class="nn">Linq</span><span class="p">.</span><span class="nn">XElement</span><span class="p">.</span><span class="nc">WriteTo</span><span class="o">(</span><span class="nc">XmlWriter</span> <span class="n">writer</span><span class="o">)</span>
+</span><span class='line'>       <span class="n">at</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Xml</span><span class="p">.</span><span class="nn">Linq</span><span class="p">.</span><span class="nn">XContainer</span><span class="p">.</span><span class="nc">WriteContentTo</span><span class="o">(</span><span class="nc">XmlWriter</span> <span class="n">writer</span><span class="o">)</span>
+</span><span class='line'>       <span class="n">at</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Xml</span><span class="p">.</span><span class="nn">Linq</span><span class="p">.</span><span class="nn">XNode</span><span class="p">.</span><span class="nc">GetXmlString</span><span class="o">(</span><span class="nc">SaveOptions</span> <span class="n">o</span><span class="o">)</span>
+</span><span class='line'>       <span class="n">at</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Xml</span><span class="p">.</span><span class="nn">Linq</span><span class="p">.</span><span class="nn">XNode</span><span class="p">.</span><span class="nc">ToString</span><span class="bp">()</span>
+</span><span class='line'>       <span class="n">at</span> <span class="nn">Program</span><span class="p">.</span><span class="nc">Add</span> <span class="n">enhancement</span> <span class="n">must</span> <span class="n">be</span> <span class="n">idompotent</span><span class="o">(</span><span class="nc">String</span> <span class="n">input</span><span class="o">)</span> <span class="k">in</span> <span class="nc">C</span><span class="o">:</span><span class="err">\</span><span class="nc">Users</span><span class="err">\</span><span class="n">michael</span><span class="o">.</span><span class="n">newton</span><span class="err">\</span><span class="n">documents</span><span class="err">\</span><span class="n">visual</span> <span class="n">studio</span> <span class="mi">2012</span><span class="err">\</span><span class="nc">Projects</span><span class="err">\</span><span class="nn">DevEd</span><span class="p">.</span><span class="nc">FsCheck</span><span class="err">\</span><span class="nc">TestRunner</span><span class="err">\</span><span class="nn">Program</span><span class="p">.</span><span class="n">fs</span><span class="o">:</span><span class="n">line</span> <span class="mi">10</span>
+</span><span class='line'>       <span class="n">at</span> <span class="nn">Program</span><span class="p">.</span><span class="n">clo</span><span class="o">@</span><span class="mi">13</span><span class="o">.</span><span class="nc">Invoke</span><span class="o">(</span><span class="nc">String</span> <span class="n">input</span><span class="o">)</span> <span class="k">in</span> <span class="nc">C</span><span class="o">:</span><span class="err">\</span><span class="nc">Users</span><span class="err">\</span><span class="n">michael</span><span class="o">.</span><span class="n">newton</span><span class="err">\</span><span class="n">documents</span><span class="err">\</span><span class="n">visual</span> <span class="n">studio</span> <span class="mi">2012</span><span class="err">\</span><span class="nc">Projects</span><span class="err">\</span><span class="nn">DevEd</span><span class="p">.</span><span class="nc">FsCheck</span><span class="err">\</span><span class="nc">TestRunner</span><span class="err">\</span><span class="nn">Program</span><span class="p">.</span><span class="n">fs</span><span class="o">:</span><span class="n">line</span> <span class="mi">13</span>
+</span><span class='line'>       <span class="n">at</span> <span class="nn">FsCheck</span><span class="p">.</span><span class="nn">Testable</span><span class="p">.</span><span class="n">evaluate</span><span class="o">[</span><span class="n">a</span><span class="o">,</span><span class="n">b</span><span class="o">](</span><span class="nc">FSharpFunc</span><span class="o">`</span><span class="mi">2</span> <span class="n">body</span><span class="o">,</span> <span class="n">a</span> <span class="n">a</span><span class="o">)</span>
+</span><span class='line'>  <span class="nc">InnerException</span><span class="o">:</span>
+</span></code></pre></td></tr></table></div></figure>
 
 
 <p>And this is where the full power of FsCheck starts becoming apparent. I know my input is untrusted, so I&rsquo;ve told it to generate <em>any</em> string. And it believed me, and has created an input string that breaks <code>System.Xml.XmlEncodedRawTextWriter.WriteElementTextBlock</code>. This is not a unit test I would have thought to write myself, as I&rsquo;d managed to miss that the fact that <a href="http://blog.mark-mclaren.info/2007/02/invalid-xml-characters-when-valid-utf8_5873.html">not all utf-8 characters are valid in utf-8 encoded xml</a>. In fact, it took me more than a few minutes to work out why it was throwing.</p>
@@ -223,37 +272,54 @@ System.Console.ReadLine() |&gt; ignore</code></pre></noscript></div>
 
 <p>Fortunately for us, in .NET 4.0 and above there is a function in the <code>System.Xml</code> namespace called <code>XmlConvert.IsXmlChar</code> which does roughly what you would expect from the name. Let&rsquo;s add an invalid character filter, and an active pattern to tell us if any characters have been removed:</p>
 
-<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part6.fs'></script>
-<noscript><pre><code>let filterInvalidChars (input : string) =
-    input
-    |&gt; Seq.filter (fun c -&gt; XmlConvert.IsXmlChar c)
-    |&gt; Seq.map string
-    |&gt; String.concat &quot;&quot;    
-
-let (|ValidXml|InvalidXml|) str =
-    let filtered = filterInvalidChars str
-    if String.length filtered = String.length str then
-        ValidXml str
-    else
-        InvalidXml filtered
-</code></pre></noscript></div>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">filterInvalidChars</span> <span class="o">(</span><span class="n">input</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">input</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">filter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">c</span> <span class="o">-&gt;</span> <span class="nn">XmlConvert</span><span class="p">.</span><span class="nc">IsXmlChar</span> <span class="n">c</span><span class="o">)</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="kt">string</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot;&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="o">(|</span><span class="nc">ValidXml</span><span class="o">|</span><span class="nc">InvalidXml</span><span class="o">|)</span> <span class="n">str</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">filtered</span> <span class="o">=</span> <span class="n">filterInvalidChars</span> <span class="n">str</span>
+</span><span class='line'>    <span class="k">if</span> <span class="nn">String</span><span class="p">.</span><span class="n">length</span> <span class="n">filtered</span> <span class="o">=</span> <span class="nn">String</span><span class="p">.</span><span class="n">length</span> <span class="n">str</span> <span class="k">then</span>
+</span><span class='line'>        <span class="nc">ValidXml</span> <span class="n">str</span>
+</span><span class='line'>    <span class="k">else</span>
+</span><span class='line'>        <span class="nc">InvalidXml</span> <span class="n">filtered</span>
+</span></code></pre></td></tr></table></div></figure>
 
 
 <p>Now we can amend <code>AddEnhancement</code> to add enhancement nodes for valid XML text or an error node for sanitized invalid XML text:</p>
 
-<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part7.fs'></script>
-<noscript><pre><code>let AddEnhancement (xDoc : XDocument) (input : string) =
-    match input with
-    | ValidXml text -&gt;
-        if xDoc.Root.Elements(XName.Get &quot;Enhancement&quot;) |&gt; Seq.exists(fun enhance -&gt; enhance.Value = text) then
-            None
-        else
-            Some &lt;| XElement(XName.Get &quot;Enhancement&quot;, text)
-    | InvalidXml text -&gt;
-        if xDoc.Root.Elements(XName.Get &quot;Error&quot;) |&gt; Seq.exists(fun error -&gt; error.Value = text) then
-            None
-        else
-            Some &lt;| XElement(XName.Get &quot;Error&quot;, text)</code></pre></noscript></div>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="nc">AddEnhancement</span> <span class="o">(</span><span class="n">xDoc</span> <span class="o">:</span> <span class="nc">XDocument</span><span class="o">)</span> <span class="o">(</span><span class="n">input</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">match</span> <span class="n">input</span> <span class="k">with</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">ValidXml</span> <span class="n">text</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="k">if</span> <span class="n">xDoc</span><span class="o">.</span><span class="nn">Root</span><span class="p">.</span><span class="nc">Elements</span><span class="o">(</span><span class="nn">XName</span><span class="p">.</span><span class="nc">Get</span> <span class="s2">&quot;Enhancement&quot;</span><span class="o">)</span> <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">exists</span><span class="o">(</span><span class="k">fun</span> <span class="n">enhance</span> <span class="o">-&gt;</span> <span class="n">enhance</span><span class="o">.</span><span class="nc">Value</span> <span class="o">=</span> <span class="n">text</span><span class="o">)</span> <span class="k">then</span>
+</span><span class='line'>            <span class="n">xDoc</span><span class="o">.</span><span class="nn">Root</span><span class="p">.</span><span class="nc">Add</span><span class="o">(</span><span class="nc">XElement</span><span class="o">(</span><span class="nn">XName</span><span class="p">.</span><span class="nc">Get</span> <span class="s2">&quot;Enhancement&quot;</span><span class="o">,</span> <span class="n">text</span><span class="o">))</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">InvalidXml</span> <span class="n">text</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="k">if</span> <span class="n">xDoc</span><span class="o">.</span><span class="nn">Root</span><span class="p">.</span><span class="nc">Elements</span><span class="o">(</span><span class="nn">XName</span><span class="p">.</span><span class="nc">Get</span> <span class="s2">&quot;Error&quot;</span><span class="o">)</span> <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">exists</span><span class="o">(</span><span class="k">fun</span> <span class="n">error</span> <span class="o">-&gt;</span> <span class="n">error</span><span class="o">.</span><span class="nc">Value</span> <span class="o">=</span> <span class="n">text</span><span class="o">)</span> <span class="k">then</span>
+</span><span class='line'>            <span class="n">xDoc</span><span class="o">.</span><span class="nn">Root</span><span class="p">.</span><span class="nc">Add</span><span class="o">(</span><span class="nc">XElement</span><span class="o">(</span><span class="nn">XName</span><span class="p">.</span><span class="nc">Get</span> <span class="s2">&quot;Error&quot;</span><span class="o">,</span> <span class="n">text</span><span class="o">))</span>
+</span><span class='line'>    <span class="n">xDoc</span>
+</span></code></pre></td></tr></table></div></figure>
 
 
 <p>And when we run FsCheck again:</p>
@@ -266,91 +332,175 @@ let (|ValidXml|InvalidXml|) str =
 
 <p>And, of course, per the specification, it checks that the 3rd property above holds true (that adding enhancements never reduces the size of the document).</p>
 
-<div><script src='https://gist.github.com/mavnn/5983701.js?file=Part8.fs'></script>
-<noscript><pre><code>module FsCheck.Examples.Tests
-
-open FsCheck
-open DevEd.FsCheck
-open System.Xml.Linq
-
-let baseDocText = &quot;&quot;&quot;&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
-&lt;root /&gt;
-&quot;&quot;&quot;
-
-type XmlTree = 
-    | NodeName of string
-    | Container of string * List&lt;XmlTree&gt;
-
-let nodeNames = 
-    [&quot;myNode&quot;;
-     &quot;myOtherNode&quot;;
-     &quot;someDifferentNode&quot;]
-
-let tree = 
-    let rec tree' s = 
-        match s with
-        | 0 -&gt; Gen.map NodeName (Gen.elements nodeNames)
-        | n when n &gt; 0 -&gt; 
-            let subtrees = 
-                Gen.sized &lt;| fun s -&gt; 
-                    Gen.resize (s
-                                |&gt; float
-                                |&gt; sqrt
-                                |&gt; int) (Gen.listOf(tree'(n / 2)))
-            Gen.oneof 
-                [Gen.map NodeName (Gen.elements nodeNames);
-                 
-                 Gen.map2 (fun name contents -&gt; Container(name, contents)) 
-                     (Gen.elements nodeNames) subtrees]
-        | _ -&gt; invalidArg &quot;s&quot; &quot;Size most be positive.&quot;
-    Gen.sized tree'
-
-let treeToXDoc xmlTree = 
-    let rec inner currentNode children = 
-        let childMatch child = 
-            match child with
-            | NodeName name -&gt; XElement(XName.Get name)
-            | Container(name, contents) -&gt; 
-                let element = XElement(XName.Get name)
-                inner element contents
-        currentNode.Add(List.map childMatch children |&gt; List.toArray)
-        currentNode
-    match xmlTree with
-    | NodeName name -&gt; XDocument(XElement(XName.Get name))
-    | Container(name, contents) -&gt; 
-        let doc = XDocument(XElement(XName.Get name))
-        inner doc.Root contents |&gt; ignore
-        doc
-
-type XmlGenerator() = 
-    static member XmlTree() = 
-        { new Arbitrary&lt;XmlTree&gt;() with
-              member x.Generator = tree
-              member x.Shrinker t = 
-                  match t with
-                  | NodeName _ -&gt; Seq.empty
-                  | Container(name, contents) -&gt; 
-                      match contents with
-                      | [] -&gt; seq { yield NodeName name }
-                      | c -&gt; 
-                          seq { 
-                              for n in c -&gt; n } }
-
-type XmlUpdaterProperties() = 
-    static member ``AddEnhancement is idempotent``(data : string) = 
-        ((AddEnhancement &lt;| AddEnhancement (XDocument.Parse baseDocText) data) data)
-            .ToString() = (AddEnhancement (XDocument.Parse baseDocText) data)
-            .ToString()
-    static member ``AddEnhancement is idempotent on different xml structures``(xmlDoc : XmlTree, 
-                                                                           data : string) = 
-        (AddEnhancement (treeToXDoc xmlDoc) data).ToString() = (AddEnhancement (AddEnhancement (treeToXDoc xmlDoc) data) data)
-            .ToString()
-    static member ``AddEnhancement never reduces the number of nodes`` (xmlDoc : XmlTree, data : string) =
-        Seq.length ((treeToXDoc xmlDoc).DescendantNodes()) = Seq.length ((AddEnhancement (treeToXDoc xmlDoc) data).DescendantNodes())
-
-Arb.register&lt;XmlGenerator&gt;() |&gt; ignore
-Check.QuickAll&lt;XmlUpdaterProperties&gt;()
-System.Console.ReadLine() |&gt; ignore</code></pre></noscript></div>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nn">FsCheck</span><span class="p">.</span><span class="nn">Examples</span><span class="p">.</span><span class="nc">Tests</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nc">FsCheck</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">DevEd</span><span class="p">.</span><span class="nc">FsCheck</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Xml</span><span class="p">.</span><span class="nc">Linq</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">baseDocText</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;&lt;?xml version=&quot;</span><span class="mi">1</span><span class="o">.</span><span class="mi">0</span><span class="s2">&quot; encoding=&quot;</span><span class="nc">UTF</span><span class="o">-</span><span class="mi">8</span><span class="s2">&quot;?&gt;</span>
+</span><span class='line'><span class="s2">&lt;root /&gt;</span>
+</span><span class='line'><span class="s2">&quot;&quot;&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">XmlTree</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">NodeName</span> <span class="k">of</span> <span class="kt">string</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Container</span> <span class="k">of</span> <span class="kt">string</span> <span class="o">*</span> <span class="nc">List</span><span class="o">&lt;</span><span class="nc">XmlTree</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">nodeNames</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">[</span><span class="s2">&quot;myNode&quot;</span><span class="o">;</span>
+</span><span class='line'>     <span class="s2">&quot;myOtherNode&quot;</span><span class="o">;</span>
+</span><span class='line'>     <span class="s2">&quot;someDifferentNode&quot;</span><span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">tree</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="k">rec</span> <span class="n">tree&#39;</span> <span class="n">s</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">match</span> <span class="n">s</span> <span class="k">with</span>
+</span><span class='line'>        <span class="o">|</span> <span class="mi">0</span> <span class="o">-&gt;</span> <span class="nn">Gen</span><span class="p">.</span><span class="n">map</span> <span class="nc">NodeName</span> <span class="o">(</span><span class="nn">Gen</span><span class="p">.</span><span class="n">elements</span> <span class="n">nodeNames</span><span class="o">)</span>
+</span><span class='line'>        <span class="o">|</span> <span class="n">n</span> <span class="k">when</span> <span class="n">n</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">subtrees</span> <span class="o">=</span>
+</span><span class='line'>                <span class="nn">Gen</span><span class="p">.</span><span class="n">sized</span> <span class="o">&lt;|</span> <span class="k">fun</span> <span class="n">s</span> <span class="o">-&gt;</span>
+</span><span class='line'>                    <span class="nn">Gen</span><span class="p">.</span><span class="n">resize</span> <span class="o">(</span><span class="n">s</span>
+</span><span class='line'>                                <span class="o">|&gt;</span> <span class="kt">float</span>
+</span><span class='line'>                                <span class="o">|&gt;</span> <span class="n">sqrt</span>
+</span><span class='line'>                                <span class="o">|&gt;</span> <span class="kt">int</span><span class="o">)</span> <span class="o">(</span><span class="nn">Gen</span><span class="p">.</span><span class="n">listOf</span><span class="o">(</span><span class="n">tree&#39;</span><span class="o">(</span><span class="n">n</span> <span class="o">/</span> <span class="mi">2</span><span class="o">)))</span>
+</span><span class='line'>            <span class="nn">Gen</span><span class="p">.</span><span class="n">oneof</span>
+</span><span class='line'>                <span class="o">[</span><span class="nn">Gen</span><span class="p">.</span><span class="n">map</span> <span class="nc">NodeName</span> <span class="o">(</span><span class="nn">Gen</span><span class="p">.</span><span class="n">elements</span> <span class="n">nodeNames</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>                 <span class="nn">Gen</span><span class="p">.</span><span class="n">map2</span> <span class="o">(</span><span class="k">fun</span> <span class="n">name</span> <span class="n">contents</span> <span class="o">-&gt;</span> <span class="nc">Container</span><span class="o">(</span><span class="n">name</span><span class="o">,</span> <span class="n">contents</span><span class="o">))</span>
+</span><span class='line'>                     <span class="o">(</span><span class="nn">Gen</span><span class="p">.</span><span class="n">elements</span> <span class="n">nodeNames</span><span class="o">)</span> <span class="n">subtrees</span><span class="o">]</span>
+</span><span class='line'>        <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">invalidArg</span> <span class="s2">&quot;s&quot;</span> <span class="s2">&quot;Size most be positive.&quot;</span>
+</span><span class='line'>    <span class="nn">Gen</span><span class="p">.</span><span class="n">sized</span> <span class="n">tree&#39;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">treeToXDoc</span> <span class="n">xmlTree</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="k">rec</span> <span class="n">inner</span> <span class="n">currentNode</span> <span class="n">children</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">childMatch</span> <span class="n">child</span> <span class="o">=</span>
+</span><span class='line'>            <span class="k">match</span> <span class="n">child</span> <span class="k">with</span>
+</span><span class='line'>            <span class="o">|</span> <span class="nc">NodeName</span> <span class="n">name</span> <span class="o">-&gt;</span> <span class="nc">XElement</span><span class="o">(</span><span class="nn">XName</span><span class="p">.</span><span class="nc">Get</span> <span class="n">name</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">|</span> <span class="nc">Container</span><span class="o">(</span><span class="n">name</span><span class="o">,</span> <span class="n">contents</span><span class="o">)</span> <span class="o">-&gt;</span>
+</span><span class='line'>                <span class="k">let</span> <span class="n">element</span> <span class="o">=</span> <span class="nc">XElement</span><span class="o">(</span><span class="nn">XName</span><span class="p">.</span><span class="nc">Get</span> <span class="n">name</span><span class="o">)</span>
+</span><span class='line'>                <span class="n">inner</span> <span class="n">element</span> <span class="n">contents</span>
+</span><span class='line'>        <span class="n">currentNode</span><span class="o">.</span><span class="nc">Add</span><span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="n">childMatch</span> <span class="n">children</span> <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">toArray</span><span class="o">)</span>
+</span><span class='line'>        <span class="n">currentNode</span>
+</span><span class='line'>    <span class="k">match</span> <span class="n">xmlTree</span> <span class="k">with</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">NodeName</span> <span class="n">name</span> <span class="o">-&gt;</span> <span class="nc">XDocument</span><span class="o">(</span><span class="nc">XElement</span><span class="o">(</span><span class="nn">XName</span><span class="p">.</span><span class="nc">Get</span> <span class="n">name</span><span class="o">))</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Container</span><span class="o">(</span><span class="n">name</span><span class="o">,</span> <span class="n">contents</span><span class="o">)</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">doc</span> <span class="o">=</span> <span class="nc">XDocument</span><span class="o">(</span><span class="nc">XElement</span><span class="o">(</span><span class="nn">XName</span><span class="p">.</span><span class="nc">Get</span> <span class="n">name</span><span class="o">))</span>
+</span><span class='line'>        <span class="n">inner</span> <span class="n">doc</span><span class="o">.</span><span class="nc">Root</span> <span class="n">contents</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
+</span><span class='line'>        <span class="n">doc</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">XmlGenerator</span><span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">static</span> <span class="k">member</span> <span class="nc">XmlTree</span><span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>        <span class="o">{</span> <span class="k">new</span> <span class="nc">Arbitrary</span><span class="o">&lt;</span><span class="nc">XmlTree</span><span class="o">&gt;</span><span class="bp">()</span> <span class="k">with</span>
+</span><span class='line'>              <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Generator</span> <span class="o">=</span> <span class="n">tree</span>
+</span><span class='line'>              <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Shrinker</span> <span class="n">t</span> <span class="o">=</span>
+</span><span class='line'>                  <span class="k">match</span> <span class="n">t</span> <span class="k">with</span>
+</span><span class='line'>                  <span class="o">|</span> <span class="nc">NodeName</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">empty</span>
+</span><span class='line'>                  <span class="o">|</span> <span class="nc">Container</span><span class="o">(</span><span class="n">name</span><span class="o">,</span> <span class="n">contents</span><span class="o">)</span> <span class="o">-&gt;</span>
+</span><span class='line'>                      <span class="k">match</span> <span class="n">contents</span> <span class="k">with</span>
+</span><span class='line'>                      <span class="o">|</span> <span class="bp">[]</span> <span class="o">-&gt;</span> <span class="n">seq</span> <span class="o">{</span> <span class="k">yield</span> <span class="nc">NodeName</span> <span class="n">name</span> <span class="o">}</span>
+</span><span class='line'>                      <span class="o">|</span> <span class="n">c</span> <span class="o">-&gt;</span>
+</span><span class='line'>                          <span class="n">seq</span> <span class="o">{</span>
+</span><span class='line'>                              <span class="k">for</span> <span class="n">n</span> <span class="k">in</span> <span class="n">c</span> <span class="o">-&gt;</span> <span class="n">n</span> <span class="o">}</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">XmlUpdaterProperties</span><span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">static</span> <span class="k">member</span> <span class="o">``</span><span class="nc">AddEnhancement</span> <span class="n">is</span> <span class="n">idempotent</span><span class="o">``(</span><span class="n">data</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>        <span class="o">((</span><span class="nc">AddEnhancement</span> <span class="o">&lt;|</span> <span class="nc">AddEnhancement</span> <span class="o">(</span><span class="nn">XDocument</span><span class="p">.</span><span class="nc">Parse</span> <span class="n">baseDocText</span><span class="o">)</span> <span class="n">data</span><span class="o">)</span> <span class="n">data</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">.</span><span class="nc">ToString</span><span class="bp">()</span> <span class="o">=</span> <span class="o">(</span><span class="nc">AddEnhancement</span> <span class="o">(</span><span class="nn">XDocument</span><span class="p">.</span><span class="nc">Parse</span> <span class="n">baseDocText</span><span class="o">)</span> <span class="n">data</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">.</span><span class="nc">ToString</span><span class="bp">()</span>
+</span><span class='line'>    <span class="k">static</span> <span class="k">member</span> <span class="o">``</span><span class="nc">AddEnhancement</span> <span class="n">is</span> <span class="n">idempotent</span> <span class="n">on</span> <span class="n">different</span> <span class="n">xml</span> <span class="n">structures</span><span class="o">``(</span><span class="n">xmlDoc</span> <span class="o">:</span> <span class="nc">XmlTree</span><span class="o">,</span>
+</span><span class='line'>                                                                           <span class="n">data</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>        <span class="o">(</span><span class="nc">AddEnhancement</span> <span class="o">(</span><span class="n">treeToXDoc</span> <span class="n">xmlDoc</span><span class="o">)</span> <span class="n">data</span><span class="o">).</span><span class="nc">ToString</span><span class="bp">()</span> <span class="o">=</span> <span class="o">(</span><span class="nc">AddEnhancement</span> <span class="o">(</span><span class="nc">AddEnhancement</span> <span class="o">(</span><span class="n">treeToXDoc</span> <span class="n">xmlDoc</span><span class="o">)</span> <span class="n">data</span><span class="o">)</span> <span class="n">data</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">.</span><span class="nc">ToString</span><span class="bp">()</span>
+</span><span class='line'>    <span class="k">static</span> <span class="k">member</span> <span class="o">``</span><span class="nc">AddEnhancement</span> <span class="n">never</span> <span class="n">reduces</span> <span class="n">the</span> <span class="n">number</span> <span class="k">of</span> <span class="n">nodes</span><span class="o">``</span> <span class="o">(</span><span class="n">xmlDoc</span> <span class="o">:</span> <span class="nc">XmlTree</span><span class="o">,</span> <span class="n">data</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>        <span class="nn">Seq</span><span class="p">.</span><span class="n">length</span> <span class="o">((</span><span class="n">treeToXDoc</span> <span class="n">xmlDoc</span><span class="o">).</span><span class="nc">DescendantNodes</span><span class="bp">()</span><span class="o">)</span> <span class="o">=</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">length</span> <span class="o">((</span><span class="nc">AddEnhancement</span> <span class="o">(</span><span class="n">treeToXDoc</span> <span class="n">xmlDoc</span><span class="o">)</span> <span class="n">data</span><span class="o">).</span><span class="nc">DescendantNodes</span><span class="bp">()</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="nn">Arb</span><span class="p">.</span><span class="n">register</span><span class="o">&lt;</span><span class="nc">XmlGenerator</span><span class="o">&gt;</span><span class="bp">()</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
+</span><span class='line'><span class="nn">Check</span><span class="p">.</span><span class="nc">QuickAll</span><span class="o">&lt;</span><span class="nc">XmlUpdaterProperties</span><span class="o">&gt;</span><span class="bp">()</span>
+</span><span class='line'><span class="nn">System</span><span class="p">.</span><span class="nn">Console</span><span class="p">.</span><span class="nc">ReadLine</span><span class="bp">()</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
+</span></code></pre></td></tr></table></div></figure>
 
 
 <p>Thanks for reading this far. If you want to play yourself, a full copy of the example code is <a href="https://github.com/mavnn/DevEd.FsCheck">on GitHub</a> with an MIT license.</p>

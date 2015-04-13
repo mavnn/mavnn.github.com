@@ -36,7 +36,15 @@ Let's start off with the core 'business logic' function of this code. We'll igno
 
 After referencing `System.Xml` and `System.Xml.Linq`, our first, very naive, attempt at the implementation looks like this:
 
-{% gist 5983701 Part1.fs %}
+``` fsharp
+module DevEd.FsCheck
+open System.Xml
+open System.Xml.Linq
+ 
+let AddEnhancement (xDoc : XDocument) (input : string) =
+    xDoc.Root.Add(XElement(XName.Get "Enhancement", input))
+    xDoc
+```
 
 We know this isn't right - it's blatantly not idempotent. So let's try and get our failing test.
 
@@ -44,11 +52,27 @@ Although FsCheck does expose a set of NUnit plugin attributes, for this blog pos
 
 First, we'll need to add a property that we want to test. A property is simply a function that takes a data type FsCheck knows how to generate, and returns a bool. FsCheck knows how to generate strings, so our idempotence property looks something like this:
 
-{% gist 5983701 Part2.fs %}
+``` fsharp
+open FsCheck
+open DevEd.FsCheck
+open System.Xml.Linq
+ 
+let baseDoc = "<root />"
+ 
+let ``Add enhancement must be idempotent`` input =
+    let xml1 = XDocument.Parse baseDoc
+    let xml2 = XDocument.Parse baseDoc
+    (AddEnhancement xml1 input).ToString() =
+        (AddEnhancement (AddEnhancement xml2 input) input).ToString()
+```
 
 Looking good. How do we run it? Just add this to the end of the file:
 
-{% gist 5983701 Part3.fs %}
+``` fsharp
+Check.Quick ``Add enhancement must be idempotent``
+ 
+System.Console.ReadLine() |> ignore
+```
 
 And hey presto:
 
@@ -58,11 +82,39 @@ Failing test. Interestingly (and if you check the documents, not coincidently), 
 
 So; let's add some checking to `AddEnhancement` to make sure we don't re-add the same input more than once.
 
-{% gist 5983701 Part4.fs %}
+``` fsharp
+let AddEnhancement (xDoc : XDocument) (input : string) =
+    if 
+        xDoc.Root.Elements(XName.Get "Enhancement")
+        |> Seq.exists (fun e -> e.Value = input)
+        |> not then
+            xDoc.Root.Add(XElement(XName.Get "Enhancement", input))
+    xDoc
+```
 
 And re-run the test and... oops.
 
-{% gist 5983701 Part5.txt %}
+```
+System.ArgumentException was unhandled by user code
+  HResult=-2147024809
+  Message=' ', hexadecimal value 0x18, is an invalid character.
+  Source=System.Xml
+  StackTrace:
+       at System.Xml.XmlEncodedRawTextWriter.InvalidXmlChar(Int32 ch, Char* pDst, Boolean entitize)
+       at System.Xml.XmlEncodedRawTextWriter.WriteElementTextBlock(Char* pSrc, Char* pSrcEnd)
+       at System.Xml.XmlEncodedRawTextWriter.WriteString(String text)
+       at System.Xml.XmlEncodedRawTextWriterIndent.WriteString(String text)
+       at System.Xml.XmlWellFormedWriter.WriteString(String text)
+       at System.Xml.Linq.ElementWriter.WriteElement(XElement e)
+       at System.Xml.Linq.XElement.WriteTo(XmlWriter writer)
+       at System.Xml.Linq.XContainer.WriteContentTo(XmlWriter writer)
+       at System.Xml.Linq.XNode.GetXmlString(SaveOptions o)
+       at System.Xml.Linq.XNode.ToString()
+       at Program.Add enhancement must be idompotent(String input) in C:\Users\michael.newton\documents\visual studio 2012\Projects\DevEd.FsCheck\TestRunner\Program.fs:line 10
+       at Program.clo@13.Invoke(String input) in C:\Users\michael.newton\documents\visual studio 2012\Projects\DevEd.FsCheck\TestRunner\Program.fs:line 13
+       at FsCheck.Testable.evaluate[a,b](FSharpFunc`2 body, a a)
+  InnerException: 
+```
 
 And this is where the full power of FsCheck starts becoming apparent. I know my input is untrusted, so I've told it to generate *any* string. And it believed me, and has created an input string that breaks `System.Xml.XmlEncodedRawTextWriter.WriteElementTextBlock`. This is not a unit test I would have thought to write myself, as I'd managed to miss that the fact that [not all utf-8 characters are valid in utf-8 encoded xml](http://blog.mark-mclaren.info/2007/02/invalid-xml-characters-when-valid-utf8_5873.html). In fact, it took me more than a few minutes to work out why it was throwing.
 
@@ -72,11 +124,34 @@ This is a toy project so I'm going to bail slightly on this one: I'm going to as
 
 Fortunately for us, in .NET 4.0 and above there is a function in the `System.Xml` namespace called `XmlConvert.IsXmlChar` which does roughly what you would expect from the name. Let's add an invalid character filter, and an active pattern to tell us if any characters have been removed:
 
-{% gist 5983701 Part6.fs %}
+``` fsharp
+let filterInvalidChars (input : string) =
+    input
+    |> Seq.filter (fun c -> XmlConvert.IsXmlChar c)
+    |> Seq.map string
+    |> String.concat ""    
+ 
+let (|ValidXml|InvalidXml|) str =
+    let filtered = filterInvalidChars str
+    if String.length filtered = String.length str then
+        ValidXml str
+    else
+        InvalidXml filtered
+```
 
 Now we can amend `AddEnhancement` to add enhancement nodes for valid XML text or an error node for sanitized invalid XML text:
 
-{% gist 5983701 Part7.fs %}
+``` fsharp
+let AddEnhancement (xDoc : XDocument) (input : string) =
+    match input with
+    | ValidXml text ->
+        if xDoc.Root.Elements(XName.Get "Enhancement") |> Seq.exists(fun enhance -> enhance.Value = text) then
+            xDoc.Root.Add(XElement(XName.Get "Enhancement", text))
+    | InvalidXml text ->
+        if xDoc.Root.Elements(XName.Get "Error") |> Seq.exists(fun error -> error.Value = text) then
+            xDoc.Root.Add(XElement(XName.Get "Error", text))
+    xDoc
+```
 
 And when we run FsCheck again:
 
@@ -88,6 +163,91 @@ As a bonus extra, I've included below a somewhat expanded version of the test co
 
 And, of course, per the specification, it checks that the 3rd property above holds true (that adding enhancements never reduces the size of the document).
 
-{% gist 5983701 Part8.fs %}
+``` fsharp
+module FsCheck.Examples.Tests
+ 
+open FsCheck
+open DevEd.FsCheck
+open System.Xml.Linq
+ 
+let baseDocText = """<?xml version="1.0" encoding="UTF-8"?>
+<root />
+"""
+ 
+type XmlTree = 
+    | NodeName of string
+    | Container of string * List<XmlTree>
+ 
+let nodeNames = 
+    ["myNode";
+     "myOtherNode";
+     "someDifferentNode"]
+ 
+let tree = 
+    let rec tree' s = 
+        match s with
+        | 0 -> Gen.map NodeName (Gen.elements nodeNames)
+        | n when n > 0 -> 
+            let subtrees = 
+                Gen.sized <| fun s -> 
+                    Gen.resize (s
+                                |> float
+                                |> sqrt
+                                |> int) (Gen.listOf(tree'(n / 2)))
+            Gen.oneof 
+                [Gen.map NodeName (Gen.elements nodeNames);
+                 
+                 Gen.map2 (fun name contents -> Container(name, contents)) 
+                     (Gen.elements nodeNames) subtrees]
+        | _ -> invalidArg "s" "Size most be positive."
+    Gen.sized tree'
+ 
+let treeToXDoc xmlTree = 
+    let rec inner currentNode children = 
+        let childMatch child = 
+            match child with
+            | NodeName name -> XElement(XName.Get name)
+            | Container(name, contents) -> 
+                let element = XElement(XName.Get name)
+                inner element contents
+        currentNode.Add(List.map childMatch children |> List.toArray)
+        currentNode
+    match xmlTree with
+    | NodeName name -> XDocument(XElement(XName.Get name))
+    | Container(name, contents) -> 
+        let doc = XDocument(XElement(XName.Get name))
+        inner doc.Root contents |> ignore
+        doc
+ 
+type XmlGenerator() = 
+    static member XmlTree() = 
+        { new Arbitrary<XmlTree>() with
+              member x.Generator = tree
+              member x.Shrinker t = 
+                  match t with
+                  | NodeName _ -> Seq.empty
+                  | Container(name, contents) -> 
+                      match contents with
+                      | [] -> seq { yield NodeName name }
+                      | c -> 
+                          seq { 
+                              for n in c -> n } }
+ 
+type XmlUpdaterProperties() = 
+    static member ``AddEnhancement is idempotent``(data : string) = 
+        ((AddEnhancement <| AddEnhancement (XDocument.Parse baseDocText) data) data)
+            .ToString() = (AddEnhancement (XDocument.Parse baseDocText) data)
+            .ToString()
+    static member ``AddEnhancement is idempotent on different xml structures``(xmlDoc : XmlTree, 
+                                                                           data : string) = 
+        (AddEnhancement (treeToXDoc xmlDoc) data).ToString() = (AddEnhancement (AddEnhancement (treeToXDoc xmlDoc) data) data)
+            .ToString()
+    static member ``AddEnhancement never reduces the number of nodes`` (xmlDoc : XmlTree, data : string) =
+        Seq.length ((treeToXDoc xmlDoc).DescendantNodes()) = Seq.length ((AddEnhancement (treeToXDoc xmlDoc) data).DescendantNodes())
+ 
+Arb.register<XmlGenerator>() |> ignore
+Check.QuickAll<XmlUpdaterProperties>()
+System.Console.ReadLine() |> ignore
+```
 
 Thanks for reading this far. If you want to play yourself, a full copy of the example code is [on GitHub](https://github.com/mavnn/DevEd.FsCheck) with an MIT license.

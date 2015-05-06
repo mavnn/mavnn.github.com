@@ -4,7 +4,7 @@
   <title><![CDATA[Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2015-04-13T12:06:27+01:00</updated>
+  <updated>2015-05-06T12:56:49+01:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,441 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Ecumenical APIs]]></title>
+    <link href="http://blog.mavnn.co.uk/ecumenical-apis/"/>
+    <updated>2015-05-06T10:44:16+01:00</updated>
+    <id>http://blog.mavnn.co.uk/ecumenical-apis</id>
+    <content type="html"><![CDATA[<p>One of the big sells of shared runtime functional languages such as F#, Scala
+and Clojure is that you can carrying on using the surrounding library ecosystem
+and your existing code. The different paradigm occasionally causes a little
+pain, but there are plenty of blog posts about how to wrap OO interfaces in a
+functionally friendly way.</p>
+
+<p>This is not one of those blog posts. This is about making sure that your
+colleages who are consuming your shiny new code in an imperative language
+(generally C# in my case) don&rsquo;t threaten to defenistrate you.</p>
+
+<p>At <a href="http://15below.com">15below</a> we&rsquo;ve recently had need in some of our services
+of taking a distributed lock between servers. There are many services available
+designed for doing this, but after some deliberation we decided that we didn&rsquo;t
+want to add a new piece of infrastructure purely for this one purpose. So
+<a href="http://15below.github.io/Sproc.Lock">Sproc.Lock</a> was born: SQL Server based
+distributed locking.</p>
+
+<p>In this post, I&rsquo;m not going to talk about the design of the service. What I&rsquo;m
+going to write about is how I engineered the API to be pleasent to use from both
+C# and F#, giving a idiomatic interface from both languages.</p>
+
+<!-- more -->
+
+
+<h2>The original interface (F#)</h2>
+
+<p>The F# interface was written first, and follows a pattern that will feel
+immediately familiar to an F# programmer. Our lock can be of 3 types (global,
+organisation or environment) and so we have a discriminated union (<code>Lock</code>)
+representing these three options.</p>
+
+<p>(I&rsquo;ve removed the implementations of the various bits to leave the shape of the
+code clear)</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="c1">/// Type representing a Lock that has definitely been acquired. Locks are</span>
+</span><span class='line'><span class="c1">/// IDisposable; disposing the lock will ensure it is released.</span>
+</span><span class='line'><span class="k">type</span> <span class="nc">Lock</span> <span class="o">=</span>
+</span><span class='line'>     <span class="c1">/// A lock that applies globally across the lock server</span>
+</span><span class='line'>     <span class="o">|</span> <span class="nc">Global</span> <span class="k">of</span> <span class="o">...</span>
+</span><span class='line'>     <span class="c1">/// A lock scoped to a specific organisation</span>
+</span><span class='line'>     <span class="o">|</span> <span class="nc">Organisation</span> <span class="k">of</span> <span class="o">...</span>
+</span><span class='line'>     <span class="c1">/// A lock scoped to a particular environment belonging to a particular organisation</span>
+</span><span class='line'>     <span class="o">|</span> <span class="nc">Environment</span> <span class="k">of</span> <span class="o">...</span>
+</span><span class='line'>     <span class="c1">/// The LockId acquired. Useful in combination when getting one of a list of locks to determine which was free.</span>
+</span><span class='line'>     <span class="k">member</span> <span class="n">lock</span><span class="o">.</span><span class="nc">LockId</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">match</span> <span class="n">lock</span> <span class="k">with</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">Global</span> <span class="o">(_,</span> <span class="n">name</span><span class="o">,</span> <span class="o">_,</span> <span class="o">_)</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">Organisation</span> <span class="o">(_,</span> <span class="n">name</span><span class="o">,</span> <span class="o">_,</span> <span class="o">_,</span> <span class="o">_)</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">Environment</span> <span class="o">(_,</span> <span class="n">name</span><span class="o">,</span> <span class="o">_,</span> <span class="o">_,</span> <span class="o">_,</span> <span class="o">_)</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="n">name</span>
+</span><span class='line'>     <span class="c1">/// Disposing releases the lock</span>
+</span><span class='line'>     <span class="k">member</span> <span class="n">lock</span><span class="o">.</span><span class="nc">Dispose</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>         <span class="o">...</span>
+</span><span class='line'>     <span class="k">interface</span> <span class="nc">IDisposable</span> <span class="k">with</span>
+</span><span class='line'>         <span class="c1">/// Disposing releases the lock</span>
+</span><span class='line'>         <span class="k">member</span> <span class="n">lock</span><span class="o">.</span><span class="nc">Dispose</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>            <span class="n">lock</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The lock is <code>IDisposable</code> to take advantage of .net&rsquo;s most common resource
+management idiom. You can release a lock by disposing it.</p>
+
+<p>Then, of course, when we try and acquire a lock we may or may not be able to &ndash;
+the whole point of locks is that you cannot obtain them if someone else has
+locked it already, after all.</p>
+
+<p>So we have a second discriminated union (<code>LockResult</code>) wrapping the first,
+with (again) three potential cases:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="c1">/// A type representing the possible results of attempting to acquire a lock.</span>
+</span><span class='line'><span class="k">type</span> <span class="nc">LockResult</span> <span class="o">=</span>
+</span><span class='line'>     <span class="c1">/// A lock was successfully acquired</span>
+</span><span class='line'>     <span class="o">|</span> <span class="nc">Locked</span> <span class="k">of</span> <span class="nc">Lock</span>
+</span><span class='line'>     <span class="c1">/// No lock was available</span>
+</span><span class='line'>     <span class="o">|</span> <span class="nc">Unavailable</span>
+</span><span class='line'>     <span class="c1">/// The attempt to acquire a lock caused an error in SQL Server</span>
+</span><span class='line'>     <span class="o">|</span> <span class="nc">Error</span> <span class="k">of</span> <span class="kt">int</span>
+</span><span class='line'>     <span class="c1">/// Disposing a lock result disposes the lock if it was acquired, and has no effect otherwise</span>
+</span><span class='line'>     <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Dispose</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">match</span> <span class="n">x</span> <span class="k">with</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">Locked</span> <span class="n">l</span> <span class="o">-&gt;</span> <span class="n">l</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">Unavailable</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">Error</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+</span><span class='line'>     <span class="k">interface</span> <span class="nc">IDisposable</span> <span class="k">with</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Dispose</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>            <span class="n">x</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Again, this is <code>IDisposable</code> so that you can just dispose of your overall
+<code>LockResult</code> object which makes a lot of the code cleaner.</p>
+
+<p>So: how do we get a <code>LockResult</code>? Well, we have a set of functions for getting
+locks. Let&rsquo;s have a look at the skeleton of one of them:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="c1">// val GetOrganisationLock : string -&gt; string -&gt; TimeSpan -&gt; string -&gt; LockResult</span>
+</span><span class='line'><span class="k">let</span> <span class="nc">GetOrganisationLock</span> <span class="n">connString</span> <span class="n">organisation</span> <span class="o">(</span><span class="n">maxDuration</span> <span class="o">:</span> <span class="nc">TimeSpan</span><span class="o">)</span> <span class="n">lockIdentifier</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">...</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>What&rsquo;s this doing? Well, it&rsquo;s going to (try and) create a lock scoped to a
+particular database and organisation with a particular ID, returning a
+<code>LockResult</code>.</p>
+
+<p>From an API design point of view, what&rsquo;s interesting here is the order of the
+arguments. <a href="https://en.wikipedia.org/wiki/Currying">Currying</a> enables easy
+partial application, and here it is very likely that the application will want
+to take all locks from the same database (making the first parameter) and
+reasonably likely that it will always want them scoped to the same organisation
+(second parameter). This is a common pattern in languages that allow for easy
+currying, and invariably a consumer of this library in F# will end up with a
+partially applied helper function looking something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="c1">// val getLock : string -&gt; LockResult</span>
+</span><span class='line'><span class="k">let</span> <span class="n">getLock</span> <span class="o">=</span>
+</span><span class='line'>    <span class="nc">GetOrganisationLock</span> <span class="s2">&quot;myDbConnString&quot;</span> <span class="s2">&quot;OrgName&quot;</span> <span class="o">(</span><span class="nn">TimeSpan</span><span class="p">.</span><span class="nc">FromMinutes</span> <span class="mi">5</span><span class="o">.)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We also have a set of helper functions for common operations we might want to
+carry out on locks, all of which take a higher order function as part of their
+arguments. Let&rsquo;s have a look at <code>AwaitLock</code> which will wait for a lock to
+become available for a specified length of time, rather then returning
+immediately with an <code>Unavailable</code> result:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="c1">// val AwaitLock : TimeSpan -&gt; (unit -&gt; LockResult) -&gt; LockResult</span>
+</span><span class='line'><span class="k">let</span> <span class="nc">AwaitLock</span> <span class="o">(</span><span class="n">timeOut</span> <span class="o">:</span> <span class="nc">TimeSpan</span><span class="o">)</span> <span class="n">getLock</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">...</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// Using it using the helper above:</span>
+</span><span class='line'><span class="k">let</span> <span class="n">awaitMyLock</span> <span class="n">identifier</span> <span class="o">=</span>
+</span><span class='line'>    <span class="nc">AwaitLock</span> <span class="o">(</span><span class="nn">TimeSpan</span><span class="p">.</span><span class="nc">FromSeconds</span> <span class="mi">2</span><span class="o">.)</span> <span class="o">(</span><span class="n">getLock</span> <span class="n">identifier</span><span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>If we then want (say) to wait up to 2 seconds for one of a list of possible
+locks to become available, we can then compose this function with the
+<code>OneOfLocks</code> function:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="c1">// val OneOfLocks : (&#39;a -&gt; LockResult) -&gt; seq&lt;&#39;a&gt; -&gt; LockResult</span>
+</span><span class='line'><span class="k">let</span> <span class="nc">OneOfLocks</span> <span class="n">getLock</span> <span class="n">lockIds</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">...</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// Using it using await helper:</span>
+</span><span class='line'><span class="k">let</span> <span class="n">pickLock</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>    <span class="nc">OneOfLocks</span> <span class="n">awaitMyLock</span> <span class="o">[</span><span class="s2">&quot;LockId1&quot;</span><span class="o">;</span><span class="s2">&quot;LockId2&quot;</span><span class="o">]</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>I&rsquo;m sure the comments will disagree, but I&rsquo;m actually pretty happy with this as
+an F# interface to this library. It&rsquo;s not strictly pure, but that&rsquo;s an option in
+F#, and the combination of composable functions and careful choice of parameter
+order make for concise and readable code.</p>
+
+<p>So, we&rsquo;re done &ndash; right?</p>
+
+<p>Unfortunately not. This code would be truely horrible to use from C#, and we
+still use a lot of C# here &ndash; some of our (stranger?) developers even prefer
+it. Why would it be so nasty?</p>
+
+<ul>
+<li>Consuming discriminated unions from C# is verbose to the point of unusable</li>
+<li>Partial application is a pain in C#, and no one wants to repeat the connection
+string everytime they want a lock</li>
+<li>Function composition is possible in C# but is not idiomatic and may make the
+capabilities of the library unclear</li>
+</ul>
+
+
+<h2>API Take 2: the &ldquo;OO&rdquo; namespace</h2>
+
+<p>In thinking about the kind of API I would expect for a locking library in C#, a
+few things immediately sprang to mind:</p>
+
+<ul>
+<li>I would expect some kind of configurable provider object or factory</li>
+<li>Out of flow returns are normally signalled by exceptions</li>
+<li>Function composition only for more unusual calling options</li>
+</ul>
+
+
+<p>Wrapping the functional API turned out to be reasonably simple. A couple of
+custom exception types and the <code>OOise</code> method later (I love that function
+name, even if I say so myself) we can easily wrap our functional API in
+something that makes sense in C# land &ndash; they either return an acquired,
+<code>IDisposable</code> lock or throw.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="c1">/// Exception thrown by ``LockProvider`` if none of the specified locks are available.</span>
+</span><span class='line'><span class="k">type</span> <span class="nc">LockUnavailableException</span> <span class="o">(</span><span class="n">message</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">inherit</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Exception</span><span class="o">(</span><span class="n">message</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">/// Exception thrown by ``LockProvider`` if a lock request errors on SQL Server.</span>
+</span><span class='line'><span class="c1">/// ``LockErrorCode`` is the SQL error response.</span>
+</span><span class='line'><span class="k">type</span> <span class="nc">LockRequestErrorException</span> <span class="o">(</span><span class="n">errorCode</span><span class="o">)</span> <span class="k">as</span> <span class="n">this</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">inherit</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Exception</span><span class="o">(</span><span class="n">sprintf</span> <span class="s2">&quot;Error code: %d&quot;</span> <span class="n">errorCode</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">do</span>
+</span><span class='line'>        <span class="n">this</span><span class="o">.</span><span class="nn">Data</span><span class="p">.</span><span class="nc">Add</span><span class="o">(</span><span class="n">box</span> <span class="s2">&quot;ErrorCode&quot;</span><span class="o">,</span> <span class="n">box</span> <span class="n">errorCode</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">LockErrorCode</span>
+</span><span class='line'>        <span class="k">with</span> <span class="n">get</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>            <span class="n">x</span><span class="o">.</span><span class="nn">Data</span><span class="p">.</span><span class="err">[&quot;</span><span class="nc">ErrorCode</span><span class="s2">&quot;] |&gt; unbox&lt;int&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="s2">let private OOise lockId getLock =</span>
+</span><span class='line'><span class="s2">    match getLock lockId with</span>
+</span><span class='line'><span class="s2">    | Locked l -&gt; l</span>
+</span><span class='line'><span class="s2">    | Unavailable -&gt; raise &lt;| LockUnavailableException(sprintf &quot;</span><span class="nc">Lock</span> <span class="o">%</span><span class="n">s</span> <span class="n">was</span> <span class="n">unavailable</span><span class="o">.</span><span class="s2">&quot; lockId)</span>
+</span><span class='line'><span class="s2">    | Error i -&gt; raise &lt;| LockRequestErrorException i</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Then, a simple <code>LockProvider</code> class allows for all the normal patterns we&rsquo;ve
+come to know (and in some cases love) such as dependency injection:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">LockProvider</span> <span class="o">(</span><span class="n">connString</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">GlobalLock</span> <span class="o">(</span><span class="n">lockId</span><span class="o">,</span> <span class="n">maxDuration</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>        <span class="nc">GetGlobalLock</span> <span class="n">connString</span> <span class="n">maxDuration</span> <span class="o">|&gt;</span> <span class="nc">OOise</span> <span class="n">lockId</span>
+</span><span class='line'>    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">OrganisationLock</span> <span class="o">(</span><span class="n">lockId</span><span class="o">,</span> <span class="n">organisation</span><span class="o">,</span> <span class="n">maxDuration</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>        <span class="c1">// Rest of the implementations snipped</span>
+</span><span class='line'>        <span class="o">...</span>
+</span><span class='line'>    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">EnvironmentLock</span> <span class="o">(</span><span class="n">lockId</span><span class="o">,</span> <span class="n">organisation</span><span class="o">,</span> <span class="n">environment</span><span class="o">,</span> <span class="n">maxDuration</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>        <span class="o">...</span>
+</span><span class='line'>    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">AwaitGlobalLock</span> <span class="o">(</span><span class="n">lockId</span><span class="o">,</span> <span class="n">maxDuration</span><span class="o">,</span> <span class="n">timeOut</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>        <span class="o">...</span>
+</span><span class='line'>    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">AwaitOrganisationLock</span> <span class="o">(</span><span class="n">lockId</span><span class="o">,</span> <span class="n">organisation</span><span class="o">,</span> <span class="n">maxDuration</span><span class="o">,</span> <span class="n">timeOut</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>        <span class="o">...</span>
+</span><span class='line'>    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">AwaitEnvironmentLock</span> <span class="o">(</span><span class="n">lockId</span><span class="o">,</span> <span class="n">organisation</span><span class="o">,</span> <span class="n">environment</span><span class="o">,</span> <span class="n">maxDuration</span><span class="o">,</span> <span class="n">timeOut</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>        <span class="o">...</span>
+</span><span class='line'>    <span class="c1">/// Build a ``System.Func`` that returns a lock based on lockId and provide a list of lockIds.</span>
+</span><span class='line'>    <span class="c1">/// If any of the locks are available, it will pick one of the available locks at random.</span>
+</span><span class='line'>    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">OneOf</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">t</span><span class="o">&gt;</span> <span class="o">(</span><span class="n">getLock</span> <span class="o">:</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Func</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">t</span><span class="o">,</span> <span class="nc">Lock</span><span class="o">&gt;,</span> <span class="n">lockIds</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>        <span class="o">...</span>
+</span><span class='line'>    <span class="c1">/// Build a ``System.Func`` that returns a lock based on lockId and provide a list of lockIds.</span>
+</span><span class='line'>    <span class="c1">/// If any of the locks are available, it will pick one of the available locks at random.</span>
+</span><span class='line'>    <span class="c1">/// If none are available it will wait until one is, or ``timeOut`` has passed.</span>
+</span><span class='line'>    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">AwaitOneOf</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">t</span><span class="o">&gt;</span> <span class="o">(</span><span class="n">getLock</span> <span class="o">:</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Func</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">t</span><span class="o">,</span> <span class="nc">Lock</span><span class="o">&gt;,</span> <span class="n">lockIds</span><span class="o">,</span> <span class="n">timeOut</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>        <span class="o">...</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>As you can see, by the time we get to the <code>OneOf</code> members, we&rsquo;re pretty much
+forced into taking higher order functions to avoid a combinatorial explosion of
+members (not that that always seems to deter OO API designers&hellip;). Other than
+that, I think we&rsquo;re left with an API which will immediately make sense to a C#
+developer: you can new up a <code>LockProvider</code>, you have a specified list of
+exception types to expect, and you can easily intellisense your way around all
+of the available options.</p>
+
+<p>Our C# consuming code ends up looking a bit like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+</pre></td><td class='code'><pre><code class='csharp'><span class='line'><span class="k">using</span> <span class="nn">System</span><span class="p">;</span>
+</span><span class='line'><span class="k">using</span> <span class="nn">Sproc.Lock.OO</span><span class="p">;</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'><span class="k">namespace</span> <span class="nn">MyApp</span>
+</span><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="k">class</span> <span class="nc">Thing</span>
+</span><span class='line'>    <span class="p">{</span>
+</span><span class='line'>        <span class="k">static</span> <span class="k">void</span> <span class="nf">DoLockRequiringWork</span><span class="p">()</span>
+</span><span class='line'>        <span class="p">{</span>
+</span><span class='line'>            <span class="kt">var</span> <span class="n">provider</span> <span class="p">=</span> <span class="k">new</span> <span class="n">LockProvider</span><span class="p">(</span><span class="s">&quot;sql connection string&quot;</span><span class="p">);</span>
+</span><span class='line'>            <span class="k">try</span>
+</span><span class='line'>            <span class="p">{</span>
+</span><span class='line'>                <span class="k">using</span> <span class="p">(</span><span class="kt">var</span> <span class="n">lock2</span> <span class="p">=</span> <span class="n">provider</span><span class="p">.</span><span class="n">GlobalLock</span><span class="p">(</span><span class="s">&quot;MyAppLock&quot;</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromMinutes</span><span class="p">(</span><span class="m">5.0</span><span class="p">)))</span>
+</span><span class='line'>                <span class="p">{</span>
+</span><span class='line'>                    <span class="c1">// If I get here, I have a lock!</span>
+</span><span class='line'>                    <span class="c1">// Doing stuff!</span>
+</span><span class='line'>                <span class="p">}</span> <span class="c1">// Lock released when Disposed</span>
+</span><span class='line'>            <span class="p">}</span>
+</span><span class='line'>            <span class="k">catch</span> <span class="p">(</span><span class="n">LockUnavailableException</span><span class="p">)</span>
+</span><span class='line'>            <span class="p">{</span>
+</span><span class='line'>                <span class="c1">// Could not get the lock</span>
+</span><span class='line'>                <span class="k">throw</span><span class="p">;</span>
+</span><span class='line'>            <span class="p">}</span>
+</span><span class='line'>            <span class="k">catch</span> <span class="p">(</span><span class="n">LockRequestErrorException</span><span class="p">)</span>
+</span><span class='line'>            <span class="p">{</span>
+</span><span class='line'>                <span class="c1">// Getting the lock threw an error</span>
+</span><span class='line'>                <span class="k">throw</span><span class="p">;</span>
+</span><span class='line'>            <span class="p">}</span>
+</span><span class='line'>        <span class="p">}</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Note the very different parameter order, placing the parameters that change most
+frequently at the beginning of the list as you would normally expect in C#. This
+makes a surprisingly large difference to how easy the code is to consume.</p>
+
+<p>Again: quite nice, if I do say so myself.</p>
+
+<p>So there you have it &ndash; want to take play nicely the whole .net ecosystem? Be
+kind to your consumers, and build them an ecumenical API!</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[LambdaCon 2015]]></title>
@@ -395,7 +830,7 @@ management responsibility. We&rsquo;re hiring developers, and while we&rsquo;ll 
 
 <p>So, there you have. My own personal list of things that increase or decrease your chances that I&rsquo;ll recommend you&rsquo;re interviewed.</p>
 
-<p>If you think that you&rsquo;d be interested in working for the type of company that uses this type of criteria&hellip; well, oddly enough we&rsquo;re hiring at the moment. Ping me or drop a note through to <a href="&#x6d;&#x61;&#x69;&#108;&#x74;&#111;&#x3a;&#x6a;&#x6f;&#x62;&#115;&#64;&#49;&#x35;&#98;&#x65;&#108;&#x6f;&#x77;&#x2e;&#x63;&#x6f;&#x6d;&#x2e;">&#x6a;&#111;&#98;&#x73;&#x40;&#49;&#x35;&#x62;&#x65;&#x6c;&#111;&#x77;&#46;&#x63;&#x6f;&#x6d;&#46;</a></p>
+<p>If you think that you&rsquo;d be interested in working for the type of company that uses this type of criteria&hellip; well, oddly enough we&rsquo;re hiring at the moment. Ping me or drop a note through to <a href="&#x6d;&#97;&#105;&#108;&#116;&#111;&#x3a;&#106;&#111;&#98;&#x73;&#64;&#x31;&#53;&#98;&#101;&#108;&#111;&#119;&#46;&#x63;&#111;&#109;&#46;">&#x6a;&#x6f;&#98;&#x73;&#64;&#49;&#53;&#98;&#101;&#108;&#x6f;&#119;&#x2e;&#x63;&#x6f;&#109;&#x2e;</a></p>
 ]]></content>
   </entry>
   
@@ -5710,28 +6145,6 @@ rewrite to see if we can get all of our quotations into better shape.</p>
 
 
 <p>This function takes a <code>Descriptor</code> with a <code>string option</code> Description field and any <code>def</code> with an AddXmlDoc member with the noted signature &ndash; and adds description as the xml doc if it exists.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Pygments]]></title>
-    <link href="http://blog.mavnn.co.uk/pygments/"/>
-    <updated>2014-01-03T12:23:00+00:00</updated>
-    <id>http://blog.mavnn.co.uk/pygments</id>
-    <content type="html"><![CDATA[<p>Apparently I should be able to do inline F# code using one of the Octopress plugins, rather than having to use gists every where.</p>
-
-<p>Let&rsquo;s try it:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">hello</span> <span class="o">=</span> <span class="s2">&quot;world&quot;</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Thanks <a href="https://twitter.com/ovatsus/status/411496863591067648">Gustavo</a></p>
-
-<p>Only issue is that having Python 3.x installed broke Octopress&#8217; Pygments support. Which kept me going for a while&hellip;</p>
-
-<p>Given I&rsquo;m not currently doing any Python development, a uninstall and adding 2.7 to the path did the job.</p>
 ]]></content>
   </entry>
   

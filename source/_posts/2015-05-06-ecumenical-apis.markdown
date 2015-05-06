@@ -13,8 +13,8 @@ pain, but there are plenty of blog posts about how to wrap OO interfaces in a
 functionally friendly way.
 
 This is not one of those blog posts. This is about making sure that your
-colleages who are consuming your shiny new code in an imperative language
-(generally C# in my case) don't threaten to defenistrate you.
+colleagues who are consuming your shiny new code in an imperative language
+(generally C# in my case) don't threaten to defenestrate you.
 
 At [15below](http://15below.com) we've recently had need in some of our services
 of taking a distributed lock between servers. There are many services available
@@ -286,5 +286,5 @@ makes a surprisingly large difference to how easy the code is to consume.
 
 Again: quite nice, if I do say so myself.
 
-So there you have it - want to take play nicely the whole .net ecosystem? Be
+So there you have it - want to play nicely the whole .net ecosystem? Be
 kind to your consumers, and build them an ecumenical API!

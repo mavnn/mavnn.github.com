@@ -51,11 +51,7 @@ type Lock =
      | Environment of ...
      /// The LockId acquired. Useful in combination when getting one of a list of locks to determine which was free.
      member lock.LockId =
-        match lock with
-        | Global (_, name, _, _)
-        | Organisation (_, name, _, _, _)
-        | Environment (_, name, _, _, _, _) ->
-            name
+         ...
      /// Disposing releases the lock
      member lock.Dispose () =
          ...

@@ -4,7 +4,7 @@
   <title><![CDATA[Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2015-05-06T13:44:56+01:00</updated>
+  <updated>2015-05-07T16:05:39+01:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,74 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[API Design Workshop]]></title>
+    <link href="http://blog.mavnn.co.uk/api-design-workshop/"/>
+    <updated>2015-05-07T15:35:51+01:00</updated>
+    <id>http://blog.mavnn.co.uk/api-design-workshop</id>
+    <content type="html"><![CDATA[<p>Designing an API is hard.</p>
+
+<p>You want to actually apply the
+<a href="https://en.wikipedia.org/wiki/Principle_of_least_astonishment">principle of least astonishment</a> &ndash;
+but you&rsquo;re the person who wrote the code. You&rsquo;re unlikely to be astonished. So
+you&rsquo;re trying to think how someone who didn&rsquo;t know what you know would think &ndash;
+which is never an easy starting point!</p>
+
+<p>Similarly, you&rsquo;re trying to create the
+<a href="http://blog.codinghorror.com/falling-into-the-pit-of-success/">pit of success</a>
+for users. Which means trying to make it <em>very hard</em> to do the wrong thing with
+your API. Preferably, in strongly typed languages, this should include using the
+type system to
+<a href="http://fsharpforfunandprofit.com/posts/designing-with-types-making-illegal-states-unrepresentable/">make illegal states unrepresentable</a>
+so that code that compiles is very likely to work.</p>
+
+<p>In general, the core libraries for .net are not bad at API design, but there are
+a few places where this isn&rsquo;t true. As an exercise, we at
+<a href="http://www.15below.com/">15below</a> are going to take one of them, split into
+teams and spend an hour or so seeing what alternatives we can come up with. Feel
+free to follow along at home, and if you do give it a try ping me a code snippet
+and I&rsquo;ll post it up with our internal attempts in a week or so.</p>
+
+<!-- more -->
+
+
+<h2>The API</h2>
+
+<p>Lots of things can be represented as streams of data. Files, network
+connections, compressed archives, chunks of memory&hellip; the list goes on.</p>
+
+<p>So .net provides us with the <a href="https://msdn.microsoft.com/en-us/library/system.io.stream%28v=vs.110%29.aspx?f=255&amp;MSPPError=-2147217396"><code>System.IO.Stream</code> class</a>.</p>
+
+<p>Which is great and all&hellip; except that not all streams are equal. For example,
+your function might need write access to a stream, and not all streams are
+writable. You can check easily enough, but the only way of flagging to the user
+you need write access is via comments or naming conventions. The same is true
+for requiring the ability to read from the stream or seek to specific locations
+with in it.</p>
+
+<h2>The challenge</h2>
+
+<p>Have a look through the interface provided by <code>System.IO.Stream</code>. Create a
+skeleton of an API that could implement the same functionality, be reasonably
+easy to use and tries to make illegal states unrepresentable as much as
+possible. Note: this API does <em>not</em> have to be functional.</p>
+
+<p>Try adding a few example methods that make use of your API (hint: your design
+will probably be better if you write these first).</p>
+
+<p>Maybe you want to try using interfaces and
+<a href="http://stackoverflow.com/questions/3663739/method-parameter-with-multiple-interface-restrictions">multiple interface constraints</a>. Or
+you have some clever idea for representing things with
+<a href="http://fsharpforfunandprofit.com/posts/discriminated-unions/">discriminated unions</a>. Or
+maybe you just know that there&rsquo;s a better core library out there with a nicer
+representation you can rip off whole sale! Who knows?</p>
+
+<p>Post your work up somewhere it can be seen on the internet and ping me a link,
+and we&rsquo;ll go over the submissions and write up a commentary over the next week
+or two.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Ecumenical APIs]]></title>
@@ -822,7 +890,7 @@ management responsibility. We&rsquo;re hiring developers, and while we&rsquo;ll 
 
 <p>So, there you have. My own personal list of things that increase or decrease your chances that I&rsquo;ll recommend you&rsquo;re interviewed.</p>
 
-<p>If you think that you&rsquo;d be interested in working for the type of company that uses this type of criteria&hellip; well, oddly enough we&rsquo;re hiring at the moment. Ping me or drop a note through to <a href="&#x6d;&#x61;&#x69;&#x6c;&#116;&#x6f;&#x3a;&#106;&#x6f;&#98;&#115;&#x40;&#49;&#53;&#x62;&#101;&#108;&#x6f;&#119;&#x2e;&#99;&#111;&#x6d;&#46;">&#x6a;&#111;&#98;&#115;&#x40;&#49;&#x35;&#98;&#x65;&#108;&#x6f;&#119;&#46;&#x63;&#x6f;&#x6d;&#46;</a></p>
+<p>If you think that you&rsquo;d be interested in working for the type of company that uses this type of criteria&hellip; well, oddly enough we&rsquo;re hiring at the moment. Ping me or drop a note through to <a href="&#109;&#97;&#x69;&#108;&#116;&#111;&#x3a;&#106;&#x6f;&#98;&#x73;&#x40;&#49;&#x35;&#98;&#x65;&#x6c;&#x6f;&#119;&#x2e;&#x63;&#x6f;&#109;&#x2e;">&#x6a;&#x6f;&#x62;&#115;&#x40;&#49;&#x35;&#98;&#x65;&#108;&#x6f;&#119;&#x2e;&#99;&#111;&#109;&#46;</a></p>
 ]]></content>
   </entry>
   
@@ -6109,34 +6177,6 @@ rewrite to see if we can get all of our quotations into better shape.</p>
 <p><a href="https://twitter.com/ad3mar">@ad3mar</a> if you feel like rolling this into Suave, you can consider it licenced under what ever is most convenient. An official licence file would make me much happier using Suave in production, by the way (hint, hint).</p>
 
 <p>Edit: ad3mar has pointed out in the comments that Suave is already Apache2 licensed, I just failed to find the file last time I looked.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Type Provider ProTip]]></title>
-    <link href="http://blog.mavnn.co.uk/type-provider-protip/"/>
-    <updated>2014-01-10T12:15:15+00:00</updated>
-    <id>http://blog.mavnn.co.uk/type-provider-protip</id>
-    <content type="html"><![CDATA[<p>While type providers are incredibly powerful, the ProvidedTypes api for creating them is sometimes a bit rough around the edges. And not always as functional as you might hope.</p>
-
-<p>At some point I&rsquo;d like to do something about that, but for the moment I&rsquo;m just going to collect a few helpful tips and hints (mostly for own reference).</p>
-
-<p>Tip one is in the case where you have XmlDocs to add to ProvidedTypes, ProvidedMethods and ProvidedProperties; in our case we have an optional description field in our metadata and the boiler plate was getting tiresome.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="k">inline</span> <span class="n">addDoc</span> <span class="o">(</span><span class="n">desc</span> <span class="o">:</span> <span class="nc">Descriptor</span><span class="o">)</span> <span class="n">def</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">match</span> <span class="n">desc</span><span class="o">.</span><span class="nc">Description</span> <span class="k">with</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">Some</span> <span class="n">d</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="o">(^</span><span class="nc">T</span> <span class="o">:</span> <span class="o">(</span><span class="k">member</span> <span class="nc">AddXmlDoc</span> <span class="o">:</span> <span class="kt">string</span> <span class="o">-&gt;</span> <span class="kt">unit</span><span class="o">)</span> <span class="o">(</span><span class="n">def</span><span class="o">,</span> <span class="n">d</span><span class="o">))</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="bp">()</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>This function takes a <code>Descriptor</code> with a <code>string option</code> Description field and any <code>def</code> with an AddXmlDoc member with the noted signature &ndash; and adds description as the xml doc if it exists.</p>
 ]]></content>
   </entry>
   

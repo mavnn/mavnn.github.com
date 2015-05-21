@@ -192,6 +192,10 @@ has always been fast and reliable for me so far.
 We currently use Fleece in one of our projects, and have provided some support to improving
 the testing of Chiron as it looks like a hopeful alternative.
 
+Edit: Eirik points out in the comments that FsPickler (mentioned above) also has a mechanism
+for defining type safe (de)serialization [using Picklers](http://nessos.github.io/FsPickler/tutorial.html#Picklers-and-Pickler-combinators). I couldn't possibly guess where the library
+got it's name.
+
 ## All the rest
 
 I'm sure that there are other ways of tackling these problems - for example, for our

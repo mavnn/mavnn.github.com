@@ -4,7 +4,7 @@
   <title><![CDATA[Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2015-05-07T16:05:39+01:00</updated>
+  <updated>2015-05-21T16:33:52+01:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,273 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Serialization in .net]]></title>
+    <link href="http://blog.mavnn.co.uk/serialization-in-net/"/>
+    <updated>2015-05-20T16:11:28+01:00</updated>
+    <id>http://blog.mavnn.co.uk/serialization-in-net</id>
+    <content type="html"><![CDATA[<p>Leaving the confines of your own process&rsquo;s safe little memory space is always a potentially painful moment
+when you&rsquo;re coding up an up. Whether it&rsquo;s receiving data from the outside world, passing a message over
+RabbitMQ to an other in house service, or writing an audit trail that needs to be accessible for the next
+20 years, there&rsquo;s a bunch of considerations that need to be taken into account when you hit the joys of
+serialization and deserialization.</p>
+
+<!-- more -->
+
+
+<h2>Mirror, mirror on the wall</h2>
+
+<p>First up on the list is whether or not to use reflection. For those of you who aren&rsquo;t aware, reflection
+is a way of inspecting the properties of your .net code at runtime, and various serialization libraries
+take advantage of this to try and make your life easier.</p>
+
+<p>The best known example of this is <a href="http://www.newtonsoft.com/json">Json.NET</a> &ndash; which will take any .net
+object and try and create a Json representation of it &ndash; or vice versa.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='csharp'><span class='line'><span class="n">Product</span> <span class="n">product</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Product</span><span class="p">();</span>
+</span><span class='line'><span class="n">product</span><span class="p">.</span><span class="n">Name</span> <span class="p">=</span> <span class="s">&quot;Apple&quot;</span><span class="p">;</span>
+</span><span class='line'><span class="n">product</span><span class="p">.</span><span class="n">Expiry</span> <span class="p">=</span> <span class="k">new</span> <span class="n">DateTime</span><span class="p">(</span><span class="m">2008</span><span class="p">,</span> <span class="m">12</span><span class="p">,</span> <span class="m">28</span><span class="p">);</span>
+</span><span class='line'><span class="n">product</span><span class="p">.</span><span class="n">Sizes</span> <span class="p">=</span> <span class="k">new</span> <span class="kt">string</span><span class="p">[]</span> <span class="p">{</span> <span class="s">&quot;Small&quot;</span> <span class="p">};</span>
+</span><span class='line'>
+</span><span class='line'><span class="kt">string</span> <span class="n">json</span> <span class="p">=</span> <span class="n">JsonConvert</span><span class="p">.</span><span class="n">SerializeObject</span><span class="p">(</span><span class="n">product</span><span class="p">);</span>
+</span><span class='line'><span class="c1">// {</span>
+</span><span class='line'><span class="c1">//   &quot;Name&quot;: &quot;Apple&quot;,</span>
+</span><span class='line'><span class="c1">//   &quot;Expiry&quot;: &quot;2008-12-28T00:00:00&quot;,</span>
+</span><span class='line'><span class="c1">//   &quot;Sizes&quot;: [</span>
+</span><span class='line'><span class="c1">//     &quot;Small&quot;</span>
+</span><span class='line'><span class="c1">//   ]</span>
+</span><span class='line'><span class="c1">// }</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This is a common technique, but it does have a few problems.</p>
+
+<h3>Versioning</h3>
+
+<p>The &ldquo;schema&rdquo; here is actually the underlying .net type that you are serializing &ndash; this can be great for
+quick to implement communications between .net services which can share a &ldquo;messages&rdquo; dll with the type in.</p>
+
+<p>Unfortunately, this also plays merry havoc in any scenario where your messages might persist
+between versions of your messaging dll. Saving these objects to a document store for example, or trying to run two versions of a service at once (required for seamless deployment)
+connected to a messaging bus.</p>
+
+<p>Because .net will only allow you to have one version of an assembly loaded at once, you can&rsquo;t
+easily build a way of deserializing the old format.</p>
+
+<h3>Uglyness</h3>
+
+<p>This might sound like a purely aesthetic consideration, and therefore beneath us
+technical types but the result of automatic serialization is often ugly and strange
+looking. And to be fair, it isn&rsquo;t normally a huge problem for as long as you&rsquo;re working
+in a .net to .net scenario. But if, for example, you&rsquo;re writing an API to be consumed
+from JavaScript your UI developers (which is probably still you, right?) will curse your
+name forever more if you go this route. As well as this, as there&rsquo;s no schema, it&rsquo;s very
+hard to tell in any other language whether the object you&rsquo;ve created will make it through
+the deserialization process when it hits .net land again.</p>
+
+<h3>Runtime failure</h3>
+
+<p>That <code>JsonConvert.SerializeObject</code> method up there: it&rsquo;s generic. Which means it will
+take any .net object you want to throw at it.</p>
+
+<p>Unfortunately, the number of .net objects it can actually serialize is quite a bit more
+restricted than &ldquo;any .net object you want to throw at it&rdquo;. And it has no way of telling
+you that until run time, when it will just throw an exception, which can be pretty painful.</p>
+
+<h3>When to use?</h3>
+
+<p>Only use reflection based serialization in situations where you know the serialized
+representation will be transient, and where you can test your serialization works at
+runtime in advance. Additional, be very suspicious of using reflection based serialization
+in any scenario where anything outside the .net ecosystem will need to access the data.</p>
+
+<p>Typical scenarios:</p>
+
+<ul>
+<li>Caching</li>
+<li>Inter-process communication in distributed systems</li>
+<li>Message bus communications (only if you can guarantee the messages are transient)</li>
+</ul>
+
+
+<p>Avoid for:</p>
+
+<ul>
+<li>Permanent persistence</li>
+<li>Defining APIs to be used from outside .net</li>
+</ul>
+
+
+<h3>Recommended implementation</h3>
+
+<p>If you are doing reflection based serialization in .net, you want to use
+<a href="https://nessos.github.io/FsPickler/">FsPickler</a>. It covers binary, json, bson and xml
+serialization in a single library, is faster than Json.NET and successfully serializes
+more types than Json.NET. What&rsquo;s not to like?</p>
+
+<h2>Attribute all the things!</h2>
+
+<p>As well as just trying to guess how to serialize things with reflection in .net,
+there is also the <a href="https://msdn.microsoft.com/en-us/library/system.serializableattribute%28v=vs.110%29.aspx">Serializable</a> attribute that allows you to then serialize to a variety
+of formats using the <code>System.Runtime.Serialization</code> name space. This a few advantages
+over the raw reflection technique in theory (you can mark specific fields not to be serialized, for example) but to be blunt if you&rsquo;re going to go to this amount of effort you may
+as well go for one of the safer options below.</p>
+
+<h3>When to use?</h3>
+
+<p>When you&rsquo;re using a Microsoft library that requires you to.</p>
+
+<h2>Safety with (type) class</h2>
+
+<p>If you happen to be working in F#, then <a href="https://msdn.microsoft.com/en-us/library/dd233203.aspx">member constraints</a> allow you to try a more flexible and type safe way of expressing
+serialization &ndash; in exchange for a little more work.</p>
+
+<p>As an example, the Chiron library allows you to do things like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nc">Chiron</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Chiron</span><span class="p">.</span><span class="nc">Operators</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">InnerRecord</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span>
+</span><span class='line'>        <span class="nc">Start</span> <span class="o">:</span> <span class="nn">System</span><span class="p">.</span><span class="nc">DateTime</span>
+</span><span class='line'>        <span class="nc">Id</span> <span class="o">:</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Guid</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>    <span class="k">static</span> <span class="k">member</span> <span class="nc">FromJson</span> <span class="o">(_</span> <span class="o">:</span> <span class="nc">InnerRecord</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>        <span class="o">(</span><span class="k">fun</span> <span class="n">s</span> <span class="n">i</span> <span class="o">-&gt;</span> <span class="o">{</span> <span class="nc">Start</span> <span class="o">=</span> <span class="n">s</span><span class="o">;</span> <span class="nc">Id</span> <span class="o">=</span> <span class="n">i</span> <span class="o">})</span>
+</span><span class='line'>        <span class="o">&lt;!&gt;</span> <span class="nn">Json</span><span class="p">.</span><span class="n">read</span> <span class="s2">&quot;startTime&quot;</span>
+</span><span class='line'>        <span class="o">&lt;*&gt;</span> <span class="nn">Json</span><span class="p">.</span><span class="n">read</span> <span class="s2">&quot;identity&quot;</span>
+</span><span class='line'>    <span class="k">static</span> <span class="k">member</span> <span class="nc">ToJson</span> <span class="n">innerRecord</span> <span class="o">=</span>
+</span><span class='line'>        <span class="nn">Json</span><span class="p">.</span><span class="n">write</span> <span class="s2">&quot;startTime&quot;</span> <span class="n">innerRecord</span><span class="o">.</span><span class="nc">Start</span>
+</span><span class='line'>        <span class="o">*&gt;</span> <span class="nn">Json</span><span class="p">.</span><span class="n">write</span> <span class="s2">&quot;identity&quot;</span> <span class="n">innerRecord</span><span class="o">.</span><span class="nc">Id</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">OuterRecord</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span>
+</span><span class='line'>        <span class="nc">Name</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>        <span class="nc">Inner</span> <span class="o">:</span> <span class="nc">InnerRecord</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>    <span class="k">static</span> <span class="k">member</span> <span class="nc">FromJson</span> <span class="o">(_</span> <span class="o">:</span> <span class="nc">OuterRecord</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>        <span class="o">(</span><span class="k">fun</span> <span class="n">n</span> <span class="n">i</span> <span class="o">-&gt;</span> <span class="o">{</span> <span class="nc">Name</span> <span class="o">=</span> <span class="n">n</span><span class="o">;</span> <span class="nc">Inner</span> <span class="o">=</span> <span class="n">i</span> <span class="o">})</span>
+</span><span class='line'>        <span class="o">&lt;!&gt;</span> <span class="nn">Json</span><span class="p">.</span><span class="n">read</span> <span class="s2">&quot;name&quot;</span>
+</span><span class='line'>        <span class="o">&lt;*&gt;</span> <span class="nn">Json</span><span class="p">.</span><span class="n">read</span> <span class="s2">&quot;inner&quot;</span>
+</span><span class='line'>    <span class="k">static</span> <span class="k">member</span> <span class="nc">ToJson</span> <span class="n">outerRecord</span> <span class="o">=</span>
+</span><span class='line'>        <span class="nn">Json</span><span class="p">.</span><span class="n">write</span> <span class="s2">&quot;name&quot;</span> <span class="n">outerRecord</span><span class="o">.</span><span class="nc">Name</span>
+</span><span class='line'>        <span class="o">*&gt;</span> <span class="nn">Json</span><span class="p">.</span><span class="n">write</span> <span class="s2">&quot;inner&quot;</span> <span class="n">outerRecord</span><span class="o">.</span><span class="nc">Inner</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">{</span>
+</span><span class='line'>  <span class="nc">Name</span> <span class="o">=</span> <span class="s2">&quot;my object&quot;</span>
+</span><span class='line'>  <span class="nc">Inner</span> <span class="o">=</span> <span class="o">{</span>
+</span><span class='line'>            <span class="nc">Start</span> <span class="o">=</span> <span class="nn">System</span><span class="p">.</span><span class="nc">DateTime</span><span class="o">(</span><span class="mi">2015</span><span class="o">,</span> <span class="mi">5</span><span class="o">,</span> <span class="mi">21</span><span class="o">)</span>
+</span><span class='line'>            <span class="nc">Id</span> <span class="o">=</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Guid</span><span class="p">.</span><span class="nc">NewGuid</span><span class="bp">()</span>
+</span><span class='line'>          <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Json</span><span class="p">.</span><span class="n">serialize</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Json</span><span class="p">.</span><span class="n">format</span>
+</span><span class='line'><span class="c1">// Your json goes here</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>A few interesting things to note here. Firstly, as you&rsquo;ve probably guessed, the magic
+of telling Chiron how to serialize and deserialize things happens in the <code>ToJson</code> and
+<code>FromJson</code> methods. What might not be so obvious is that if these methods are not
+implemented with the correct signature, than <code>Json.serialize</code> will not compile when
+fed the erroneous object. Which does wonders for eliminating run time errors!</p>
+
+<p>Also, if you look carefully at the To and From methods you&rsquo;ll see that there&rsquo;s no need
+for the fields in the Json and the .net object to have the same name. In fact, you can
+apply what ever logic you want within them, allowing you to match a specific schema,
+allow for different versions of the serialized data to be deserialized or just generally
+make the serialized version prettier to use from other places.</p>
+
+<p>You do, of course, have to actually write the From and To methods, which is definitely
+more work. Having said that, it&rsquo;s not quite as bad as it sounds though: as you can see
+from the <code>OuterRecord</code> type with it&rsquo;s <code>InnerRecord</code> field, and can nest the To and
+From methods nicely &ndash; and the type system will check that your object is serializable
+all the way down. Nice.</p>
+
+<h3>When to use?</h3>
+
+<p>Any time when you might have to persist data between versions, or process data during
+the serialization/deserialization process &ndash; and you can specify your data types in F#.</p>
+
+<h3>Recommended implementation</h3>
+
+<p><a href="https://github.com/mausch/Fleece">Fleece</a> and <a href="https://github.com/xyncro/chiron/">Chiron</a>
+both implement these techniques. Fleece is a more established library that has been tested
+for longer, but I have had some performance issues with it in libraries with a lot of types
+that implement To and From methods. Chiron is a little bit&hellip; cutting edge in age, but
+has always been fast and reliable for me so far.</p>
+
+<p>We currently use Fleece in one of our projects, and have provided some support to improving
+the testing of Chiron as it looks like a hopeful alternative.</p>
+
+<h2>All the rest</h2>
+
+<p>I&rsquo;m sure that there are other ways of tackling these problems &ndash; for example, for our
+customer facing &ldquo;business&rdquo; APIs we&rsquo;re moving to specifying our API using hand crafted
+XSD and WSDL files and then autogenerating code behind. This assumes, of course, you
+have some reason to be using SOAP. But if you do, it works an awful lot better than
+trying to autogenerate the schema from the code &ndash; a path that&rsquo;s lead me to worlds of
+pain both as the consumer and producer of the schemas.</p>
+
+<p>But the routes above are the most common paths that I&rsquo;ve come across as a .net developer
+and I&rsquo;ve often discovered them being used in the &ldquo;wrong&rdquo; places. Retroactively having to
+version reflection based APIs is a particular pain point that I&rsquo;d recommend avoiding if
+you possibly can!</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[API Design Workshop]]></title>
@@ -890,7 +1157,7 @@ management responsibility. We&rsquo;re hiring developers, and while we&rsquo;ll 
 
 <p>So, there you have. My own personal list of things that increase or decrease your chances that I&rsquo;ll recommend you&rsquo;re interviewed.</p>
 
-<p>If you think that you&rsquo;d be interested in working for the type of company that uses this type of criteria&hellip; well, oddly enough we&rsquo;re hiring at the moment. Ping me or drop a note through to <a href="&#109;&#97;&#x69;&#108;&#116;&#111;&#x3a;&#106;&#x6f;&#98;&#x73;&#x40;&#49;&#x35;&#98;&#x65;&#x6c;&#x6f;&#119;&#x2e;&#x63;&#x6f;&#109;&#x2e;">&#x6a;&#x6f;&#x62;&#115;&#x40;&#49;&#x35;&#98;&#x65;&#108;&#x6f;&#119;&#x2e;&#99;&#111;&#109;&#46;</a></p>
+<p>If you think that you&rsquo;d be interested in working for the type of company that uses this type of criteria&hellip; well, oddly enough we&rsquo;re hiring at the moment. Ping me or drop a note through to <a href="&#109;&#97;&#x69;&#x6c;&#x74;&#x6f;&#x3a;&#106;&#111;&#x62;&#115;&#x40;&#x31;&#x35;&#98;&#101;&#108;&#x6f;&#x77;&#46;&#x63;&#111;&#109;&#x2e;">&#106;&#111;&#98;&#115;&#64;&#49;&#x35;&#x62;&#x65;&#x6c;&#111;&#119;&#46;&#99;&#111;&#109;&#x2e;</a></p>
 ]]></content>
   </entry>
   
@@ -5988,195 +6255,6 @@ rewrite to see if we can get all of our quotations into better shape.</p>
 <p>If you want to see and play with the code, the version for this post can be found in <a href="https://github.com/mavnn/Mavnn.Blog.TypeProvider/tree/FirstFloor">the FirstFloor branch of the project on GitHub</a>.</p>
 
 <p>As with the first post in the series, let me know your questions and comments.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Single File Websites With Suave]]></title>
-    <link href="http://blog.mavnn.co.uk/single-file-websites-with-suave/"/>
-    <updated>2014-02-28T09:54:46+00:00</updated>
-    <id>http://blog.mavnn.co.uk/single-file-websites-with-suave</id>
-    <content type="html"><![CDATA[<blockquote><p>As of a few days ago, the embedded module <a href="https://github.com/SuaveIO/suave/pull/100/files">was merged</a> into Suave master. Enjoy!</p></blockquote>
-
-<p>I&rsquo;m a great fan of <a href="http://suave.io/">Suave</a> for simple web development in F#. I highly recommend checking out the site for details, but in the mean time I&rsquo;d like to share a little trick I&rsquo;ve been using for rapid prototyping that I&rsquo;m finding very useful.</p>
-
-<p>The Suave.Http module contains a few helpers for serving static files from disk. Unfortunately, depending on use case and deployment strategy, relying on the location of a bunch of files on disk can be problematic.</p>
-
-<p>So (open source to the rescue!) I cracked open the code and wrote a small alternative implementation that serves files from the current assembly&rsquo;s embedded resources. I&rsquo;m finding it especially useful for single page JavaScript apps where you have a small number of resources and then a lot of end points providing api functionality.</p>
-
-<p>Setting up your website looks something like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nc">Website</span>
-</span><span class='line'><span class="k">open</span> <span class="nc">System</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">Suave</span><span class="p">.</span><span class="nc">Http</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">Suave</span><span class="p">.</span><span class="nc">Types</span>
-</span><span class='line'><span class="k">open</span> <span class="nc">Embedded</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="n">app</span> <span class="o">=</span>
-</span><span class='line'>    <span class="n">choose</span> <span class="o">[</span>
-</span><span class='line'>        <span class="c1">// serve the embedded index.html for &quot;/&quot;</span>
-</span><span class='line'>        <span class="nc">GET</span> <span class="o">&gt;&gt;=</span> <span class="n">url</span> <span class="s2">&quot;/&quot;</span> <span class="o">&gt;&gt;=</span> <span class="n">resource</span> <span class="s2">&quot;index.html&quot;</span>
-</span><span class='line'>        <span class="c1">// check if the request matches the name of an embedded resource</span>
-</span><span class='line'>        <span class="c1">// if it does, serve it up with a reasonable cache</span>
-</span><span class='line'>        <span class="nc">GET</span> <span class="o">&gt;&gt;=</span> <span class="n">browse_embedded</span>
-</span><span class='line'>        <span class="c1">// If it doesn&#39;t, try and trigger your api end points</span>
-</span><span class='line'>        <span class="nc">GET</span> <span class="o">&gt;&gt;=</span> <span class="n">url</span> <span class="s2">&quot;/json&quot;</span> <span class="o">&gt;&gt;==</span> <span class="o">(</span><span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">serveJson</span> <span class="o">&lt;|</span> <span class="n">makeData</span><span class="bp">()</span><span class="o">)</span>
-</span><span class='line'>        <span class="nc">GET</span> <span class="o">&gt;&gt;=</span> <span class="n">url</span> <span class="s2">&quot;/carrier&quot;</span> <span class="o">&gt;&gt;==</span> <span class="o">(</span><span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">getCarrierCodes</span> <span class="bp">()</span><span class="o">)</span>
-</span><span class='line'>        <span class="c1">// Nothing else has worked - 404</span>
-</span><span class='line'>        <span class="nc">NOT_FOUND</span> <span class="s2">&quot;Sorry, couldn&#39;t find your page&quot;</span>
-</span><span class='line'>    <span class="o">]</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">web_server</span> <span class="n">default_config</span> <span class="n">app</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>And the embedded module looks like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-<span class='line-number'>41</span>
-<span class='line-number'>42</span>
-<span class='line-number'>43</span>
-<span class='line-number'>44</span>
-<span class='line-number'>45</span>
-<span class='line-number'>46</span>
-<span class='line-number'>47</span>
-<span class='line-number'>48</span>
-<span class='line-number'>49</span>
-<span class='line-number'>50</span>
-<span class='line-number'>51</span>
-<span class='line-number'>52</span>
-<span class='line-number'>53</span>
-<span class='line-number'>54</span>
-<span class='line-number'>55</span>
-<span class='line-number'>56</span>
-<span class='line-number'>57</span>
-<span class='line-number'>58</span>
-<span class='line-number'>59</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nc">Embedded</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">open</span> <span class="nc">System</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">IO</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Reflection</span>
-</span><span class='line'><span class="k">open</span> <span class="nc">Suave</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">Suave</span><span class="p">.</span><span class="nc">Http</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">Suave</span><span class="p">.</span><span class="nc">Types</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">Suave</span><span class="p">.</span><span class="nc">Socket</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">ass</span> <span class="o">=</span> <span class="nn">Assembly</span><span class="p">.</span><span class="nc">GetExecutingAssembly</span><span class="bp">()</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">resources</span> <span class="o">=</span>
-</span><span class='line'>    <span class="n">ass</span><span class="o">.</span><span class="nc">GetManifestResourceNames</span><span class="bp">()</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="nc">CACHE_CONTROL_MAX_AGE</span> <span class="o">=</span> <span class="mi">600</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">lastModified</span> <span class="o">=</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">UtcNow</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">send_embedded</span> <span class="n">resourceName</span> <span class="n">r</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">let</span> <span class="n">write_embedded</span> <span class="n">file</span> <span class="o">(</span><span class="n">r</span> <span class="o">:</span> <span class="nc">HttpRequest</span><span class="o">)</span> <span class="o">=</span> <span class="n">async</span> <span class="o">{</span>
-</span><span class='line'>      <span class="k">use</span> <span class="n">s</span> <span class="o">=</span> <span class="n">ass</span><span class="o">.</span><span class="nc">GetManifestResourceStream</span><span class="o">(</span><span class="n">resourceName</span><span class="o">)</span>
-</span><span class='line'>
-</span><span class='line'>      <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="nc">Length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="n">L</span> <span class="k">then</span>
-</span><span class='line'>        <span class="k">do</span><span class="o">!</span> <span class="n">async_writeln</span> <span class="n">r</span><span class="o">.</span><span class="n">connection</span> <span class="o">(</span><span class="n">sprintf</span> <span class="s2">&quot;Content-Length: %d&quot;</span> <span class="n">s</span><span class="o">.</span><span class="nc">Length</span><span class="o">)</span> <span class="n">r</span><span class="o">.</span><span class="n">line_buffer</span>
-</span><span class='line'>
-</span><span class='line'>      <span class="k">do</span><span class="o">!</span> <span class="n">async_writeln</span> <span class="n">r</span><span class="o">.</span><span class="n">connection</span> <span class="s2">&quot;&quot;</span> <span class="n">r</span><span class="o">.</span><span class="n">line_buffer</span>
-</span><span class='line'>
-</span><span class='line'>      <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="nc">Length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="n">L</span> <span class="k">then</span>
-</span><span class='line'>        <span class="k">do</span><span class="o">!</span> <span class="n">transfer_x</span> <span class="n">r</span><span class="o">.</span><span class="n">connection</span> <span class="n">s</span> <span class="o">}</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">async</span> <span class="o">{</span> <span class="k">do</span><span class="o">!</span> <span class="n">response_f</span> <span class="mi">200</span> <span class="s2">&quot;OK&quot;</span> <span class="o">(</span><span class="n">write_embedded</span> <span class="n">resourceName</span><span class="o">)</span> <span class="n">r</span> <span class="o">}</span> <span class="o">|&gt;</span> <span class="n">succeed</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="n">resource</span> <span class="n">resourceName</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">if</span> <span class="n">resources</span> <span class="o">|&gt;</span> <span class="nn">Array</span><span class="p">.</span><span class="n">exists</span> <span class="o">((=)</span> <span class="n">resourceName</span><span class="o">)</span> <span class="k">then</span>
-</span><span class='line'>      <span class="k">let</span> <span class="n">send_it</span> <span class="o">_</span> <span class="o">=</span>
-</span><span class='line'>        <span class="k">let</span> <span class="n">mimes</span> <span class="o">=</span> <span class="n">mime_type</span> <span class="o">&lt;|</span> <span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">GetExtension</span> <span class="n">resourceName</span>
-</span><span class='line'>        <span class="o">#</span><span class="k">if</span> <span class="nc">DEBUG</span>
-</span><span class='line'>        <span class="n">set_mime_type</span> <span class="n">mimes</span>
-</span><span class='line'>        <span class="o">&gt;&gt;</span> <span class="n">send_embedded</span> <span class="o">(</span><span class="n">resourceName</span><span class="o">)</span>
-</span><span class='line'>        <span class="o">#</span><span class="k">else</span>
-</span><span class='line'>        <span class="n">set_header</span> <span class="s2">&quot;Cache-Control&quot;</span> <span class="o">(</span><span class="n">sprintf</span> <span class="s2">&quot;max-age=%d&quot;</span> <span class="nc">CACHE_CONTROL_MAX_AGE</span><span class="o">)</span>
-</span><span class='line'>        <span class="o">&gt;&gt;</span> <span class="n">set_header</span> <span class="s2">&quot;Last-Modified&quot;</span> <span class="o">(</span><span class="n">lastModified</span><span class="o">.</span><span class="nc">ToString</span><span class="o">(</span><span class="s2">&quot;R&quot;</span><span class="o">))</span>
-</span><span class='line'>        <span class="o">&gt;&gt;</span> <span class="n">set_header</span> <span class="s2">&quot;Expires&quot;</span> <span class="o">(</span><span class="nn">DateTime</span><span class="p">.</span><span class="nn">UtcNow</span><span class="p">.</span><span class="nc">AddSeconds</span><span class="o">(</span><span class="kt">float</span><span class="o">(</span><span class="nc">CACHE_CONTROL_MAX_AGE</span><span class="o">)).</span><span class="nc">ToString</span><span class="o">(</span><span class="s2">&quot;R&quot;</span><span class="o">))</span>
-</span><span class='line'>        <span class="o">&gt;&gt;</span> <span class="n">set_mime_type</span> <span class="n">mimes</span>
-</span><span class='line'>        <span class="o">&gt;&gt;</span> <span class="n">send_embedded</span> <span class="o">(</span><span class="n">resourceName</span><span class="o">)</span>
-</span><span class='line'>        <span class="o">#</span><span class="n">endif</span>
-</span><span class='line'>      <span class="n">warbler</span> <span class="o">(</span> <span class="k">fun</span> <span class="o">(</span><span class="n">r</span><span class="o">:</span><span class="nc">HttpRequest</span><span class="o">)</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="k">let</span> <span class="n">modified_since</span> <span class="o">=</span> <span class="o">(</span><span class="n">r</span><span class="o">.</span><span class="n">headers</span> <span class="o">?</span> <span class="o">``</span><span class="k">if</span><span class="o">-</span><span class="n">modified</span><span class="o">-</span><span class="n">since</span><span class="o">``</span> <span class="o">)</span>
-</span><span class='line'>        <span class="k">match</span> <span class="n">modified_since</span> <span class="k">with</span>
-</span><span class='line'>        <span class="o">|</span> <span class="nc">Some</span> <span class="n">v</span> <span class="o">-&gt;</span> <span class="k">let</span> <span class="n">date</span> <span class="o">=</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">Parse</span> <span class="n">v</span>
-</span><span class='line'>                    <span class="k">if</span> <span class="n">lastModified</span> <span class="o">&gt;</span> <span class="n">date</span> <span class="k">then</span> <span class="n">send_it</span> <span class="bp">()</span>
-</span><span class='line'>                    <span class="k">else</span> <span class="nc">NOT_MODIFIED</span>
-</span><span class='line'>        <span class="o">|</span> <span class="nc">None</span>   <span class="o">-&gt;</span> <span class="n">send_it</span> <span class="bp">()</span><span class="o">)</span>
-</span><span class='line'>    <span class="k">else</span>
-</span><span class='line'>      <span class="n">never</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="n">browse_embedded</span> <span class="o">:</span> <span class="nc">WebPart</span> <span class="o">=</span>
-</span><span class='line'>    <span class="n">warbler</span> <span class="o">(</span><span class="k">fun</span> <span class="n">req</span> <span class="o">-&gt;</span> <span class="n">resource</span> <span class="o">(</span><span class="n">req</span><span class="o">.</span><span class="n">url</span><span class="o">.</span><span class="nc">TrimStart</span><span class="o">([|</span> <span class="sc">&#39;/&#39;</span> <span class="o">|])))</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p><a href="https://twitter.com/ad3mar">@ad3mar</a> if you feel like rolling this into Suave, you can consider it licenced under what ever is most convenient. An official licence file would make me much happier using Suave in production, by the way (hint, hint).</p>
-
-<p>Edit: ad3mar has pointed out in the comments that Suave is already Apache2 licensed, I just failed to find the file last time I looked.</p>
 ]]></content>
   </entry>
   

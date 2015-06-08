@@ -4,7 +4,7 @@
   <title><![CDATA[Category: programming | Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/blog/categories/programming/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2015-05-21T17:37:47+01:00</updated>
+  <updated>2015-06-08T11:57:19+01:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,49 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Property Based Testing at SDD Conf 2015]]></title>
+    <link href="http://blog.mavnn.co.uk/sdd-conf-2015/"/>
+    <updated>2015-06-08T10:21:44+01:00</updated>
+    <id>http://blog.mavnn.co.uk/sdd-conf-2015</id>
+    <content type="html"><![CDATA[<p>So, nearly a month back now I had the fantastic opportunity to speak at this year&rsquo;s
+<a href="http://sddconf.com/">Software, Design &amp; Development</a> at the Barbican on property based
+testing &ndash; or more specifically, FsCheck.</p>
+
+<!-- more -->
+
+
+<p>It was a fun experience and a very different type of conference to the smaller, generally
+open source community based events that I normally attend. There were a wide variety of
+expert speakers, covering the whole range from people like myself presenting on potentially
+useful but relatively unknown technology (in the enterprise world, at least &ndash;
+property based testing is pretty well known in functional programming circles) through to
+known industry names.</p>
+
+<p>I won&rsquo;t go into the details of all the talks I attended as I was there for 3 days. But there
+were a lot of good ideas on display ranging through sane naming (always worth watching
+anything by <a href="https://twitter.com/KevlinHenney">Kevlin Henney</a> if you get a chance) to
+project design (as opposed to project planning, probably more thoughts on that later) to
+practical DDD examples in .net to the &ldquo;Zen of Architecture&rdquo;.</p>
+
+<p>As a thank you
+to <a href="https://twitter.com/kurt2001">Kurt Schelfthout</a> who wrote FsCheck, to spread further what
+I think is an awesome concept and to give an idea
+of some of the kind of things we do at <a href="http://www.15below.com/">15below</a> to any interested
+developers I managed to arrange for the recording of my talk to be released publicly. It&rsquo;s
+an unmanned camera, so you have a pretty good view of the slides with out having to see my
+face at any point, which many people will see as an advantage! I strongly recommend full
+screen viewing; there&rsquo;s a fair amount of code in the presentation.</p>
+
+<iframe src="https://player.vimeo.com/video/129109178" width="100%" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
+
+
+<p>If you want to play with the code from the demo yourself, it&rsquo;s available <a href="https://github.com/mavnn/SddConf2015">on Github</a>.</p>
+
+<p>Many thanks to the conference organisers <a href="http://www.yellowstonetechmedia.com/">Yellowstone TechMedia</a>, and I&rsquo;ll definitely be considering submitting talks/attending again next year.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Serialization in .net]]></title>
@@ -801,139 +844,6 @@ File.Copy (nunitDir @@ "nunit.framework.dll", testNunitDll)
 <p>If you check further down, the call to the compiler to compile your provider will automatically prepend the ProvidedTypes files, so there&rsquo;s no need to list those. And the call to the compiler to run your tests will have references added for the provider you just built and <code>nunit.framework.dll</code>.</p>
 
 <p>So what are you waiting for? Get writing some examples!</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[RX Solutions]]></title>
-    <link href="http://blog.mavnn.co.uk/rx-solutions/"/>
-    <updated>2015-02-09T14:15:45+00:00</updated>
-    <id>http://blog.mavnn.co.uk/rx-solutions</id>
-    <content type="html"><![CDATA[<p>This post contains solutions to the <a href="/exploring-reactive-extensions/">Reactive Extensions practical</a> post.</p>
-
-<!--more-->
-
-
-<p>The base program looks like this (as in the previous post):</p>
-
-<p>``` csharp
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Reactive;
-using System.Reactive.Linq;
-using ReactiveTester.Shared;</p>
-
-<p>namespace EventTester
-{</p>
-
-<pre><code>class Program
-{
-    static void Handler(Tuple&lt;Guid, string&gt; tuple)
-    {
-        Console.WriteLine("{0} - {1}", tuple.Item1, tuple.Item2);
-    }
-
-    static void Error(Exception e)
-    {
-        var err = Console.OpenStandardError();
-        using (var writer = new System.IO.StreamWriter(err, Console.OutputEncoding))
-        {
-            writer.WriteLine("{0}", e);
-        }
-    }
-
-    static void Main(string[] args)
-    {
-        // Nice docs (although Java): http://reactivex.io/RxJava/javadoc/rx/Observable.html
-        // The challenge:
-        // The ChangeReceiver will fire an event every time a change is received.
-        // Events can be:
-        // "Ignore!" -&gt; don't do anything
-        // "Change!" -&gt; send notification to staff and customers
-        // "StaffOnly!" -&gt; send notification to staff
-        // "CustomerOnly!" -&gt; send notification to customer only
-        //
-        // Staff must be notified within 3 seconds.
-        // Customers most be notified between 5 and 7 seconds.
-        using(var pub = new ChangeReceiver("tcp://*:5555"))
-        {
-            Console.WriteLine("Listening...");
-
-            var staffSender = new NotificationSender("tcp://localhost:5556");
-            var customerSender = new NotificationSender("tcp://localhost:5557");
-
-            var obs = Observable.FromEventPattern&lt;Tuple&lt;Guid, string&gt;&gt;(pub, "ChangeRecieved").Select(ep =&gt; ep.EventArgs);
-            obs.Subscribe&lt;Tuple&lt;Guid, string&gt;&gt;(Handler);
-            obs.Select(t =&gt; t.Item1).Subscribe(guid =&gt; customerSender.Send(guid));
-
-            //var err = Observable.FromEventPattern&lt;Exception&gt;(pub, "OnError").Select(ep =&gt; ep.EventArgs);
-            //err.Subscribe&lt;Exception&gt;(Error);
-
-            pub.Start();
-            Console.ReadLine();
-            Console.WriteLine("Closing down.");
-        }
-    }
-}
-</code></pre>
-
-<p>}
-```</p>
-
-<p>None of the teams bothered with helper methods or anything refined like that &ndash; they only had about 40 minutes to produce anything it all. So, in each of the following cases, replace line 50 in the original code block with the submitted solution.</p>
-
-<h3>Attempt 1:</h3>
-
-<p>Simple, readable and minimalistic, our first contenders went with this.</p>
-
-<p>``` csharp
-obs.Where(t=>t.Item2 == &ldquo;StaffOnly!&rdquo; || t.Item2 == &ldquo;Change!&rdquo;).Select(t => t.Item1).Subscribe(guid => staffSender.Send(guid));</p>
-
-<p>obs.Where(t=>t.Item2 == &ldquo;CustomerOnly!&rdquo; || t.Item2 == &ldquo;Change!&rdquo;).Delay(TimeSpan.FromSeconds(5)).Select(t => t.Item1).Subscribe(guid => customerSender.Send(guid));
-```</p>
-
-<p>As you can see, staff are notified immediately on either a <code>StaffOnly!</code> or <code>Change!</code> event &ndash; while customer events are delayed 5 seconds.</p>
-
-<h3>Attempt 2:</h3>
-
-<p>Group 2 played with RX&rsquo;s <code>GroupBy</code> method, which creates an Observable of Observables &ndash; each one of which only gets events that match the partitioning function.</p>
-
-<p>Interesting stuff, although probably slightly overkill with 4 pre-known options.</p>
-
-<p>```csharp
-obs.GroupBy(x => x.Item2)</p>
-
-<pre><code>.Subscribe(o =&gt;
-{
-    o.Where(x =&gt; x.Item2 == "StaffOnly!" || x.Item2 == "Change!")
-        .Select(x =&gt; x.Item1)
-        .Subscribe(staffSender.Send);
-    o.Where(x =&gt; x.Item2 == "CustomerOnly!" || x.Item2 == "Change!")
-        .Select(t =&gt; t.Item1)
-        .Delay(TimeSpan.FromSeconds(6))
-        .Subscribe(customerSender.Send);
-});
-</code></pre>
-
-<p>```</p>
-
-<p>It also still does the job fine.</p>
-
-<h3>Attempt 3:</h3>
-
-<p>With high points on pragmatism and clarity, group 3 just went with the absolute simplest solution. Just have 4 separate observables:</p>
-
-<p><code>csharp
-obs.Where(t =&gt; t.Item2.Equals("StaffOnly!")).Subscribe(staffOnly =&gt; staffSender.Send(staffOnly.Item1));
-obs.Where(t =&gt; t.Item2.Equals("CustomerOnly!")).Delay(TimeSpan.FromSeconds(5)).Subscribe(customerOnly =&gt; customerSender.Send(customerOnly.Item1));
-obs.Where(t =&gt; t.Item2.Equals("Change!")).Delay(TimeSpan.FromSeconds(5)).Subscribe(s =&gt; customerSender.Send(s.Item1));
-obs.Where(t =&gt; t.Item2.Equals("Change!")).Subscribe(s =&gt; staffSender.Send(s.Item1));
-</code></p>
-
-<p>There&rsquo;s obviously much more to RX than you can learn in a single 1 hour practical session, but hopefully this gives you a feel and (if you followed along) takes away some of the fear of trying out this useful part of the .net ecosystem.</p>
 ]]></content>
   </entry>
   

@@ -4,7 +4,7 @@
   <title><![CDATA[Category: programming | Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/blog/categories/programming/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2015-06-08T12:55:07+01:00</updated>
+  <updated>2015-06-12T11:39:39+01:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,23 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Functional Programming in an Imperative World]]></title>
+    <link href="http://blog.mavnn.co.uk/functional-programming-in-an-imperitive-world/"/>
+    <updated>2015-06-12T10:54:20+01:00</updated>
+    <id>http://blog.mavnn.co.uk/functional-programming-in-an-imperitive-world</id>
+    <content type="html"><![CDATA[<p>Yesterday was the <a href="https://skillsmatter.com/conferences/7036-functional-programming-exchange-2015#skillscasts">Functional Programming Exchange 2015</a> and this being SkillsMatter,
+the videos are already up. It&rsquo;s a great place to talk from that point of view, with consistently excellent organisation.</p>
+
+<p>I was talking on being a &ldquo;Functional Programmer in an Imperative World&rdquo;; the slides are embedded below, but for the full experience check out the video at the link above.</p>
+
+<iframe src="http://blog.mavnn.co.uk//www.slideshare.net/slideshow/embed_code/key/cSlUuPevYKsSHL" width="425" height="355" frameborder="0" marginwidth="0" marginheight="0" scrolling="no" style="border:1px solid #CCC; border-width:1px; margin-bottom:5px; max-width: 100%;" allowfullscreen> </iframe>
+
+
+<p> <div style="margin-bottom:5px"> <strong> <a href="http://blog.mavnn.co.uk//www.slideshare.net/mavnn/functional-programming-in-an-imperitive-world" title="Functional Programming in an Imperitive World" target="_blank">Functional Programming in an Imperitive World</a> </strong> from <strong><a href="http://blog.mavnn.co.uk//www.slideshare.net/mavnn" target="_blank">mavnn</a></strong> </div></p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Property Based Testing at SDD Conf 2015]]></title>
@@ -678,172 +695,6 @@ makes a surprisingly large difference to how easy the code is to consume.</p>
 
 <p>So there you have it &ndash; want to play nicely the whole .net ecosystem? Be
 kind to your consumers, and build them an ecumenical API!</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Testing ProvidedType.fs by Example]]></title>
-    <link href="http://blog.mavnn.co.uk/testing-providedtype-dot-fs/"/>
-    <updated>2015-02-16T12:12:56+00:00</updated>
-    <id>http://blog.mavnn.co.uk/testing-providedtype-dot-fs</id>
-    <content type="html"><![CDATA[<p>The <a href="https://github.com/fsprojects/FSharp.TypeProviders.StarterPack">Type Provider Starter Pack</a> was designed with two purposes initially. Firstly, to be a canonical repository for the ProvidedTypes files which provide a source file based API for creating type providers. And secondly, to be a set of tutorials and examples for people wanting to dip their toes into building type providers for the first time.</p>
-
-<p>To be honest, it&rsquo;s not been doing a complete job of either:</p>
-
-<ul>
-<li>I think most people are using it as the source of ProvidedTypes.fs and .fsi now days, but it didn&rsquo;t provide any infrastructure or testing for progressing the library.</li>
-<li>The &ldquo;examples&rdquo; were limited to a link to my <a href="/type-providers-from-the-ground-up/">tutorial on building type providers</a></li>
-</ul>
-
-
-<p>Today, that&rsquo;s changed. And I need your help!</p>
-
-<h3>Testing ProvidedTypes</h3>
-
-<p>Once I started thinking about it, it became clear that the code needed for basic type provider examples, and the code needed to test ProvidedTypes.fs were basically identical.</p>
-
-<p>So I implemented a system for compiling and testing example .fsx scripts within the Starter Pack repository.</p>
-
-<p>Want to help out? As long as you have some basic git and F# knowledge, it&rsquo;s easy!</p>
-
-<!-- more -->
-
-
-<h4>Fork the repository and pull down a clone</h4>
-
-<h4>Add an example to the <code>/examples</code> directory</h4>
-
-<p>Structure the example as below and save it as an .fsx file:</p>
-
-<p>``` fsharp</p>
-
-<h1>if INTERACTIVE</h1>
-
-<h1>load &ldquo;../src/ProvidedTypes.fsi&rdquo;</h1>
-
-<h1>load &ldquo;../src/ProvidedTypes.fs&rdquo;</h1>
-
-<h1>endif</h1>
-
-<p>open ProviderImplementation.ProvidedTypes
-open Microsoft.FSharp.Core.CompilerServices
-open System.Reflection</p>
-
-<p>[<TypeProvider>]
-type BasicProvider (config : TypeProviderConfig) as this =</p>
-
-<pre><code>inherit TypeProviderForNamespaces ()
-
-let ns = "StaticProperty.Provided"
-let asm = Assembly.GetExecutingAssembly()
-
-let createTypes () =
-    let myType = ProvidedTypeDefinition(asm, ns, "MyType", Some typeof&lt;obj&gt;)
-    let myProp = ProvidedProperty("MyProperty", typeof&lt;string&gt;, IsStatic = true,
-                                    GetterCode = (fun args -&gt; &lt;@@ "Hello world" @@&gt;))
-    myType.AddMember(myProp)
-    [myType]
-
-do
-    this.AddNamespace(ns, createTypes())
-</code></pre>
-
-<p>[&lt;assembly:TypeProviderAssembly>]
-do ()
-```</p>
-
-<p>The <code>#if INTERACTIVE</code> block at the top will allow you to write your example in Visual Studio, without us requiring a separate project for each example provider.</p>
-
-<h4>Add a set of tests in a .fsx script in the <code>/examples</code> directory</h4>
-
-<p>The test file for the example above looks like this, and again should be saved as an .fsx file:</p>
-
-<p>``` fsharp</p>
-
-<h1>if INTERACTIVE</h1>
-
-<h1>r @&ldquo;../packages/Nunit.Runners/tools/nunit.framework.dll&rdquo;</h1>
-
-<h1>r @&ldquo;../test/StaticProperty.dll&rdquo;</h1>
-
-<h1>endif</h1>
-
-<p>open NUnit.Framework
-open StaticProperty.Provided</p>
-
-<p>[<Test>]
-let <code>Static property should have been created</code> () =</p>
-
-<pre><code>Assert.AreEqual("Hello world", MyType.MyProperty)
-</code></pre>
-
-<p>```</p>
-
-<p>Note the two #r references at the top. Remember what you choose to call the dll!</p>
-
-<h4>Hooking up the examples so they get built and tested</h4>
-
-<p>The main build file is where the magic happens &ndash; <a href="https://github.com/fsprojects/FSharp.TypeProviders.StarterPack/blob/master/build.fsx">build.fsx</a> in the root directory.</p>
-
-<p>Squirrelled away in there is a target called <code>Examples</code>. It&rsquo;s contents look like this:</p>
-
-<p>``` fsharp
-let examples =</p>
-
-<pre><code>[
-    {
-        Name = "StaticProperty"
-        ProviderSourceFiles = ["StaticProperty.fsx"]
-        TestSourceFiles = ["StaticProperty.Tests.fsx"]
-    }
-    {
-        Name = "ErasedWithConstructor"
-        ProviderSourceFiles = ["ErasedWithConstructor.fsx"]
-        TestSourceFiles = ["ErasedWithConstructor.Tests.fsx"]
-    }
-]
-</code></pre>
-
-<p>let testNunitDll = testDir @@ &ldquo;nunit.framework.dll&rdquo;</p>
-
-<p>do</p>
-
-<pre><code>if File.Exists testNunitDll then
-    File.Delete testNunitDll
-File.Copy (nunitDir @@ "nunit.framework.dll", testNunitDll)
-</code></pre>
-
-<p>let fromExampleDir filenames =</p>
-
-<pre><code>filenames
-|&gt; List.map (fun filename -&gt; exampleDir @@ filename)
-</code></pre>
-
-<p>examples
-|> List.iter (fun example &ndash;></p>
-
-<pre><code>    // Compile type provider
-    let output = testDir @@ example.Name + ".dll"
-    let setOpts = fun def -&gt; { def with Output = output; FscTarget = FscTarget.Library }
-    Fsc setOpts (List.concat [pt;fromExampleDir example.ProviderSourceFiles])
-
-    // Compile test dll
-    let setTestOpts = fun def -&gt;
-        { def with 
-            Output = testDir @@ example.Name + ".Tests.dll"
-            FscTarget = FscTarget.Library
-            References = [output;nunitDir @@ "nunit.framework.dll"] }
-    Fsc setTestOpts (fromExampleDir example.TestSourceFiles)
-)
-</code></pre>
-
-<p>```</p>
-
-<p>You will need to add your example to the <code>examples</code> list at the top of the target. <code>Name</code> is the name of the dll that will be produced for your type provider. <code>ProviderSourceFiles</code> is the fsx file with your type provider example code. And <code>TestSourceFiles</code> is the code of your tests.</p>
-
-<p>If you check further down, the call to the compiler to compile your provider will automatically prepend the ProvidedTypes files, so there&rsquo;s no need to list those. And the call to the compiler to run your tests will have references added for the provider you just built and <code>nunit.framework.dll</code>.</p>
-
-<p>So what are you waiting for? Get writing some examples!</p>
 ]]></content>
   </entry>
   

@@ -9,7 +9,7 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="FsCheck is a property based testing library for .net. Based on QuickCheck and scalacheck it can be easily called from any .net language. But what is &hellip;">
+  <meta name="description" content="So, in a fit of enthusiasm my boss bought 15 tickets to the London Progressive F# Tutorials when he saw the early birds pricing (did I mention it& &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -78,6 +78,62 @@ ga('send', 'pageview');
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/teaching-f-number-to-c-number-devs/">Teaching F# to C# Devs</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-09-17T11:12:00+01:00" pubdate data-updated="true">Sep 17<span>th</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>So, in a fit of enthusiasm my boss bought 15 tickets to the <a href="" title="http://skillsmatter.com/event/scala/progressive-f-tutorials-2013">London Progressive F# Tutorials</a> when he saw the early birds pricing (did I mention it&rsquo;s nice working here?). Several of the people who have been assigned tickets have asked to go largely because they are new to F#, so I&rsquo;ve been asked to put together a starter session to teach them the basics. I&rsquo;ve tried this <a href="" title="http://blog.mavnn.co.uk/an-introduction-to-f-screencast-and-pdf-slide">once before</a> and it was a fairly successful session (F# was adopted as a official supported language in the company partly due to feedback following it). But it was still pretty rough around the edges, and as normal with these things, you always want to do them better the next time round&hellip;</p>
+
+<p>So, with a target audience of curious, experienced C# devs I&rsquo;m wondering about the best approach. The initial session needs to fit in an hour, although I can do individual follow ups afterwards.</p>
+
+<p>My current thinking is to take a block of C# code (smtp sender?) that is fairly straight forward but &lsquo;production ready&rsquo; in the sense that it includes error handling, logging, etc. Then do a straight re-write in F# live coding. And then start refactoring to more idiomatic F# as we go along.</p>
+
+<p>Features I feel would be important to cover:</p>
+
+<ul>
+<li>Basic syntax (let, functions, if &hellip; then, etc)</li>
+<li>Common idioms (|>, Seq.map)</li>
+<li>At least one computational expression (probably an error handling one; simpler than async in some ways)</li>
+<li>Several examples of using the match statements</li>
+<li>&hellip;which probably means at least one DU, possibly for error handling</li>
+<li>Records and { &hellip; with &hellip; } expressions</li>
+</ul>
+
+
+<p>I&rsquo;ve got a week or two to prepare, so what I&rsquo;m really hoping for at this point is suggestions and ideas from people for how to improve this as a session idea, things that threw you when you first started writing F# you think should be covered, whether you think this is a stupid idea for a session from the concept up, etc. Once the session is completed I&rsquo;ll be posting the slides and hopefully a screen cast of it as I did last time for use by <a href="" title="http://fsharp.org">fsharp.org</a>.</p>
+
+<p>Suggestions on the piece of C# code to translate would also be appreciated &ndash; either in terms of ideas of the type of code, or actual open source code that would serve as a code starting point.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1113,117 +1169,6 @@ pretty nice and readable now that the builder is fixed.</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/getting-started-with-fake-an-introduction-tag/index.html">Getting Started With Fake - an Introduction</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-01-09T00:00:00+00:00" pubdate data-updated="true"></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><blockquote><p>This is the first post in what will be a series about how we moved to
-using <a href="https://github.com/fsharp/FAKE">Fake</a> for our build and testing
-at <a href="http://15below.com">15below</a>. Feel free to follow along for the
-ride. It&rsquo;s partly there as a way of keeping the full development group
-within the company informed of what&rsquo;s going on, so it will get pretty
-detailed and gritty in the later sections, but we decided that there
-wasn&rsquo;t anything too company specific in here. So we&rsquo;re sharing it with
-you all&hellip;</p></blockquote>
-
-<p>At my current employer, we have a wide range of code all the way from
-automatically translated vb6 (to vb.net) to brand spanking new F# and
-C#. At the end of the day though, everything runs on .net 4.0
-(currently).</p>
-
-<p>With the newer components, we could in theory be building and testing
-them independently: messaging based and developed in a TDD style they
-tend to have an existing test harness around them and be easy to add
-further tests to if it proves necessary.</p>
-
-<p>The legacy code on the other hand, is a bit of a different matter.
-It&rsquo;s still in the code base because it works. We know it works,
-because customers are using it and getting value from it. The bits
-that didn&rsquo;t, or looked like they were getting flaky, are the bits that
-have been refactored as we went along. But they are old enough that
-what is now considered basic testing hygiene was still a little more
-than a twinkle in Kent Beck&rsquo;s eye. (Ok, ok, so the book had been
-released. But it wasn&rsquo;t exactly considered common best practice yet).
-So until the refactoring work is complete, we&rsquo;re stuck with a system
-where the only feasible way of testing some aspects of it is to
-actually deploy it somewhere and run some jobs through.</p>
-
-<p>So what does this all have to do with Fake?</p>
-
-<p>Well, basically our continuous integration was getting out of control.
-To get the level of functionality and control we needed, we were
-ending up with somewhere in the region of 500 lines of re-entrant,
-recursive MsBuild scripts. I seriously considered starting the
-alt.ms.build.die.die.die newsgroup. A full build on a developer&rsquo;s
-machine could take upwards of 45 minutes. Even more painfully, as the
-refactoring continued we ended up with TeamCity build configurations
-tightly coupled to specific versions of our software, and it was
-becoming clear that the whole CI system was going to rapidly collapse
-under it&rsquo;s own weight unless things changed.</p>
-
-<p>We needed a solution.</p>
-
-<p>It had to be:</p>
-
-<ul>
-<li>Powerful. Programming in MsBuild is&hellip; not fun. Xml is for data.</li>
-<li>Storable in git along with our source code.</li>
-<li>.net based. We&rsquo;re a .net shop, and our specialist knowledge is .net;
-rake wasn&rsquo;t going to cut it. We also didn&rsquo;t want the management
-overhead of even more tooling on the build agents.</li>
-<li>In active development.</li>
-<li>Preferably open source, so even if external development stopped we
-could continue to maintain it.</li>
-</ul>
-
-
-<p>As both the company F# evangelist and one of the two people doing most
-of the CI work, I was very interested to hear about Fake, especially
-after having a chance to chat to it&rsquo;s author (<a href="https://twitter.com/sforkmann">Steffen
-Forkmann</a>) and having it recommended by
-Don Syme (who wrote F#).</p>
-
-<p>It met all of the criteria above. It&rsquo;s scripts are full F# &ndash; a
-language fully supported by Microsoft within it&rsquo;s flagship Visual
-Studio product. The scripts can easily be stored in git. It&rsquo;s actively
-being worked on, and accepting contributions as a fully open source
-product.</p>
-
-<p>Time to give it a try.</p>
-
-<p>Next post: how to set up your &ldquo;HelloWorld.fsx&rdquo; Fake script with your
-source, with all the niceties like intellisense that you would want.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/5/">&larr; Older</a>
@@ -1241,6 +1186,10 @@ source, with all the niceties like intellisense that you would want.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/functional-programming-in-an-imperitive-world/">Functional Programming in an Imperative World</a>
+      </li>
+    
+      <li class="post">
         <a href="/sdd-conf-2015/">Property Based Testing at SDD Conf 2015</a>
       </li>
     
@@ -1254,10 +1203,6 @@ source, with all the niceties like intellisense that you would want.</p>
     
       <li class="post">
         <a href="/ecumenical-apis/">Ecumenical APIs</a>
-      </li>
-    
-      <li class="post">
-        <a href="/lambdacon-2015/">LambdaCon 2015</a>
       </li>
     
   </ul>

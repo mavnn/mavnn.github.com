@@ -9,8 +9,7 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="Yesterday was the Functional Programming Exchange 2015 and this being SkillsMatter,
-the videos are already up. It&rsquo;s a great place to talk from &hellip;">
+  <meta name="description" content="Recently as part of some research into making a large (very large) solution build more efficient, I started looking into whether there&rsquo;s anyway &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -79,6 +78,136 @@ ga('send', 'pageview');
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/extracting-information-from-msbuild/">Extracting Information From MsBuild</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-08-07T14:45:28+01:00" pubdate data-updated="true">Aug 7<span>th</span>, 2015</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Recently as part of some research into making a large (very large) solution build more efficient, I started looking into whether there&rsquo;s anyway of getting MsBuild to do
+some of the donkey work for you. This is especially important in situations where you want to know what&rsquo;s doing used/produced with this particular set of parameters.</p>
+
+<p>Obviously dealing with every possible custom build target is out of scope, but you can get a surprisingly long way be taking advantage of some of the intermediate build
+targets used within the MsBuild Common targets files (imported into every *proj file created by Visual Studio).</p>
+
+<p>Create yourself a little file called something like <code>Analyse.proj</code>, and put the following in it:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'><span class="cp">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span>
+</span><span class='line'><span class="nt">&lt;Project</span> <span class="na">ToolsVersion=</span><span class="s">&quot;12.0&quot;</span> <span class="na">DefaultTargets=</span><span class="s">&quot;WriteStuff&quot;</span> <span class="na">xmlns=</span><span class="s">&quot;http://schemas.microsoft.com/developer/msbuild/2003&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>  <span class="nt">&lt;Import</span> <span class="na">Project=</span><span class="s">&quot;$(TargetProject)&quot;</span><span class="nt">/&gt;</span>
+</span><span class='line'>  <span class="nt">&lt;Target</span> <span class="na">Name=</span><span class="s">&quot;WriteStuff&quot;</span> <span class="na">DependsOnTargets=</span><span class="s">&quot;ResolveReferences&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;Message</span> <span class="na">Importance=</span><span class="s">&quot;high&quot;</span> <span class="na">Text=</span><span class="s">&quot;References::@(ReferencePath)&quot;</span><span class="nt">/&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;Message</span> <span class="na">Importance=</span><span class="s">&quot;high&quot;</span> <span class="na">Text=</span><span class="s">&quot;Compiles::@(BeforeCompile);@(Compile);@(AfterCompile)&quot;</span><span class="nt">/&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;Message</span> <span class="na">Importance=</span><span class="s">&quot;high&quot;</span> <span class="na">Text=</span><span class="s">&quot;Output::$(OutputPath)&quot;</span><span class="nt">/&gt;</span>
+</span><span class='line'>  <span class="nt">&lt;/Target&gt;</span>
+</span><span class='line'><span class="nt">&lt;/Project&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This is a mini-MsBuild project that imports an other project &ndash; the project you want to analyse. You can &ldquo;build&rdquo; this project like so:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'>PS C:\DirectoryWithProj&gt; <span class="err">&amp;</span> &#39;C:\Program Files (x86)\MSBuild\12.0\Bin\SBuild&#39; .\Analyse.proj /nologo /p:TargetProject=./Fake.Shake.fsproj
+</span><span class='line'>Build started 07/08/2015 15:05:27.
+</span><span class='line'>Project &quot;C:\DirectoryWithProj\Analyse.proj&quot; on node 1 (default targ ets).
+</span><span class='line'>WriteStuff:
+</span><span class='line'>  References::C:\rip\Fake.Shake\packages\FAKE.Lib\lib\net451\FakeLib.dll;C:\rip
+</span><span class='line'>  \Fake.Shake\packages\FSharp.Core\lib\net40\FSharp.Core.dll;C:\rip\Fake.Shake\
+</span><span class='line'>  packages\FsPickler\lib\net45\FsPickler.dll;C:\rip\Fake.Shake\packages\Hopac\l
+</span><span class='line'>  ib\net45\Hopac.Core.dll;C:\rip\Fake.Shake\packages\Hopac\lib\net45\Hopac.dll;
+</span><span class='line'>  C:\rip\Fake.Shake\packages\Hopac\lib\net45\Hopac.Platform.dll;C:\Program File
+</span><span class='line'>  s (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5.1\mscorli
+</span><span class='line'>  b.dll;C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFra
+</span><span class='line'>  mework\v4.5.1\System.Core.dll;C:\Program Files (x86)\Reference Assemblies\Mic
+</span><span class='line'>  rosoft\Framework\.NETFramework\v4.5.1\System.dll;C:\Program Files (x86)\Refer
+</span><span class='line'>  ence Assemblies\Microsoft\Framework\.NETFramework\v4.5.1\System.Numerics.dll;
+</span><span class='line'>  C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework
+</span><span class='line'>  \v4.5.1\System.Runtime.Serialization.dll;C:\Program Files (x86)\Reference Ass
+</span><span class='line'>  emblies\Microsoft\Framework\.NETFramework\v4.5.1\System.Xml.dll
+</span><span class='line'>  Compiles::;Fake.Shake.Core.fs;Fake.Shake.Control.fs;Fake.Shake.DefaultRules.f
+</span><span class='line'>  s;Fake.Shake.fs;
+</span><span class='line'>  Output::bin\Debug\
+</span><span class='line'>Done Building Project &quot;C:\DirectoryWithProj\Analyse.proj&quot; (default
+</span><span class='line'>targets).
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'>Build succeeded.
+</span><span class='line'>    0 Warning(s)
+</span><span class='line'>    0 Error(s)
+</span><span class='line'>
+</span><span class='line'>Time Elapsed 00:00:00.12
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And as you can see, whilst it&rsquo;s a bit ugly it generates a whole load of useful information for you about how <em>this</em> build with <em>these</em> properties will be built.</p>
+
+<p>That&rsquo;s all for now!</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -531,7 +660,7 @@ management responsibility. We&rsquo;re hiring developers, and while we&rsquo;ll 
 
 <p>So, there you have. My own personal list of things that increase or decrease your chances that I&rsquo;ll recommend you&rsquo;re interviewed.</p>
 
-<p>If you think that you&rsquo;d be interested in working for the type of company that uses this type of criteria&hellip; well, oddly enough we&rsquo;re hiring at the moment. Ping me or drop a note through to <a href="&#109;&#x61;&#x69;&#x6c;&#x74;&#111;&#58;&#x6a;&#111;&#98;&#x73;&#64;&#x31;&#53;&#x62;&#x65;&#108;&#111;&#119;&#x2e;&#99;&#x6f;&#109;&#46;">&#x6a;&#x6f;&#x62;&#x73;&#64;&#49;&#x35;&#98;&#101;&#x6c;&#x6f;&#119;&#x2e;&#x63;&#111;&#x6d;&#x2e;</a></p>
+<p>If you think that you&rsquo;d be interested in working for the type of company that uses this type of criteria&hellip; well, oddly enough we&rsquo;re hiring at the moment. Ping me or drop a note through to <a href="&#109;&#97;&#x69;&#108;&#116;&#x6f;&#58;&#106;&#111;&#x62;&#x73;&#x40;&#49;&#x35;&#98;&#x65;&#108;&#111;&#119;&#x2e;&#x63;&#x6f;&#109;&#x2e;">&#x6a;&#111;&#98;&#x73;&#x40;&#49;&#x35;&#x62;&#101;&#108;&#x6f;&#119;&#x2e;&#99;&#111;&#x6d;&#x2e;</a></p>
 </div>
   
   
@@ -580,49 +709,6 @@ management responsibility. We&rsquo;re hiring developers, and while we&rsquo;ll 
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/exploring-reactive-extensions/">Exploring Reactive Extensions</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2015-02-09T13:01:36+00:00" pubdate data-updated="true">Feb 9<span>th</span>, 2015</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>The <a href="http://rx.codeplex.com/">Reactive Extensions</a> project is &ldquo;a library for composing asynchronous and event-based programs using observable sequences and LINQ-style query operators&rdquo;. That doesn&rsquo;t immediately give most people an intuitive grasp of exactly what it is &ndash; but it&rsquo;s a useful addition to the toolset so we put together a practical for people to experiment with.</p>
-
-<p>At it&rsquo;s simplest, RX (as it&rsquo;s called&hellip; the Nuget package you&rsquo;re looking for is <a href="https://www.nuget.org/packages/Rx-Main">Rx-Main</a>, obviously!) allows you to create an <code>IObservable</code> object which you can then&hellip; erm&hellip; observe.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/exploring-reactive-extensions/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -638,6 +724,10 @@ management responsibility. We&rsquo;re hiring developers, and while we&rsquo;ll 
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/extracting-information-from-msbuild/">Extracting Information From MsBuild</a>
+      </li>
+    
+      <li class="post">
         <a href="/functional-programming-in-an-imperitive-world/">Functional Programming in an Imperative World</a>
       </li>
     
@@ -651,10 +741,6 @@ management responsibility. We&rsquo;re hiring developers, and while we&rsquo;ll 
     
       <li class="post">
         <a href="/api-design-workshop/">API Design Workshop</a>
-      </li>
-    
-      <li class="post">
-        <a href="/ecumenical-apis/">Ecumenical APIs</a>
       </li>
     
   </ul>

@@ -4,7 +4,7 @@
   <title><![CDATA[Category: programming | Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/blog/categories/programming/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2015-06-12T11:40:49+01:00</updated>
+  <updated>2015-08-07T15:16:12+01:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,75 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Extracting Information from MsBuild]]></title>
+    <link href="http://blog.mavnn.co.uk/extracting-information-from-msbuild/"/>
+    <updated>2015-08-07T14:45:28+01:00</updated>
+    <id>http://blog.mavnn.co.uk/extracting-information-from-msbuild</id>
+    <content type="html"><![CDATA[<p>Recently as part of some research into making a large (very large) solution build more efficient, I started looking into whether there&rsquo;s anyway of getting MsBuild to do
+some of the donkey work for you. This is especially important in situations where you want to know what&rsquo;s doing used/produced with this particular set of parameters.</p>
+
+<p>Obviously dealing with every possible custom build target is out of scope, but you can get a surprisingly long way be taking advantage of some of the intermediate build
+targets used within the MsBuild Common targets files (imported into every *proj file created by Visual Studio).</p>
+
+<p>Create yourself a little file called something like <code>Analyse.proj</code>, and put the following in it:</p>
+
+<p>``` xml
+&lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;utf-8&rdquo;?>
+<Project ToolsVersion="12.0" DefaultTargets="WriteStuff" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(TargetProject)"/>
+  <Target Name="WriteStuff" DependsOnTargets="ResolveReferences"></p>
+
+<pre><code>&lt;Message Importance="high" Text="References::@(ReferencePath)"/&gt;
+&lt;Message Importance="high" Text="Compiles::@(BeforeCompile);@(Compile);@(AfterCompile)"/&gt;
+&lt;Message Importance="high" Text="Output::$(OutputPath)"/&gt;
+</code></pre>
+
+<p>  </Target>
+</Project>
+```</p>
+
+<p>This is a mini-MsBuild project that imports an other project &ndash; the project you want to analyse. You can &ldquo;build&rdquo; this project like so:</p>
+
+<p>```
+PS C:\DirectoryWithProj> &amp; &lsquo;C:\Program Files (x86)\MSBuild\12.0\Bin\SBuild&rsquo; .\Analyse.proj /nologo /p:TargetProject=./Fake.Shake.fsproj
+Build started 07/08/2015 15:05:27.
+Project &ldquo;C:\DirectoryWithProj\Analyse.proj&rdquo; on node 1 (default targ ets).
+WriteStuff:
+  References::C:\rip\Fake.Shake\packages\FAKE.Lib\lib\net451\FakeLib.dll;C:\rip
+  \Fake.Shake\packages\FSharp.Core\lib\net40\FSharp.Core.dll;C:\rip\Fake.Shake\
+  packages\FsPickler\lib\net45\FsPickler.dll;C:\rip\Fake.Shake\packages\Hopac\l
+  ib\net45\Hopac.Core.dll;C:\rip\Fake.Shake\packages\Hopac\lib\net45\Hopac.dll;
+  C:\rip\Fake.Shake\packages\Hopac\lib\net45\Hopac.Platform.dll;C:\Program File
+  s (x86)\Reference Assemblies\Microsoft\Framework.NETFramework\v4.5.1\mscorli
+  b.dll;C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework.NETFra
+  mework\v4.5.1\System.Core.dll;C:\Program Files (x86)\Reference Assemblies\Mic
+  rosoft\Framework.NETFramework\v4.5.1\System.dll;C:\Program Files (x86)\Refer
+  ence Assemblies\Microsoft\Framework.NETFramework\v4.5.1\System.Numerics.dll;
+  C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework.NETFramework
+  \v4.5.1\System.Runtime.Serialization.dll;C:\Program Files (x86)\Reference Ass
+  emblies\Microsoft\Framework.NETFramework\v4.5.1\System.Xml.dll
+  Compiles::;Fake.Shake.Core.fs;Fake.Shake.Control.fs;Fake.Shake.DefaultRules.f
+  s;Fake.Shake.fs;
+  Output::bin\Debug\
+Done Building Project &ldquo;C:\DirectoryWithProj\Analyse.proj&rdquo; (default
+targets).</p>
+
+<p>Build succeeded.</p>
+
+<pre><code>0 Warning(s)
+0 Error(s)
+</code></pre>
+
+<p>Time Elapsed 00:00:00.12
+```</p>
+
+<p>And as you can see, whilst it&rsquo;s a bit ugly it generates a whole load of useful information for you about how <em>this</em> build with <em>these</em> properties will be built.</p>
+
+<p>That&rsquo;s all for now!</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Functional Programming in an Imperative World]]></title>
@@ -364,337 +433,6 @@ representation you can rip off whole sale! Who knows?</p>
 <p>Post your work up somewhere it can be seen on the internet and ping me a link,
 and we&rsquo;ll go over the submissions and write up a commentary over the next week
 or two.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Ecumenical APIs]]></title>
-    <link href="http://blog.mavnn.co.uk/ecumenical-apis/"/>
-    <updated>2015-05-06T10:44:16+01:00</updated>
-    <id>http://blog.mavnn.co.uk/ecumenical-apis</id>
-    <content type="html"><![CDATA[<p>One of the big sells of shared runtime functional languages such as F#, Scala
-and Clojure is that you can carrying on using the surrounding library ecosystem
-and your existing code. The different paradigm occasionally causes a little
-pain, but there are plenty of blog posts about how to wrap OO interfaces in a
-functionally friendly way.</p>
-
-<p>This is not one of those blog posts. This is about making sure that your
-colleagues who are consuming your shiny new code in an imperative language
-(generally C# in my case) don&rsquo;t threaten to defenestrate you.</p>
-
-<p>At <a href="http://15below.com">15below</a> we&rsquo;ve recently had need in some of our services
-of taking a distributed lock between servers. There are many services available
-designed for doing this, but after some deliberation we decided that we didn&rsquo;t
-want to add a new piece of infrastructure purely for this one purpose. So
-<a href="http://15below.github.io/Sproc.Lock">Sproc.Lock</a> was born: SQL Server based
-distributed locking.</p>
-
-<p>In this post, I&rsquo;m not going to talk about the design of the service. What I&rsquo;m
-going to write about is how I engineered the API to be pleasent to use from both
-C# and F#, giving a idiomatic interface from both languages.</p>
-
-<!-- more -->
-
-
-<h2>The original interface (F#)</h2>
-
-<p>The F# interface was written first, and follows a pattern that will feel
-immediately familiar to an F# programmer. Our lock can be of 3 types (global,
-organisation or environment) and so we have a discriminated union (<code>Lock</code>)
-representing these three options.</p>
-
-<p>(I&rsquo;ve removed the implementations of the various bits to leave the shape of the
-code clear)</p>
-
-<p>``` fsharp
-/// Type representing a Lock that has definitely been acquired. Locks are
-/// IDisposable; disposing the lock will ensure it is released.
-type Lock =</p>
-
-<pre><code> /// A lock that applies globally across the lock server
- | Global of ...
- /// A lock scoped to a specific organisation
- | Organisation of ...
- /// A lock scoped to a particular environment belonging to a particular organisation
- | Environment of ...
- /// The LockId acquired. Useful in combination when getting one of a list of locks to determine which was free.
- member lock.LockId =
-     ...
- /// Disposing releases the lock
- member lock.Dispose () =
-     ...
- interface IDisposable with
-     /// Disposing releases the lock
-     member lock.Dispose () =
-        lock.Dispose()
-</code></pre>
-
-<p>```</p>
-
-<p>The lock is <code>IDisposable</code> to take advantage of .net&rsquo;s most common resource
-management idiom. You can release a lock by disposing it.</p>
-
-<p>Then, of course, when we try and acquire a lock we may or may not be able to &ndash;
-the whole point of locks is that you cannot obtain them if someone else has
-locked it already, after all.</p>
-
-<p>So we have a second discriminated union (<code>LockResult</code>) wrapping the first,
-with (again) three potential cases:</p>
-
-<p>``` fsharp
-/// A type representing the possible results of attempting to acquire a lock.
-type LockResult =</p>
-
-<pre><code> /// A lock was successfully acquired
- | Locked of Lock
- /// No lock was available
- | Unavailable
- /// The attempt to acquire a lock caused an error in SQL Server
- | Error of int
- /// Disposing a lock result disposes the lock if it was acquired, and has no effect otherwise
- member x.Dispose () =
-    match x with
-    | Locked l -&gt; l.Dispose()
-    | Unavailable -&gt; ()
-    | Error _ -&gt; ()
- interface IDisposable with
-    member x.Dispose () =
-        x.Dispose()
-</code></pre>
-
-<p>```</p>
-
-<p>Again, this is <code>IDisposable</code> so that you can just dispose of your overall
-<code>LockResult</code> object which makes a lot of the code cleaner.</p>
-
-<p>So: how do we get a <code>LockResult</code>? Well, we have a set of functions for getting
-locks. Let&rsquo;s have a look at the skeleton of one of them:</p>
-
-<p>``` fsharp
-// val GetOrganisationLock : string &ndash;> string &ndash;> TimeSpan &ndash;> string &ndash;> LockResult
-let GetOrganisationLock connString organisation (maxDuration : TimeSpan) lockIdentifier =</p>
-
-<pre><code>...
-</code></pre>
-
-<p>```</p>
-
-<p>What&rsquo;s this doing? Well, it&rsquo;s going to (try and) create a lock scoped to a
-particular database and organisation with a particular ID, returning a
-<code>LockResult</code>.</p>
-
-<p>From an API design point of view, what&rsquo;s interesting here is the order of the
-arguments. <a href="https://en.wikipedia.org/wiki/Currying">Currying</a> enables easy
-partial application, and here it is very likely that the application will want
-to take all locks from the same database (making the first parameter) and
-reasonably likely that it will always want them scoped to the same organisation
-(second parameter). This is a common pattern in languages that allow for easy
-currying, and invariably a consumer of this library in F# will end up with a
-partially applied helper function looking something like this:</p>
-
-<p>``` fsharp
-// val getLock : string &ndash;> LockResult
-let getLock =</p>
-
-<pre><code>GetOrganisationLock "myDbConnString" "OrgName" (TimeSpan.FromMinutes 5.)
-</code></pre>
-
-<p>```</p>
-
-<p>We also have a set of helper functions for common operations we might want to
-carry out on locks, all of which take a higher order function as part of their
-arguments. Let&rsquo;s have a look at <code>AwaitLock</code> which will wait for a lock to
-become available for a specified length of time, rather then returning
-immediately with an <code>Unavailable</code> result:</p>
-
-<p>``` fsharp
-// val AwaitLock : TimeSpan &ndash;> (unit &ndash;> LockResult) &ndash;> LockResult
-let AwaitLock (timeOut : TimeSpan) getLock =</p>
-
-<pre><code>...
-</code></pre>
-
-<p>// Using it using the helper above:
-let awaitMyLock identifier =</p>
-
-<pre><code>AwaitLock (TimeSpan.FromSeconds 2.) (getLock identifier)
-</code></pre>
-
-<p>```</p>
-
-<p>If we then want (say) to wait up to 2 seconds for one of a list of possible
-locks to become available, we can then compose this function with the
-<code>OneOfLocks</code> function:</p>
-
-<p>``` fsharp
-// val OneOfLocks : (&lsquo;a &ndash;> LockResult) &ndash;> seq&lt;'a> &ndash;> LockResult
-let OneOfLocks getLock lockIds =</p>
-
-<pre><code>...
-</code></pre>
-
-<p>// Using it using await helper:
-let pickLock () =</p>
-
-<pre><code>OneOfLocks awaitMyLock ["LockId1";"LockId2"] 
-</code></pre>
-
-<p>```</p>
-
-<p>I&rsquo;m sure the comments will disagree, but I&rsquo;m actually pretty happy with this as
-an F# interface to this library. It&rsquo;s not strictly pure, but that&rsquo;s an option in
-F#, and the combination of composable functions and careful choice of parameter
-order make for concise and readable code.</p>
-
-<p>So, we&rsquo;re done &ndash; right?</p>
-
-<p>Unfortunately not. This code would be truely horrible to use from C#, and we
-still use a lot of C# here &ndash; some of our (stranger?) developers even prefer
-it. Why would it be so nasty?</p>
-
-<ul>
-<li>Consuming discriminated unions from C# is verbose to the point of unusable</li>
-<li>Partial application is a pain in C#, and no one wants to repeat the connection
-string everytime they want a lock</li>
-<li>Function composition is possible in C# but is not idiomatic and may make the
-capabilities of the library unclear</li>
-</ul>
-
-
-<h2>API Take 2: the &ldquo;OO&rdquo; namespace</h2>
-
-<p>In thinking about the kind of API I would expect for a locking library in C#, a
-few things immediately sprang to mind:</p>
-
-<ul>
-<li>I would expect some kind of configurable provider object or factory</li>
-<li>Out of flow returns are normally signalled by exceptions</li>
-<li>Function composition only for more unusual calling options</li>
-</ul>
-
-
-<p>Wrapping the functional API turned out to be reasonably simple. A couple of
-custom exception types and the <code>OOise</code> method later (I love that function
-name, even if I say so myself) we can easily wrap our functional API in
-something that makes sense in C# land &ndash; they either return an acquired,
-<code>IDisposable</code> lock or throw.</p>
-
-<p><code>` fsharp
-/// Exception thrown by</code>LockProvider`` if none of the specified locks are available.
-type LockUnavailableException (message) =</p>
-
-<pre><code>inherit System.Exception(message)
-</code></pre>
-
-<p>/// Exception thrown by <code>LockProvider</code> if a lock request errors on SQL Server.
-/// <code>LockErrorCode</code> is the SQL error response.
-type LockRequestErrorException (errorCode) as this =</p>
-
-<pre><code>inherit System.Exception(sprintf "Error code: %d" errorCode)
-do
-    this.Data.Add(box "ErrorCode", box errorCode)
-member x.LockErrorCode
-    with get () =
-        x.Data.["ErrorCode"] |&gt; unbox&lt;int&gt;
-</code></pre>
-
-<p>let private OOise lockId getLock =</p>
-
-<pre><code>match getLock lockId with
-| Locked l -&gt; l
-| Unavailable -&gt; raise &lt;| LockUnavailableException(sprintf "Lock %s was unavailable." lockId)
-| Error i -&gt; raise &lt;| LockRequestErrorException i
-</code></pre>
-
-<p>```</p>
-
-<p>Then, a simple <code>LockProvider</code> class allows for all the normal patterns we&rsquo;ve
-come to know (and in some cases love) such as dependency injection:</p>
-
-<p>``` fsharp
-type LockProvider (connString : string) =</p>
-
-<pre><code>member x.GlobalLock (lockId, maxDuration) =
-    GetGlobalLock connString maxDuration |&gt; OOise lockId
-member x.OrganisationLock (lockId, organisation, maxDuration) =
-    // Rest of the implementations snipped
-    ...
-member x.EnvironmentLock (lockId, organisation, environment, maxDuration) =
-    ...
-member x.AwaitGlobalLock (lockId, maxDuration, timeOut) =
-    ...
-member x.AwaitOrganisationLock (lockId, organisation, maxDuration, timeOut) =
-    ...
-member x.AwaitEnvironmentLock (lockId, organisation, environment, maxDuration, timeOut) =
-    ...
-/// Build a ``System.Func`` that returns a lock based on lockId and provide a list of lockIds.
-/// If any of the locks are available, it will pick one of the available locks at random.
-member x.OneOf&lt;'t&gt; (getLock : System.Func&lt;'t, Lock&gt;, lockIds) =
-    ...
-/// Build a ``System.Func`` that returns a lock based on lockId and provide a list of lockIds.
-/// If any of the locks are available, it will pick one of the available locks at random.
-/// If none are available it will wait until one is, or ``timeOut`` has passed.
-member x.AwaitOneOf&lt;'t&gt; (getLock : System.Func&lt;'t, Lock&gt;, lockIds, timeOut) =
-    ...
-</code></pre>
-
-<p>```</p>
-
-<p>As you can see, by the time we get to the <code>OneOf</code> members, we&rsquo;re pretty much
-forced into taking higher order functions to avoid a combinatorial explosion of
-members (not that that always seems to deter OO API designers&hellip;). Other than
-that, I think we&rsquo;re left with an API which will immediately make sense to a C#
-developer: you can new up a <code>LockProvider</code>, you have a specified list of
-exception types to expect, and you can easily intellisense your way around all
-of the available options.</p>
-
-<p>Our C# consuming code ends up looking a bit like this:</p>
-
-<p>``` csharp
-using System;
-using Sproc.Lock.OO;</p>
-
-<p>namespace MyApp
-{</p>
-
-<pre><code>class Thing
-{
-    static void DoLockRequiringWork()
-    {
-        var provider = new LockProvider("sql connection string");
-        try
-        {
-            using (var lock2 = provider.GlobalLock("MyAppLock", TimeSpan.FromMinutes(5.0)))
-            {
-                // If I get here, I have a lock!
-                // Doing stuff!
-            } // Lock released when Disposed
-        }
-        catch (LockUnavailableException)
-        {
-            // Could not get the lock
-            throw;
-        }
-        catch (LockRequestErrorException)
-        {
-            // Getting the lock threw an error
-            throw;
-        }
-    }
-}
-</code></pre>
-
-<p>}
-```</p>
-
-<p>Note the very different parameter order, placing the parameters that change most
-frequently at the beginning of the list as you would normally expect in C#. This
-makes a surprisingly large difference to how easy the code is to consume.</p>
-
-<p>Again: quite nice, if I do say so myself.</p>
-
-<p>So there you have it &ndash; want to play nicely the whole .net ecosystem? Be
-kind to your consumers, and build them an ecumenical API!</p>
 ]]></content>
   </entry>
   

@@ -9,9 +9,7 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="This is the first post in what will be a series about how we moved to
-using Fake for our build and testing
-at 15below. Feel free to follow along for &hellip;">
+  <meta name="description" content="Taking a break from Fake for a moment (I&#8217;ll get back to it, I promise!) Note: this post assumes a basic understanding of computation &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -80,6 +78,44 @@ ga('send', 'pageview');
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/playing-with-error-handling-strategies/index.html">Playing With Error Handling Strategies</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-01-14T00:00:00+00:00" pubdate data-updated="true"></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Taking a break from Fake for a moment (I&#8217;ll get back to it, I promise!) <p /> Note: this post assumes a basic understanding of computation expressions in F#; if you&#8217;re looking for a primer on them,&nbsp;<a href="http://en.wikibooks.org/wiki/F_Sharp_Programming/Computation_Expressions">http://en.wikibooks.org/wiki/F_Sharp_Programming/Computation_Expressions</a> <br />is a good place to start.</p>
+<p>Note 2: the code in this post is actually broken if you use a use! or try finally block within your audit block. Check out&nbsp;<a href="http://blog.mavnn.co.uk/corrected-error-handling-computational-expres" style="font-size: 13px;">http://blog.mavnn.co.uk/corrected-error-handling-computational-expres</a>&nbsp;for the corrected code.</p>
+<p><br />I had a series of small services I needed to add error handling to today to polish them up from nice clean prototype to production ready status. <p /> Thinking about the joys of re-implementing the same error handling strategy in each of them, it occurred to me that this was exactly the kind of thing that computational expressions were built for. But my requirements went a bit further than just log the error and continue: each of these services contain critical locations where if a error occurred, we didn&#8217;t just want it logged locally, but we wanted (in some cases) an alert sent to a remote auditing* server. <p /> Of course, mocking out the auditing service for testing is a bit of a pain in the backside, and how auditing is achieved shouldn&#8217;t really be the responsibility of these services anyway. <p /> So, I decided to experiment with a builder interface. <p /> Meet the IErrorHandlerBuilder interface: <p /> <script src="https://gist.github.com/4533440.js"></script><p /> Should look awfully familiar if you&#8217;ve recently checked out the msdn page on computational expressions: <a href="http://msdn.microsoft.com/en-us/library/dd233182.aspx">http://msdn.microsoft.com/en-us/library/dd233182.aspx</a> (except, you know, mine has the right signatures; that might want to be fixed at some point). <p /> How do we use it? <p /> Well, first we need an implementation. In fact, let&#8217;s have two. Our first candidate, the AuditBuilder, takes an unhealthy number of dependencies that (in turn) take an unhealthy number of dependencies that you almost certainly want to supply from an IoC container. <p /> <script src="https://gist.github.com/4533554.js"></script><p /> What does it do? Well, basically if any bound function throws it logs the error via log4net and our in house audit server and then returns None. Otherwise it returns Some result from the computation. Obviously, if a computation further up the chain has already thrown we already have a None and we just pass it along. TryFinally and Using are implemented to make sure that you can still use disposable resources as you would expect within the expression. <p /> Our second candidate is the TestErrorBuilder: <p /> <script src="https://gist.github.com/4533560.js"></script><p /> This is almost identical to the implementation above, except that it takes no dependencies at all and if there is an error it just logs to the console via printfn. Very useful for debugging - you might even want a unit test version that logs nothing, depending on your unit tests. <p /> And now, our preparation is complete. How do we use our new toy, you ask? <p /> Something like this: <p /> <script src="https://gist.github.com/4533619.js"></script><p /> This little service persists interesting email messages to a document store, and sends the contents back to you when you request them. If an email is not persisted, or a request for an email fails, we want a remote alert to be triggered in production. Both the persist and content requests are handled as RabbitMq messages (using the EasyNetQ client). <p /> So in the message handler callbacks, declare an audit { } block and let! bind our message. Then we simply pass that bound message on to a handling function or object and return the resulting value, safe in the knowledge that our hosting program will have supplied an appropriate IErrorHandlerBuilder for our current purposes. The beauty of all of this is that the service object does not need to know what the error handling strategy is, and the objects/functions doing the work do not need to worry about error handling at all. <p /> This technique is especially useful in situations where you are making use of asynchronous programming techniques such as agents and you really don&#8217;t want a single failure taking out your whole agent or async expression. If for some reason it&#8217;s important to your code what the error is, as well as knowing it&#8217;s been handled, it would be easy to modify this technique to return a Choice or custom MaybeError discriminated union that you could pull the exception out of later. <p /> It would also be helpful for managing things like SQL connections with multiple retry attempts: for testing you may not want that kind of complexity and you could pass in a simpler strategy builder, while testing your robust, multiple retry computational builder for use in actual deployed environments (test or production). <p /> And, of course, just knowing that builder interfaces are possible raises up a whole new world of possibilities. <p /> As always, I tend to write about stuff that is fresh and new to me (i.e. not fully considered and maybe fatally flawed). Comments and suggestions welcome. <p /> * To avoid any confusion, I should note that the word audit is used loosely in this blog post, with a meaning more related to a namespace within our code than the normal meaning of the word &#8216;audit&#8217;.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -513,42 +549,6 @@ source, with all the niceties like intellisense that you would want.</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/teaching-good-programming-style/index.html">Teaching Good Programming Style</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2012-10-09T00:00:00+01:00" pubdate data-updated="true"></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>So, I have several people from technical/mathematical backgrounds who are interested in learning more about programming, specifically with .net in some cases.</p> <p>Tooling is easy; Visual Studio Express, Monodevelop and Sharp Develop are all freely available.</p> <p>The question is, where would you start people off in terms of learning good, solid (see what I did there?) coding practices? Give them small projects and critique? Are there good open source projects for starters to get involved with? </p> <p>Given the intelligence and background of these people, teaching them syntax is the least of my worries: a basic tutorial and Project Euler will have them writing code that works in no time. Most of them even have &#39;toy project&#39; level skills in other programming languages. It&#39;s helping them learn how to build projects that work without falling into all the classic pitfalls of spaghetti code, or at least helping them climb out as quickly as possible.</p> <p>The thing that springs to mind (given there is several people) is to find a real world project that could be split into several &#39;trivial&#39; pieces that would need to communicate with each other; immediate opportunities to teach things like messaging, modularization and IoC (especially with some not very strict TDD built in). After the tutorial/Project Euler stage above, obviously.</p> <p>Suggestions? Other ideas? </p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/6/">&larr; Older</a>
@@ -566,6 +566,10 @@ source, with all the niceties like intellisense that you would want.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/extracting-information-from-msbuild/">Extracting Information From MsBuild</a>
+      </li>
+    
+      <li class="post">
         <a href="/functional-programming-in-an-imperitive-world/">Functional Programming in an Imperative World</a>
       </li>
     
@@ -579,10 +583,6 @@ source, with all the niceties like intellisense that you would want.</p>
     
       <li class="post">
         <a href="/api-design-workshop/">API Design Workshop</a>
-      </li>
-    
-      <li class="post">
-        <a href="/ecumenical-apis/">Ecumenical APIs</a>
       </li>
     
   </ul>

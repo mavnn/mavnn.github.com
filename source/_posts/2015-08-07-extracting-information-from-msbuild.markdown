@@ -6,9 +6,9 @@ comments: true
 categories: [programming]
 ---
 Recently as part of some research into making a large (very large) solution build more efficient, I started looking into whether there's anyway of getting MsBuild to do
-some of the donkey work for you. This is especially important in situations where you want to know what's doing used/produced with this particular set of parameters.
+some of the donkey work for you. This is especially important in situations where you want to know what's being used/produced with this particular set of parameters.
 
-Obviously dealing with every possible custom build target is out of scope, but you can get a surprisingly long way be taking advantage of some of the intermediate build
+Obviously dealing with every possible custom build target is out of scope, but you can get a surprisingly long way by taking advantage of some of the intermediate build
 targets used within the MsBuild Common targets files (imported into every *proj file created by Visual Studio).
 
 Create yourself a little file called something like ``Analyse.proj``, and put the following in it:

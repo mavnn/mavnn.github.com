@@ -76,7 +76,7 @@ So, that's great. What now?
 
 Well: as is common in a message based system we're passing a correlation ID into the service we're sending a request to, and part of the contract is that the triggered response will
 have the same correlation ID. So we need some way to link a correlation ID back to a specific business process - a state store. But that needs to be safe for horizontal scaling.
-We also need to wire up all the various stages in our process to know which other message to publish next. And it would be good if storing the template and model data happened currently,
+We also need to wire up all the various stages in our process to know which other message to publish next. And it would be good if storing the template and model data happened concurrently,
 because we're message based and why not? And finally, the client only wants the email sent if we can generate it within 15 seconds. Did we not mention that?
 
 EasyNetQ provides one way of dealing with this, by allowing for what it calls a request/response pattern. But we found out the hard why that this still suffers from a few problems:
@@ -219,7 +219,7 @@ means that we can put expectations on how long we expect a step to take. Here, w
 deliver it."
 
 In a similar way, we must choose a timespan to process continuations within. Network issues or overloading of the ProcessManager itself might mean that the request is processed,
-but by the time the continuation trigger message avoid we've already missed our processing window. In this example, we're specifying: "if we don't receive a model stored message
+but by the time the continuation trigger message returns we've already missed our processing window. In this example, we're specifying: "if we don't receive a model stored message
 within 5 seconds, do not process the continuation when (or if) it arrives; also, publish a time out message to be processed by a handler named TimeOut."
 
 The rest of the method follows a similar pattern, setting up the requests to store content and address templates respectively, with the expected continuations.

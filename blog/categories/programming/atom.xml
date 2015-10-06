@@ -4,7 +4,7 @@
   <title><![CDATA[Category: programming | Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/blog/categories/programming/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2015-10-05T14:31:20+01:00</updated>
+  <updated>2015-10-06T15:21:14+01:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -85,14 +85,14 @@ bus.Subscribe<EmailSent> (&ldquo;Process&rdquo;, fun es &ndash;> printfn &ldquo;
 bus.Publish { StoreModel.CorrelationId = Guid.NewGuid(); Model = model }
 bus.Publish { StoreTemplate.CorrelationId = Guid.NewGuid(); Name = &ldquo;mytemplate&rdquo;; Template = template }
 bus.Publish { RequestRender.CorrelationId = Guid.NewGuid(); TemplateId = 1; ModelId = 4 }
-bus.Publish { SendEmail.CorrelationId = Guid.NewGuid(); Content = &ldquo;Hello world!&rdquo;; EmailAddress = &ldquo;<a href="&#x6d;&#97;&#105;&#108;&#x74;&#111;&#58;&#x6d;&#101;&#64;&#x65;&#x78;&#x61;&#x6d;&#x70;&#108;&#x65;&#x2e;&#x63;&#x6f;&#x6d;">&#109;&#101;&#x40;&#x65;&#x78;&#97;&#109;&#x70;&#108;&#101;&#x2e;&#99;&#111;&#x6d;</a>&rdquo; }
+bus.Publish { SendEmail.CorrelationId = Guid.NewGuid(); Content = &ldquo;Hello world!&rdquo;; EmailAddress = &ldquo;<a href="&#109;&#x61;&#105;&#108;&#x74;&#x6f;&#58;&#x6d;&#101;&#x40;&#x65;&#x78;&#x61;&#x6d;&#x70;&#108;&#101;&#x2e;&#99;&#111;&#x6d;">&#109;&#101;&#64;&#101;&#x78;&#97;&#109;&#x70;&#108;&#101;&#46;&#x63;&#x6f;&#109;</a>&rdquo; }
 ```</p>
 
 <p>So, that&rsquo;s great. What now?</p>
 
 <p>Well: as is common in a message based system we&rsquo;re passing a correlation ID into the service we&rsquo;re sending a request to, and part of the contract is that the triggered response will
 have the same correlation ID. So we need some way to link a correlation ID back to a specific business process &ndash; a state store. But that needs to be safe for horizontal scaling.
-We also need to wire up all the various stages in our process to know which other message to publish next. And it would be good if storing the template and model data happened currently,
+We also need to wire up all the various stages in our process to know which other message to publish next. And it would be good if storing the template and model data happened concurrently,
 because we&rsquo;re message based and why not? And finally, the client only wants the email sent if we can generate it within 15 seconds. Did we not mention that?</p>
 
 <p>EasyNetQ provides one way of dealing with this, by allowing for what it calls a request/response pattern. But we found out the hard why that this still suffers from a few problems:
@@ -241,7 +241,7 @@ means that we can put expectations on how long we expect a step to take. Here, w
 deliver it.&rdquo;</p>
 
 <p>In a similar way, we must choose a timespan to process continuations within. Network issues or overloading of the ProcessManager itself might mean that the request is processed,
-but by the time the continuation trigger message avoid we&rsquo;ve already missed our processing window. In this example, we&rsquo;re specifying: &ldquo;if we don&rsquo;t receive a model stored message
+but by the time the continuation trigger message returns we&rsquo;ve already missed our processing window. In this example, we&rsquo;re specifying: &ldquo;if we don&rsquo;t receive a model stored message
 within 5 seconds, do not process the continuation when (or if) it arrives; also, publish a time out message to be processed by a handler named TimeOut.&rdquo;</p>
 
 <p>The rest of the method follows a similar pattern, setting up the requests to store content and address templates respectively, with the expected continuations.</p>

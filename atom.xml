@@ -4,7 +4,7 @@
   <title><![CDATA[Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2015-10-05T14:31:20+01:00</updated>
+  <updated>2015-10-06T15:21:14+01:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -109,7 +109,7 @@ back before we&rsquo;re listening for them:</p>
 
 <p>Well: as is common in a message based system we&rsquo;re passing a correlation ID into the service we&rsquo;re sending a request to, and part of the contract is that the triggered response will
 have the same correlation ID. So we need some way to link a correlation ID back to a specific business process &ndash; a state store. But that needs to be safe for horizontal scaling.
-We also need to wire up all the various stages in our process to know which other message to publish next. And it would be good if storing the template and model data happened currently,
+We also need to wire up all the various stages in our process to know which other message to publish next. And it would be good if storing the template and model data happened concurrently,
 because we&rsquo;re message based and why not? And finally, the client only wants the email sent if we can generate it within 15 seconds. Did we not mention that?</p>
 
 <p>EasyNetQ provides one way of dealing with this, by allowing for what it calls a request/response pattern. But we found out the hard why that this still suffers from a few problems:
@@ -322,7 +322,7 @@ means that we can put expectations on how long we expect a step to take. Here, w
 deliver it.&rdquo;</p>
 
 <p>In a similar way, we must choose a timespan to process continuations within. Network issues or overloading of the ProcessManager itself might mean that the request is processed,
-but by the time the continuation trigger message avoid we&rsquo;ve already missed our processing window. In this example, we&rsquo;re specifying: &ldquo;if we don&rsquo;t receive a model stored message
+but by the time the continuation trigger message returns we&rsquo;ve already missed our processing window. In this example, we&rsquo;re specifying: &ldquo;if we don&rsquo;t receive a model stored message
 within 5 seconds, do not process the continuation when (or if) it arrives; also, publish a time out message to be processed by a handler named TimeOut.&rdquo;</p>
 
 <p>The rest of the method follows a similar pattern, setting up the requests to store content and address templates respectively, with the expected continuations.</p>
@@ -2356,7 +2356,7 @@ management responsibility. We&rsquo;re hiring developers, and while we&rsquo;ll 
 
 <p>So, there you have. My own personal list of things that increase or decrease your chances that I&rsquo;ll recommend you&rsquo;re interviewed.</p>
 
-<p>If you think that you&rsquo;d be interested in working for the type of company that uses this type of criteria&hellip; well, oddly enough we&rsquo;re hiring at the moment. Ping me or drop a note through to <a href="&#x6d;&#97;&#x69;&#108;&#x74;&#x6f;&#58;&#106;&#x6f;&#98;&#115;&#x40;&#49;&#x35;&#98;&#x65;&#108;&#x6f;&#119;&#46;&#x63;&#x6f;&#109;&#x2e;">&#106;&#x6f;&#98;&#115;&#x40;&#x31;&#x35;&#98;&#x65;&#x6c;&#111;&#x77;&#46;&#99;&#111;&#x6d;&#x2e;</a></p>
+<p>If you think that you&rsquo;d be interested in working for the type of company that uses this type of criteria&hellip; well, oddly enough we&rsquo;re hiring at the moment. Ping me or drop a note through to <a href="&#x6d;&#97;&#x69;&#108;&#x74;&#111;&#x3a;&#x6a;&#111;&#x62;&#115;&#64;&#49;&#53;&#x62;&#101;&#108;&#111;&#119;&#46;&#x63;&#x6f;&#109;&#x2e;">&#x6a;&#111;&#98;&#x73;&#64;&#x31;&#x35;&#98;&#101;&#x6c;&#111;&#119;&#46;&#99;&#111;&#x6d;&#x2e;</a></p>
 ]]></content>
   </entry>
   

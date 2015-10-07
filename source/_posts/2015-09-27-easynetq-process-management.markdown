@@ -86,8 +86,8 @@ be around to process the response. That's an assumption that we really don't wan
 So after several rounds of consultation within the company, I've written a library to help write process managers over the top of EasyNetQ, following the EasyNetQ conventions but
 meeting the needs we've discovered.
 
-The library will be available on github soon, but in the mean time have a sneak preview of the kind of code you can write with it. If you'd like to take part in testing the library,
-drop me an email/comment/tweet and we'll see what we can do.
+The code is available on github at https://github.com/15below/EasyNetQ.ProcessManager ; if you want to run the examples you'll need a few db bits set up (see the README) and a
+SMTP server (I recommend the excellent [PaperCut](https://papercut.codeplex.com/) as a simple and convenient development SMTP server).
 
 Back to the world of C#; first we'll need an actual ProcessManager object:
 

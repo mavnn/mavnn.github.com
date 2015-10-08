@@ -209,7 +209,7 @@ public static Out Start(IDictionary<string, object> model, string contentTemplat
 So: our ``Start`` method is where the real fun starts. It's ``static``, as an instance of the work flow class makes very little sense as all state will be stored in the
 state store. And basically all it does is set up our first set of expected requests and continuations.
 
-All functions within a work flow must return an ``Out`` object. Here, we create our Out using it's fluent builder API; first adding a request to send a ``StoreModel``,
+All functions within a work flow must return an ``Out`` object. Here, we create our Out using its fluent builder API; first adding a request to send a ``StoreModel``,
 then hooking up two handlers to the response message we expect the store to send when it's done storing the model (there's no requirement for a specific message to trigger
 only one continuation). But what are these ``TimeSpan``s floating around everywhere?
 
@@ -372,7 +372,7 @@ timeout guarantees the continuation will not fire after the ``TimeSpan`` has exp
 or handled in any particular timescale. For example, if all your ProcessManager nodes go down; well you won't be publishing/handling any time outs until they're running
 again.
 
-Now we're ready to write our ``Configure`` message. Let's wire everything up:
+Now we're ready to write our ``Configure`` method. Let's wire everything up:
 
 ``` csharp
 public static void Configure(ProcessManager pm)

@@ -4,7 +4,7 @@
   <title><![CDATA[Category: programming | Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/blog/categories/programming/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2015-10-07T12:10:46+01:00</updated>
+  <updated>2015-10-08T14:01:07+01:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -85,7 +85,7 @@ bus.Subscribe<EmailSent> (&ldquo;Process&rdquo;, fun es &ndash;> printfn &ldquo;
 bus.Publish { StoreModel.CorrelationId = Guid.NewGuid(); Model = model }
 bus.Publish { StoreTemplate.CorrelationId = Guid.NewGuid(); Name = &ldquo;mytemplate&rdquo;; Template = template }
 bus.Publish { RequestRender.CorrelationId = Guid.NewGuid(); TemplateId = 1; ModelId = 4 }
-bus.Publish { SendEmail.CorrelationId = Guid.NewGuid(); Content = &ldquo;Hello world!&rdquo;; EmailAddress = &ldquo;<a href="&#x6d;&#97;&#105;&#108;&#x74;&#111;&#58;&#x6d;&#x65;&#x40;&#x65;&#120;&#97;&#x6d;&#x70;&#x6c;&#101;&#x2e;&#99;&#111;&#x6d;">&#109;&#101;&#x40;&#101;&#120;&#x61;&#109;&#112;&#x6c;&#x65;&#x2e;&#99;&#x6f;&#x6d;</a>&rdquo; }
+bus.Publish { SendEmail.CorrelationId = Guid.NewGuid(); Content = &ldquo;Hello world!&rdquo;; EmailAddress = &ldquo;<a href="&#x6d;&#97;&#105;&#x6c;&#116;&#111;&#x3a;&#109;&#x65;&#64;&#x65;&#x78;&#x61;&#109;&#112;&#108;&#x65;&#x2e;&#x63;&#x6f;&#x6d;">&#x6d;&#101;&#64;&#x65;&#120;&#97;&#x6d;&#112;&#108;&#101;&#x2e;&#x63;&#111;&#109;</a>&rdquo; }
 ```</p>
 
 <p>So, that&rsquo;s great. What now?</p>
@@ -231,7 +231,7 @@ return
 <p>So: our <code>Start</code> method is where the real fun starts. It&rsquo;s <code>static</code>, as an instance of the work flow class makes very little sense as all state will be stored in the
 state store. And basically all it does is set up our first set of expected requests and continuations.</p>
 
-<p>All functions within a work flow must return an <code>Out</code> object. Here, we create our Out using it&rsquo;s fluent builder API; first adding a request to send a <code>StoreModel</code>,
+<p>All functions within a work flow must return an <code>Out</code> object. Here, we create our Out using its fluent builder API; first adding a request to send a <code>StoreModel</code>,
 then hooking up two handlers to the response message we expect the store to send when it&rsquo;s done storing the model (there&rsquo;s no requirement for a specific message to trigger
 only one continuation). But what are these <code>TimeSpan</code>s floating around everywhere?</p>
 
@@ -427,7 +427,7 @@ timeout guarantees the continuation will not fire after the <code>TimeSpan</code
 or handled in any particular timescale. For example, if all your ProcessManager nodes go down; well you won&rsquo;t be publishing/handling any time outs until they&rsquo;re running
 again.</p>
 
-<p>Now we&rsquo;re ready to write our <code>Configure</code> message. Let&rsquo;s wire everything up:</p>
+<p>Now we&rsquo;re ready to write our <code>Configure</code> method. Let&rsquo;s wire everything up:</p>
 
 <p>``` csharp
 public static void Configure(ProcessManager pm)

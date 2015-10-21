@@ -79,7 +79,7 @@ have the same correlation ID. So we need some way to link a correlation ID back 
 We also need to wire up all the various stages in our process to know which other message to publish next. And it would be good if storing the template and model data happened concurrently,
 because we're message based and why not? And finally, the client only wants the email sent if we can generate it within 15 seconds. Did we not mention that?
 
-EasyNetQ provides one way of dealing with this, by allowing for what it calls a request/response pattern. But we found out the hard why that this still suffers from a few problems:
+EasyNetQ provides one way of dealing with this, by allowing for what it calls a request/response pattern. But we found out the hard way that this still suffers from a few problems:
 at a practical level, it doesn't scale very well for services that need to handle a lot of requests. On a conceptual level it assumes that the service that issued the request will
 be around to process the response. That's an assumption that we really don't want if we're using a message bus to help us provide high availability.
 
@@ -88,6 +88,8 @@ meeting the needs we've discovered.
 
 The code is available on github at https://github.com/15below/EasyNetQ.ProcessManager ; if you want to run the examples you'll need a few db bits set up (see the README) and a
 SMTP server (I recommend the excellent [PaperCut](https://papercut.codeplex.com/) as a simple and convenient development SMTP server).
+
+> Please note: if you've looked at this article before, the code below has changed after a [a colleague of mine](https://twitter.com/BlythMeister) suggested much better method names for certain operations...
 
 Back to the world of C#; first we'll need an actual ProcessManager object:
 
@@ -188,26 +190,26 @@ public static Out Start(IDictionary<string, object> model, string contentTemplat
     var addressCid = Guid.NewGuid();
     return
         Out.Empty
-            .AddRequest(new StoreModel(modelCid, model), TimeSpan.FromSeconds(4))
-            .AddCont<ModelStored>(modelCid.ToString(),
+            .Send(new StoreModel(modelCid, model), TimeSpan.FromSeconds(4))
+            .Expect<ModelStored>(modelCid.ToString(),
                 ModelStoredCheckRenderContentKey, TimeSpan.FromSeconds(5), "TimeOut")
-            .AddCont<ModelStored>(modelCid.ToString(),
+            .Expect<ModelStored>(modelCid.ToString(),
                 ModelStoredCheckRenderAddressKey, TimeSpan.FromSeconds(5), "TimeOut")
-            .AddRequest(new StoreTemplate(contentCid, "content template",
+            .Send(new StoreTemplate(contentCid, "content template",
                 contentTemplate), TimeSpan.FromSeconds(4))
-            .AddCont<TemplateStored>(contentCid.ToString(),
+            .Expect<TemplateStored>(contentCid.ToString(),
                 ContentTemplateStoredCheckRenderContentKey, TimeSpan.FromSeconds(5),
                 "TimeOut")
-            .AddRequest(new StoreTemplate(addressCid, "address template",
+            .Send(new StoreTemplate(addressCid, "address template",
                 addressTemplate), TimeSpan.FromSeconds(4))
-            .AddCont<TemplateStored>(addressCid.ToString(),
+            .Expect<TemplateStored>(addressCid.ToString(),
                 AddressTemplateStoredCheckRenderAddressKey, TimeSpan.FromSeconds(5),
                 "TimeOut");
 }
 ```
 
 So: our ``Start`` method is where the real fun starts. It's ``static``, as an instance of the work flow class makes very little sense as all state will be stored in the
-state store. And basically all it does is set up our first set of expected requests and continuations.
+state store. And basically all it does is set up our first set of expected requests (to ``Send``) and continuations (to ``Expect``).
 
 All functions within a work flow must return an ``Out`` object. Here, we create our Out using its fluent builder API; first adding a request to send a ``StoreModel``,
 then hooking up two handlers to the response message we expect the store to send when it's done storing the model (there's no requirement for a specific message to trigger
@@ -233,8 +235,8 @@ private static Out RenderContentIfReady(WorkflowState state)
         new RequestRender(cid, state.ContentTemplateId.Value, state.ModelId.Value);
     return
         Out.Empty
-            .AddRequest(renderContent, TimeSpan.FromSeconds(4))
-            .AddCont<RenderComplete>(cid.ToString(), ContentRenderedCheckSendEmailKey, TimeSpan.FromSeconds(5),
+            .Send(renderContent, TimeSpan.FromSeconds(4))
+            .Expect<RenderComplete>(cid.ToString(), ContentRenderedCheckSendEmailKey, TimeSpan.FromSeconds(5),
                 "TimeOut");
 }
 
@@ -244,8 +246,8 @@ private static Out RenderAddressIfReady(WorkflowState state)
     var cid = Guid.NewGuid();
     var renderContent =
         new RequestRender(cid, state.AddressTemplateId.Value, state.ModelId.Value);
-    return Out.Empty.AddRequest(renderContent, TimeSpan.FromSeconds(4))
-        .AddCont<RenderComplete>(cid.ToString(), AddressRenderedCheckSendEmailKey, TimeSpan.FromSeconds(5),
+    return Out.Empty.Send(renderContent, TimeSpan.FromSeconds(4))
+        .Expect<RenderComplete>(cid.ToString(), AddressRenderedCheckSendEmailKey, TimeSpan.FromSeconds(5),
             "TimeOut");
 }
 ```
@@ -315,8 +317,8 @@ private static Out SendEmailIfReady(WorkflowState state)
     var cid = Guid.NewGuid();
     var sendEmail =
         new SendEmail(cid, state.EmailAddress, state.EmailContent);
-    return Out.Empty.AddRequest(sendEmail, TimeSpan.FromSeconds(4))
-        .AddCont<EmailSent>(cid.ToString(), "EmailSent", TimeSpan.FromSeconds(5), "TimeOut");
+    return Out.Empty.Send(sendEmail, TimeSpan.FromSeconds(4))
+        .Expect<EmailSent>(cid.ToString(), "EmailSent", TimeSpan.FromSeconds(5), "TimeOut");
 }
 
 public static Out AddressRenderedCheckSendEmail(RenderComplete rc, IState state)
@@ -463,14 +465,14 @@ namespace Process3
             var addressCid = Guid.NewGuid();
             return
                 Out.Empty
-                    .AddRequest(new StoreModel(modelCid, model), TimeSpan.FromSeconds(4))
-                    .AddCont<ModelStored>(modelCid.ToString(), ModelStoredCheckRenderContentKey, TimeSpan.FromSeconds(5), "TimeOut")
-                    .AddCont<ModelStored>(modelCid.ToString(), ModelStoredCheckRenderAddressKey, TimeSpan.FromSeconds(5), "TimeOut")
-                    .AddRequest(new StoreTemplate(contentCid, "content template", contentTemplate), TimeSpan.FromSeconds(4))
-                    .AddCont<TemplateStored>(contentCid.ToString(), ContentTemplateStoredCheckRenderContentKey, TimeSpan.FromSeconds(5),
+                    .Send(new StoreModel(modelCid, model), TimeSpan.FromSeconds(4))
+                    .Expect<ModelStored>(modelCid.ToString(), ModelStoredCheckRenderContentKey, TimeSpan.FromSeconds(5), "TimeOut")
+                    .Expect<ModelStored>(modelCid.ToString(), ModelStoredCheckRenderAddressKey, TimeSpan.FromSeconds(5), "TimeOut")
+                    .Send(new StoreTemplate(contentCid, "content template", contentTemplate), TimeSpan.FromSeconds(4))
+                    .Expect<TemplateStored>(contentCid.ToString(), ContentTemplateStoredCheckRenderContentKey, TimeSpan.FromSeconds(5),
                         "TimeOut")
-                    .AddRequest(new StoreTemplate(addressCid, "address template", addressTemplate), TimeSpan.FromSeconds(4))
-                    .AddCont<TemplateStored>(addressCid.ToString(), AddressTemplateStoredCheckRenderAddressKey, TimeSpan.FromSeconds(5),
+                    .Send(new StoreTemplate(addressCid, "address template", addressTemplate), TimeSpan.FromSeconds(4))
+                    .Expect<TemplateStored>(addressCid.ToString(), AddressTemplateStoredCheckRenderAddressKey, TimeSpan.FromSeconds(5),
                         "TimeOut");
         }
 
@@ -482,8 +484,8 @@ namespace Process3
                 new RequestRender(cid, state.ContentTemplateId.Value, state.ModelId.Value);
             return
                 Out.Empty
-                    .AddRequest(renderContent, TimeSpan.FromSeconds(4))
-                    .AddCont<RenderComplete>(cid.ToString(), ContentRenderedCheckSendEmailKey, TimeSpan.FromSeconds(5),
+                    .Send(renderContent, TimeSpan.FromSeconds(4))
+                    .Expect<RenderComplete>(cid.ToString(), ContentRenderedCheckSendEmailKey, TimeSpan.FromSeconds(5),
                         "TimeOut");
         }
 
@@ -493,8 +495,8 @@ namespace Process3
             var cid = Guid.NewGuid();
             var renderContent =
                 new RequestRender(cid, state.AddressTemplateId.Value, state.ModelId.Value);
-            return Out.Empty.AddRequest(renderContent, TimeSpan.FromSeconds(4))
-                .AddCont<RenderComplete>(cid.ToString(), AddressRenderedCheckSendEmailKey, TimeSpan.FromSeconds(5),
+            return Out.Empty.Send(renderContent, TimeSpan.FromSeconds(4))
+                .Expect<RenderComplete>(cid.ToString(), AddressRenderedCheckSendEmailKey, TimeSpan.FromSeconds(5),
                     "TimeOut");
         }
 
@@ -544,8 +546,8 @@ namespace Process3
             var cid = Guid.NewGuid();
             var sendEmail =
                 new SendEmail(cid, state.EmailAddress, state.EmailContent);
-            return Out.Empty.AddRequest(sendEmail, TimeSpan.FromSeconds(4))
-                .AddCont<EmailSent>(cid.ToString(), "EmailSent", TimeSpan.FromSeconds(5), "TimeOut");
+            return Out.Empty.Send(sendEmail, TimeSpan.FromSeconds(4))
+                .Expect<EmailSent>(cid.ToString(), "EmailSent", TimeSpan.FromSeconds(5), "TimeOut");
         }
 
         public static Out AddressRenderedCheckSendEmail(RenderComplete rc, IState state)

@@ -9,7 +9,9 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="In my previous post ( http://blog.mavnn.co.uk/playing-with-error-handling-strategies ), Johann Deneux asked me whether my implementation of &hellip;">
+  <meta name="description" content="I&rsquo;ve been wanting to write code like this in F#, and know that any
+exceptions within a bound expression in an audit { } block will not
+only get &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -78,6 +80,76 @@ ga('send', 'pageview');
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/corrected-error-handling-computational-expres/index.html">Corrected Error Handling Computational Expression</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-01-18T00:00:00+00:00" pubdate data-updated="true"></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>I&rsquo;ve been wanting to write code like this in F#, and know that any
+exceptions within a bound expression in an audit { } block will not
+only get caught, but that an external auditing service will get
+notified that the operation has failed.</p>
+
+<p><script src="https://gist.github.com/4565937.js"></script></p>
+
+<p>Unfortunately, it turns out my code in my post on error handling
+( <a href="http://blog.mavnn.co.uk/playing-with-error-handling-strategies">http://blog.mavnn.co.uk/playing-with-error-handling-strategies</a> ) was
+flawed in its ability to handle errors. The irony has not escaped me.</p>
+
+<p>The issue is with the eager evaluation of arguments to the TryFinally
+method of the builder. If it takes you a while to work out what that
+means, don&rsquo;t worry: it took me about 2 days to wrap my head round it
+and work out how to correct the code to make it behave as I would have
+expected.</p>
+
+<p>To make things work correctly, the type returned by the computational
+expression pretty much has to be a deferred function of some kind.</p>
+
+<p>So, the Interface, now renamed IAuditBuilder, gains a couple of helper
+functions and becomes:</p>
+
+<p><script src="https://gist.github.com/4565812.js"></script></p>
+
+<p>The implementation of the TestAuditBuilder (only logs to console on
+error) becomes:</p>
+
+<p><script src="https://gist.github.com/4565838.js"></script></p>
+
+<p>So: many thanks to Johann Deneux for patiently pointing out to me what
+the flaw in the original code was. I hope this example of a lazy
+computational expression is useful to other starting out down this
+rabbit hole of monadic weirdness. At least the resulting code looks
+pretty nice and readable now that the builder is fixed.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -514,42 +586,6 @@ source, with all the niceties like intellisense that you would want.</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/an-introduction-to-f-screencast-and-pdf-slide/index.html">An Introduction to F# (Screencast and PDF Slides)</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2012-11-09T00:00:00+00:00" pubdate data-updated="true"></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content">[[posterous-content:BtdYjh2l4izPGjbyNN4B]]<p>A recent developer education session I gave at 15below.</p><p /><div>This presentation was aimed at a group of C# developers of varying experience.</div><p /><div><iframe src="http://www.youtube.com/embed/obDZcv8ZXog?wmode=transparent" allowfullscreen frameborder="0" height="417" width="500"></iframe></div>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/6/">&larr; Older</a>
@@ -567,6 +603,10 @@ source, with all the niceties like intellisense that you would want.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/beginnings-and-endings/">Beginnings and Endings</a>
+      </li>
+    
+      <li class="post">
         <a href="/easynetq-process-management/">EasyNetQ Process Management</a>
       </li>
     
@@ -580,10 +620,6 @@ source, with all the niceties like intellisense that you would want.</p>
     
       <li class="post">
         <a href="/sdd-conf-2015/">Property Based Testing at SDD Conf 2015</a>
-      </li>
-    
-      <li class="post">
-        <a href="/serialization-in-net/">Serialization in .net</a>
       </li>
     
   </ul>

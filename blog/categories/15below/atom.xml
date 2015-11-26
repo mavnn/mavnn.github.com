@@ -4,7 +4,7 @@
   <title><![CDATA[Category: 15below | Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/blog/categories/15below/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2015-10-21T20:27:57+01:00</updated>
+  <updated>2015-11-26T10:02:58+00:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,36 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Beginnings and Endings]]></title>
+    <link href="http://blog.mavnn.co.uk/beginnings-and-endings/"/>
+    <updated>2015-11-26T12:02:10+00:00</updated>
+    <id>http://blog.mavnn.co.uk/beginnings-and-endings</id>
+    <content type="html"><![CDATA[<p>There&rsquo;s the normal mix of excitement and sadness as I announce that today is my last day with my current employers, <a href="http://www.15below.com">15below</a>.</p>
+
+<p>Sadness because the people here are great and I&rsquo;ve learned an unbelievable amount while working here. Excitement because there&rsquo;s
+exciting things happening for the future. What are these brave new vistas? Well, that will have to wait for next week.</p>
+
+<p>But for now, it&rsquo;s time for a brief thank you and review of what I&rsquo;m leaving.</p>
+
+<p>Thanks 15below for:</p>
+
+<ul>
+<li>being an incredibly flexible, generous &amp; family friendly employer</li>
+<li>Lots and lots of learning from existing code, conversations, other people delivering internal training, <a href="https://twitter.com/15below_travel/status/340475764677951488">letting me invite external speakers</a>, and the rest</li>
+<li>releasing some open source, even while in an &ldquo;enterprise&rdquo; market: <a href="https://github.com/15below/">github</a></li>
+<li>letting me <a href="http://blog.mavnn.co.uk/keeping-up-with-the-latest-hammer/">coordinate the internal developer education</a></li>
+<li>sponsoring a <a href="http://blog.mavnn.co.uk/functional-programming-in-an-imperitive-world/">bunch</a> <a href="http://blog.mavnn.co.uk/sdd-conf-2015/">of</a>
+<a href="http://blog.mavnn.co.uk/lambdacon-2015/">conference</a> speaking (there&rsquo;s more!)</li>
+<li>trusting me to convert the build from msbuild to <a href="https://github.com/fsharp/FAKE">FAKE</a> and kick start the journey to automated deployment (which was a slow and painful one in msbuild world&hellip;)</li>
+<li>picking solid, generous people <a href="https://www.facebook.com/15below/posts/829520247132711">as staff</a> &ndash; that&rsquo;s just one example from many, and the company often matches the giving of the staff</li>
+</ul>
+
+
+<p>I&rsquo;m hoping my last piece of work here, converting our main product repository to use <a href="http://fsprojects.github.io/Paket/">Paket</a> rather than nuget for dependency management is a gift that will keep on giving to the rest of the devs; here&rsquo;s to many more years of 15below bringing tech to the travel industry.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[RX Solutions]]></title>
@@ -586,228 +616,6 @@ others, to be ready to leave. Or try and convince the decision makers that keepi
 <li><p>Safe Refactoring</p></li>
 </ul>
 
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Functionally SOLID 2]]></title>
-    <link href="http://blog.mavnn.co.uk/functionally-solid-2/"/>
-    <updated>2014-05-09T13:43:02+01:00</updated>
-    <id>http://blog.mavnn.co.uk/functionally-solid-2</id>
-    <content type="html"><![CDATA[<p><em>This post follows on directly from <a href="/going-functionally-solid">Going Functionally SOLID</a></em></p>
-
-<p>In our first session looking at <a href="http://en.wikipedia.org/wiki/Solid_%28object-oriented_design%29">SOLID</a> and functional programming, we tried to apply some SOLID principles to an example piece of code.</p>
-
-<p>We ended up with a set of interfaces like those below, and robot classes could then implement the interfaces to define their capabilities and state. I mentioned the example code was for a giant robot game, yes?</p>
-
-<!-- more -->
-
-
-<p>```fsharp
-type IDestructable =</p>
-
-<pre><code>abstract Armour : int
-abstract Dodge : int
-abstract Hits : int
-abstract Destroyed : bool
-abstract TakeDamage : int -&gt; IDestructable
-</code></pre>
-
-<p>type IWalk =</p>
-
-<pre><code>abstract Walk : Direction * int -&gt; Location
-</code></pre>
-
-<p>type IJump =</p>
-
-<pre><code>abstract Jump : Direction * int -&gt; Location
-</code></pre>
-
-<p>type IFly =</p>
-
-<pre><code>abstract Fly : Direction * int -&gt; Location
-</code></pre>
-
-<p>type IHazWeapon =</p>
-
-<pre><code>abstract Fire : IDestructable * int -&gt; IDestructable
-</code></pre>
-
-<p>type IHazWeapons =</p>
-
-<pre><code>abstract WMDs : List&lt;IHazWeapon&gt;
-</code></pre>
-
-<p>type IHazCannon =</p>
-
-<pre><code>inherit IHazWeapon
-</code></pre>
-
-<p>type IHazMissiles =</p>
-
-<pre><code>inherit IHazWeapon
-</code></pre>
-
-<p>type ITransforming =</p>
-
-<pre><code>abstract Mode : string
-abstract ``Transform!`` : string -&gt; ITransforming
-</code></pre>
-
-<p>```</p>
-
-<p>For anyone who&rsquo;s worked with SOLID OO code before, this should be looking fairly familiar, and it should be obvious how you could build a class that accepted implementations of these interfaces in it&rsquo;s constructor and then carried the state of the robot (location, hits remaining, etc) around as mutable fields.</p>
-
-<p>But&hellip; this is a turn based game, and we&rsquo;ve decided that we want to use a <a href="http://en.wikipedia.org/wiki/Minimax">minimax</a> approach to choosing moves for the computer player. Minimax is effectively a tree search, which means that implementing it looks like it would be a prime moment for a bit of concurrency. Each branch of the tree can be calculated independently, after all.</p>
-
-<p>Unfortunately&hellip; our SOLID OO approach is not looking very thread safe. Functional programming revolves around the idea that code is <a href="http://en.wikipedia.org/wiki/Referential_transparency_%28computer_science%29">referentially transparent</a> and that data types are <a href="http://en.wikipedia.org/wiki/Immutable_object">immutable</a>. These two properties immediately lead to thread safe code.</p>
-
-<p>So the rest of the session was spent trying out how different parts of the API code be modelled in a more functional way &ndash; splitting out state into separate immutable value objects, using functions in the place of single method interfaces and playing with discriminated unions (not strictly functional programming related, but they do seem to crop up regularly in functional style languages).</p>
-
-<p>The end results, raw from the discussion, are below. A bit of a mix of the &ldquo;interface&rdquo; and experiments in how you would use it. I think it came out quite nicely, showing how all of the SOLID principles (apart from maybe &ldquo;L&rdquo;!) fall out naturally in nicely designed functional code just as they do in good OO code. In fact some of them, such as &ldquo;Interface Segregation&rdquo; and &ldquo;Single Responsibility&rdquo; are things you almost have to work to avoid &ndash; they both fall out naturally from passing around
-pure functions to implement behaviour.</p>
-
-<p>```fsharp
-type Destructable =</p>
-
-<pre><code>{
-    Armour : int
-    Dodge : int
-    Hits : int
-    Destroyed : bool
-}
-</code></pre>
-
-<p>// Interface segregation and
-// Single responsibility at work
-type WeaponFunc =</p>
-
-<pre><code>Destructable -&gt; int -&gt; Destructable
-</code></pre>
-
-<p>type Weapon =</p>
-
-<pre><code>| Missile of WeaponFunc
-| Cannon of WeaponFunc
-</code></pre>
-
-<p>type MoveFunc =</p>
-
-<pre><code>Location -&gt; (Direction * int) -&gt; Location
-</code></pre>
-
-<p>type Move =</p>
-
-<pre><code>| Run of MoveFunc
-| Jump of MoveFunc
-| Fly of MoveFunc
-</code></pre>
-
-<p>type Robot =</p>
-
-<pre><code>{
-    Id : string
-    MovementTypes : Move list
-    Weapons : Weapon list
-    Location : Location
-    DamageStatus : Destructable
-}
-</code></pre>
-
-<p>// Dependency inversion!
-let GiantRobo =</p>
-
-<pre><code>{
-    Id = "GiantRobo"
-    MovementTypes = [ Run &lt;| fun l m -&gt; l ]
-    Weapons = [ Cannon &lt;| fun d i -&gt; d ]
-    Location = { Position = (0, 0); Altitude = 0 }
-    DamageStatus = { Armour = 10; Dodge = 5; Hits = 100; Destroyed = false }
-}
-</code></pre>
-
-<p>// Open/closed principle via higher order
-// functions
-let makeFly runFunc l m =</p>
-
-<pre><code>let newPosition = runFunc l m
-{ newPosition with Altitude = 100 }
-</code></pre>
-
-<p>let TinyRobo =</p>
-
-<pre><code>{
-    Id = "TinyRobo"
-    MovementTypes = [ Run &lt;| fun l m -&gt; { l with Position = (10, 10) } ]
-    Weapons = [ Cannon &lt;| fun d i -&gt; d ]
-    Location = { Position = (0, 0); Altitude = 0 }
-    DamageStatus = { Armour = 10; Dodge = 5; Hits = 100; Destroyed = false }
-}
-</code></pre>
-
-<p>// Separating behaviour and state
-module BlowThingsUp =</p>
-
-<pre><code>let TakeDamage destructable damage =
-    let newHits = destructable.Hits - damage
-    {   destructable with
-            Hits = newHits
-            Destroyed = newHits &lt;= 0
-    }
-</code></pre>
-
-<p>// Different possibilities for
-// extending that would normally be handled
-// by inheritance in OO
-module TransformVF1 =</p>
-
-<pre><code>let transform robot =
-    {
-        robot with
-            MovementTypes = [Fly &lt;| fun l m -&gt; { l with Altitude = 100 }]
-    }
-</code></pre>
-
-<p>type TransformFunc =</p>
-
-<pre><code>Robot -&gt; Robot
-</code></pre>
-
-<p>type RobotModel =</p>
-
-<pre><code>| NormalRobot of Robot
-| TransformingRobot of Robot * TransformFunc
-</code></pre>
-
-<p>type MaybeTransformFunc =</p>
-
-<pre><code>MaybeTransformingRobot -&gt; MaybeTransformingRobot
-</code></pre>
-
-<p>and MaybeTransformingRobot =</p>
-
-<pre><code>{
-    Id : string
-    MovementTypes : Move list
-    Weapons : Weapon list
-    Location : Location
-    DamageStatus : Destructable
-    Transform : MaybeTransformFunc option
-}
-</code></pre>
-
-<p>let Transform mtr =</p>
-
-<pre><code>match mtr.Transform with
-| None -&gt;
-    mtr
-| Some trans -&gt;
-    trans mtr
-</code></pre>
-
-<p>```</p>
-
-<p>Enjoy, and comments welcome &ndash; this was live coded in a group environment, so I&rsquo;m sure plenty of opportunities for nicer code were missed!</p>
 ]]></content>
   </entry>
   

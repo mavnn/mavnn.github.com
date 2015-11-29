@@ -44,13 +44,13 @@ module Jekyll
     end
 
     def script_url_for(gist_id, filename)
-      url = "https://gist.github.com/mavnn/#{gist_id}.js"
+      url = "https://gist.githubusercontent.com/mavnn/#{gist_id}.js"
       url = "#{url}?file=#{filename}" unless filename.nil? or filename.empty?
       url
     end
 
     def get_gist_url_for(gist, file)
-      "https://gist.github.com/mavnn/#{gist}/raw/#{file}"
+      "https://gist.githubusercontent.com/mavnn/#{gist}/raw/#{file}"
     end
 
     def cache(gist, file, data)

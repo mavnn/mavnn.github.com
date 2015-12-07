@@ -24,7 +24,7 @@ I'm glad you asked that too! Stream one of the company ("Building code that work
 
 Although it's always nice as a small company to have contracts, we're particularly pleased to be working with Logibit: firstly because they're great people to work with - you don't need to work for them to find that out, just get involved in any of the myriad [open](http://suave.io/) [source](https://github.com/Albacore/albacore) [projects](https://github.com/logary/logary) they're involved in!
 
-Secondly, as a company they embody the things that @mavnn stands for: leveraging the ideas behind functional programming in deeply practical ways to build software that works, and that solves real problems.
+Secondly, as a company they embody the things that @mavnn stands for: leveraging the ideas behind functional programming in deeply practical ways to build software that solves real world problems, and does so exactly as designed.
 
 ### Can I hire you?
 

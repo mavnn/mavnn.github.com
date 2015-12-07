@@ -1,0 +1,681 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: easynetq | Mavnn's blog]]></title>
+  <link href="http://blog.mavnn.co.uk/blog/categories/easynetq/atom.xml" rel="self"/>
+  <link href="http://blog.mavnn.co.uk/"/>
+  <updated>2015-11-26T10:02:58+00:00</updated>
+  <id>http://blog.mavnn.co.uk/</id>
+  <author>
+    <name><![CDATA[mavnn]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[EasyNetQ Process Management]]></title>
+    <link href="http://blog.mavnn.co.uk/easynetq-process-management/"/>
+    <updated>2015-10-05T12:23:02+01:00</updated>
+    <id>http://blog.mavnn.co.uk/easynetq-process-management</id>
+    <content type="html"><![CDATA[<blockquote><p>TL;DR: I wrote a EasyNetQ aware process manager library. Read down for some examples, and leave feedback if you think anything should change before it&rsquo;s released.</p></blockquote>
+
+<p><a href="http://easynetq.com/">EasyNetQ</a> is a nice little .net client library for RabbitMQ. Originally designed for introducing Rabbit (and the concepts of a bus based architecture)
+to a company and programmers who hadn&rsquo;t previously used them before, it uses conventions to set up exchanges and queues &ndash; basing them on the names of the .net types that are
+being sent and subscribe to.</p>
+
+<p>For example (from the EasyNetQ homepage):</p>
+
+<p><code>csharp
+bus.Publish&lt;MyMessage&gt;(message);
+</code></p>
+
+<p>Will publish a message of type &ldquo;MyMessage&rdquo;. Generally there&rsquo;s no need to actually specify the type here, C# will infer it for you, but it makes the example clearer.</p>
+
+<p>Other services can subscribe to &ldquo;MyMessage&rdquo; like so:</p>
+
+<p>``` csharp
+bus.Subscribe<MyMessage>(&ldquo;my_subscription_id&rdquo;, msg =></p>
+
+<pre><code>  Console.WriteLine(msg.Text));
+</code></pre>
+
+<p>```</p>
+
+<!-- more -->
+
+
+<p>If multiple services use the same subscription id, they will all connect to the same queue on the Rabbit server. This means in practice they will round-robin receipt of
+messages, allowing for easy horizontal scalability. Subscribers with a different subscription ID will create a new queue behind the scenes and so a copy of the message will
+be routed to both subscription IDs.</p>
+
+<p>At this point, the only real point of coupling between subscribers and publishers is the need to share a dll with your &ldquo;contract types&rdquo; &ndash; the types that are going to be
+used for publishing and subscribing.</p>
+
+<p>This immediately gives you a lot of the ground work you need to start creating a message based system. But there is one big hole, which it&rsquo;s harder to fill than you might
+think.</p>
+
+<p>The hole is that at some point you&rsquo;re going to want to start building processes on top of your message based services which glue together some kind of long running
+work flow which requires information from several other components.</p>
+
+<p>Let&rsquo;s start with a simple example &ndash; we&rsquo;ll assume we have a email sending system. It has a bus based service that knows how to grab some data from somewhere;
+a service that stores email templates; a service that knows how to render the data and template together; and finally an email sender.</p>
+
+<p>Triggering the services might look a bit like this (if you&rsquo;re working in F#):</p>
+
+<p><code>fsharp
+bus.Publish { StoreModel.CorrelationId = Guid.NewGuid(); Model = model }
+bus.Publish { StoreTemplate.CorrelationId = Guid.NewGuid(); Name = "mytemplate"; Template = template }
+bus.Publish { RequestRender.CorrelationId = Guid.NewGuid(); TemplateId = 1; ModelId = 4 }
+bus.Publish { SendEmail.CorrelationId = Guid.NewGuid(); Content = "Hello world!"; EmailAddress = "me@example.com" }
+</code></p>
+
+<p>That&rsquo;s fantastic; only, you&rsquo;ll notice the values for each step are hard coded. Obviously, we need to subscribe to the messages we&rsquo;re expecting to be published in response
+to these commands. We&rsquo;d better subscribe to the responses &ndash; in fact, we&rsquo;d better subscribe to everything before we start publishing, otherwise we might start getting responses
+back before we&rsquo;re listening for them:</p>
+
+<p>``` fsharp
+// Subscribers
+bus.Subscribe<RenderComplete> (&ldquo;Process&rdquo;, fun r &ndash;> printfn &ldquo;%A&rdquo; r) |> ignore
+bus.Subscribe<ModelStored> (&ldquo;Process&rdquo;, fun ms &ndash;> printfn &ldquo;%A&rdquo; ms) |> ignore
+bus.Subscribe<TemplateStored> (&ldquo;Process&rdquo;, fun ts &ndash;> printfn &ldquo;%A&rdquo; ts) |> ignore
+bus.Subscribe<EmailSent> (&ldquo;Process&rdquo;, fun es &ndash;> printfn &ldquo;%A&rdquo; es) |> ignore</p>
+
+<p>// Senders
+bus.Publish { StoreModel.CorrelationId = Guid.NewGuid(); Model = model }
+bus.Publish { StoreTemplate.CorrelationId = Guid.NewGuid(); Name = &ldquo;mytemplate&rdquo;; Template = template }
+bus.Publish { RequestRender.CorrelationId = Guid.NewGuid(); TemplateId = 1; ModelId = 4 }
+bus.Publish { SendEmail.CorrelationId = Guid.NewGuid(); Content = &ldquo;Hello world!&rdquo;; EmailAddress = &ldquo;<a href="&#109;&#x61;&#x69;&#x6c;&#x74;&#x6f;&#x3a;&#109;&#x65;&#x40;&#101;&#120;&#x61;&#x6d;&#x70;&#108;&#101;&#x2e;&#99;&#111;&#x6d;">&#x6d;&#101;&#x40;&#x65;&#x78;&#x61;&#109;&#112;&#108;&#101;&#46;&#99;&#x6f;&#109;</a>&rdquo; }
+```</p>
+
+<p>So, that&rsquo;s great. What now?</p>
+
+<p>Well: as is common in a message based system we&rsquo;re passing a correlation ID into the service we&rsquo;re sending a request to, and part of the contract is that the triggered response will
+have the same correlation ID. So we need some way to link a correlation ID back to a specific business process &ndash; a state store. But that needs to be safe for horizontal scaling.
+We also need to wire up all the various stages in our process to know which other message to publish next. And it would be good if storing the template and model data happened concurrently,
+because we&rsquo;re message based and why not? And finally, the client only wants the email sent if we can generate it within 15 seconds. Did we not mention that?</p>
+
+<p>EasyNetQ provides one way of dealing with this, by allowing for what it calls a request/response pattern. But we found out the hard way that this still suffers from a few problems:
+at a practical level, it doesn&rsquo;t scale very well for services that need to handle a lot of requests. On a conceptual level it assumes that the service that issued the request will
+be around to process the response. That&rsquo;s an assumption that we really don&rsquo;t want if we&rsquo;re using a message bus to help us provide high availability.</p>
+
+<p>So after several rounds of consultation within the company, I&rsquo;ve written a library to help write process managers over the top of EasyNetQ, following the EasyNetQ conventions but
+meeting the needs we&rsquo;ve discovered.</p>
+
+<p>The code is available on github at <a href="https://github.com/15below/EasyNetQ.ProcessManager">https://github.com/15below/EasyNetQ.ProcessManager</a> ; if you want to run the examples you&rsquo;ll need a few db bits set up (see the README) and a
+SMTP server (I recommend the excellent <a href="https://papercut.codeplex.com/">PaperCut</a> as a simple and convenient development SMTP server).</p>
+
+<blockquote><p>Please note: if you&rsquo;ve looked at this article before, the code below has changed after a <a href="https://twitter.com/BlythMeister">a colleague of mine</a> suggested much better method names for certain operations&hellip;</p></blockquote>
+
+<p>Back to the world of C#; first we&rsquo;ll need an actual ProcessManager object:</p>
+
+<p><code>csharp
+var rabbitConnString = ConfigurationManager.AppSettings["rabbit connection"];
+var sqlConnString = ConfigurationManager.AppSettings["sql connection"];
+var bus = RabbitHutch.CreateBus(rabbitConnString);
+var active = new SqlActiveStore(sqlConnString);
+var store = new SqlStateStore(sqlConnString, new Serializer());
+var pm = new ProcessManager(new EasyNetQPMBus(bus), "Process", active, store);
+Workflow.Configure(pm);
+</code></p>
+
+<p>Obviously, most of this would normally be covered with an IoC container. So, the bus is probably pretty obvious, and <code>"Process"</code> is our subscription ID for any subscriptions we make
+&ndash; but what are the <code>SqlActiveStore</code> and <code>SqlStateStore</code>?</p>
+
+<p>The active store is a component that will store the list of correlation IDs a process is waiting for, and which handlers to connect them to. Out of the box you get a
+memory based version (fast, good for testing, not horizontally scalable for hopefully obvious reasons) and an SQL Server based version.</p>
+
+<p>The state store, as you might have guessed, stores state for your workflow. Again both memory and SQL based implementations are provided, with the SQL implementation guaranteed to be not
+just thread safe, but &ldquo;process safe&rdquo;. One thing you do have to provide yourself is a serializer that knows how to serialize any work flow state objects you want stored.</p>
+
+<p>Finally, and most interesting: let&rsquo;s see what&rsquo;s in <code>Workflow.Configure(pm)</code>. Let&rsquo;s take the file that actually configures our workflow, and break it down into sections (I&rsquo;ll chop some boilerplate out, full file at the end).</p>
+
+<p><code>csharp
+using System;
+using System.Collections.Generic;
+using System.Runtime.Serialization;
+using EasyNetQ.ProcessManager;
+using Messenger.Messages.Email;
+using Messenger.Messages.Render;
+using Messenger.Messages.Store;
+</code></p>
+
+<p>All the standard bits &ndash; we&rsquo;ll need access to the various message types and the ProcessManager name space.</p>
+
+<p>``` csharp
+[DataContract]
+public class WorkflowState
+{</p>
+
+<pre><code>public WorkflowState() { }
+
+public WorkflowState(int? modelId, int? contentTemplateId, string emailContent, string emailAddress, int? addressTemplateId)
+{
+    ModelId = modelId;
+    ContentTemplateId = contentTemplateId;
+    EmailContent = emailContent;
+    EmailAddress = emailAddress;
+    AddressTemplateId = addressTemplateId;
+}
+
+[DataMember]
+public int? ModelId { get; set; }
+[DataMember]
+public int? ContentTemplateId { get; set; }
+[DataMember]
+public int? AddressTemplateId { get; set; }
+[DataMember]
+public string EmailContent { get; set; }
+[DataMember]
+public string EmailAddress { get; set; }
+</code></pre>
+
+<p>}
+```</p>
+
+<p>This object will store the state of our work flow. As you might guess, it starts off empty and steps in the work flow will gradually fill in the gaps as
+they receive information back from the remote services. The basic flow of the process we&rsquo;re creating is to store a model (piece of data), an address template
+and a content template. We&rsquo;ll render an address once we have both address template and model IDs, and the content once we have both content template and model ID.</p>
+
+<p>After both rendering jobs have finished, we&rsquo;ll send an email to the address, with the content. Note that our object does <em>not</em> need any awareness of which
+instance of the work flow it&rsquo;s storing information for &ndash; the ProcessManager will handle that for us.</p>
+
+<p><code>csharp
+public class Workflow
+{
+</code></p>
+
+<p>Let&rsquo;s have a class to group all of our work flow logic together in one place. This isn&rsquo;t in anyway required by ProcessManager, but it&rsquo;s definitely recommended to
+allow people to work out what on earth your project manager actually does.</p>
+
+<p><code>csharp
+private const string ModelStoredCheckRenderContentKey = "ModelStoredCheckRenderContentKey";
+private const string ModelStoredCheckRenderAddressKey = "ModelStoredCheckRenderAddress";
+private const string ContentTemplateStoredCheckRenderContentKey = "ContentTemplateStoredCheckRenderContent";
+private const string AddressTemplateStoredCheckRenderAddressKey = "AddressTemplateStoredCheckRenderAddress";
+private const string ContentRenderedCheckSendEmailKey = "ContentRenderedCheckSendEmail";
+private const string AddressRenderedCheckSendEmailKey = "AddressRenderedCheckSendEmail";
+</code></p>
+
+<p>We&rsquo;ll be specifying in each of our work flow steps which callbacks we&rsquo;re expecting to be fired when response messages are received. Because these callbacks may not
+happen in the same process (ProcessManager is horizontally scalable by design), callbacks are referred to by a string mapping. These get used in several places, so
+it&rsquo;s probably worth recording them all as <code>const</code>s to avoid typos.</p>
+
+<p>``` csharp
+public static Out Start(IDictionary&lt;string, object> model, string contentTemplate, string addressTemplate)
+{</p>
+
+<pre><code>var modelCid = Guid.NewGuid();
+var contentCid = Guid.NewGuid();
+var addressCid = Guid.NewGuid();
+return
+    Out.Empty
+        .Send(new StoreModel(modelCid, model), TimeSpan.FromSeconds(4))
+        .Expect&lt;ModelStored&gt;(modelCid.ToString(),
+            ModelStoredCheckRenderContentKey, TimeSpan.FromSeconds(5), "TimeOut")
+        .Expect&lt;ModelStored&gt;(modelCid.ToString(),
+            ModelStoredCheckRenderAddressKey, TimeSpan.FromSeconds(5), "TimeOut")
+        .Send(new StoreTemplate(contentCid, "content template",
+            contentTemplate), TimeSpan.FromSeconds(4))
+        .Expect&lt;TemplateStored&gt;(contentCid.ToString(),
+            ContentTemplateStoredCheckRenderContentKey, TimeSpan.FromSeconds(5),
+            "TimeOut")
+        .Send(new StoreTemplate(addressCid, "address template",
+            addressTemplate), TimeSpan.FromSeconds(4))
+        .Expect&lt;TemplateStored&gt;(addressCid.ToString(),
+            AddressTemplateStoredCheckRenderAddressKey, TimeSpan.FromSeconds(5),
+            "TimeOut");
+</code></pre>
+
+<p>}
+```</p>
+
+<p>So: our <code>Start</code> method is where the real fun starts. It&rsquo;s <code>static</code>, as an instance of the work flow class makes very little sense as all state will be stored in the
+state store. And basically all it does is set up our first set of expected requests (to <code>Send</code>) and continuations (to <code>Expect</code>).</p>
+
+<p>All functions within a work flow must return an <code>Out</code> object. Here, we create our Out using its fluent builder API; first adding a request to send a <code>StoreModel</code>,
+then hooking up two handlers to the response message we expect the store to send when it&rsquo;s done storing the model (there&rsquo;s no requirement for a specific message to trigger
+only one continuation). But what are these <code>TimeSpan</code>s floating around everywhere?</p>
+
+<p>Well, it turns out that RabbitMQ implements the idea of expiring messages. ProcessManager forces you to choose how long a message should stay available for before expiring,
+to avoid creating situations where you build up unbounded backlogs of ancient messages that no longer have any relevance. For time critical processes such as ours, it also
+means that we can put expectations on how long we expect a step to take. Here, we&rsquo;re saying: &ldquo;if the store doesn&rsquo;t accept the store model request within 4 seconds, do not
+deliver it.&rdquo;</p>
+
+<p>In a similar way, we must choose a timespan to process continuations within. Network issues or overloading of the ProcessManager itself might mean that the request is processed,
+but by the time the continuation trigger message returns we&rsquo;ve already missed our processing window. In this example, we&rsquo;re specifying: &ldquo;if we don&rsquo;t receive a model stored message
+within 5 seconds, do not process the continuation when (or if) it arrives; also, publish a time out message to be processed by a handler named TimeOut.&rdquo;</p>
+
+<p>The rest of the method follows a similar pattern, setting up the requests to store content and address templates respectively, with the expected continuations.</p>
+
+<p>``` csharp
+private static Out RenderContentIfReady(WorkflowState state)
+{</p>
+
+<pre><code>if (!state.ModelId.HasValue || !state.ContentTemplateId.HasValue) return Out.Ignore;
+var cid = Guid.NewGuid();
+var renderContent =
+    new RequestRender(cid, state.ContentTemplateId.Value, state.ModelId.Value);
+return
+    Out.Empty
+        .Send(renderContent, TimeSpan.FromSeconds(4))
+        .Expect&lt;RenderComplete&gt;(cid.ToString(), ContentRenderedCheckSendEmailKey, TimeSpan.FromSeconds(5),
+            "TimeOut");
+</code></pre>
+
+<p>}</p>
+
+<p>private static Out RenderAddressIfReady(WorkflowState state)
+{</p>
+
+<pre><code>if (!state.ModelId.HasValue || !state.AddressTemplateId.HasValue) return Out.Ignore;
+var cid = Guid.NewGuid();
+var renderContent =
+    new RequestRender(cid, state.AddressTemplateId.Value, state.ModelId.Value);
+return Out.Empty.Send(renderContent, TimeSpan.FromSeconds(4))
+    .Expect&lt;RenderComplete&gt;(cid.ToString(), AddressRenderedCheckSendEmailKey, TimeSpan.FromSeconds(5),
+        "TimeOut");
+</code></pre>
+
+<p>}
+```</p>
+
+<p>Next up: a couple of private helper methods. These take our <code>WorkflowState</code> object from above and know whether we can start the two rendering processes yet.</p>
+
+<p>Note the use of <code>Out.Ignore</code> if the state is not yet ready to trigger the next part of the work flow. <code>Ignore</code> is basically a way of marking this branch of the
+work flow complete. This is different to <code>Out.End</code>, which we&rsquo;ll have a look at a bit later &ndash; and which ends all branches of the work flow.</p>
+
+<p>``` csharp
+public static Out ModelStoredCheckRenderContent(ModelStored ms, IState state)
+{</p>
+
+<pre><code>var ws = state.AddOrUpdate(new WorkflowState {ModelId = ms.ModelId}, existing =&gt;
+{
+    existing.ModelId = ms.ModelId;
+    return existing;
+});
+return RenderContentIfReady(ws);
+</code></pre>
+
+<p>}</p>
+
+<p>public static Out ModelStoredCheckRenderAddress(ModelStored ms, IState state)
+{</p>
+
+<pre><code>var ws = state.AddOrUpdate(new WorkflowState {ModelId = ms.ModelId}, existing =&gt;
+{
+    existing.ModelId = ms.ModelId;
+    return existing;
+});
+return RenderAddressIfReady(ws);
+</code></pre>
+
+<p>}</p>
+
+<p>public static Out ContentTemplateStoredCheckRenderContent(TemplateStored ts, IState state)
+{</p>
+
+<pre><code>var ws = state.AddOrUpdate(new WorkflowState {ContentTemplateId = ts.TemplateId}, existing =&gt;
+{
+    existing.ContentTemplateId = ts.TemplateId;
+    return existing;
+});
+return RenderContentIfReady(ws);
+</code></pre>
+
+<p>}</p>
+
+<p>public static Out AddressTemplateStoredCheckRenderAddress(TemplateStored ts, IState state)
+{</p>
+
+<pre><code>var ws = state.AddOrUpdate(new WorkflowState {AddressTemplateId = ts.TemplateId}, existing =&gt;
+{
+    existing.AddressTemplateId = ts.TemplateId;
+    return existing;
+});
+return RenderAddressIfReady(ws);
+</code></pre>
+
+<p>}
+```</p>
+
+<p>These four methods will be wired up to handle the four continuation options we created in our <code>Start</code> method.
+Each is very similar: it is passed the triggering message and the state of <em>this</em> work flow, updates or creates the
+state with the data it has received back, and then runs one of the private helpers we defined above.</p>
+
+<p>Why can we not just Add, or just Update the state? Well &ndash; we published 3 requests which are being handled by 4
+continuations. There are no guarantees what order these will be triggered in or that they won&rsquo;t be triggered simultaneously
+on different threads or even on different machines. <code>AddOrUpdate</code> acts as a synchronization point for our work flow,
+guaranteeing that the operation happening within it will be atomic.</p>
+
+<p>We can apply similar logic to waiting for our two rendering jobs:</p>
+
+<p>``` csharp
+private static Out SendEmailIfReady(WorkflowState state)
+{</p>
+
+<pre><code>if (state.EmailAddress == null || state.EmailContent == null) return Out.Ignore;
+var cid = Guid.NewGuid();
+var sendEmail =
+    new SendEmail(cid, state.EmailAddress, state.EmailContent);
+return Out.Empty.Send(sendEmail, TimeSpan.FromSeconds(4))
+    .Expect&lt;EmailSent&gt;(cid.ToString(), "EmailSent", TimeSpan.FromSeconds(5), "TimeOut");
+</code></pre>
+
+<p>}</p>
+
+<p>public static Out AddressRenderedCheckSendEmail(RenderComplete rc, IState state)
+{</p>
+
+<pre><code>var ws = state.AddOrUpdate(new WorkflowState {EmailAddress = rc.Content}, existing =&gt;
+{
+    existing.EmailAddress = rc.Content;
+    return existing;
+});
+return SendEmailIfReady(ws);
+</code></pre>
+
+<p>}</p>
+
+<p>public static Out ContentRenderedCheckSendEmail(RenderComplete rc, IState state)
+{</p>
+
+<pre><code>var ws = state.AddOrUpdate(new WorkflowState {EmailContent = rc.Content}, existing =&gt;
+{
+    existing.EmailContent = rc.Content;
+    return existing;
+});
+return SendEmailIfReady(ws);
+</code></pre>
+
+<p>}
+```</p>
+
+<p>Once they have both finished, and only once they have both finished, <code>SendEmailIfReady</code> will fire off a <code>SendEmail</code> request.</p>
+
+<p>``` csharp
+public static Out EmailSent(EmailSent es, IState state)
+{</p>
+
+<pre><code>var ws = state.Get&lt;WorkflowState&gt;().Value;
+Console.WriteLine("Email send success: {0}\nAddress: {1}\nContent: {2}", es.Successful, ws.EmailAddress, ws.EmailContent);
+return Out.End;
+</code></pre>
+
+<p>}
+```</p>
+
+<p>Finally on our happy path, we&rsquo;re informed that an email has been sent. Here we mark the work flow as ended using <code>Out.End</code>. This will cancel
+any outstanding continuations and remove the work flow state from the state store. ProcessManager <em>will not retain any information</em>
+about the running of a work flow. If you require (and you probably do) any kind of logging or auditing it is your responsibility to
+cover that within the handlers you write.</p>
+
+<p>But all this only covers the happy path. What happens if we hit one of those time outs we&rsquo;ve been talking about?</p>
+
+<p>``` csharp
+public static Out TimeOut(TimeOutMessage to, IState state)
+{</p>
+
+<pre><code>Console.WriteLine("Time out waiting for: {0}", to.TimedOutStep);
+return Out.End;
+</code></pre>
+
+<p>}
+```</p>
+
+<p>Well, in that case a <code>TimeOutMessage</code> will be published, and we can handle it appropriately. In this case, just printing out the fact the job timed out, and which step it was that didn&rsquo;t complete (one of the fields on the <code>TimeOutMessage</code> object).
+As above, we explicitly <code>End</code> the work flow. No further continuations will be triggered beyond this point. One thing to bear in mind though: while a continuation
+timeout guarantees the continuation will not fire after the <code>TimeSpan</code> has expired, there is <strong>no</strong> guarantee that the <code>TimeOutMessage</code> will be either published
+or handled in any particular timescale. For example, if all your ProcessManager nodes go down; well you won&rsquo;t be publishing/handling any time outs until they&rsquo;re running
+again.</p>
+
+<p>Now we&rsquo;re ready to write our <code>Configure</code> method. Let&rsquo;s wire everything up:</p>
+
+<p>``` csharp
+public static void Configure(ProcessManager pm)
+{</p>
+
+<pre><code>pm.AddProcessor(stored =&gt; stored.CorrelationId.ToString(), new []
+{
+    new Mapping&lt;ModelStored&gt;(ModelStoredCheckRenderContentKey, ModelStoredCheckRenderContent),
+    new Mapping&lt;ModelStored&gt;(ModelStoredCheckRenderAddressKey, ModelStoredCheckRenderAddress)
+});
+
+pm.AddProcessor(stored =&gt; stored.CorrelationId.ToString(), new[]
+{
+    new Mapping&lt;TemplateStored&gt;(ContentTemplateStoredCheckRenderContentKey,
+        ContentTemplateStoredCheckRenderContent),
+    new Mapping&lt;TemplateStored&gt;(AddressTemplateStoredCheckRenderAddressKey,
+        AddressTemplateStoredCheckRenderAddress)
+});
+
+pm.AddProcessor(complete =&gt; complete.CorrelationId.ToString(), new []
+{
+    new Mapping&lt;RenderComplete&gt;(AddressRenderedCheckSendEmailKey, AddressRenderedCheckSendEmail),
+    new Mapping&lt;RenderComplete&gt;(ContentRenderedCheckSendEmailKey, ContentRenderedCheckSendEmail)
+});
+
+pm.AddProcessor(sent =&gt; sent.CorrelationId.ToString(), new Mapping&lt;EmailSent&gt;("EmailSent", EmailSent));
+
+pm.AddProcessor(to =&gt; to.CorrelationId.ToString(), new Mapping&lt;TimeOutMessage&gt;("TimeOut", TimeOut));
+</code></pre>
+
+<p>}
+```</p>
+
+<p>The method takes our ProcessManager and starts adding processors to it. A processor knows how to extract a correlation ID from a specific message type, and an <code>IEnumerable</code> of mappings.
+Each mapping tells the ProcessManager which method to fire based on a string Key (remember our <code>const</code>s from above?).</p>
+
+<p>So, there you have it; a complete managed work flow on top of EasyNetQ with split and merge and time outs. The full work flow code file with out my commentary is below for those of you
+who find that easier!</p>
+
+<p>``` csharp
+using System;
+using System.Collections.Generic;
+using System.Runtime.Serialization;
+using EasyNetQ.ProcessManager;
+using Messenger.Messages.Email;
+using Messenger.Messages.Render;
+using Messenger.Messages.Store;</p>
+
+<p>namespace Process3
+{</p>
+
+<pre><code>[DataContract]
+public class WorkflowState
+{
+    public WorkflowState() { }
+
+    public WorkflowState(int? modelId, int? contentTemplateId, string emailContent, string emailAddress, int? addressTemplateId)
+    {
+        ModelId = modelId;
+        ContentTemplateId = contentTemplateId;
+        EmailContent = emailContent;
+        EmailAddress = emailAddress;
+        AddressTemplateId = addressTemplateId;
+    }
+
+    [DataMember]
+    public int? ModelId { get; set; }
+    [DataMember]
+    public int? ContentTemplateId { get; set; }
+    [DataMember]
+    public int? AddressTemplateId { get; set; }
+    [DataMember]
+    public string EmailContent { get; set; }
+    [DataMember]
+    public string EmailAddress { get; set; }
+}
+
+public class Workflow
+{
+    // Callback keys
+    private const string ModelStoredCheckRenderContentKey = "ModelStoredCheckRenderContentKey";
+    private const string ModelStoredCheckRenderAddressKey = "ModelStoredCheckRenderAddress";
+    private const string ContentTemplateStoredCheckRenderContentKey = "ContentTemplateStoredCheckRenderContent";
+    private const string AddressTemplateStoredCheckRenderAddressKey = "AddressTemplateStoredCheckRenderAddress";
+    private const string ContentRenderedCheckSendEmailKey = "ContentRenderedCheckSendEmail";
+    private const string AddressRenderedCheckSendEmailKey = "AddressRenderedCheckSendEmail";
+
+    public static Out Start(IDictionary&lt;string, object&gt; model, string contentTemplate, string addressTemplate)
+    {
+        var modelCid = Guid.NewGuid();
+        var contentCid = Guid.NewGuid();
+        var addressCid = Guid.NewGuid();
+        return
+            Out.Empty
+                .Send(new StoreModel(modelCid, model), TimeSpan.FromSeconds(4))
+                .Expect&lt;ModelStored&gt;(modelCid.ToString(), ModelStoredCheckRenderContentKey, TimeSpan.FromSeconds(5), "TimeOut")
+                .Expect&lt;ModelStored&gt;(modelCid.ToString(), ModelStoredCheckRenderAddressKey, TimeSpan.FromSeconds(5), "TimeOut")
+                .Send(new StoreTemplate(contentCid, "content template", contentTemplate), TimeSpan.FromSeconds(4))
+                .Expect&lt;TemplateStored&gt;(contentCid.ToString(), ContentTemplateStoredCheckRenderContentKey, TimeSpan.FromSeconds(5),
+                    "TimeOut")
+                .Send(new StoreTemplate(addressCid, "address template", addressTemplate), TimeSpan.FromSeconds(4))
+                .Expect&lt;TemplateStored&gt;(addressCid.ToString(), AddressTemplateStoredCheckRenderAddressKey, TimeSpan.FromSeconds(5),
+                    "TimeOut");
+    }
+
+    private static Out RenderContentIfReady(WorkflowState state)
+    {
+        if (!state.ModelId.HasValue || !state.ContentTemplateId.HasValue) return Out.Ignore;
+        var cid = Guid.NewGuid();
+        var renderContent =
+            new RequestRender(cid, state.ContentTemplateId.Value, state.ModelId.Value);
+        return
+            Out.Empty
+                .Send(renderContent, TimeSpan.FromSeconds(4))
+                .Expect&lt;RenderComplete&gt;(cid.ToString(), ContentRenderedCheckSendEmailKey, TimeSpan.FromSeconds(5),
+                    "TimeOut");
+    }
+
+    private static Out RenderAddressIfReady(WorkflowState state)
+    {
+        if (!state.ModelId.HasValue || !state.AddressTemplateId.HasValue) return Out.Ignore;
+        var cid = Guid.NewGuid();
+        var renderContent =
+            new RequestRender(cid, state.AddressTemplateId.Value, state.ModelId.Value);
+        return Out.Empty.Send(renderContent, TimeSpan.FromSeconds(4))
+            .Expect&lt;RenderComplete&gt;(cid.ToString(), AddressRenderedCheckSendEmailKey, TimeSpan.FromSeconds(5),
+                "TimeOut");
+    }
+
+    public static Out ModelStoredCheckRenderContent(ModelStored ms, IState state)
+    {
+        var ws = state.AddOrUpdate(new WorkflowState {ModelId = ms.ModelId}, existing =&gt;
+        {
+            existing.ModelId = ms.ModelId;
+            return existing;
+        });
+        return RenderContentIfReady(ws);
+    }
+
+    public static Out ModelStoredCheckRenderAddress(ModelStored ms, IState state)
+    {
+        var ws = state.AddOrUpdate(new WorkflowState {ModelId = ms.ModelId}, existing =&gt;
+        {
+            existing.ModelId = ms.ModelId;
+            return existing;
+        });
+        return RenderAddressIfReady(ws);
+    }
+
+    public static Out ContentTemplateStoredCheckRenderContent(TemplateStored ts, IState state)
+    {
+        var ws = state.AddOrUpdate(new WorkflowState {ContentTemplateId = ts.TemplateId}, existing =&gt;
+        {
+            existing.ContentTemplateId = ts.TemplateId;
+            return existing;
+        });
+        return RenderContentIfReady(ws);
+    }
+
+    public static Out AddressTemplateStoredCheckRenderAddress(TemplateStored ts, IState state)
+    {
+        var ws = state.AddOrUpdate(new WorkflowState {AddressTemplateId = ts.TemplateId}, existing =&gt;
+        {
+            existing.AddressTemplateId = ts.TemplateId;
+            return existing;
+        });
+        return RenderAddressIfReady(ws);
+    }
+
+    private static Out SendEmailIfReady(WorkflowState state)
+    {
+        if (state.EmailAddress == null || state.EmailContent == null) return Out.Ignore;
+        var cid = Guid.NewGuid();
+        var sendEmail =
+            new SendEmail(cid, state.EmailAddress, state.EmailContent);
+        return Out.Empty.Send(sendEmail, TimeSpan.FromSeconds(4))
+            .Expect&lt;EmailSent&gt;(cid.ToString(), "EmailSent", TimeSpan.FromSeconds(5), "TimeOut");
+    }
+
+    public static Out AddressRenderedCheckSendEmail(RenderComplete rc, IState state)
+    {
+        var ws = state.AddOrUpdate(new WorkflowState {EmailAddress = rc.Content}, existing =&gt;
+        {
+            existing.EmailAddress = rc.Content;
+            return existing;
+        });
+        return SendEmailIfReady(ws);
+    }
+
+    public static Out ContentRenderedCheckSendEmail(RenderComplete rc, IState state)
+    {
+        var ws = state.AddOrUpdate(new WorkflowState {EmailContent = rc.Content}, existing =&gt;
+        {
+            existing.EmailContent = rc.Content;
+            return existing;
+        });
+        return SendEmailIfReady(ws);
+    }
+
+    public static Out EmailSent(EmailSent es, IState state)
+    {
+        var ws = state.Get&lt;WorkflowState&gt;().Value;
+        Console.WriteLine("Email send success: {0}\nAddress: {1}\nContent: {2}", es.Successful, ws.EmailAddress, ws.EmailContent);
+        return Out.End;
+    }
+
+    public static Out TimeOut(TimeOutMessage to, IState state)
+    {
+        Console.WriteLine("Time out waiting for: {0}", to.TimedOutStep);
+        return Out.End;
+    }
+
+    public static void Configure(ProcessManager pm)
+    {
+        pm.AddProcessor(stored =&gt; stored.CorrelationId.ToString(), new []
+        {
+            new Mapping&lt;ModelStored&gt;(ModelStoredCheckRenderContentKey, ModelStoredCheckRenderContent),
+            new Mapping&lt;ModelStored&gt;(ModelStoredCheckRenderAddressKey, ModelStoredCheckRenderAddress)
+        });
+
+        pm.AddProcessor(stored =&gt; stored.CorrelationId.ToString(), new[]
+        {
+            new Mapping&lt;TemplateStored&gt;(ContentTemplateStoredCheckRenderContentKey,
+                ContentTemplateStoredCheckRenderContent),
+            new Mapping&lt;TemplateStored&gt;(AddressTemplateStoredCheckRenderAddressKey,
+                AddressTemplateStoredCheckRenderAddress)
+        });
+
+        pm.AddProcessor(complete =&gt; complete.CorrelationId.ToString(), new []
+        {
+            new Mapping&lt;RenderComplete&gt;(AddressRenderedCheckSendEmailKey, AddressRenderedCheckSendEmail),
+            new Mapping&lt;RenderComplete&gt;(ContentRenderedCheckSendEmailKey, ContentRenderedCheckSendEmail)
+        });
+
+        pm.AddProcessor(sent =&gt; sent.CorrelationId.ToString(), new Mapping&lt;EmailSent&gt;("EmailSent", EmailSent));
+
+        pm.AddProcessor(to =&gt; to.CorrelationId.ToString(), new Mapping&lt;TimeOutMessage&gt;("TimeOut", TimeOut));
+    }
+}
+</code></pre>
+
+<p>}
+```</p>
+
+<p>Suggestions, additions and questions welcome.</p>
+]]></content>
+  </entry>
+  
+</feed>

@@ -1,0 +1,1030 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Mavnn's blog</title>
+  <meta name="author" content="mavnn">
+
+  
+  <meta name="description" content="In my investigations into type providers, I started digging into a feature of F# called quotations. These blur the boundary between code and data; a &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+  <link rel="canonical" href="http://blog.mavnn.co.uk/blog/page/3/index.html">
+  <link href="/favicon.ico" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Mavnn's blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+<!-- Google Analytics -->
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-37561687-1', 'auto');
+ga('send', 'pageview');
+
+</script>
+<!-- End Google Analytics -->
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Mavnn's blog</a></h1>
+  
+    <h2>Stuff from my brain</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:blog.mavnn.co.uk" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div class="blog-index">
+  
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/tap/">Tap, Tap, Tapping on the Door</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-05-30T11:45:35+01:00" pubdate data-updated="true">May 30<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>In my investigations into <a href="/blog/categories/typeprovider/">type providers</a>, I started digging into a feature of F# called quotations. These blur the boundary between code and data; a representation of an expression tree that you can then evaluate or manipulate.</p>
+
+<p>Why is this useful? Well; it&rsquo;s used in a number of places in various F# libraries. As mentioned above, type providers use them as a mechanism for providing the invocation code for the types that are being provided. The compiler can then take that expression tree and turn in into clr code.</p>
+
+<p>They can also be useful as a way of defining code within your F# that can then be translated into other programming languages. The linq to sql implementation does this (turning your linq into SQL, fairly obviously!) while the FunScript project compiles your F# quotations into JavaScript.</p>
+
+<p>So; linked features, often used in concert: quotations allow you to generate expressions at runtime, manipulate them at run time and evaluate them at run time &ndash; where evaluation covers everything from running the code on the clr to outputting it as a different language.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/tap/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/functionally-solid-2/">Functionally SOLID 2</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-05-09T13:43:02+01:00" pubdate data-updated="true">May 9<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><em>This post follows on directly from <a href="/going-functionally-solid">Going Functionally SOLID</a></em></p>
+
+<p>In our first session looking at <a href="http://en.wikipedia.org/wiki/Solid_%28object-oriented_design%29">SOLID</a> and functional programming, we tried to apply some SOLID principles to an example piece of code.</p>
+
+<p>We ended up with a set of interfaces like those below, and robot classes could then implement the interfaces to define their capabilities and state. I mentioned the example code was for a giant robot game, yes?</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/functionally-solid-2/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/type-safe-printf-via-type-providers/">Type Safe Printf via Type Providers</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-05-06T15:33:15+01:00" pubdate data-updated="true">May 6<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><a href="http://twitter.com/puffnfresh">Brian McKenna</a> posted an interesting <a href="http://www.youtube.com/watch?v=fVBck2Zngjo">video</a> and <a href="https://gist.github.com/puffnfresh/11202637">gist</a> on implementing a type safe printf in Idris with dependent types.</p>
+
+<p>This led me down a nice little rabbit hole wondering if something similar could be achieved with an F# type provider.</p>
+
+<p>With a <a href="http://stackoverflow.com/questions/23375469/how-can-i-build-an-arbitary-curried-function-in-an-f-type-provider">bit of help from Tomas</a> the final solution turned out to be surprisingly nice, although not quite so clean as the Idris original.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/type-safe-printf-via-type-providers/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/going-functionally-solid/">Going Functionally SOLID</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-04-11T11:45:47+01:00" pubdate data-updated="true">Apr 11<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><em>The one giant robot every programmer should know and love! Meet Big O!</em></p>
+
+<p><img src="/images/Big_o.jpg" alt="Big O" /></p>
+
+<p><em>For all your algorithmic complexity needs. And any giant mecha in need of a good pounding.</em></p>
+
+<p>And now, back to your regularly scheduled blog post&hellip;</p>
+
+<p>Inspired both by <a href="http://blog.ploeh.dk/2014/03/10/solid-the-next-step-is-functional/">Mark Seemann&rsquo;s excellent blog post</a> and by my ongoing campaign to introduce functional programming techniques to <a href="http://www.15below.com/">15below</a> developers who aren&rsquo;t familiar with them yet, I decided it was time to run a mini-series on applying good principles like <a href="http://en.wikipedia.org/wiki/Solid_%28object-oriented_design%29">SOLID</a> in a functional world.</p>
+
+<p>We run weekly one hour &ldquo;Developer Education&rdquo; sessions. For this series I started with a badly written piece of code (it came naturally, given I had limited prep time&hellip;) in a style of someone who has kind of heard about SOLID and functional programming:</p>
+
+<ul>
+<li><strong>SOLID</strong>: &ldquo;So, eh, I need some interfaces and things. Concrete bad, interface good. In wonder what the whole DI thing is?&rdquo;</li>
+<li><strong>Functional</strong>: &ldquo;And, erm. Chainable functions? Fluent APIs, maybe? That&rsquo;s kind of functional, right?&rdquo;</li>
+</ul>
+
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/going-functionally-solid/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/type-providers-from-the-first-floor/">Type Providers From the First Floor</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-03-19T21:06:05+00:00" pubdate data-updated="true">Mar 19<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><em>This post follows on directly from my previous post <a href="http://blog.mavnn.co.uk/type-providers-from-the-ground-up/">Type Providers from the Ground Up</a>. I highly recommend that you read that first, and check out the relevant example code from GitHub.</em></p>
+
+<p><em>It&rsquo;s also a bit epic&hellip; grab yourself a coffee before you start.</em></p>
+
+<p>So we have a working type provider now. Unfortunately, we&rsquo;re missing out on at least two major features that your new type provider will almost certainly want to make use of.</p>
+
+<p>The first is that in our example, we&rsquo;re reading the metadata that defines our types from a fixed file location. In almost every real life case, you will want to be able to parametrize your provider to specify where this instance is getting it&rsquo;s metadata from.</p>
+
+<p>The second is that in many cases getting the metadata will be slow, and the number of types available to generate may be very large. In these situations, you really want to be able to only generate the types that are required as they are requested, especially because this will reduce the size of the final compiled output. This is particularly important for type providers that read from large network based data sources like the Freebase provider.</p>
+
+<p>We&rsquo;ll take the second first, because it&rsquo;s easy &ndash; and we like easy&hellip;</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/type-providers-from-the-first-floor/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/single-file-websites-with-suave/">Single File Websites With Suave</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-02-28T09:54:46+00:00" pubdate data-updated="true">Feb 28<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><blockquote><p>As of a few days ago, the embedded module <a href="https://github.com/SuaveIO/suave/pull/100/files">was merged</a> into Suave master. Enjoy!</p></blockquote>
+
+<p>I&rsquo;m a great fan of <a href="http://suave.io/">Suave</a> for simple web development in F#. I highly recommend checking out the site for details, but in the mean time I&rsquo;d like to share a little trick I&rsquo;ve been using for rapid prototyping that I&rsquo;m finding very useful.</p>
+
+<p>The Suave.Http module contains a few helpers for serving static files from disk. Unfortunately, depending on use case and deployment strategy, relying on the location of a bunch of files on disk can be problematic.</p>
+
+<p>So (open source to the rescue!) I cracked open the code and wrote a small alternative implementation that serves files from the current assembly&rsquo;s embedded resources. I&rsquo;m finding it especially useful for single page JavaScript apps where you have a small number of resources and then a lot of end points providing api functionality.</p>
+
+<p>Setting up your website looks something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nc">Website</span>
+</span><span class='line'><span class="k">open</span> <span class="nc">System</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Suave</span><span class="p">.</span><span class="nc">Http</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Suave</span><span class="p">.</span><span class="nc">Types</span>
+</span><span class='line'><span class="k">open</span> <span class="nc">Embedded</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">app</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">choose</span> <span class="o">[</span>
+</span><span class='line'>        <span class="c1">// serve the embedded index.html for &quot;/&quot;</span>
+</span><span class='line'>        <span class="nc">GET</span> <span class="o">&gt;&gt;=</span> <span class="n">url</span> <span class="s2">&quot;/&quot;</span> <span class="o">&gt;&gt;=</span> <span class="n">resource</span> <span class="s2">&quot;index.html&quot;</span>
+</span><span class='line'>        <span class="c1">// check if the request matches the name of an embedded resource</span>
+</span><span class='line'>        <span class="c1">// if it does, serve it up with a reasonable cache</span>
+</span><span class='line'>        <span class="nc">GET</span> <span class="o">&gt;&gt;=</span> <span class="n">browse_embedded</span>
+</span><span class='line'>        <span class="c1">// If it doesn&#39;t, try and trigger your api end points</span>
+</span><span class='line'>        <span class="nc">GET</span> <span class="o">&gt;&gt;=</span> <span class="n">url</span> <span class="s2">&quot;/json&quot;</span> <span class="o">&gt;&gt;==</span> <span class="o">(</span><span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">serveJson</span> <span class="o">&lt;|</span> <span class="n">makeData</span><span class="bp">()</span><span class="o">)</span>
+</span><span class='line'>        <span class="nc">GET</span> <span class="o">&gt;&gt;=</span> <span class="n">url</span> <span class="s2">&quot;/carrier&quot;</span> <span class="o">&gt;&gt;==</span> <span class="o">(</span><span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">getCarrierCodes</span> <span class="bp">()</span><span class="o">)</span>
+</span><span class='line'>        <span class="c1">// Nothing else has worked - 404</span>
+</span><span class='line'>        <span class="nc">NOT_FOUND</span> <span class="s2">&quot;Sorry, couldn&#39;t find your page&quot;</span>
+</span><span class='line'>    <span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">web_server</span> <span class="n">default_config</span> <span class="n">app</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And the embedded module looks like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nc">Embedded</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nc">System</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">IO</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Reflection</span>
+</span><span class='line'><span class="k">open</span> <span class="nc">Suave</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Suave</span><span class="p">.</span><span class="nc">Http</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Suave</span><span class="p">.</span><span class="nc">Types</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Suave</span><span class="p">.</span><span class="nc">Socket</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">ass</span> <span class="o">=</span> <span class="nn">Assembly</span><span class="p">.</span><span class="nc">GetExecutingAssembly</span><span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">resources</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">ass</span><span class="o">.</span><span class="nc">GetManifestResourceNames</span><span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="nc">CACHE_CONTROL_MAX_AGE</span> <span class="o">=</span> <span class="mi">600</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">lastModified</span> <span class="o">=</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">UtcNow</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">send_embedded</span> <span class="n">resourceName</span> <span class="n">r</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">write_embedded</span> <span class="n">file</span> <span class="o">(</span><span class="n">r</span> <span class="o">:</span> <span class="nc">HttpRequest</span><span class="o">)</span> <span class="o">=</span> <span class="n">async</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">use</span> <span class="n">s</span> <span class="o">=</span> <span class="n">ass</span><span class="o">.</span><span class="nc">GetManifestResourceStream</span><span class="o">(</span><span class="n">resourceName</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="nc">Length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="n">L</span> <span class="k">then</span>
+</span><span class='line'>        <span class="k">do</span><span class="o">!</span> <span class="n">async_writeln</span> <span class="n">r</span><span class="o">.</span><span class="n">connection</span> <span class="o">(</span><span class="n">sprintf</span> <span class="s2">&quot;Content-Length: %d&quot;</span> <span class="n">s</span><span class="o">.</span><span class="nc">Length</span><span class="o">)</span> <span class="n">r</span><span class="o">.</span><span class="n">line_buffer</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">do</span><span class="o">!</span> <span class="n">async_writeln</span> <span class="n">r</span><span class="o">.</span><span class="n">connection</span> <span class="s2">&quot;&quot;</span> <span class="n">r</span><span class="o">.</span><span class="n">line_buffer</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="nc">Length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="n">L</span> <span class="k">then</span>
+</span><span class='line'>        <span class="k">do</span><span class="o">!</span> <span class="n">transfer_x</span> <span class="n">r</span><span class="o">.</span><span class="n">connection</span> <span class="n">s</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">async</span> <span class="o">{</span> <span class="k">do</span><span class="o">!</span> <span class="n">response_f</span> <span class="mi">200</span> <span class="s2">&quot;OK&quot;</span> <span class="o">(</span><span class="n">write_embedded</span> <span class="n">resourceName</span><span class="o">)</span> <span class="n">r</span> <span class="o">}</span> <span class="o">|&gt;</span> <span class="n">succeed</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">resource</span> <span class="n">resourceName</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">if</span> <span class="n">resources</span> <span class="o">|&gt;</span> <span class="nn">Array</span><span class="p">.</span><span class="n">exists</span> <span class="o">((=)</span> <span class="n">resourceName</span><span class="o">)</span> <span class="k">then</span>
+</span><span class='line'>      <span class="k">let</span> <span class="n">send_it</span> <span class="o">_</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">mimes</span> <span class="o">=</span> <span class="n">mime_type</span> <span class="o">&lt;|</span> <span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">GetExtension</span> <span class="n">resourceName</span>
+</span><span class='line'>        <span class="o">#</span><span class="k">if</span> <span class="nc">DEBUG</span>
+</span><span class='line'>        <span class="n">set_mime_type</span> <span class="n">mimes</span>
+</span><span class='line'>        <span class="o">&gt;&gt;</span> <span class="n">send_embedded</span> <span class="o">(</span><span class="n">resourceName</span><span class="o">)</span>
+</span><span class='line'>        <span class="o">#</span><span class="k">else</span>
+</span><span class='line'>        <span class="n">set_header</span> <span class="s2">&quot;Cache-Control&quot;</span> <span class="o">(</span><span class="n">sprintf</span> <span class="s2">&quot;max-age=%d&quot;</span> <span class="nc">CACHE_CONTROL_MAX_AGE</span><span class="o">)</span>
+</span><span class='line'>        <span class="o">&gt;&gt;</span> <span class="n">set_header</span> <span class="s2">&quot;Last-Modified&quot;</span> <span class="o">(</span><span class="n">lastModified</span><span class="o">.</span><span class="nc">ToString</span><span class="o">(</span><span class="s2">&quot;R&quot;</span><span class="o">))</span>
+</span><span class='line'>        <span class="o">&gt;&gt;</span> <span class="n">set_header</span> <span class="s2">&quot;Expires&quot;</span> <span class="o">(</span><span class="nn">DateTime</span><span class="p">.</span><span class="nn">UtcNow</span><span class="p">.</span><span class="nc">AddSeconds</span><span class="o">(</span><span class="kt">float</span><span class="o">(</span><span class="nc">CACHE_CONTROL_MAX_AGE</span><span class="o">)).</span><span class="nc">ToString</span><span class="o">(</span><span class="s2">&quot;R&quot;</span><span class="o">))</span>
+</span><span class='line'>        <span class="o">&gt;&gt;</span> <span class="n">set_mime_type</span> <span class="n">mimes</span>
+</span><span class='line'>        <span class="o">&gt;&gt;</span> <span class="n">send_embedded</span> <span class="o">(</span><span class="n">resourceName</span><span class="o">)</span>
+</span><span class='line'>        <span class="o">#</span><span class="n">endif</span>
+</span><span class='line'>      <span class="n">warbler</span> <span class="o">(</span> <span class="k">fun</span> <span class="o">(</span><span class="n">r</span><span class="o">:</span><span class="nc">HttpRequest</span><span class="o">)</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">modified_since</span> <span class="o">=</span> <span class="o">(</span><span class="n">r</span><span class="o">.</span><span class="n">headers</span> <span class="o">?</span> <span class="o">``</span><span class="k">if</span><span class="o">-</span><span class="n">modified</span><span class="o">-</span><span class="n">since</span><span class="o">``</span> <span class="o">)</span>
+</span><span class='line'>        <span class="k">match</span> <span class="n">modified_since</span> <span class="k">with</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">Some</span> <span class="n">v</span> <span class="o">-&gt;</span> <span class="k">let</span> <span class="n">date</span> <span class="o">=</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">Parse</span> <span class="n">v</span>
+</span><span class='line'>                    <span class="k">if</span> <span class="n">lastModified</span> <span class="o">&gt;</span> <span class="n">date</span> <span class="k">then</span> <span class="n">send_it</span> <span class="bp">()</span>
+</span><span class='line'>                    <span class="k">else</span> <span class="nc">NOT_MODIFIED</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">None</span>   <span class="o">-&gt;</span> <span class="n">send_it</span> <span class="bp">()</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">else</span>
+</span><span class='line'>      <span class="n">never</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">browse_embedded</span> <span class="o">:</span> <span class="nc">WebPart</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">warbler</span> <span class="o">(</span><span class="k">fun</span> <span class="n">req</span> <span class="o">-&gt;</span> <span class="n">resource</span> <span class="o">(</span><span class="n">req</span><span class="o">.</span><span class="n">url</span><span class="o">.</span><span class="nc">TrimStart</span><span class="o">([|</span> <span class="sc">&#39;/&#39;</span> <span class="o">|])))</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><a href="https://twitter.com/ad3mar">@ad3mar</a> if you feel like rolling this into Suave, you can consider it licenced under what ever is most convenient. An official licence file would make me much happier using Suave in production, by the way (hint, hint).</p>
+
+<p>Edit: ad3mar has pointed out in the comments that Suave is already Apache2 licensed, I just failed to find the file last time I looked.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/type-provider-protip/">Type Provider ProTip</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-01-10T12:15:15+00:00" pubdate data-updated="true">Jan 10<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>While type providers are incredibly powerful, the ProvidedTypes api for creating them is sometimes a bit rough around the edges. And not always as functional as you might hope.</p>
+
+<p>At some point I&rsquo;d like to do something about that, but for the moment I&rsquo;m just going to collect a few helpful tips and hints (mostly for own reference).</p>
+
+<p>Tip one is in the case where you have XmlDocs to add to ProvidedTypes, ProvidedMethods and ProvidedProperties; in our case we have an optional description field in our metadata and the boiler plate was getting tiresome.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="k">inline</span> <span class="n">addDoc</span> <span class="o">(</span><span class="n">desc</span> <span class="o">:</span> <span class="nc">Descriptor</span><span class="o">)</span> <span class="n">def</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">match</span> <span class="n">desc</span><span class="o">.</span><span class="nc">Description</span> <span class="k">with</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Some</span> <span class="n">d</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="o">(^</span><span class="nc">T</span> <span class="o">:</span> <span class="o">(</span><span class="k">member</span> <span class="nc">AddXmlDoc</span> <span class="o">:</span> <span class="kt">string</span> <span class="o">-&gt;</span> <span class="kt">unit</span><span class="o">)</span> <span class="o">(</span><span class="n">def</span><span class="o">,</span> <span class="n">d</span><span class="o">))</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This function takes a <code>Descriptor</code> with a <code>string option</code> Description field and any <code>def</code> with an AddXmlDoc member with the noted signature &ndash; and adds description as the xml doc if it exists.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/pygments/">Pygments</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-01-03T12:23:00+00:00" pubdate data-updated="true">Jan 3<span>rd</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Apparently I should be able to do inline F# code using one of the Octopress plugins, rather than having to use gists every where.</p>
+
+<p>Let&rsquo;s try it:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">hello</span> <span class="o">=</span> <span class="s2">&quot;world&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Thanks <a href="https://twitter.com/ovatsus/status/411496863591067648">Gustavo</a></p>
+
+<p>Only issue is that having Python 3.x installed broke Octopress&#8217; Pygments support. Which kept me going for a while&hellip;</p>
+
+<p>Given I&rsquo;m not currently doing any Python development, a uninstall and adding 2.7 to the path did the job.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/type-providers-from-the-ground-up/">Type Providers From the Ground Up</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-12-05T11:28:00+00:00" pubdate data-updated="true">Dec 5<span>th</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><em>This post is part of a series: <a href="/type-providers-from-the-first-floor/">part 2</a> follows on directly from this post.</em></p>
+
+<p>In the ground tradition of blog posts as both documentation and augmented memory, I&rsquo;ve just added our first <a href="http://blogs.msdn.com/b/dsyme/archive/2013/01/30/twelve-type-providers-in-pictures.aspx">Type Provider</a> to the code base. Time to write up the details before a) I forget them and b) anyone else needs to modify the code.</p>
+
+<p>So, first things first. Before we get to the actual problem space at hand, let&rsquo;s try and provide a type. Any type&hellip;</p>
+
+<p>1) Create yourself a new Visual Studio F# library project (2012 or up should work).</p>
+
+<p>2a) Install the <a href="https://www.nuget.org/packages/FSharp.TypeProviders.StarterPack/">F# TypeProvider Starter Pack</a> or</p>
+
+<p>2b) add <a href="https://raw.github.com/fsharp/FSharp.Data/master/src/CommonProviderImplementation/ProvidedTypes.fs">ProvidedTypes.fs</a> and <a href="https://raw.github.com/fsharp/FSharp.Data/master/src/CommonProviderImplementation/ProvidedTypes.fsi">ProvidedTypes.fsi</a> to the project as the first couple of files.</p>
+
+<p>In either case, make sure that the .fsi file appears before the .fs file in your project listing, and that both appear before any type provider code &ndash; you will probably have to manually re-order them.</p>
+
+<p>These are provided as code files rather than as compiled dlls due to complications with security and AppDomains when referencing dlls in the type provider assembly. For now just add them in &ndash; you really don&rsquo;t want to be re-creating the code in there by hand.</p>
+
+<p>3) Replace the contents of Library1.fs with something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nn">Mavnn</span><span class="p">.</span><span class="nn">Blog</span><span class="p">.</span><span class="nc">TypeProvider</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nn">ProviderImplementation</span><span class="p">.</span><span class="nc">ProvidedTypes</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nn">Core</span><span class="p">.</span><span class="nc">CompilerServices</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="nc">TypeProvider</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">type</span> <span class="nc">MavnnProvider</span> <span class="o">(</span><span class="n">config</span> <span class="o">:</span> <span class="nc">TypeProviderConfig</span><span class="o">)</span> <span class="k">as</span> <span class="n">this</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">inherit</span> <span class="nc">TypeProviderForNamespaces</span> <span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="n">assembly</span><span class="o">:</span><span class="nc">TypeProviderAssembly</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">do</span> <span class="bp">()</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So, that&rsquo;s great and it builds. We have a type provider class and an assembly that knows it&rsquo;s a type providing assembly. Unfortunately, it doesn&rsquo;t actually provide any types yet. Let&rsquo;s try it.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/type-providers-from-the-ground-up/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/to-infinity/">To Infinity and Beyond</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-10-31T07:41:00+00:00" pubdate data-updated="true">Oct 31<span>st</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>So, a couple of weeks ago I went to the Brighton Functional Programmers meet up. It was a fun night, and at one point I ended up live coding in front of a room of functional programmers trying to give examples of lazy and strict evaluation.</p>
+
+<p>The canonical go to tool for the job, is of course the infinite sequence and being stared at by a bunch of people and having syntax highlighting but no compiler, the first thing my brain pulled out of the air was this:</p>
+
+<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part1.fs'></script>
+<noscript><pre><code>let ones =
+    seq {
+        while true do
+            yield 1
+    }
+// seq [1; 1; 1; 1; ...]</code></pre></noscript></div>
+
+
+<p>Which prompted one of the people attending (hi <a href="https://twitter.com/milessabin">Miles!</a>) to comment &ldquo;let&rsquo;s see that in Haskell without the bizarre looping generator&rdquo;. Roughly &ndash; I&rsquo;m slightly paraphrasing here given the couple of weeks in between. He has a bit of a point, this isn&rsquo;t the most functional looking sequence generator in the world, and it looks like quite a lot of code to just generate a lot of ones.</p>
+
+<p>As always in these situations, I had of course thought of several other alternatives before I even reached my chair, so I thought I&rsquo;d have a quick survey of them and their advantages and disadvantages.</p>
+
+<p>My first thought was that I&rsquo;d missed the obvious and succinct option of just generating a range. In F# (as in Haskell) the 1 .. 10 notation generates a list of the integers from 1 to 10. Unfortunately:</p>
+
+<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part2.fs'></script>
+<noscript><pre><code>// Can't do this, unfortunately
+// seq { 1 .. }
+//
+// or this:
+// seq { 1 .. 0 .. 2 }
+//
+// Which I thought might be a nice hack.
+</code></pre></noscript></div>
+
+
+<p>Unlike Haskell, you can&rsquo;t have an unbounded range, nor can you set the &ldquo;step&rdquo; to zero to just keep on generating the same number. So you&rsquo;re limited to generating very big, but definitely not infinite sequences:</p>
+
+<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part3.fs'></script>
+<noscript><pre><code>let notInfiniteOrOnes = seq { 1 .. System.Int32.MaxValue }
+// seq [1; 2; 3; 4; ...]
+
+let notInfinite = seq { for _ in 1 .. System.Int32.MaxValue -&gt; 1 }
+// seq [1; 1; 1; 1; ...]
+</code></pre></noscript></div>
+
+
+<p>But hey! We&rsquo;re in functional world. So if we can&rsquo;t use sneaky built in syntax constructs, the next obvious choice is a recursive function:</p>
+
+<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part4.fs'></script>
+<noscript><pre><code>let ones' =
+    let rec gen () =
+        seq {
+            yield 1
+            yield! gen ()
+        }
+    gen ()
+// seq [1; 1; 1; 1; ...]
+</code></pre></noscript></div>
+
+
+<p>This is definitely infinite, and definitely functional in style. Bit verbose, of course, but it least it won&rsquo;t stack overflow as F# implements tail call recursion. It&rsquo;s verbose, but it does also have its advantages. It&rsquo;s trivial to pass things round in the recursive function (previous values from the sequence, etc) making this a very flexible way of generating sequences.</p>
+
+<p>And, of course, let&rsquo;s not ignore the standard library. The <code>Seq</code> module gives us a couple of methods designed specifically for generating (potentially) infinite sequences.</p>
+
+<p><code>Seq.initInfinite</code> just takes a function that returns a sequence value based on the index of that value:</p>
+
+<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part5.fs'></script>
+<noscript><pre><code>let ones'' = Seq.initInfinite (fun _ -&gt; 1)
+// seq [1; 1; 1; 1; ...]
+</code></pre></noscript></div>
+
+
+<p>As long as a simple mapping from index to value exists, this is both clear and concise. In theory, of course, it also suffers from the same issue as my range generators above: if your index exceeds the valid size of an Int32 you&rsquo;re out of luck.</p>
+
+<p><code>Seq.unfold</code> may seem less intuitive, but in my mind is the more flexible and powerful solution. I tend to come across examples where it&rsquo;s easier to generate a sequence based on either some state or the previous term than by index, and that&rsquo;s exactly what unfold allows you to do:</p>
+
+<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part6.fs'></script>
+<noscript><pre><code>let ones''' = Seq.unfold (fun _ -&gt; Some (1, ())) ()
+// seq [1; 1; 1; 1; ...]
+</code></pre></noscript></div>
+
+
+<p>It will also happily generate sequences forever if your generating function allows.</p>
+
+<p>So, how does it actually work? Let&rsquo;s look at a (slightly) more complex example that actually makes use of some state:</p>
+
+<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part7.fs'></script>
+<noscript><pre><code>let moreInterestingUnfold =
+    Seq.unfold
+        (fun state -&gt;
+            Some (state, state + 1)) 1
+// seq [1; 2; 3; 4; ...]
+</code></pre></noscript></div>
+
+
+<p>What&rsquo;s going on here then? Well, <code>unfold</code> takes two arguments. The first is a function that takes a &lsquo;State and returns an Option&lt;&rsquo;T * &#8216;State>. In our simple example above, both &#8216;State and &rsquo;T are of type <code>int</code> but there&rsquo;s no requirement for them to be of the same type. If at any point the function returns <code>None</code>, the sequence ends. In our example, we always return <code>Some</code>, so our sequence is infinite (at least until it runs out of integers) and we&rsquo;re return a tuple of two values &ndash; the first of which will be used as the next term in the sequence, and the second which will become the new state.</p>
+
+<p>The second argument to <code>unfold</code> is the starting state. In our case, this means the number that will be the first term in the sequence, and then we&rsquo;ll add one to it each time.</p>
+
+<p>Let&rsquo;s round this out with an example that uses different types for the state and the terms of the sequence, which will hopefully now make some sense:</p>
+
+<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part8.fs'></script>
+<noscript><pre><code>type Time =
+    {
+        Hour : int
+        Minute : int
+    }
+
+let addMinute time =
+    match time with
+    | { Hour = 23; Minute = 59 } -&gt;
+        { Hour = 0; Minute = 0 }
+    | { Minute = 59 } -&gt;
+        { Hour = time.Hour + 1; Minute = 0 }
+    | _ -&gt;
+        { Hour = time.Hour; Minute = time.Minute + 1 }
+
+let unfold' =
+    Seq.unfold
+        (fun state -&gt;
+            Some (sprintf &quot;%02d:%02d&quot; state.Hour state.Minute, addMinute state)
+            ) { Hour = 22; Minute = 59 }
+// seq [&quot;23:59&quot;; &quot;00:00&quot;; &quot;00:01&quot;; &quot;00:02&quot;; ...]
+</code></pre></noscript></div>
+
+
+<p>I&rsquo;m sure that you&rsquo;ve always needed a convenient way of cycling through every minute of the day repeatedly, with a nice readable string representation.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  <div class="pagination">
+    
+      <a class="prev" href="/blog/page/4/">&larr; Older</a>
+    
+    <a href="/blog/archives">Blog Archives</a>
+    
+    <a class="next" href="/blog/page/2/">Newer &rarr;</a>
+    
+  </div>
+</div>
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/beginnings-and-endings/">Beginnings and Endings</a>
+      </li>
+    
+      <li class="post">
+        <a href="/easynetq-process-management/">EasyNetQ Process Management</a>
+      </li>
+    
+      <li class="post">
+        <a href="/extracting-information-from-msbuild/">Extracting Information From MsBuild</a>
+      </li>
+    
+      <li class="post">
+        <a href="/functional-programming-in-an-imperitive-world/">Functional Programming in an Imperative World</a>
+      </li>
+    
+      <li class="post">
+        <a href="/sdd-conf-2015/">Property Based Testing at SDD Conf 2015</a>
+      </li>
+    
+  </ul>
+</section>
+<section>
+  <h1>Tip the author</h1>
+  <p><script data-gittip-username="mavnn"
+        data-gittip-widget="button"
+        src="//gttp.co/v1.js"></script></p>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating&#8230;</li>
+  </ul>
+  
+  <a href="https://github.com/mavnn">@mavnn</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'mavnn',
+            count: 3,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/+MichaelNewtonmavnn?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+  
+</aside>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - mavnn -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mavnn';
+      
+        
+        var disqus_script = 'count.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

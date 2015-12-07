@@ -1,0 +1,1532 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: typeprovider | Mavnn's blog]]></title>
+  <link href="http://blog.mavnn.co.uk/blog/categories/typeprovider/atom.xml" rel="self"/>
+  <link href="http://blog.mavnn.co.uk/"/>
+  <updated>2015-11-26T10:02:58+00:00</updated>
+  <id>http://blog.mavnn.co.uk/</id>
+  <author>
+    <name><![CDATA[mavnn]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Testing ProvidedType.fs by Example]]></title>
+    <link href="http://blog.mavnn.co.uk/testing-providedtype-dot-fs/"/>
+    <updated>2015-02-16T12:12:56+00:00</updated>
+    <id>http://blog.mavnn.co.uk/testing-providedtype-dot-fs</id>
+    <content type="html"><![CDATA[<p>The <a href="https://github.com/fsprojects/FSharp.TypeProviders.StarterPack">Type Provider Starter Pack</a> was designed with two purposes initially. Firstly, to be a canonical repository for the ProvidedTypes files which provide a source file based API for creating type providers. And secondly, to be a set of tutorials and examples for people wanting to dip their toes into building type providers for the first time.</p>
+
+<p>To be honest, it&rsquo;s not been doing a complete job of either:</p>
+
+<ul>
+<li>I think most people are using it as the source of ProvidedTypes.fs and .fsi now days, but it didn&rsquo;t provide any infrastructure or testing for progressing the library.</li>
+<li>The &ldquo;examples&rdquo; were limited to a link to my <a href="/type-providers-from-the-ground-up/">tutorial on building type providers</a></li>
+</ul>
+
+
+<p>Today, that&rsquo;s changed. And I need your help!</p>
+
+<h3>Testing ProvidedTypes</h3>
+
+<p>Once I started thinking about it, it became clear that the code needed for basic type provider examples, and the code needed to test ProvidedTypes.fs were basically identical.</p>
+
+<p>So I implemented a system for compiling and testing example .fsx scripts within the Starter Pack repository.</p>
+
+<p>Want to help out? As long as you have some basic git and F# knowledge, it&rsquo;s easy!</p>
+
+<!-- more -->
+
+
+<h4>Fork the repository and pull down a clone</h4>
+
+<h4>Add an example to the <code>/examples</code> directory</h4>
+
+<p>Structure the example as below and save it as an .fsx file:</p>
+
+<p>``` fsharp</p>
+
+<h1>if INTERACTIVE</h1>
+
+<h1>load &ldquo;../src/ProvidedTypes.fsi&rdquo;</h1>
+
+<h1>load &ldquo;../src/ProvidedTypes.fs&rdquo;</h1>
+
+<h1>endif</h1>
+
+<p>open ProviderImplementation.ProvidedTypes
+open Microsoft.FSharp.Core.CompilerServices
+open System.Reflection</p>
+
+<p>[<TypeProvider>]
+type BasicProvider (config : TypeProviderConfig) as this =</p>
+
+<pre><code>inherit TypeProviderForNamespaces ()
+
+let ns = "StaticProperty.Provided"
+let asm = Assembly.GetExecutingAssembly()
+
+let createTypes () =
+    let myType = ProvidedTypeDefinition(asm, ns, "MyType", Some typeof&lt;obj&gt;)
+    let myProp = ProvidedProperty("MyProperty", typeof&lt;string&gt;, IsStatic = true,
+                                    GetterCode = (fun args -&gt; &lt;@@ "Hello world" @@&gt;))
+    myType.AddMember(myProp)
+    [myType]
+
+do
+    this.AddNamespace(ns, createTypes())
+</code></pre>
+
+<p>[&lt;assembly:TypeProviderAssembly>]
+do ()
+```</p>
+
+<p>The <code>#if INTERACTIVE</code> block at the top will allow you to write your example in Visual Studio, without us requiring a separate project for each example provider.</p>
+
+<h4>Add a set of tests in a .fsx script in the <code>/examples</code> directory</h4>
+
+<p>The test file for the example above looks like this, and again should be saved as an .fsx file:</p>
+
+<p>``` fsharp</p>
+
+<h1>if INTERACTIVE</h1>
+
+<h1>r @&ldquo;../packages/Nunit.Runners/tools/nunit.framework.dll&rdquo;</h1>
+
+<h1>r @&ldquo;../test/StaticProperty.dll&rdquo;</h1>
+
+<h1>endif</h1>
+
+<p>open NUnit.Framework
+open StaticProperty.Provided</p>
+
+<p>[<Test>]
+let <code>Static property should have been created</code> () =</p>
+
+<pre><code>Assert.AreEqual("Hello world", MyType.MyProperty)
+</code></pre>
+
+<p>```</p>
+
+<p>Note the two #r references at the top. Remember what you choose to call the dll!</p>
+
+<h4>Hooking up the examples so they get built and tested</h4>
+
+<p>The main build file is where the magic happens &ndash; <a href="https://github.com/fsprojects/FSharp.TypeProviders.StarterPack/blob/master/build.fsx">build.fsx</a> in the root directory.</p>
+
+<p>Squirrelled away in there is a target called <code>Examples</code>. It&rsquo;s contents look like this:</p>
+
+<p>``` fsharp
+let examples =</p>
+
+<pre><code>[
+    {
+        Name = "StaticProperty"
+        ProviderSourceFiles = ["StaticProperty.fsx"]
+        TestSourceFiles = ["StaticProperty.Tests.fsx"]
+    }
+    {
+        Name = "ErasedWithConstructor"
+        ProviderSourceFiles = ["ErasedWithConstructor.fsx"]
+        TestSourceFiles = ["ErasedWithConstructor.Tests.fsx"]
+    }
+]
+</code></pre>
+
+<p>let testNunitDll = testDir @@ &ldquo;nunit.framework.dll&rdquo;</p>
+
+<p>do</p>
+
+<pre><code>if File.Exists testNunitDll then
+    File.Delete testNunitDll
+File.Copy (nunitDir @@ "nunit.framework.dll", testNunitDll)
+</code></pre>
+
+<p>let fromExampleDir filenames =</p>
+
+<pre><code>filenames
+|&gt; List.map (fun filename -&gt; exampleDir @@ filename)
+</code></pre>
+
+<p>examples
+|> List.iter (fun example &ndash;></p>
+
+<pre><code>    // Compile type provider
+    let output = testDir @@ example.Name + ".dll"
+    let setOpts = fun def -&gt; { def with Output = output; FscTarget = FscTarget.Library }
+    Fsc setOpts (List.concat [pt;fromExampleDir example.ProviderSourceFiles])
+
+    // Compile test dll
+    let setTestOpts = fun def -&gt;
+        { def with 
+            Output = testDir @@ example.Name + ".Tests.dll"
+            FscTarget = FscTarget.Library
+            References = [output;nunitDir @@ "nunit.framework.dll"] }
+    Fsc setTestOpts (fromExampleDir example.TestSourceFiles)
+)
+</code></pre>
+
+<p>```</p>
+
+<p>You will need to add your example to the <code>examples</code> list at the top of the target. <code>Name</code> is the name of the dll that will be produced for your type provider. <code>ProviderSourceFiles</code> is the fsx file with your type provider example code. And <code>TestSourceFiles</code> is the code of your tests.</p>
+
+<p>If you check further down, the call to the compiler to compile your provider will automatically prepend the ProvidedTypes files, so there&rsquo;s no need to list those. And the call to the compiler to run your tests will have references added for the provider you just built and <code>nunit.framework.dll</code>.</p>
+
+<p>So what are you waiting for? Get writing some examples!</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Modelling Inheritance with Inheritance]]></title>
+    <link href="http://blog.mavnn.co.uk/modelling-inheritance-with-inheritance/"/>
+    <updated>2014-12-18T12:01:41+00:00</updated>
+    <id>http://blog.mavnn.co.uk/modelling-inheritance-with-inheritance</id>
+    <content type="html"><![CDATA[<blockquote><p>This post is part of the <a href="https://sergeytihon.wordpress.com/tag/fsadvent/">F# Advent Calendar</a> 2014, which is stuffed full of other interesting posts. Go have a read!</p></blockquote>
+
+<p>Note: This post is epic in length. If you just want to see the final resulting script of much silliness, skip straight to <a href="#conclusion">the conclusion</a>!</p>
+
+<p>Note 2: If you just want to see an example of a sane generated type provider, <a href="https://github.com/mavnn/FPDays.TypeProvider/">the code from my FPDays tutorial</a> is a much better bet.</p>
+
+<p>Note 3: There is a lot of code below. If you&rsquo;re viewing this on a desktop, I suggest collapsing the sidebar to the right otherwise you&rsquo;ll have a lot of horizontal scroll bars. If you&rsquo;re on a mobile device, you might want to bookmark for later.</p>
+
+<p>So&hellip; I&rsquo;ve been playing with generated (not erased) type providers for a bit, and meaning to write something up about them. Most of the documentation out there is for erased type providers, and to be honest they have a lot of advantages in terms of performance.</p>
+
+<p>But they also have two fundamental limitations:</p>
+
+<ul>
+<li>You can&rsquo;t used erased F# types in any other .net language</li>
+<li>You can&rsquo;t use reflection on erased types (even in F#)</li>
+</ul>
+
+
+<p>So let&rsquo;s see if we can have a play with generated types, and then &ndash; given this is Christmas, and all &ndash; let&rsquo;s see if we can build Jesus' family tree in the .net type system. After all, if you&rsquo;re going to use inheritance to model something, how about modelling inheritance?</p>
+
+<!-- more -->
+
+
+<blockquote><p>If you need a reminder of type provider basics, check out <a href="http://blog.mavnn.co.uk/type-providers-from-the-ground-up/">Type Providers from the Ground Up</a></p></blockquote>
+
+<p>Let&rsquo;s start with a really basic example of a generative type provider. We&rsquo;ll just create a single type with a static property on it.</p>
+
+<p>First, our input. We&rsquo;re going to grab <a href="https://www.biblegateway.com/passage/?search=matthew+1%3A2-16&amp;version=NIV">the genealogy of Jesus from Matthew</a> and then massage the content just enough that the first name on each line is a &ldquo;parent&rdquo;, and any other names on a line are&hellip; other people. We&rsquo;ll assume they&rsquo;re siblings, although actually not all of them are.</p>
+
+<pre><code>Abraham was the father of Isaac,
+Isaac the father of Jacob,
+Jacob the father of Judah and his brothers,
+Judah the father of Perez and Zerah, whose mother was Tamar,
+Perez the father of Hezron,
+Hezron the father of Ram,
+Ram the father of Amminadab,
+... (some other people here) ...
+Akim the father of Elihud,
+Elihud the father of Eleazar,
+Eleazar the father of Matthan,
+Matthan the father of Jacob,
+Jacob the father of Joseph, the husband of Mary, 
+and Mary was the mother of Jesus who is called the Messiah.
+</code></pre>
+
+<p>For round one, we&rsquo;re just going to put this string into a type as a property.</p>
+
+<p>Our type provider file looks a bit like this:</p>
+
+<p>```fsharp
+module AdventProvider</p>
+
+<h1>if INTERACTIVE</h1>
+
+<h1>load &ldquo;paket-files/fsprojects/FSharp.TypeProviders.StarterPack/src/ProvidedTypes.fsi&rdquo;</h1>
+
+<h1>load &ldquo;paket-files/fsprojects/FSharp.TypeProviders.StarterPack/src/ProvidedTypes.fs&rdquo;</h1>
+
+<h1>endif</h1>
+
+<p>open System.Reflection
+open ProviderImplementation.ProvidedTypes
+open Microsoft.FSharp.Core.CompilerServices
+open Microsoft.FSharp.Quotations</p>
+
+<p>[<TypeProvider>]
+type AdventProvider (cfg : TypeProviderConfig) as this =</p>
+
+<pre><code>inherit TypeProviderForNamespaces ()
+
+let ns = "Advent.Provided"
+let asm = Assembly.GetExecutingAssembly()
+let tempAsmPath = System.IO.Path.ChangeExtension(System.IO.Path.GetTempFileName(), ".dll")
+let tempAsm = ProvidedAssembly tempAsmPath
+
+let t = ProvidedTypeDefinition(asm, ns, "Family", Some typeof&lt;obj&gt;, IsErased = false)
+let parameters = [ProvidedStaticParameter("Genealogy", typeof&lt;string&gt;)]
+
+do
+    t.DefineStaticParameters(
+        parameters,
+        fun typeName args -&gt;
+            let genealogy = args.[0] :?&gt; string
+            let inputFile = 
+                System.IO.Path.Combine(cfg.ResolutionFolder, genealogy)
+            let raw =
+                System.IO.File.ReadAllLines inputFile
+
+            let g = ProvidedTypeDefinition(
+                        asm, 
+                        ns, 
+                        typeName, 
+                        Some typeof&lt;obj&gt;, 
+                        IsErased = false)
+
+            let s = ProvidedProperty("Raw", typeof&lt;string&gt;, IsStatic = true)
+            let rawStr = String.concat "\n" raw
+            s.GetterCode &lt;- fun _ -&gt; Expr.Value rawStr
+            g.AddMember s
+
+            tempAsm.AddTypes [g]
+
+            g
+        )
+
+do
+    this.RegisterRuntimeAssemblyLocationAsProbingFolder cfg
+    tempAsm.AddTypes [t]
+    this.AddNamespace(ns, [t])
+</code></pre>
+
+<p>[&lt;assembly:TypeProviderAssembly>]
+do ()</p>
+
+<p>```</p>
+
+<p>What&rsquo;s with the <code>#if INTERACTIVE</code> bits? Well, that&rsquo;ll be the subject of another blog post soon; I&rsquo;m doing must of my type provider dev in Vim these days to avoid the Visual Studio restart cycle, so I thought I might as well skip the fsproj file completely.</p>
+
+<p>In the actual provider itself, there&rsquo;s a few new things to note if you&rsquo;ve only previously done erased type provider development.</p>
+
+<p>```fsharp</p>
+
+<pre><code>let tempAsmPath = System.IO.Path.ChangeExtension(System.IO.Path.GetTempFileName(), ".dll")
+let tempAsm = ProvidedAssembly tempAsmPath
+</code></pre>
+
+<p>```</p>
+
+<p>Generative type providers, unlike erased type providers, actually pass IL (.net byte code) to the compiler rather than just a quotation. To achieve that, we need to write the IL into an actual assembly that the compiler will then merge into the dll it&rsquo;s compiling.</p>
+
+<p>Let&rsquo;s try that again, slower. The compiler will be building a piece of code that uses your type provider into <code>Output.dll</code>. It will call into your type provider, which needs to write the IL of the type/codes it&rsquo;s generating to disk into <code>Temp.dll</code>. The compiler will then take the IL from <code>Temp.dll</code> and insert it into <code>Output.dll</code>. At this point, we have no further use for <code>Temp.dll</code>, hence why we&rsquo;re using <code>GetTempFileName</code> to get a file in the OS temporary file
+folder.</p>
+
+<p>The <code>ProvidedTypes</code> API knows how to create these temporary dlls, so we wrap our filename in the <code>ProvidedAssembly</code> type.</p>
+
+<p>```fsharp</p>
+
+<pre><code>do
+    this.RegisterRuntimeAssemblyLocationAsProbingFolder cfg
+    tempAsm.AddTypes [t]
+    this.AddNamespace(ns, [t])
+</code></pre>
+
+<p>```</p>
+
+<p>We also need to specify which types need adding to the temporary assembly. Here we&rsquo;re specifying that the parameterized type (the one that takes a filename) should be added; on line 46 of the main code you&rsquo;ll see the type generated when a parameter is supplied being added. We also need to tell the type provider where the runtime dll is being created &ndash; fortunately, a helper method works this out for us when given the config item from the type provider constructor.</p>
+
+<p>It&rsquo;s important to note that nested types <em>should not</em> be added to the temporary assembly. That&rsquo;s handled by adding the root.</p>
+
+<p>So, if you compile this code down you can invoke it like this:</p>
+
+<p>```fsharp</p>
+
+<h1>!/usr/bin/env fsharpi</h1>
+
+<p>// Put all of this in a file called something like Families.fsx
+// Yes, that hashbang line means if you make it executable it
+// will run on linux/mac</p>
+
+<h1>r @&ldquo;AdventProvider.dll&rdquo;</h1>
+
+<p>open AdventProvider
+open Advent.Provided</p>
+
+<p>type JesusGenerations = Family&lt;&ldquo;Genealogy.txt&rdquo;></p>
+
+<p>printfn &ldquo;%s&rdquo; JesusGenerations.Raw
+```</p>
+
+<p>Excellent! A real, valid .net type. You can only invoke the type provider from F#, but the types generated are usable across the .net language universe &ndash; and reflection works fine.</p>
+
+<p>So&hellip; phase two. Let&rsquo;s see if we can parse something sane out of our plain text mess to turn into types. I&rsquo;m not going to go into this in detail, but because I wanted to avoid the complication of external dependencies I just wrote a very simple regex based parser for this.</p>
+
+<p>Behold! The <code>Parser.fs</code> file:</p>
+
+<p>```fsharp
+module Parser
+open System.Text.RegularExpressions</p>
+
+<p>type Person =</p>
+
+<pre><code>{
+    Name : string
+    Heir : Person option
+    Others : string list
+}
+</code></pre>
+
+<p>let namesRegex = Regex(@&ldquo;(?<name>[A-Z][a-z]+)&rdquo;, RegexOptions.Compiled)</p>
+
+<p>let ParseToNames line =</p>
+
+<pre><code>namesRegex.Matches(line)
+|&gt; Seq.cast&lt;Match&gt;
+|&gt; Seq.map (fun m -&gt; m.Groups.["name"].Value)
+|&gt; Seq.filter (fun n -&gt; n &lt;&gt; "King" &amp;&amp; n &lt;&gt; "Messiah" &amp;&amp; n &lt;&gt; "Babylon")
+|&gt; Seq.toList
+|&gt; function h::t -&gt; h, t | [] -&gt; failwith "No blank lines!"
+</code></pre>
+
+<p>let rec NamesToPerson names =</p>
+
+<pre><code>match names with
+| [] -&gt; None
+| (father,others)::t -&gt;
+    let heir =
+        match t with
+        | [] -&gt; None
+        | (heir, _)::_ -&gt; Some heir
+    Some {
+        Name = father
+        Heir = NamesToPerson t
+        Others =
+            others
+            |&gt; List.filter
+                (fun c -&gt;
+                    match heir with
+                    | Some h -&gt; c &lt;&gt; h
+                    | None -&gt; true)
+    }
+</code></pre>
+
+<p>let Parse lines =</p>
+
+<pre><code>lines
+|&gt; List.map ParseToNames
+|&gt; NamesToPerson
+</code></pre>
+
+<p>```</p>
+
+<p>Nb. Never, ever, ever build a parser like this for production code. Treat this as a &ldquo;how not to build a parser&rdquo; example, and go read something like <a href="http://trelford.com/blog/post/parser.aspx">Phil&rsquo;s excellent parsing posts</a> instead.</p>
+
+<p>So&hellip; what can we do this this?</p>
+
+<p>Let&rsquo;s start be parsing our file, and seeing if we can build a nested set of types representing the family tree.</p>
+
+<p>Recursive type building! Go!</p>
+
+<p>```fsharp
+module AdventProvider</p>
+
+<h1>if INTERACTIVE</h1>
+
+<h1>load &ldquo;paket-files/fsprojects/FSharp.TypeProviders.StarterPack/src/ProvidedTypes.fsi&rdquo;</h1>
+
+<h1>load &ldquo;paket-files/fsprojects/FSharp.TypeProviders.StarterPack/src/ProvidedTypes.fs&rdquo;</h1>
+
+<h1>load &ldquo;Parser.fs&rdquo;</h1>
+
+<h1>endif</h1>
+
+<p>open System.Reflection
+open ProviderImplementation.ProvidedTypes
+open Microsoft.FSharp.Core.CompilerServices
+open Microsoft.FSharp.Quotations
+open Parser</p>
+
+<p>[<TypeProvider>]
+type AdventProvider (cfg : TypeProviderConfig) as this =</p>
+
+<pre><code>inherit TypeProviderForNamespaces ()
+
+let ns = "Advent.Provided"
+let asm = Assembly.GetExecutingAssembly()
+let tempAsmPath = System.IO.Path.ChangeExtension(System.IO.Path.GetTempFileName(), ".dll")
+let tempAsm = ProvidedAssembly tempAsmPath
+
+let t = ProvidedTypeDefinition(asm, ns, "Family", Some typeof&lt;obj&gt;, IsErased = false)
+let parameters = [ProvidedStaticParameter("Genealogy", typeof&lt;string&gt;)]
+
+do
+    t.DefineStaticParameters(
+        parameters,
+        fun typeName args -&gt;
+            let genealogy = args.[0] :?&gt; string
+            let inputFile = 
+                System.IO.Path.Combine(cfg.ResolutionFolder, genealogy)
+            let raw =
+                System.IO.File.ReadAllLines inputFile
+            let input =
+                raw
+                |&gt; Seq.toList
+                |&gt; Parse
+
+            let g = ProvidedTypeDefinition(
+                        asm, 
+                        ns, 
+                        typeName, 
+                        Some typeof&lt;obj&gt;, 
+                        IsErased = false)
+            g.SetAttributes (TypeAttributes.Public ||| TypeAttributes.Class)
+
+            let s = ProvidedProperty("Raw", typeof&lt;string&gt;, IsStatic = true)
+            let rawStr = String.concat "\n" raw
+            s.GetterCode &lt;- fun _ -&gt; Expr.Value rawStr
+            g.AddMember s
+
+            let rec personToType (father : ProvidedTypeDefinition) (person : Person) =
+                let t = ProvidedTypeDefinition(person.Name, Some (father :&gt; System.Type), IsErased = false)
+                t.SetAttributes (TypeAttributes.Class ||| TypeAttributes.Public)
+                father.AddMember t
+                match person.Heir with
+                | Some p -&gt; personToType t p
+                | None -&gt; ()
+
+            match input with
+            | Some p -&gt;
+                personToType g p
+            | None -&gt;
+                ()
+
+            tempAsm.AddTypes [g]
+
+            g
+        )
+
+do
+    this.RegisterRuntimeAssemblyLocationAsProbingFolder cfg
+    tempAsm.AddTypes [t]
+    this.AddNamespace(ns, [t])
+</code></pre>
+
+<p>[&lt;assembly:TypeProviderAssembly>]
+do ()
+```</p>
+
+<p>It&rsquo;s not looking too bad&hellip; but we&rsquo;re also getting our first hint of trouble to come. The first time I tried to use this provider, I didn&rsquo;t have lines 46 and 55. It turns out that the default attributes of a <code>ProvidedTypeDefinition</code> set the <code>Sealed</code> attribute on the class that&rsquo;s generated. If you then try and build a type that inherits from it, you get an error when you try and consume the types from the provider.</p>
+
+<p>But, hey? We&rsquo;ve worked around that, right? I&rsquo;m sure there&rsquo;s no reason it&rsquo;s set that way by default&hellip;</p>
+
+<p>And: we have types. Lots of types:</p>
+
+<p>```fsharp</p>
+
+<h1>!/usr/bin/env fsharpi</h1>
+
+<h1>r @&ldquo;AdventProvider.dll&rdquo;</h1>
+
+<p>open AdventProvider
+open Advent.Provided</p>
+
+<p>type JesusGenerations = Family&lt;&ldquo;Genealogy.txt&rdquo;></p>
+
+<p>printfn &ldquo;%s&rdquo; JesusGenerations.Raw</p>
+
+<p>JesusGenerations.Abraham.Isaac.Jacob.Judah.Perez.Hezron.Ram.Amminadab
+// &hellip; there&rsquo;s more where that came from
+```</p>
+
+<p>We can even do things like this:</p>
+
+<p>```fsharp
+let DescendedFromAbraham (person : JesusGenerations.Abraham) =</p>
+
+<pre><code>true
+</code></pre>
+
+<p>```</p>
+
+<p>Compile time family tree checking &ndash; pretty nifty. Except&hellip; when we try and call this function we realise we have a problem. None of these classes have constructors.</p>
+
+<p>Hmmm.</p>
+
+<p>Let&rsquo;s try and add one. Nothing fancy &ndash; just a default constructor.</p>
+
+<p>We&rsquo;ll replace the <code>personToType</code> method with this:</p>
+
+<p>```fsharp
+let rec personToType (father : ProvidedTypeDefinition) (person : Person) =</p>
+
+<pre><code>let t = ProvidedTypeDefinition(person.Name, Some (father :&gt; System.Type), IsErased = false)
+t.SetAttributes (TypeAttributes.Class ||| TypeAttributes.Public)
+let c = ProvidedConstructor([])
+c.InvokeCode &lt;-
+    fun args -&gt;
+        match args with
+        | [] -&gt;
+            failwith "Generated constructors should always pass the instance as the first argument!"
+        | _ -&gt;
+            &lt;@@ () @@&gt;
+t.AddMember c
+father.AddMember t
+match person.Heir with
+| Some p -&gt; personToType t p
+| None -&gt; ()
+</code></pre>
+
+<p>```</p>
+
+<p>All looks good. In here you can see one of the first differences between erased and generated type. For a generated type, the first input arg to the constructor is the instance of the type to be initialized &ndash; and the return type of the constructor should be null.</p>
+
+<p>The only problem is that our type provider errors immediately on usage with an &ldquo;Argument cannot be null. Parameter name: obj&rdquo; error. Not immediately informative.</p>
+
+<p>A quick check with a type provider providing a single type later, we can confirm that the constructor above is valid; sounds like we&rsquo;re having issues with the fact that we&rsquo;re inheriting from a provided type. Maybe they&rsquo;re sealed for a reason after all. Still; we&rsquo;re not to be deterred so easily!</p>
+
+<p><em>Cue dramatic music of choice!</em></p>
+
+<p>Taking an guess, we&rsquo;ll assume this might have something to do with the <code>JesusGenerations</code> type not having a constructor; we&rsquo;ll add one and try again and&hellip; no dice. Same error.</p>
+
+<p>Which is round about the time I noticed that provided constructors also have a <code>BaseConstructorCall</code> property. Time for a slightly more invasive rewrite, leaving us an overall type provider that looks like this:</p>
+
+<p>```fsharp
+module AdventProvider</p>
+
+<h1>if INTERACTIVE</h1>
+
+<h1>load &ldquo;paket-files/fsprojects/FSharp.TypeProviders.StarterPack/src/ProvidedTypes.fsi&rdquo;</h1>
+
+<h1>load &ldquo;paket-files/fsprojects/FSharp.TypeProviders.StarterPack/src/ProvidedTypes.fs&rdquo;</h1>
+
+<h1>load &ldquo;Parser.fs&rdquo;</h1>
+
+<h1>endif</h1>
+
+<p>open System.Reflection
+open ProviderImplementation.ProvidedTypes
+open Microsoft.FSharp.Core.CompilerServices
+open Microsoft.FSharp.Quotations
+open Parser</p>
+
+<p>[<TypeProvider>]
+type AdventProvider (cfg : TypeProviderConfig) as this =</p>
+
+<pre><code>inherit TypeProviderForNamespaces ()
+
+let ns = "Advent.Provided"
+let asm = Assembly.GetExecutingAssembly()
+let tempAsmPath = System.IO.Path.ChangeExtension(System.IO.Path.GetTempFileName(), ".dll")
+let tempAsm = ProvidedAssembly tempAsmPath
+
+let t = ProvidedTypeDefinition(asm, ns, "Family", Some typeof&lt;obj&gt;, IsErased = false)
+let parameters = [ProvidedStaticParameter("Genealogy", typeof&lt;string&gt;)]
+
+do
+    t.DefineStaticParameters(
+        parameters,
+        fun typeName args -&gt;
+            let genealogy = args.[0] :?&gt; string
+            let inputFile = 
+                System.IO.Path.Combine(cfg.ResolutionFolder, genealogy)
+            let raw =
+                System.IO.File.ReadAllLines inputFile
+            let input =
+                raw
+                |&gt; Seq.toList
+                |&gt; Parse
+
+            let g = ProvidedTypeDefinition(
+                        asm, 
+                        ns, 
+                        typeName, 
+                        Some typeof&lt;obj&gt;, 
+                        IsErased = false)
+            g.SetAttributes (TypeAttributes.Public ||| TypeAttributes.Class)
+
+            let s = ProvidedProperty("Raw", typeof&lt;string&gt;, IsStatic = true)
+            let rawStr = String.concat "\n" raw
+            s.GetterCode &lt;- fun _ -&gt; Expr.Value rawStr
+            g.AddMember s
+
+            let c = ProvidedConstructor([])
+            c.InvokeCode &lt;-
+                fun args -&gt;
+                    match args with
+                    | [] -&gt;
+                        failwith "Generated constructors should always pass the instance as the first argument!"
+                    | _ -&gt;
+                        &lt;@@ () @@&gt;
+            g.AddMember c
+
+            let rec personToType (father : ProvidedTypeDefinition) fatherCtor (person : Person) =
+                let t = ProvidedTypeDefinition(person.Name, Some (father :&gt; System.Type), IsErased = false)
+                t.SetAttributes (TypeAttributes.Class ||| TypeAttributes.Public)
+                let c = ProvidedConstructor([])
+                c.BaseConstructorCall &lt;- fun args -&gt; (fatherCtor, args)
+                c.InvokeCode &lt;-
+                    fun args -&gt;
+                        match args with
+                        | [] -&gt;
+                            failwith "Generated constructors should always pass the instance as the first argument!"
+                        | _ -&gt;
+                            &lt;@@ () @@&gt;
+                t.AddMember c
+                father.AddMember t
+                match person.Heir with
+                | Some p -&gt; personToType t c p
+                | None -&gt; ()
+
+            match input with
+            | Some p -&gt;
+                personToType g c p
+            | None -&gt;
+                ()
+
+            tempAsm.AddTypes [g]
+
+            g
+        )
+
+do
+    this.RegisterRuntimeAssemblyLocationAsProbingFolder cfg
+    tempAsm.AddTypes [t]
+    this.AddNamespace(ns, [t])
+</code></pre>
+
+<p>[&lt;assembly:TypeProviderAssembly>]
+do ()
+```</p>
+
+<p>It all builds, we can reference it&hellip; and then we get:</p>
+
+<pre><code>The type provider 'AdventProvider+AdventProvider' reported an error: User defined subclasses of System.Type are not yet supported
+</code></pre>
+
+<p>Hmm. Irritating. Especially as the error message is actually incorrect; we&rsquo;re not subclassing System.Type and we know that that was working correctly as the types were being generated correctly before we tried to add constructors to them. But it looks like we might have hit the limits of what the current type provider implementation allows.</p>
+
+<p>But we&rsquo;re still not quite done yet; let&rsquo;s turn the insanity up a notch.</p>
+
+<p><em>Cue your choice of even more dramatic music or Benny Hill here</em></p>
+
+<p>As well as actual inheritance in .net, we have interfaces which can be used to model inheritance. Let&rsquo;s have a last throw of the dice, and see whether we can create generated interfaces to do compile time ancestry checking.</p>
+
+<p>Adding an <code>Interface</code> at every level turns out to be fairly easy, and it appears we can create generated interfaces &ndash; a useful trick to have up your sleeve. Let&rsquo;s have a look what that looks like:</p>
+
+<p>```fsharp
+module AdventProvider</p>
+
+<h1>if INTERACTIVE</h1>
+
+<h1>load &ldquo;paket-files/fsprojects/FSharp.TypeProviders.StarterPack/src/ProvidedTypes.fsi&rdquo;</h1>
+
+<h1>load &ldquo;paket-files/fsprojects/FSharp.TypeProviders.StarterPack/src/ProvidedTypes.fs&rdquo;</h1>
+
+<h1>load &ldquo;Parser.fs&rdquo;</h1>
+
+<h1>endif</h1>
+
+<p>open System.Reflection
+open ProviderImplementation.ProvidedTypes
+open Microsoft.FSharp.Core.CompilerServices
+open Microsoft.FSharp.Quotations
+open Parser</p>
+
+<p>[<TypeProvider>]
+type AdventProvider (cfg : TypeProviderConfig) as this =</p>
+
+<pre><code>inherit TypeProviderForNamespaces ()
+
+let ns = "Advent.Provided"
+let asm = Assembly.GetExecutingAssembly()
+let tempAsmPath = System.IO.Path.ChangeExtension(System.IO.Path.GetTempFileName(), ".dll")
+let tempAsm = ProvidedAssembly tempAsmPath
+
+let t = ProvidedTypeDefinition(asm, ns, "Family", Some typeof&lt;obj&gt;, IsErased = false)
+let parameters = [ProvidedStaticParameter("Genealogy", typeof&lt;string&gt;)]
+
+do
+    t.DefineStaticParameters(
+        parameters,
+        fun typeName args -&gt;
+            let genealogy = args.[0] :?&gt; string
+            let inputFile = 
+                System.IO.Path.Combine(cfg.ResolutionFolder, genealogy)
+            let raw =
+                System.IO.File.ReadAllLines inputFile
+            let input =
+                raw
+                |&gt; Seq.toList
+                |&gt; Parse
+
+            let g = ProvidedTypeDefinition(
+                        asm, 
+                        ns, 
+                        typeName, 
+                        Some typeof&lt;obj&gt;, 
+                        IsErased = false)
+
+            let s = ProvidedProperty("Raw", typeof&lt;string&gt;, IsStatic = true)
+            let rawStr = String.concat "\n" raw
+            s.GetterCode &lt;- fun _ -&gt; Expr.Value rawStr
+            g.AddMember s
+
+            let rec personToType (father : ProvidedTypeDefinition) (fatherInterfaces : System.Type list) (person : Person) =
+                let t = ProvidedTypeDefinition(person.Name, Some typeof&lt;obj&gt;, IsErased = false)
+                let parentInterface =
+                    match fatherInterfaces with
+                    | [] -&gt; None
+                    | h::_ -&gt; Some h
+                let i = ProvidedTypeDefinition("I" + person.Name, None, IsErased = false)
+                i.SetAttributes (TypeAttributes.Public ||| TypeAttributes.Interface ||| TypeAttributes.Abstract)
+                father.AddMembers [t;i]
+                match person.Heir with
+                | Some p -&gt; personToType t (i :&gt; System.Type::fatherInterfaces) p
+                | None -&gt; ()
+
+            match input with
+            | Some p -&gt;
+                personToType g [] p
+            | None -&gt;
+                ()
+
+            tempAsm.AddTypes [g]
+
+            g
+        )
+
+do
+    this.RegisterRuntimeAssemblyLocationAsProbingFolder cfg
+    tempAsm.AddTypes [t]
+    this.AddNamespace(ns, [t])
+</code></pre>
+
+<p>[&lt;assembly:TypeProviderAssembly>]
+do ()
+```</p>
+
+<p>Line 58 and 59 do all the work &ndash; normally an interface has no base type, and we need to reset the type attributes to make the interface look like an interface to the compiler. This all works well &ndash; but doesn&rsquo;t, of course, give us any inheritance. Lets see if we can use those &ldquo;fatherInterfaces&rdquo; I&rsquo;ve fed into the function to get us any closer.</p>
+
+<p>A brief experiment with <code>IDisposable</code> shows us that if we change the base type of the interface to <code>Some typeof&lt;System.IDisposable&gt;</code>, that actually works. Again &ndash; useful type provider knowledge, but doesn&rsquo;t help us here. No dice on using the parent interface as the base type &ndash; we just start getting into more of the problems we were having above inheriting from other generated types.</p>
+
+<p>So let&rsquo;s see what happens if instead we use implement interface instead of trying to inherit the interface; it seems about as reasonable as anything else we&rsquo;re tried so far&hellip;</p>
+
+<p>We&rsquo;ll add this:</p>
+
+<p><code>fsharp
+fatherInterfaces
+|&gt; List.iter i.AddInterfaceImplementation
+</code></p>
+
+<p>after line 59 of the version above and see what happens.</p>
+
+<h2><a name="conclusion"></a> Conclusion</h2>
+
+<p>And suddenly&hellip; hey presto! We can do things like this:</p>
+
+<p>```fsharp</p>
+
+<h1>!/usr/bin/env fsharpi</h1>
+
+<h1>r @&ldquo;AdventProvider.dll&rdquo;</h1>
+
+<p>open AdventProvider
+open Advent.Provided</p>
+
+<p>type JesusGenerations = Family&lt;&ldquo;Genealogy.txt&rdquo;></p>
+
+<p>printfn &ldquo;%s&rdquo; (JesusGenerations.Raw.Substring(0, 20) + &ldquo;&hellip;&rdquo;)</p>
+
+<p>let descendentOfAbraham (_ : #JesusGenerations.IAbraham) = true
+let descendentOfDavid</p>
+
+<pre><code>    (_ : 
+        #JesusGenerations
+            .Abraham
+            .Isaac
+            .Jacob
+            .Judah
+            .Perez
+            .Hezron
+            .Ram
+            .Amminadab
+            .Nahshon
+            .Salmon
+            .Boaz
+            .Obed
+            .Jesse
+            .IDavid) = true
+</code></pre>
+
+<p>// This compiles&hellip;
+printfn &ldquo;%A&rdquo; &lt;| descendentOfAbraham ({ new JesusGenerations.Abraham.IIsaac })</p>
+
+<p>// So does this:
+printfn &ldquo;%A&rdquo; &lt;|</p>
+
+<pre><code>descendentOfDavid 
+    ({ new JesusGenerations
+            .Abraham
+            .Isaac
+            .Jacob
+            .Judah
+            .Perez
+            .Hezron
+            .Ram
+            .Amminadab
+            .Nahshon
+            .Salmon
+            .Boaz
+            .Obed
+            .Jesse
+            .David
+            .Solomon
+            .Rehoboam
+            .IAbijah })
+</code></pre>
+
+<p>// This doesn&rsquo;t &ndash; how cool is that?
+(* printfn &ldquo;%A&rdquo; &lt;|</p>
+
+<pre><code>descendentOfDavid ({ new JesusGenerations.Abraham.IIsaac }) *)
+</code></pre>
+
+<p>```</p>
+
+<p>Which personally I think is pretty awesome.</p>
+
+<p>There is, unfortunately, only one problem. Whilst we now have compile time propositional logic&hellip; unfortunately our code fails at runtime with a type load error. Whilst the compiler is happy with the IL my random hacking has turned at, apparently the runtime is not.</p>
+
+<p>Maybe next year&hellip;</p>
+
+<p>I hope you enjoyed this random journey down the rabbit hole of type providers; and if you&rsquo;re interested in looking into the genealogy a bit further <a href="http://christianity.about.com/od/biblefactsandlists/a/jesusgenealogy.htm">this article</a> gives a brief overview of a few things, like why we think Jesus has two different genealogies in the bible and how Jewish genealogies didn&rsquo;t always include every generation.</p>
+
+<p>See you next time: and if anyone can get the inheritance to work properly, I&rsquo;ll owe you a beverage of (reasonable) choice!</p>
+
+<p>The code from this blog post can, as normal be found on github in the <a href="https://github.com/mavnn/Advent2014">Advent2014</a> repository.</p>
+
+<p>It&rsquo;s set up to be developed in Vim or Emacs without project files on a nix system, but it will probably play nicely with Visual Studio as well.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Type safe printf via Type Providers]]></title>
+    <link href="http://blog.mavnn.co.uk/type-safe-printf-via-type-providers/"/>
+    <updated>2014-05-06T15:33:15+01:00</updated>
+    <id>http://blog.mavnn.co.uk/type-safe-printf-via-type-providers</id>
+    <content type="html"><![CDATA[<p><a href="http://twitter.com/puffnfresh">Brian McKenna</a> posted an interesting <a href="http://www.youtube.com/watch?v=fVBck2Zngjo">video</a> and <a href="https://gist.github.com/puffnfresh/11202637">gist</a> on implementing a type safe printf in Idris with dependent types.</p>
+
+<p>This led me down a nice little rabbit hole wondering if something similar could be achieved with an F# type provider.</p>
+
+<p>With a <a href="http://stackoverflow.com/questions/23375469/how-can-i-build-an-arbitary-curried-function-in-an-f-type-provider">bit of help from Tomas</a> the final solution turned out to be surprisingly nice, although not quite so clean as the Idris original.</p>
+
+<!-- more -->
+
+
+<p>Taking the format string and parsing it looks very similar to the Idris version, what with the common ML history of the two languages:</p>
+
+<p>```fsharp
+type Format =</p>
+
+<pre><code>| FString of Format
+| FInt of Format
+| Other of char * Format
+| End
+</code></pre>
+
+<p>let parseFormatString str =</p>
+
+<pre><code>let rec parseFormat chars =
+    match chars with
+    | '%'::'d'::t -&gt; FInt (parseFormat t)
+    | '%'::'s'::t -&gt; FString (parseFormat t)
+    | c::t -&gt; Other (c, parseFormat t)
+    | [] -&gt; End
+parseFormat (Seq.toList str)
+</code></pre>
+
+<p>```</p>
+
+<p>This might not be the most efficient or flexible parsing method, but that&rsquo;s not really the point of the current exercise and it&rsquo;s very clear what it&rsquo;s doing.</p>
+
+<p>Next, we want to create a <a href="http://msdn.microsoft.com/en-us/library/dd233212.aspx">quotation</a> that represents a curried function based on our format type. This is where I needed Tomas' help &ndash; it turns out there isn&rsquo;t any easy way to do this with the <code>&lt;@@ ... @@&gt;</code> syntax I&rsquo;ve usually used to build quotations for type providers.</p>
+
+<p>Tomas reminded me that the <code>Microsoft.FSharp.Quotations</code> namespace gives direct access to the underlying classes that represent the expression tree of the quotation. This allows us to build an expression tree recusively; check out <a href="http://stackoverflow.com/a/23375794/68457">Tomas' explanation</a>  of the technique for more details of how it works.</p>
+
+<p>```fsharp
+open System.Reflection
+open Microsoft.FSharp.Quotations</p>
+
+<p>(<em> &hellip; </em>)</p>
+
+<p>let rec invoker printers format =</p>
+
+<pre><code>match format with
+| End -&gt;
+    let arr = Expr.NewArray(typeof&lt;string&gt;, List.rev printers)
+    let conc = typeof&lt;string&gt;.GetMethod("Concat", [|typeof&lt;string[]&gt;|])
+    Expr.Call(conc, [arr])
+| Other (c, t) -&gt;
+    invoker (&lt;@@ string&lt;char&gt; c @@&gt; :: printers) t
+| FInt t -&gt;
+    let v = Var("v", typeof&lt;int&gt;)
+    let printer = &lt;@@ string&lt;int&gt; (%%(Expr.Var v)) @@&gt;
+    Expr.Lambda(v, invoker (printer::printers) t)
+| FString t -&gt;
+    let v = Var("v", typeof&lt;string&gt;)
+    let printer = &lt;@@ %%(Expr.Var v):string @@&gt;
+    Expr.Lambda(v, invoker (printer::printers) t)
+</code></pre>
+
+<p>```</p>
+
+<p>That&rsquo;s the hard stuff out of the way! Now we just have some type provider boiler plate. We&rsquo;re going to provide a type provider named <code>TPrint</code> which takes a single parameter (our format string). Once the parameter is supplied, we provide a single static property which is an FSharpFunc type which matches the signature required by the format string.</p>
+
+<p>```fsharp
+open System.Reflection
+open ProviderImplementation.ProvidedTypes
+open Microsoft.FSharp.Core.CompilerServices</p>
+
+<p>(<em> &hellip; </em>)</p>
+
+<p>let toMethod format =</p>
+
+<pre><code>let invokeCode =
+    invoker [] format
+let invokeType = invokeCode.Type
+ProvidedProperty("show", invokeType, IsStatic = true, GetterCode = fun _ -&gt; invokeCode)
+</code></pre>
+
+<p>[<TypeProvider>]
+type TPrintProvider (config : TypeProviderConfig) as this =</p>
+
+<pre><code>inherit TypeProviderForNamespaces ()
+
+let ns = "TypeSet.Provided"
+let asm = Assembly.GetExecutingAssembly()
+
+let tPrintProvider = ProvidedTypeDefinition(asm, ns, "TPrint", Some(typeof&lt;obj&gt;))
+
+let parameters = [ProvidedStaticParameter("FormatString", typeof&lt;string&gt;)]
+
+do tPrintProvider.DefineStaticParameters(parameters, fun typeName args -&gt;
+    let formatString = args.[0] :?&gt; string
+
+    let provider = ProvidedTypeDefinition(asm, ns, typeName, Some(typeof&lt;obj&gt;))
+    provider.HideObjectMethods &lt;- true
+
+    formatString |&gt; parseFormatString |&gt; toMethod |&gt; provider.AddMember
+
+    provider
+    )
+
+do
+    this.AddNamespace(ns, [tPrintProvider])
+</code></pre>
+
+<p>[&lt;assembly:TypeProviderAssembly>]
+do ()
+```</p>
+
+<p>So, put it all together and you get a type provider which allows you to do this:</p>
+
+<p>```fsharp
+TPrint&lt;&ldquo;A %s string! %s %d&rdquo;>.show &ldquo;hello&rdquo; &ldquo;world&rdquo; 32
+// val it : string = &ldquo;A hello string! world 32&rdquo;</p>
+
+<p>TPrint&lt;&ldquo;Number one: %d! Number two: %d! A string: %s!&rdquo;>.show 1 2 &ldquo;My string!&rdquo;
+// val it : string = &ldquo;Number one: 1! Number two: 2! A string: My string!!&rdquo;
+```</p>
+
+<p>So; nothing there that the built in <code>printf</code> doesn&rsquo;t already do for you. But, this does start opening up some options for providing much more idiomatic F# style APIs then I&rsquo;ve really seen so far from Type Providers, which tend to provide very OO style interfaces. Should be some interesting ideas in there to explore!</p>
+
+<p>Full code can be found <a href="https://github.com/mavnn/TypeSet">at Github</a>.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Type Providers From the First Floor]]></title>
+    <link href="http://blog.mavnn.co.uk/type-providers-from-the-first-floor/"/>
+    <updated>2014-03-19T21:06:05+00:00</updated>
+    <id>http://blog.mavnn.co.uk/type-providers-from-the-first-floor</id>
+    <content type="html"><![CDATA[<p><em>This post follows on directly from my previous post <a href="http://blog.mavnn.co.uk/type-providers-from-the-ground-up/">Type Providers from the Ground Up</a>. I highly recommend that you read that first, and check out the relevant example code from GitHub.</em></p>
+
+<p><em>It&rsquo;s also a bit epic&hellip; grab yourself a coffee before you start.</em></p>
+
+<p>So we have a working type provider now. Unfortunately, we&rsquo;re missing out on at least two major features that your new type provider will almost certainly want to make use of.</p>
+
+<p>The first is that in our example, we&rsquo;re reading the metadata that defines our types from a fixed file location. In almost every real life case, you will want to be able to parametrize your provider to specify where this instance is getting it&rsquo;s metadata from.</p>
+
+<p>The second is that in many cases getting the metadata will be slow, and the number of types available to generate may be very large. In these situations, you really want to be able to only generate the types that are required as they are requested, especially because this will reduce the size of the final compiled output. This is particularly important for type providers that read from large network based data sources like the Freebase provider.</p>
+
+<p>We&rsquo;ll take the second first, because it&rsquo;s easy &ndash; and we like easy&hellip;</p>
+
+<!-- more -->
+
+
+<h2>Generating types on demand</h2>
+
+<p>This is in many ways one of the features that makes type providers uniquely powerful compared to code generation. Because the types are being requested by the compiler as needed, type providers can give meaningful access to literally infinite type hierarchies.</p>
+
+<p>So, does all this power come with great cost and complexity? Not really, no.</p>
+
+<p>Let&rsquo;s take the our node creation function, with some bits snipped out:</p>
+
+<p>``` fsharp
+let createNodeType id (node : Node) =</p>
+
+<pre><code>let nodeType = ProvidedTypeDefinition(asm, ns, node.Id.Name, Some typeof&lt;nodeInstance&gt;)
+// ... snip constructors
+
+let outputs = ProvidedTypeDefinition("Outputs", Some typeof&lt;obj&gt;)
+let outputCtor = ProvidedConstructor([], InvokeCode = fun args -&gt; &lt;@@ obj() @@&gt;)
+outputs.AddMember(outputCtor)
+outputs.HideObjectMethods &lt;- true
+
+let inputs = ProvidedTypeDefinition("Inputs", Some typeof&lt;obj&gt;)
+let inputCtor = ProvidedConstructor([], InvokeCode = fun args -&gt; &lt;@@ obj() @@&gt;)
+inputs.AddMember(inputCtor)
+inputs.HideObjectMethods &lt;- true
+addPorts inputs outputs node.Ports
+
+// Add the inputs and outputs types of nested types under the Node type
+nodeType.AddMembers([inputs;outputs])
+
+// Now add some instance properties to expose them on a node instance.
+let outputPorts = ProvidedProperty("OutputPorts", outputs, [],
+                    GetterCode = fun args -&gt; &lt;@@ obj() @@&gt;)
+let inputPorts = ProvidedProperty("InputPorts", inputs, [],
+                    GetterCode = fun args -&gt; &lt;@@ obj() @@&gt;)
+
+nodeType.AddMembers([inputPorts;outputPorts])
+
+nodeType
+</code></pre>
+
+<p>```</p>
+
+<p>To make the ports deferred, we simply change the <code>AddMembers</code> call at the end to <code>AddMembersDelayed</code> and wrap the creation of the array in a function that takes <code>unit</code>.</p>
+
+<p>It ends up looking like this:</p>
+
+<p>``` fsharp
+let createNodeType id (node : Node) =</p>
+
+<pre><code>let nodeType = ProvidedTypeDefinition(asm, ns, node.Id.Name, Some typeof&lt;nodeInstance&gt;)
+// ... snip out the constructor again...
+
+let addInputOutput () =
+    let outputs = ProvidedTypeDefinition("Outputs", Some typeof&lt;obj&gt;)
+    let outputCtor = ProvidedConstructor([], InvokeCode = fun args -&gt; &lt;@@ obj() @@&gt;)
+    outputs.AddMember(outputCtor)
+    outputs.HideObjectMethods &lt;- true
+
+    let inputs = ProvidedTypeDefinition("Inputs", Some typeof&lt;obj&gt;)
+    let inputCtor = ProvidedConstructor([], InvokeCode = fun args -&gt; &lt;@@ obj() @@&gt;)
+    inputs.AddMember(inputCtor)
+    inputs.HideObjectMethods &lt;- true
+    addPorts inputs outputs node.Ports
+
+    // Add the inputs and outputs types of nested types under the Node type
+    nodeType.AddMembers([inputs;outputs])
+
+    // Now add some instance properties to expose them on a node instance.
+    let outputPorts = ProvidedProperty("OutputPorts", outputs, [],
+                        GetterCode = fun args -&gt; &lt;@@ obj() @@&gt;)
+    let inputPorts = ProvidedProperty("InputPorts", inputs, [],
+                        GetterCode = fun args -&gt; &lt;@@ obj() @@&gt;)
+    [inputPorts;outputPorts]
+
+nodeType.AddMembersDelayed(addInputOutput)
+
+nodeType
+</code></pre>
+
+<p>```</p>
+
+<p>Now the input and output ports of a node will only be generated the first time that the compiler needs them available. If you don&rsquo;t use a particular node in your program, then the compiler will never generate it&rsquo;s ports, and they will not be including in your final build output.</p>
+
+<p>Of course, in this case we&rsquo;re pre-loading all of our metadata anyway, but hopefully this gives you an idea.</p>
+
+<h2>Parametrizing the Data Source</h2>
+
+<p>Currently, we&rsquo;re reading the json that&rsquo;s generating our types like this:</p>
+
+<p>``` fsharp
+let private nodes = JsonConvert.DeserializeObject&lt;seq<Node>>(IO.File.ReadAllText(@&ldquo;c:\Temp\Graph.json&rdquo;))</p>
+
+<pre><code>                |&gt; Seq.map (fun n -&gt; n.Id.UniqueId.ToString(), n)
+                |&gt; Map.ofSeq
+</code></pre>
+
+<p>```</p>
+
+<p>Lovely.</p>
+
+<p>Now, you&rsquo;ll probably of noticed from playing with other type providers that they allow you to do funky things like:</p>
+
+<p><code>fsharp
+type myThing = FancyProvider&lt;"configStringThing"&gt;
+</code></p>
+
+<p>This is actually one of the things that kept me going for longest in writing my first type provider, and I have to admit I&rsquo;m still not fully certain why it&rsquo;s done this way.</p>
+
+<p>At the moment, if we strip out all of the type creation logic, our type provider looks like this:</p>
+
+<p>``` fsharp
+[<TypeProvider>]
+type MavnnProvider (config : TypeProviderConfig) as this =</p>
+
+<pre><code>inherit TypeProviderForNamespaces ()
+
+let ns = "Mavnn.Blog.TypeProvider.Provided"
+let asm = Assembly.GetExecutingAssembly()
+
+// ... massive snip
+
+let createNodeType id (node : Node) =
+    let nodeType = ProvidedTypeDefinition(asm, ns, node.Id.Name, Some typeof&lt;nodeInstance&gt;)
+    // ... more snipped here ...
+
+let createTypes () =
+    nodes |&gt; Map.map createNodeType |&gt; Map.toList |&gt; List.map (fun (k, v) -&gt; v)
+
+do
+    this.AddNamespace(ns, createTypes())
+</code></pre>
+
+<p>```</p>
+
+<p>As you can see, we add the types to the namespace during the initialization of the MavnnProvider type.</p>
+
+<p>This is no good if we want to add parameters &ndash; after all, we don&rsquo;t know what they are yet. And the same provider might be used several times with different parameters. Also, when we create our provided type (<code>let nodeType = ...</code>) we&rsquo;re putting into a fixed space in the assemblies namespace. Again, this is no good if we want to be able to use more than one of our provider with different parameters.</p>
+
+<p>To get around these issues, we create a &ldquo;parent&rdquo; provided type within the type provider which will host an isolated namespace for each parametrized provider instance:</p>
+
+<p><code>fsharp
+let mavnnProvider = ProvidedTypeDefinition(asm, ns, "MavnnProvider", Some(typeof&lt;obj&gt;))
+</code></p>
+
+<p>Then we define some &lsquo;static parameters&rsquo; and call the <code>DefineStaticParameters</code> method on the parent provided type, still within the construction of the type provider:</p>
+
+<p>``` fsharp
+let parameters = [ProvidedStaticParameter(&ldquo;PathToJson&rdquo;, typeof<string>)]</p>
+
+<p>do mavnnProvider.DefineStaticParameters(parameters, fun typeName args &ndash;></p>
+
+<pre><code>let pathToJson = args.[0] :?&gt; string
+// ... do all our type creation logic in here ...
+)
+</code></pre>
+
+<p>```</p>
+
+<p>&hellip; and then we amend the base TypeProvider type so that the only type it adds to the namespace is the <code>mavnnProvider</code> type:</p>
+
+<p><code>fsharp
+// was: do this.AddNamespace(ns, createTypes())
+do this.AddNamespace(ns, [mavnnProvider])
+</code></p>
+
+<p>At this point, we&rsquo;re creating an independent environment for each instance of the type provider. Unfortunately we need to make several changes to the type creation logic to make this work.</p>
+
+<p>Firstly, we loaded quite a few things globally in the original version &ndash; things like the node list now need to happen within the context of <code>DefineStaticParameters</code>. You&rsquo;ll also notice that <code>DefineStaticParameters</code> gets given a <code>typeName</code> as one of the parameters on the callback. This is a compiler generated type name for this instance of the which is passed in when a parameterised provider is defined, and the callback method needs to return a provided type with that name.</p>
+
+<p>So, for example:</p>
+
+<p>``` fsharp
+// In a script file called: Script.fsx</p>
+
+<h1>r @&ldquo;../../Mavnn.Blog.TypeProvider/Mavnn.Blog.TypeProvider/bin/Debug/Newtonsoft.Json.dll&rdquo;</h1>
+
+<h1>r @&ldquo;../../Mavnn.Blog.TypeProvider/Mavnn.Blog.TypeProvider/bin/Debug/Mavnn.Blog.TypeProvider.dll&rdquo;</h1>
+
+<p>open System
+open Mavnn.Blog.TypeProvider.Provided</p>
+
+<p>type thisOne = MavnnProvider&lt;&ldquo;c:\Temp\Graph.json&rdquo;>
+```</p>
+
+<p>Will pass in <code>"Script.thisOne" [| box "c:\Temp\Graph.json" |]</code> to the callback method, and expect to get back a provided type. So the first thing we&rsquo;ll do in the callback is create the new type which we will then add all of our nodes to.</p>
+
+<p>Keeping all of the amendments separate in your head just gets harder and harder at this point, so let&rsquo;s just few the final annotated method and get an overview of the final result. It&rsquo;s long, but hopefully worth it!</p>
+
+<p>``` fsharp
+do mavnnProvider.DefineStaticParameters(parameters, fun typeName args &ndash;></p>
+
+<pre><code>// All args arrive as type obj - you'll need to cast them back to what
+// you specified for actual usage
+let pathToJson = args.[0] :?&gt; string
+
+// This is the type that is going to host all the other types
+// and get returned at the end of the method
+let provider = ProvidedTypeDefinition(asm, ns, typeName, Some typeof&lt;obj&gt;, HideObjectMethods = true)
+
+// ---------- set up ----------
+// This section contains all the methods that where previously global
+// to the module, but now need to be constrained to this instance of
+// the provider
+let nodes = JsonConvert.DeserializeObject&lt;seq&lt;Node&gt;&gt;(IO.File.ReadAllText(pathToJson))
+            |&gt; Seq.map (fun n -&gt; n.Id.UniqueId.ToString(), n)
+            |&gt; Map.ofSeq
+
+let GetNode id =
+    nodes.[id]
+
+let ports =
+    nodes
+    |&gt; Map.toSeq
+    |&gt; Seq.map (fun (_, node) -&gt; node.Ports)
+    |&gt; Seq.concat
+    |&gt; Seq.map (fun p -&gt; p.Id.UniqueId.ToString(), p)
+    |&gt; Map.ofSeq
+
+let GetPort id =
+    ports.[id]
+
+let addInputPort (inputs : ProvidedTypeDefinition) (port : Port) =
+    let port = ProvidedProperty(
+                    port.Id.Name, 
+                    typeof&lt;InputPort&gt;, 
+                    GetterCode = fun args -&gt; 
+                        let id = port.Id.UniqueId.ToString()
+                        &lt;@@ GetPort id |&gt; InputPort @@&gt;)
+    inputs.AddMember(port)
+
+let addOutputPort (outputs : ProvidedTypeDefinition) (port : Port) =
+    let port = ProvidedProperty(
+                    port.Id.Name, 
+                    typeof&lt;OutputPort&gt;, 
+                    GetterCode = fun args -&gt; 
+                        let id = port.Id.UniqueId.ToString()
+                        &lt;@@ GetPort id |&gt; OutputPort @@&gt;)
+    outputs.AddMember(port)
+
+let addPorts inputs outputs (portList : seq&lt;Port&gt;) =
+    portList
+    |&gt; Seq.iter (fun port -&gt; 
+                    match port.Type with
+                    | "input" -&gt; addInputPort inputs port
+                    | "output" -&gt; addOutputPort outputs port
+                    | _ -&gt; failwithf "Unknown port type for port %s/%s" port.Id.Name (port.Id.UniqueId.ToString()))
+
+
+// ---------- end set up ----------
+
+let createNodeType id (node : Node) =
+    let nodeType = ProvidedTypeDefinition(node.Id.Name, Some typeof&lt;nodeInstance&gt;)
+    let ctor = ProvidedConstructor(
+                [
+                    ProvidedParameter("Name", typeof&lt;string&gt;)
+                    ProvidedParameter("UniqueId", typeof&lt;Guid&gt;)
+                    ProvidedParameter("Config", typeof&lt;string&gt;)
+                ],
+                InvokeCode = fun [name;unique;config] -&gt; &lt;@@ NodeInstance.create (GetNode id) (%%name:string) (%%unique:Guid) (%%config:string) @@&gt;)
+    nodeType.AddMember(ctor)
+
+    let addInputOutput () =
+        let outputs = ProvidedTypeDefinition("Outputs", Some typeof&lt;obj&gt;)
+        let outputCtor = ProvidedConstructor([], InvokeCode = fun args -&gt; &lt;@@ obj() @@&gt;)
+        outputs.AddMember(outputCtor)
+        outputs.HideObjectMethods &lt;- true
+
+        let inputs = ProvidedTypeDefinition("Inputs", Some typeof&lt;obj&gt;)
+        let inputCtor = ProvidedConstructor([], InvokeCode = fun args -&gt; &lt;@@ obj() @@&gt;)
+        inputs.AddMember(inputCtor)
+        inputs.HideObjectMethods &lt;- true
+        addPorts inputs outputs node.Ports
+
+        // Add the inputs and outputs types of nested types under the Node type
+        nodeType.AddMembers([inputs;outputs])
+
+        // Now add some instance properties to expose them on a node instance.
+        let outputPorts = ProvidedProperty("OutputPorts", outputs, [],
+                            GetterCode = fun args -&gt; &lt;@@ obj() @@&gt;)
+        let inputPorts = ProvidedProperty("InputPorts", inputs, [],
+                            GetterCode = fun args -&gt; &lt;@@ obj() @@&gt;)
+        [inputPorts;outputPorts]
+
+    nodeType.AddMembersDelayed(addInputOutput)
+
+    provider.AddMember(nodeType)
+
+// And this is where we actually interate through the loaded nodes,
+// using createNodeType to add each one to the parent provider type.
+let createTypes pathToJson =
+    nodes |&gt; Map.map createNodeType |&gt; Map.toList |&gt; List.iter (fun (k, v) -&gt; v)
+
+createTypes pathToJson
+
+// And then we return our fully populated provider.
+provider)
+</code></pre>
+
+<p>```</p>
+
+<p>Let&rsquo;s just check this all still works&hellip;</p>
+
+<p><img src="/images/tp-oh-no.png" alt="Losing!" /></p>
+
+<p>Ah. No. No, it doesn&rsquo;t.</p>
+
+<p>This is where type provider development can get a bit more frustrating. The compiler allows the code above to compile &ndash; it&rsquo;s completely valid F# that looks like it should do the right thing. But now, our quotations are doing something different; and evaluating them at runtime fails.</p>
+
+<p>Let&rsquo;s take a look at the constructor that&rsquo;s throwing the error:</p>
+
+<p><code>fsharp
+InvokeCode = fun [name;unique;config] -&gt; &lt;@@ NodeInstance.create (GetNode id) (%%name:string) (%%unique:Guid) (%%config:string) @@&gt;)
+</code></p>
+
+<p>Previously, <code>GetNode</code> was referring to a public method in the type provider assembly. But if you look above now, it&rsquo;s actually a private method with in the type provider class that we are closing over. But our generated type is in the assembly that&rsquo;s being created, not in the type provider assembly so <em>it can&rsquo;t access this method</em>. Even if it was in the same assembly, this method is actually private to the class, so we&rsquo;d still be stuck. Bearing that in mind, let&rsquo;s try a
+rewrite to see if we can get all of our quotations into better shape.</p>
+
+<p>What are our options? Well, we can either capture all private state in types that the quotation evaluator knows about (<code>string</code>, mostly!). Or we can make sure that any methods called in the quotations are public.</p>
+
+<p>The first gives us a cleaner interface for the outside world (the <code>GetNode</code> method should never really have been public in the first place), so let&rsquo;s give it a try.</p>
+
+<p>In our first version of the type provider, we were using the <code>GetNode</code> method to avoid having to embed the <code>Node</code> in the constructor directly. But how would we go about putting the node in directly? We need something that creates an <code>Expr&lt;Node&gt;</code>; but <code>Node</code> isn&rsquo;t a completely trivial type &ndash; it&rsquo;s members (<code>Id</code> and <code>Ports</code>) are made of more complex types themselves. Let&rsquo;s start with a simpler challenge, and see if we can make an <code>Expr&lt;Id&gt;</code>.</p>
+
+<p>We already know that:</p>
+
+<p><code>fsharp
+let embeddedId (identifier : Id) = &lt;@ identifier @&gt;
+</code></p>
+
+<p>isn&rsquo;t going to work. The expression evaluator won&rsquo;t know what to do with the <code>Id</code> type. But <code>Id</code>&rsquo;s constructor is a public method, as is the <code>Guid</code> constructor. Let&rsquo;s try it:</p>
+
+<p>``` fsharp
+let private embeddedId (id : Id) =</p>
+
+<pre><code>let guid = sprintf "%A" (id.UniqueId)
+let name = id.Name
+&lt;@ Id(UniqueId = Guid(guid), Name = name) @&gt;
+</code></pre>
+
+<p>```</p>
+
+<p>Cool. It works, and even has the right signature. Looks like we might be getting somewhere. The <code>Port</code> type is nearly as straight forward:</p>
+
+<p>``` fsharp
+let private embeddedPort (port : Port) =</p>
+
+<pre><code>let idExpr = embeddedId port.Id
+let type' = port.Type
+&lt;@ Port(Id = %idExpr, Type = type') @&gt;
+</code></pre>
+
+<p>```</p>
+
+<p>We&rsquo;re using our embeddedId method to &lsquo;lift&rsquo; the port&rsquo;s <code>Id</code> into an expression, and then splicing that expression into a call to create a new port.</p>
+
+<p>We&rsquo;re on a roll! Just need to do the same for the <code>Node</code> type itself, with it&rsquo;s&hellip; <code>List</code> of <code>Port</code>s. Ah.</p>
+
+<p>There&rsquo;s probably a more elegant way of doing this, but given this is a functional first language, let&rsquo;s grab the first tool that springs to mind.</p>
+
+<p>Recursion.</p>
+
+<p>``` fsharp
+let private embeddedNode (node : Node) =</p>
+
+<pre><code>let idExpr = embeddedId node.Id
+let portsExpr adder = 
+    &lt;@
+        let outPorts = Collections.Generic.List&lt;Port&gt;()
+        (%adder) outPorts
+        outPorts
+    @&gt;
+let adder =
+    let portExprs =
+        Seq.map (fun port -&gt; embeddedPort port) (node.Ports)
+        |&gt; Seq.toList
+    let rec builder expr remaining =
+        match remaining with
+        | h::t -&gt;
+            builder
+                &lt;@ fun (ports : Collections.Generic.List&lt;Port&gt;) -&gt;
+                        (%expr) ports
+                        ports.Add(%h) @&gt;
+                t
+        | [] -&gt;
+            expr
+    builder
+        &lt;@ fun (ports : Collections.Generic.List&lt;Port&gt;) -&gt; () @&gt;
+        portExprs
+&lt;@ Node(Id = %idExpr, Ports = (%portsExpr adder)) @&gt;
+</code></pre>
+
+<p>```</p>
+
+<p>So, from the top down. <code>portsExpr</code> creates a quotation that takes an <code>adder</code> quotation (<code>Expr&lt;List&lt;Port&gt;&gt; -&gt; unit</code>) and returns an <code>Expr&lt;List&lt;Port&gt;&gt;</code>. This is what we&rsquo;re going to use in our <code>Node</code> construction quotation; but first we need the <code>adder</code>; some kind of magic method that takes a List and adds each of the ports from the node that&rsquo;s being passed into <code>embeddedNode</code>. I&rsquo;ve built it as a recursive function; the &lsquo;zero&rsquo; state that&rsquo;s passed in looks like this:</p>
+
+<p><code>fsharp
+&lt;@ fun (ports : Collections.Generic.List&lt;Port&gt;) -&gt; () @&gt;
+</code></p>
+
+<p>This is what will happen if the port list on the input node is empty. If it&rsquo;s not empty, we repeated build up nested calls to:</p>
+
+<p>``` fsharp
+&lt;@ fun (ports : Collections.Generic.List<Port>) &ndash;></p>
+
+<pre><code>    (%expr) ports
+    ports.Add(%h) @&gt;
+</code></pre>
+
+<p>```</p>
+
+<p>Where <code>h</code> is the next port from the list. By the end of the process we have a chain of anonymous functions, each in turn closing over the quotation of a port from the input. Finally, we can splice that into the expression that actually creates our node.</p>
+
+<p>Now we can use our new <code>embeddedX</code> expressions in our provided constructors and methods; for example, the constructor above becomes:</p>
+
+<p>``` fsharp
+let ctor = ProvidedConstructor(</p>
+
+<pre><code>        [
+            ProvidedParameter("Name", typeof&lt;string&gt;)
+            ProvidedParameter("UniqueId", typeof&lt;Guid&gt;)
+            ProvidedParameter("Config", typeof&lt;string&gt;)
+        ],
+        InvokeCode =
+            fun [name;unique;config] -&gt; 
+                let nodeExpr = embeddedNode &lt;| GetNode id
+                &lt;@@ NodeInstance.create (%nodeExpr) (%%name:string) (%%unique:Guid) (%%config:string) @@&gt;)
+</code></pre>
+
+<p>```</p>
+
+<p>Can you see the difference? Now, rather than closing over the <code>GetNode</code> method, we&rsquo;re closing over the quotation of the node that it returns.</p>
+
+<p>With a sense of deja vu, let&rsquo;s just check this all works&hellip;</p>
+
+<p><img src="/images/tp_quotations.png" alt="Winning!" /></p>
+
+<p>And somewhat surprisingly &ndash; it does.</p>
+
+<p>If you want to see and play with the code, the version for this post can be found in <a href="https://github.com/mavnn/Mavnn.Blog.TypeProvider/tree/FirstFloor">the FirstFloor branch of the project on GitHub</a>.</p>
+
+<p>As with the first post in the series, let me know your questions and comments.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Type Provider ProTip]]></title>
+    <link href="http://blog.mavnn.co.uk/type-provider-protip/"/>
+    <updated>2014-01-10T12:15:15+00:00</updated>
+    <id>http://blog.mavnn.co.uk/type-provider-protip</id>
+    <content type="html"><![CDATA[<p>While type providers are incredibly powerful, the ProvidedTypes api for creating them is sometimes a bit rough around the edges. And not always as functional as you might hope.</p>
+
+<p>At some point I&rsquo;d like to do something about that, but for the moment I&rsquo;m just going to collect a few helpful tips and hints (mostly for own reference).</p>
+
+<p>Tip one is in the case where you have XmlDocs to add to ProvidedTypes, ProvidedMethods and ProvidedProperties; in our case we have an optional description field in our metadata and the boiler plate was getting tiresome.</p>
+
+<p>``` fsharp
+let inline addDoc (desc : Descriptor) def =</p>
+
+<pre><code>match desc.Description with
+| Some d -&gt;
+    (^T : (member AddXmlDoc : string -&gt; unit) (def, d))
+| None -&gt; ()
+</code></pre>
+
+<p>```</p>
+
+<p>This function takes a <code>Descriptor</code> with a <code>string option</code> Description field and any <code>def</code> with an AddXmlDoc member with the noted signature &ndash; and adds description as the xml doc if it exists.</p>
+]]></content>
+  </entry>
+  
+</feed>

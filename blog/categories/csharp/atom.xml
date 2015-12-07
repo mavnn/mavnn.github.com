@@ -1,0 +1,675 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: csharp | Mavnn's blog]]></title>
+  <link href="http://blog.mavnn.co.uk/blog/categories/csharp/atom.xml" rel="self"/>
+  <link href="http://blog.mavnn.co.uk/"/>
+  <updated>2015-11-26T10:02:58+00:00</updated>
+  <id>http://blog.mavnn.co.uk/</id>
+  <author>
+    <name><![CDATA[mavnn]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Ecumenical APIs]]></title>
+    <link href="http://blog.mavnn.co.uk/ecumenical-apis/"/>
+    <updated>2015-05-06T10:44:16+01:00</updated>
+    <id>http://blog.mavnn.co.uk/ecumenical-apis</id>
+    <content type="html"><![CDATA[<p>One of the big sells of shared runtime functional languages such as F#, Scala
+and Clojure is that you can carrying on using the surrounding library ecosystem
+and your existing code. The different paradigm occasionally causes a little
+pain, but there are plenty of blog posts about how to wrap OO interfaces in a
+functionally friendly way.</p>
+
+<p>This is not one of those blog posts. This is about making sure that your
+colleagues who are consuming your shiny new code in an imperative language
+(generally C# in my case) don&rsquo;t threaten to defenestrate you.</p>
+
+<p>At <a href="http://15below.com">15below</a> we&rsquo;ve recently had need in some of our services
+of taking a distributed lock between servers. There are many services available
+designed for doing this, but after some deliberation we decided that we didn&rsquo;t
+want to add a new piece of infrastructure purely for this one purpose. So
+<a href="http://15below.github.io/Sproc.Lock">Sproc.Lock</a> was born: SQL Server based
+distributed locking.</p>
+
+<p>In this post, I&rsquo;m not going to talk about the design of the service. What I&rsquo;m
+going to write about is how I engineered the API to be pleasent to use from both
+C# and F#, giving a idiomatic interface from both languages.</p>
+
+<!-- more -->
+
+
+<h2>The original interface (F#)</h2>
+
+<p>The F# interface was written first, and follows a pattern that will feel
+immediately familiar to an F# programmer. Our lock can be of 3 types (global,
+organisation or environment) and so we have a discriminated union (<code>Lock</code>)
+representing these three options.</p>
+
+<p>(I&rsquo;ve removed the implementations of the various bits to leave the shape of the
+code clear)</p>
+
+<p>``` fsharp
+/// Type representing a Lock that has definitely been acquired. Locks are
+/// IDisposable; disposing the lock will ensure it is released.
+type Lock =</p>
+
+<pre><code> /// A lock that applies globally across the lock server
+ | Global of ...
+ /// A lock scoped to a specific organisation
+ | Organisation of ...
+ /// A lock scoped to a particular environment belonging to a particular organisation
+ | Environment of ...
+ /// The LockId acquired. Useful in combination when getting one of a list of locks to determine which was free.
+ member lock.LockId =
+     ...
+ /// Disposing releases the lock
+ member lock.Dispose () =
+     ...
+ interface IDisposable with
+     /// Disposing releases the lock
+     member lock.Dispose () =
+        lock.Dispose()
+</code></pre>
+
+<p>```</p>
+
+<p>The lock is <code>IDisposable</code> to take advantage of .net&rsquo;s most common resource
+management idiom. You can release a lock by disposing it.</p>
+
+<p>Then, of course, when we try and acquire a lock we may or may not be able to &ndash;
+the whole point of locks is that you cannot obtain them if someone else has
+locked it already, after all.</p>
+
+<p>So we have a second discriminated union (<code>LockResult</code>) wrapping the first,
+with (again) three potential cases:</p>
+
+<p>``` fsharp
+/// A type representing the possible results of attempting to acquire a lock.
+type LockResult =</p>
+
+<pre><code> /// A lock was successfully acquired
+ | Locked of Lock
+ /// No lock was available
+ | Unavailable
+ /// The attempt to acquire a lock caused an error in SQL Server
+ | Error of int
+ /// Disposing a lock result disposes the lock if it was acquired, and has no effect otherwise
+ member x.Dispose () =
+    match x with
+    | Locked l -&gt; l.Dispose()
+    | Unavailable -&gt; ()
+    | Error _ -&gt; ()
+ interface IDisposable with
+    member x.Dispose () =
+        x.Dispose()
+</code></pre>
+
+<p>```</p>
+
+<p>Again, this is <code>IDisposable</code> so that you can just dispose of your overall
+<code>LockResult</code> object which makes a lot of the code cleaner.</p>
+
+<p>So: how do we get a <code>LockResult</code>? Well, we have a set of functions for getting
+locks. Let&rsquo;s have a look at the skeleton of one of them:</p>
+
+<p>``` fsharp
+// val GetOrganisationLock : string &ndash;> string &ndash;> TimeSpan &ndash;> string &ndash;> LockResult
+let GetOrganisationLock connString organisation (maxDuration : TimeSpan) lockIdentifier =</p>
+
+<pre><code>...
+</code></pre>
+
+<p>```</p>
+
+<p>What&rsquo;s this doing? Well, it&rsquo;s going to (try and) create a lock scoped to a
+particular database and organisation with a particular ID, returning a
+<code>LockResult</code>.</p>
+
+<p>From an API design point of view, what&rsquo;s interesting here is the order of the
+arguments. <a href="https://en.wikipedia.org/wiki/Currying">Currying</a> enables easy
+partial application, and here it is very likely that the application will want
+to take all locks from the same database (making the first parameter) and
+reasonably likely that it will always want them scoped to the same organisation
+(second parameter). This is a common pattern in languages that allow for easy
+currying, and invariably a consumer of this library in F# will end up with a
+partially applied helper function looking something like this:</p>
+
+<p>``` fsharp
+// val getLock : string &ndash;> LockResult
+let getLock =</p>
+
+<pre><code>GetOrganisationLock "myDbConnString" "OrgName" (TimeSpan.FromMinutes 5.)
+</code></pre>
+
+<p>```</p>
+
+<p>We also have a set of helper functions for common operations we might want to
+carry out on locks, all of which take a higher order function as part of their
+arguments. Let&rsquo;s have a look at <code>AwaitLock</code> which will wait for a lock to
+become available for a specified length of time, rather then returning
+immediately with an <code>Unavailable</code> result:</p>
+
+<p>``` fsharp
+// val AwaitLock : TimeSpan &ndash;> (unit &ndash;> LockResult) &ndash;> LockResult
+let AwaitLock (timeOut : TimeSpan) getLock =</p>
+
+<pre><code>...
+</code></pre>
+
+<p>// Using it using the helper above:
+let awaitMyLock identifier =</p>
+
+<pre><code>AwaitLock (TimeSpan.FromSeconds 2.) (getLock identifier)
+</code></pre>
+
+<p>```</p>
+
+<p>If we then want (say) to wait up to 2 seconds for one of a list of possible
+locks to become available, we can then compose this function with the
+<code>OneOfLocks</code> function:</p>
+
+<p>``` fsharp
+// val OneOfLocks : (&lsquo;a &ndash;> LockResult) &ndash;> seq&lt;'a> &ndash;> LockResult
+let OneOfLocks getLock lockIds =</p>
+
+<pre><code>...
+</code></pre>
+
+<p>// Using it using await helper:
+let pickLock () =</p>
+
+<pre><code>OneOfLocks awaitMyLock ["LockId1";"LockId2"] 
+</code></pre>
+
+<p>```</p>
+
+<p>I&rsquo;m sure the comments will disagree, but I&rsquo;m actually pretty happy with this as
+an F# interface to this library. It&rsquo;s not strictly pure, but that&rsquo;s an option in
+F#, and the combination of composable functions and careful choice of parameter
+order make for concise and readable code.</p>
+
+<p>So, we&rsquo;re done &ndash; right?</p>
+
+<p>Unfortunately not. This code would be truely horrible to use from C#, and we
+still use a lot of C# here &ndash; some of our (stranger?) developers even prefer
+it. Why would it be so nasty?</p>
+
+<ul>
+<li>Consuming discriminated unions from C# is verbose to the point of unusable</li>
+<li>Partial application is a pain in C#, and no one wants to repeat the connection
+string everytime they want a lock</li>
+<li>Function composition is possible in C# but is not idiomatic and may make the
+capabilities of the library unclear</li>
+</ul>
+
+
+<h2>API Take 2: the &ldquo;OO&rdquo; namespace</h2>
+
+<p>In thinking about the kind of API I would expect for a locking library in C#, a
+few things immediately sprang to mind:</p>
+
+<ul>
+<li>I would expect some kind of configurable provider object or factory</li>
+<li>Out of flow returns are normally signalled by exceptions</li>
+<li>Function composition only for more unusual calling options</li>
+</ul>
+
+
+<p>Wrapping the functional API turned out to be reasonably simple. A couple of
+custom exception types and the <code>OOise</code> method later (I love that function
+name, even if I say so myself) we can easily wrap our functional API in
+something that makes sense in C# land &ndash; they either return an acquired,
+<code>IDisposable</code> lock or throw.</p>
+
+<p><code>` fsharp
+/// Exception thrown by</code>LockProvider`` if none of the specified locks are available.
+type LockUnavailableException (message) =</p>
+
+<pre><code>inherit System.Exception(message)
+</code></pre>
+
+<p>/// Exception thrown by <code>LockProvider</code> if a lock request errors on SQL Server.
+/// <code>LockErrorCode</code> is the SQL error response.
+type LockRequestErrorException (errorCode) as this =</p>
+
+<pre><code>inherit System.Exception(sprintf "Error code: %d" errorCode)
+do
+    this.Data.Add(box "ErrorCode", box errorCode)
+member x.LockErrorCode
+    with get () =
+        x.Data.["ErrorCode"] |&gt; unbox&lt;int&gt;
+</code></pre>
+
+<p>let private OOise lockId getLock =</p>
+
+<pre><code>match getLock lockId with
+| Locked l -&gt; l
+| Unavailable -&gt; raise &lt;| LockUnavailableException(sprintf "Lock %s was unavailable." lockId)
+| Error i -&gt; raise &lt;| LockRequestErrorException i
+</code></pre>
+
+<p>```</p>
+
+<p>Then, a simple <code>LockProvider</code> class allows for all the normal patterns we&rsquo;ve
+come to know (and in some cases love) such as dependency injection:</p>
+
+<p>``` fsharp
+type LockProvider (connString : string) =</p>
+
+<pre><code>member x.GlobalLock (lockId, maxDuration) =
+    GetGlobalLock connString maxDuration |&gt; OOise lockId
+member x.OrganisationLock (lockId, organisation, maxDuration) =
+    // Rest of the implementations snipped
+    ...
+member x.EnvironmentLock (lockId, organisation, environment, maxDuration) =
+    ...
+member x.AwaitGlobalLock (lockId, maxDuration, timeOut) =
+    ...
+member x.AwaitOrganisationLock (lockId, organisation, maxDuration, timeOut) =
+    ...
+member x.AwaitEnvironmentLock (lockId, organisation, environment, maxDuration, timeOut) =
+    ...
+/// Build a ``System.Func`` that returns a lock based on lockId and provide a list of lockIds.
+/// If any of the locks are available, it will pick one of the available locks at random.
+member x.OneOf&lt;'t&gt; (getLock : System.Func&lt;'t, Lock&gt;, lockIds) =
+    ...
+/// Build a ``System.Func`` that returns a lock based on lockId and provide a list of lockIds.
+/// If any of the locks are available, it will pick one of the available locks at random.
+/// If none are available it will wait until one is, or ``timeOut`` has passed.
+member x.AwaitOneOf&lt;'t&gt; (getLock : System.Func&lt;'t, Lock&gt;, lockIds, timeOut) =
+    ...
+</code></pre>
+
+<p>```</p>
+
+<p>As you can see, by the time we get to the <code>OneOf</code> members, we&rsquo;re pretty much
+forced into taking higher order functions to avoid a combinatorial explosion of
+members (not that that always seems to deter OO API designers&hellip;). Other than
+that, I think we&rsquo;re left with an API which will immediately make sense to a C#
+developer: you can new up a <code>LockProvider</code>, you have a specified list of
+exception types to expect, and you can easily intellisense your way around all
+of the available options.</p>
+
+<p>Our C# consuming code ends up looking a bit like this:</p>
+
+<p>``` csharp
+using System;
+using Sproc.Lock.OO;</p>
+
+<p>namespace MyApp
+{</p>
+
+<pre><code>class Thing
+{
+    static void DoLockRequiringWork()
+    {
+        var provider = new LockProvider("sql connection string");
+        try
+        {
+            using (var lock2 = provider.GlobalLock("MyAppLock", TimeSpan.FromMinutes(5.0)))
+            {
+                // If I get here, I have a lock!
+                // Doing stuff!
+            } // Lock released when Disposed
+        }
+        catch (LockUnavailableException)
+        {
+            // Could not get the lock
+            throw;
+        }
+        catch (LockRequestErrorException)
+        {
+            // Getting the lock threw an error
+            throw;
+        }
+    }
+}
+</code></pre>
+
+<p>}
+```</p>
+
+<p>Note the very different parameter order, placing the parameters that change most
+frequently at the beginning of the list as you would normally expect in C#. This
+makes a surprisingly large difference to how easy the code is to consume.</p>
+
+<p>Again: quite nice, if I do say so myself.</p>
+
+<p>So there you have it &ndash; want to play nicely the whole .net ecosystem? Be
+kind to your consumers, and build them an ecumenical API!</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Property Checking Start Challenge]]></title>
+    <link href="http://blog.mavnn.co.uk/property-checking-start-challenge/"/>
+    <updated>2014-06-25T12:25:17+01:00</updated>
+    <id>http://blog.mavnn.co.uk/property-checking-start-challenge</id>
+    <content type="html"><![CDATA[<p>Almost a year ago now, I wrote up a <a href="/fscheck-breaking-your-code-in-new-and-exciting-ways/">blog post</a> on using <a href="https://github.com/fsharp/FsCheck">FsCheck</a>. I still rate it as an excellent tool, but unfortunately we don&rsquo;t manage to use it that much. The reasons for this basically boil down to the fact that a) we tend to forget it exists and b) a good deal of our code is written in C# or VB.net, and the original API is not very friendly from those languages.</p>
+
+<p>So as part of the <a href="http://15below.com/">15below</a> developer education sessions we&rsquo;re going to try an exercise to see if we can bring a bit more property based testing into our code base!</p>
+
+<!-- more -->
+
+
+<h2>Never trust the user&hellip;</h2>
+
+<p>One of the things we do quite a lot of as a company is sending either automated voice calls or SMS messages. The phone number we&rsquo;re trying to contact is often free text provided by the customer, while the voice/SMS companies tend to be very keen on phone numbers that are in (something at least similar to) the <a href="http://en.wikipedia.org/wiki/E.164">international E.164</a> phone number format.</p>
+
+<p>Unfortunately, users don&rsquo;t tend to very good at sticking to standards in free text fields &ndash; so it some point your code needs to make the call about whether you&rsquo;re convinced the phone number you have is valid or not&hellip;</p>
+
+<p>For the exercise, I&rsquo;ve created idiomatic stubs of a <code>PhoneNumber</code> class in both F# and C# with methods for creating them that check if the input string is valid. The C# version uses <code>PhoneNumber.TryParse</code>:</p>
+
+<p>```csharp
+using System;
+using System.Linq;
+using System.Text.RegularExpressions;</p>
+
+<p>namespace CSharp.FsCheck
+{</p>
+
+<pre><code>public class PhoneNumber
+{
+    public int CountryCode { get; private set; }
+    public int IdentificationCode { get; private set; }
+    public int SubscriberNumber { get; private set; }
+
+    private PhoneNumber() { }
+
+    private PhoneNumber(int countryCode, int identificationCode, int subscriberNumber)
+    {
+        CountryCode = countryCode;
+        IdentificationCode = identificationCode;
+        SubscriberNumber = subscriberNumber;
+    }
+
+    public static bool TryParse(string number, out PhoneNumber ph)
+    {
+        var reg = new Regex(@"\+(?&lt;cc&gt;\d+) (?&lt;ic&gt;\d+) (?&lt;sn&gt;\d+)");
+        if (!reg.IsMatch(number))
+        {
+            ph = null;
+            return false;
+        }
+        var match = reg.Match(number);
+        var countryCode = int.Parse(match.Groups["cc"].Value);
+        var identificationCode = int.Parse(match.Groups["ic"].Value);
+        var subscriberNumber = int.Parse(match.Groups["sn"].Value);
+        ph = new PhoneNumber(countryCode, identificationCode, subscriberNumber);
+        return true;
+    }
+}
+</code></pre>
+
+<p>}
+```</p>
+
+<p>Whilst the F# version uses a discriminated union:</p>
+
+<p>```fsharp
+module FSharp.FsCheck.PhoneNumber</p>
+
+<p>open System.Text.RegularExpressions</p>
+
+<p>type PossibleNumber =</p>
+
+<pre><code>{ CountryCode : int
+  IdentificationCode : int
+  SubscriberNumber : int }
+</code></pre>
+
+<p>type PhoneNumber =</p>
+
+<pre><code>| ValidPhoneNumber of PossibleNumber
+| InvalidPhoneNumber of string
+</code></pre>
+
+<p>// Shadow the name so that no one else
+// can create &ldquo;ValidPhoneNumber&rdquo;
+let ValidPhoneNumber input =</p>
+
+<pre><code>let reg = Regex(@"\+(?&lt;cc&gt;\d+) (?&lt;ic&gt;\d+) (?&lt;sn&gt;\d+)")
+match reg.IsMatch(input) with
+| true -&gt;
+    let groups = reg.Match(input).Groups
+    ValidPhoneNumber {
+        CountryCode = groups.["cc"].Value |&gt; int
+        IdentificationCode = groups.["ic"].Value |&gt; int
+        SubscriberNumber = groups.["sn"].Value |&gt; int
+    }
+| false -&gt;
+    InvalidPhoneNumber "No good"
+</code></pre>
+
+<p>```</p>
+
+<p>The challenge will be to use property checking to take the stub to a class that fulfils the following properties:</p>
+
+<ul>
+<li>Country code between 1 and 3 digits</li>
+<li>Identification code 4 or less digits (may be missing)</li>
+<li>Subscription number between 1 and (15 &ndash; country code &ndash; identification code) digits</li>
+<li>Less than 15 total digits</li>
+</ul>
+
+
+<p>These all come straight from the specification &ndash; we&rsquo;re going to ignore country groups for now.</p>
+
+<p>Each of the two projects also includes a PropertyChecks file that contains the skeleton of an NUnit based FsCheck test suite. We only have an hour for our DevEd sessions, so the project includes a reasonable amount to get you going. Each one has a &ldquo;sanity check&rdquo; test with a known good phone number, and property based checks for the length of the country code and whether all valid numbers are recognised as valid. To make the second property test work, they also both include a custom
+generator for valid phone numbers.</p>
+
+<p>The C# version ended up looking like this:</p>
+
+<p>```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using NUnit.Framework;
+using FsCheck.Fluent;
+using FsCheck;
+using Microsoft.FSharp.Collections;</p>
+
+<p>namespace CSharp.FsCheck
+{</p>
+
+<pre><code>[TestFixture]
+public class ManualChecks
+{
+    [Test]
+    public void SanityCheck()
+    {
+        PhoneNumber ph;
+        PhoneNumber.TryParse("+44 123 456789", out ph);
+        Assert.AreEqual(ph.CountryCode, 44);
+        Assert.AreEqual(ph.IdentificationCode, 123);
+        Assert.AreEqual(ph.SubscriberNumber, 456789);
+    }
+}
+
+
+[TestFixture]
+public class PropertyChecks
+{
+    public class GeneratedValidNumber {
+        public int Country { get; private set; }
+        public int? Identification { get; private set; }
+        public int Subscriber { get; private set; }
+        public string InputString { get; private set; }
+
+        public GeneratedValidNumber(int country, int? identification, int subscriber)
+        {
+            Country = country;
+            Identification = identification;
+            Subscriber = subscriber;
+            var idString =
+                identification.HasValue ? " " + identification.ToString() : "";
+            InputString = "+" + country.ToString() + idString + " " + subscriber.ToString();
+        }
+
+        public override string ToString()
+        {
+            return "&lt;" + InputString + "&gt;";
+        }
+    }
+
+    public Gen&lt;GeneratedValidNumber&gt; ValidPhoneNumberGenerator()
+    {
+        var nullableGen =
+            from i in Any.IntBetween(1, 9999)
+            select new Nullable&lt;int&gt;(i);
+        var numberGen =
+            from country in Any.IntBetween(1, 999)
+            from identification in Any.GeneratorIn&lt;int?&gt;(nullableGen, Any.Value&lt;int?&gt;(null))
+            from subscriber in Any.IntBetween(1, 99999999)
+            select new GeneratedValidNumber(country, identification, subscriber);
+        return numberGen;
+    }
+
+
+    [Test]
+    public void CountryCodeLessThan4digits()
+    {
+        Spec.ForAny(
+            (DontSize&lt;uint&gt; country) =&gt;
+            {
+                var cc = country.Item;
+                PhoneNumber ph;
+                var ec = PhoneNumber.TryParse("+" + cc.ToString() + " 1234 123456", out ph);
+                return ph.CountryCode &lt; 1000;
+            })
+            .QuickCheckThrowOnFailure();
+    }
+
+    [Test]
+    public void ValidNumbersAreRecognized()
+    {
+        Spec.For(ValidPhoneNumberGenerator(),
+            (GeneratedValidNumber n) =&gt; {
+                PhoneNumber ph;
+                return PhoneNumber.TryParse(n.InputString, out ph);
+            })
+            .QuickCheckThrowOnFailure();
+    }
+}
+</code></pre>
+
+<p>}
+```</p>
+
+<p>while the F# version looks like this:</p>
+
+<p>```fsharp
+module FSharp.FsCheck.PropertyChecks</p>
+
+<p>open FsCheck
+open NUnit.Framework
+open PhoneNumber</p>
+
+<p>type GeneratedValidNumber =</p>
+
+<pre><code>{ Country : int
+  Identifier : int option
+  Subscriber : int
+  InputString : string }
+</code></pre>
+
+<p>let validNumberGen =</p>
+
+<pre><code>gen { 
+    let! c = Gen.choose (1, 999)
+    let! i = Gen.oneof [ gen { let! i = Gen.choose (1, 9999)
+                               return (Some i) }
+                         gen { return None } ]
+    let maxSubLength = 
+        float &lt;| 15 - (c.ToString().Length) - (match i with
+                                               | None -&gt; 0
+                                               | Some x -&gt; x.ToString().Length)
+    let! s = Gen.choose (1, (int &lt;| 10. ** maxSubLength) - 1)
+    return { Country = c
+             Identifier = i
+             Subscriber = s
+             InputString = 
+                 sprintf "+%d%s %d" c (match i with
+                                       | None -&gt; ""
+                                       | Some x -&gt; sprintf " %d" x) s }
+}
+</code></pre>
+
+<p>type PhoneNumberGenerators =</p>
+
+<pre><code>static member Valid() =
+    { new Arbitrary&lt;GeneratedValidNumber&gt;() with
+        override x.Generator = validNumberGen }
+</code></pre>
+
+<p>[<Test>]
+let <code>Sanity check</code>() =</p>
+
+<pre><code>match ValidPhoneNumber "+44 1234 123456" with
+| ValidPhoneNumber n -&gt; 
+    Assert.AreEqual(n.CountryCode, 44)
+    Assert.AreEqual(n.IdentificationCode, 1234)
+    Assert.AreEqual(n.SubscriberNumber, 123456)
+| InvalidPhoneNumber _ -&gt; Assert.Fail()
+</code></pre>
+
+<p>[<Test>]
+let <code>Insanity check</code>() =</p>
+
+<pre><code>match ValidPhoneNumber "I'm not a phone number" with
+| ValidPhoneNumber n -&gt; Assert.Fail()
+| InvalidPhoneNumber _ -&gt; ()
+</code></pre>
+
+<p>[<Test>]
+let <code>Country code less than 4 digits</code>() =</p>
+
+<pre><code>let genNumber (DontSize(cc : uint32)) = 
+    match ValidPhoneNumber("+" + cc.ToString() + " 1234 123456") with
+    | ValidPhoneNumber n -&gt; Assert.IsTrue(n.CountryCode.ToString().Length &lt; 4)
+    | InvalidPhoneNumber _ -&gt; ()
+Check.QuickThrowOnFailure genNumber
+</code></pre>
+
+<p>[<Test>]
+let <code>Valid numbers are counted as valid</code> () =</p>
+
+<pre><code>Arb.register&lt;PhoneNumberGenerators&gt; () |&gt; ignore
+Check.VerboseThrowOnFailure (
+    fun (v:GeneratedValidNumber) -&gt;
+        match ValidPhoneNumber v.InputString with
+        | ValidPhoneNumber _ -&gt; true
+        | InvalidPhoneNumber _ -&gt; false)
+</code></pre>
+
+<p>```</p>
+
+<p>These run fine as NUnit tests &ndash; apart from the fact that in true TDD style, they fail.</p>
+
+<h2>The challenge!</h2>
+
+<p>So, the challenge (which is open to people outside 15below as well). Basically, fork the <a href="https://github.com/mavnn/DevEd.PropertyChecks">git repository</a> and then check out locally. This contains everything, including both projects and the binaries of all their dependencies to avoid any NuGet issues. Within 15below, we&rsquo;ll be working in pairs &ndash; otherwise when you&rsquo;re sitting at your own computer with &ldquo;real work&rdquo; to do, it&rsquo;s very hard to actually take the hour out on the exercise.</p>
+
+<p>In the order of your choice:</p>
+
+<ol>
+<li>Add property checks for the missing properties above</li>
+<li>Update the PhoneNumber class to pass all of the tests</li>
+<li><em>Extra credit</em>: Add a generator for local numbers from a known country (i.e. the UK) and property test your conversion method</li>
+<li><em>Extra credit 2</em>: complete any of all of the above in both F# and C#</li>
+<li><em>Completely carried away:</em> pick a real piece of production code and add a property test to it&hellip;</li>
+</ol>
+
+
+<p>Once you&rsquo;ve got as far as you&rsquo;re going to, commit your changes and push back up to GitHub, then send a pull request with progress back to the parent repository. I won&rsquo;t merge these, but the different implementations of both the phone number class and property tests will form the basis of the DevEd session the week after, possibly with votes for the most elegant/robust solutions. If you&rsquo;re not a member of staff here at 15below, I&rsquo;ll try and update your pull request with any
+feedback from our discussions!</p>
+]]></content>
+  </entry>
+  
+</feed>

@@ -49,6 +49,7 @@ ga('send', 'pageview');
 
 <body   >
   <header role="banner"><hgroup>
+  <a href="http://mavnn.co.uk"><img class="swirl-logo" src="images/swirl.svg"/></a>
   <h1><a href="/">Mavnn's blog</a></h1>
   
     <h2>Stuff from my brain</h2>
@@ -108,7 +109,7 @@ ga('send', 'pageview');
 
 <p>The canonical go to tool for the job, is of course the infinite sequence and being stared at by a bunch of people and having syntax highlighting but no compiler, the first thing my brain pulled out of the air was this:</p>
 
-<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part1.fs'></script>
+<div><script src='https://gist.githubusercontent.com/mavnn/7246744.js?file=Part1.fs'></script>
 <noscript><pre><code>let ones =
     seq {
         while true do
@@ -123,8 +124,8 @@ ga('send', 'pageview');
 
 <p>My first thought was that I&rsquo;d missed the obvious and succinct option of just generating a range. In F# (as in Haskell) the 1 .. 10 notation generates a list of the integers from 1 to 10. Unfortunately:</p>
 
-<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part2.fs'></script>
-<noscript><pre><code>// Can't do this, unfortunately
+<div><script src='https://gist.githubusercontent.com/mavnn/7246744.js?file=Part2.fs'></script>
+<noscript><pre><code>// Can&#39;t do this, unfortunately
 // seq { 1 .. }
 //
 // or this:
@@ -136,7 +137,7 @@ ga('send', 'pageview');
 
 <p>Unlike Haskell, you can&rsquo;t have an unbounded range, nor can you set the &ldquo;step&rdquo; to zero to just keep on generating the same number. So you&rsquo;re limited to generating very big, but definitely not infinite sequences:</p>
 
-<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part3.fs'></script>
+<div><script src='https://gist.githubusercontent.com/mavnn/7246744.js?file=Part3.fs'></script>
 <noscript><pre><code>let notInfiniteOrOnes = seq { 1 .. System.Int32.MaxValue }
 // seq [1; 2; 3; 4; ...]
 
@@ -147,8 +148,8 @@ let notInfinite = seq { for _ in 1 .. System.Int32.MaxValue -&gt; 1 }
 
 <p>But hey! We&rsquo;re in functional world. So if we can&rsquo;t use sneaky built in syntax constructs, the next obvious choice is a recursive function:</p>
 
-<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part4.fs'></script>
-<noscript><pre><code>let ones' =
+<div><script src='https://gist.githubusercontent.com/mavnn/7246744.js?file=Part4.fs'></script>
+<noscript><pre><code>let ones&#39; =
     let rec gen () =
         seq {
             yield 1
@@ -165,8 +166,8 @@ let notInfinite = seq { for _ in 1 .. System.Int32.MaxValue -&gt; 1 }
 
 <p><code>Seq.initInfinite</code> just takes a function that returns a sequence value based on the index of that value:</p>
 
-<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part5.fs'></script>
-<noscript><pre><code>let ones'' = Seq.initInfinite (fun _ -&gt; 1)
+<div><script src='https://gist.githubusercontent.com/mavnn/7246744.js?file=Part5.fs'></script>
+<noscript><pre><code>let ones&#39;&#39; = Seq.initInfinite (fun _ -&gt; 1)
 // seq [1; 1; 1; 1; ...]
 </code></pre></noscript></div>
 
@@ -175,8 +176,8 @@ let notInfinite = seq { for _ in 1 .. System.Int32.MaxValue -&gt; 1 }
 
 <p><code>Seq.unfold</code> may seem less intuitive, but in my mind is the more flexible and powerful solution. I tend to come across examples where it&rsquo;s easier to generate a sequence based on either some state or the previous term than by index, and that&rsquo;s exactly what unfold allows you to do:</p>
 
-<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part6.fs'></script>
-<noscript><pre><code>let ones''' = Seq.unfold (fun _ -&gt; Some (1, ())) ()
+<div><script src='https://gist.githubusercontent.com/mavnn/7246744.js?file=Part6.fs'></script>
+<noscript><pre><code>let ones&#39;&#39;&#39; = Seq.unfold (fun _ -&gt; Some (1, ())) ()
 // seq [1; 1; 1; 1; ...]
 </code></pre></noscript></div>
 
@@ -185,7 +186,7 @@ let notInfinite = seq { for _ in 1 .. System.Int32.MaxValue -&gt; 1 }
 
 <p>So, how does it actually work? Let&rsquo;s look at a (slightly) more complex example that actually makes use of some state:</p>
 
-<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part7.fs'></script>
+<div><script src='https://gist.githubusercontent.com/mavnn/7246744.js?file=Part7.fs'></script>
 <noscript><pre><code>let moreInterestingUnfold =
     Seq.unfold
         (fun state -&gt;
@@ -200,7 +201,7 @@ let notInfinite = seq { for _ in 1 .. System.Int32.MaxValue -&gt; 1 }
 
 <p>Let&rsquo;s round this out with an example that uses different types for the state and the terms of the sequence, which will hopefully now make some sense:</p>
 
-<div><script src='https://gist.github.com/mavnn/7246744.js?file=Part8.fs'></script>
+<div><script src='https://gist.githubusercontent.com/mavnn/7246744.js?file=Part8.fs'></script>
 <noscript><pre><code>type Time =
     {
         Hour : int
@@ -216,7 +217,7 @@ let addMinute time =
     | _ -&gt;
         { Hour = time.Hour; Minute = time.Minute + 1 }
 
-let unfold' =
+let unfold&#39; =
     Seq.unfold
         (fun state -&gt;
             Some (sprintf &quot;%02d:%02d&quot; state.Hour state.Minute, addMinute state)
@@ -297,6 +298,10 @@ let unfold' =
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/annoucing-at-mavnn-ltd/">Annoucing @mavnn Ltd</a>
+      </li>
+    
+      <li class="post">
         <a href="/beginnings-and-endings/">Beginnings and Endings</a>
       </li>
     
@@ -312,17 +317,7 @@ let unfold' =
         <a href="/functional-programming-in-an-imperitive-world/">Functional Programming in an Imperative World</a>
       </li>
     
-      <li class="post">
-        <a href="/sdd-conf-2015/">Property Based Testing at SDD Conf 2015</a>
-      </li>
-    
   </ul>
-</section>
-<section>
-  <h1>Tip the author</h1>
-  <p><script data-gittip-username="mavnn"
-        data-gittip-widget="button"
-        src="//gttp.co/v1.js"></script></p>
 </section>
 
 <section>

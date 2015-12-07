@@ -4,7 +4,7 @@
   <title><![CDATA[Category: fake | Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/blog/categories/fake/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2015-11-26T10:02:58+00:00</updated>
+  <updated>2015-12-07T10:53:19+00:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -65,8 +65,131 @@ coded up for one time use and does not come with a warranty of any kind!
 Use at your own risk, and once you understand what it&rsquo;s doing. But for
 all that, I hope you find it useful.</p>
 
-<p><div><script src='https://gist.github.com/mavnn/5983379.js'></script>
-<noscript><pre><code></code></pre></noscript></div>
+<p><div><script src='https://gist.githubusercontent.com/mavnn/5983379.js'></script>
+<noscript><pre><code>#r &quot;System.Xml.Linq&quot;
+#r &quot;tools\FAKE\FakeLib.dll&quot;
+open System.IO
+open System.Xml
+open System.Xml.Linq
+open System.Xml.XPath
+open Fake
+
+// You&#39;ll want to replace these values...
+let nugetId = &quot;my.package.id&quot;
+let refName = &quot;my.ref.name&quot;
+let packageNode = XElement.Parse &quot;&quot;&quot;&lt;package id=&quot;my.package.id&quot; version=&quot;1.0.0.6&quot; targetFramework=&quot;net40&quot; /&gt;&quot;&quot;&quot;
+let refXml =
+    &quot;&quot;&quot;
+    &lt;Reference Include=&quot;my.ref.name&quot;&gt;
+      &lt;HintPath&gt;..\..\packages\my.package.id.1.0.0.6\lib\net40\my.ref.name.dll&lt;/HintPath&gt;
+      &lt;Private&gt;True&lt;/Private&gt;
+    &lt;/Reference&gt;
+    &quot;&quot;&quot;
+let hintPathFromRoot =
+@&quot;packages\my.package.id.1.0.0.6\lib\net40\my.ref.name.dll&quot;
+let sourceRoot = &quot;C:\WhereIKeepMyRepo&quot;
+
+// You should be able to leave the rest alone
+let ns = &quot;http://schemas.microsoft.com/developer/msbuild/2003&quot;
+let nsm = new XmlNamespaceManager(new NameTable())
+nsm.AddNamespace(&quot;ns&quot;, ns)
+let nugetPath = sourceRoot @@ &quot;tools&quot; @@ &quot;NuGet&quot; @@ &quot;NuGet.exe&quot;
+
+let HasProjectReference (projDoc : XDocument) refName =
+    projDoc.Root.XPathSelectElements(&quot;//ns:ProjectReference[ns:Name=&#39;&quot; + refName + &quot;&#39;]&quot;, nsm)
+    |&gt; Seq.length
+    |&gt; (&lt;) 0
+
+let GetProjectReference (projDoc : XDocument) refName =
+    projDoc.Root.XPathSelectElement(&quot;//ns:ProjectReference[ns:Name=&#39;&quot; + refName + &quot;&#39;]&quot;, nsm)
+
+let DeleteProjectReference refName (projFile : string) =
+    let projDoc = XDocument.Load(projFile)
+    if HasProjectReference projDoc refName then
+        let ref = GetProjectReference projDoc refName
+        ref.Remove()
+        projDoc.Save(projFile)
+
+let HasReference (projDoc : XDocument) refName =
+    projDoc.Root.XPathSelectElements(&quot;//ns:Reference[@Include=&#39;&quot; + refName + &quot;&#39;]&quot;, nsm)
+    |&gt; Seq.append &lt;| projDoc.Root.XPathSelectElements(&quot;//ns:Reference[@Include[starts-with(., &#39;&quot; + refName + &quot;,&#39;)]]&quot;, nsm)
+    |&gt; Seq.tryPick (fun e -&gt; Some e)
+
+let FirstReference (projDoc : XDocument) =
+    projDoc.Root.XPathSelectElements(&quot;//ns:Reference&quot;, nsm)
+    |&gt; Seq.head
+
+let GetHintPath hintPathFromRoot root projFile =
+    let rootDir = DirectoryInfo(root)
+    let projDir = DirectoryInfo(Path.GetDirectoryName(projFile))
+    let rec dirDiff (rootDir : DirectoryInfo) (currentDir : DirectoryInfo) levels =
+        if rootDir.FullName = currentDir.FullName then
+            levels
+        else
+            dirDiff rootDir (currentDir.Parent) (levels + 1)
+    hintPathFromRoot::[for _ in 1..(dirDiff rootDir projDir 0) -&gt; &quot;..&quot;]
+    |&gt; List.rev
+    |&gt; List.fold (@@) &quot;.&quot;
+
+let UpdateHintPath projFile =
+    let ref = XElement.Parse(refXml)
+    let xs = XNamespace.Get(ns)
+    let el = ref.XPathSelectElement(&quot;//HintPath&quot;)
+    el.SetValue (GetHintPath hintPathFromRoot sourceRoot projFile)
+    for node in ref.DescendantsAndSelf() do
+        node.Name &lt;- xs + node.Name.LocalName
+    ref
+
+let EnsureReference refName (projFile : string) =
+    let doc = XDocument.Load(projFile)
+    match HasReference doc refName with
+    | Some el -&gt; el.Remove()
+    | None -&gt; ()
+    let el = FirstReference doc
+    el.AddBeforeSelf(UpdateHintPath projFile)
+    doc.Save(projFile)
+
+type PackageFile =
+    | Exists of string
+    | Missing of string
+
+let GetPackagesDotConfig projFile =
+    let dir = Path.GetDirectoryName(projFile)
+    let path = dir @@ &quot;packages.config&quot;
+    if File.Exists(path) then
+        Exists path
+    else
+        Missing path
+
+let HasPackageReference (doc : XDocument) nugetId =
+    doc.XPathSelectElements(&quot;//package[@id = &#39;&quot; + nugetId + &quot;&#39;]&quot;)
+    |&gt; Seq.length
+    |&gt; (&lt;) 0
+
+let EnsurePackagesDotConfigHasPackage nugetId projFile =
+    let doc, path =
+        match GetPackagesDotConfig projFile with
+        | Missing path -&gt;
+            XDocument.Parse(&quot;&lt;packages /&gt;&quot;), path
+        | Exists path -&gt;
+            XDocument.Load(path), path
+    if not &lt;| HasPackageReference doc nugetId then
+        doc.Root.XPathSelectElement(&quot;/packages&quot;).Add(packageNode)
+        doc.Save path
+
+let UpdateProj (projFile : string) =
+    if HasProjectReference (XDocument.Load(projFile)) refName then
+        DeleteProjectReference refName projFile
+        EnsureReference refName projFile
+        EnsurePackagesDotConfigHasPackage nugetId projFile
+
+!+ (@&quot;**\*.csproj&quot;)
+++ (@&quot;**\*.fsproj&quot;)
+++ (@&quot;**\*.vbproj&quot;)
+|&gt; Scan
+|&gt; Seq.map (fun proj -&gt; printfn &quot;Updating %s&quot; proj; proj)
+|&gt; Seq.iter UpdateProj
+</code></pre></noscript></div>
 </p>
 ]]></content>
   </entry>

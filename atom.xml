@@ -4,7 +4,7 @@
   <title><![CDATA[Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2015-12-07T11:35:13+00:00</updated>
+  <updated>2015-12-18T21:44:39+00:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,681 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Angels From the Realms of Glory]]></title>
+    <link href="http://blog.mavnn.co.uk/angels-from-the-realms-of-glory/"/>
+    <updated>2015-12-19T12:00:00+00:00</updated>
+    <id>http://blog.mavnn.co.uk/angels-from-the-realms-of-glory</id>
+    <content type="html"><![CDATA[<blockquote><p>An angel of the Lord appeared to them, and the glory of the Lord shone around them, and they were terrified. <ref><a href="https://www.biblegateway.com/passage/?search=luke+2:9&version=NIV" title="Luke 2:9">Luke 2:9</a></ref></p></blockquote>
+
+<p>It&rsquo;s that time of year again, where the F# community get together to source a collection of weird, wonderful and occasionally useful blog posts on life, the universe and sometimes Christmas.</p>
+
+<p>As mentioned in last years post, I like to go back to the source when it comes to advent posts, so lets dive back into the book of Luke (and learn about agent based programming as we go).</p>
+
+<!-- more -->
+
+
+<h3>The plan</h3>
+
+<p>We&rsquo;re going to simulate the angelic choir as they sing for the shepherds, although with a
+couple of minor limitations. One is I don&rsquo;t feel like dealing with cross platform audio issues
+(and don&rsquo;t think I could do the voices justice anyway&hellip;) and the other is that I can&rsquo;t draw
+for toffee.</p>
+
+<p>So we&rsquo;re going to simulate a view of the angels from a long way away out of earshot.</p>
+
+<p>The final result should end up looking something like this (your results may vary depending
+on console colour scheme, but I&rsquo;d suggest dark background for the best effect!):</p>
+
+<p><img src="http://blog.mavnn.co.uk/images/angels1.gif"/></p>
+
+<h3>Step 1: atomic writes to the console</h3>
+
+<p>If you&rsquo;ve tried to use the <code>System.Console</code> namespace in .net, you&rsquo;ll have discovered a few
+things about it. The biggest problem we want to deal with, is that writing a character in colour
+to the console is not atomic.</p>
+
+<p>You have to:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="c1">// Set the cursor to the position you want to write</span>
+</span><span class='line'><span class="nn">Console</span><span class="p">.</span><span class="nc">SetCursorPosition</span><span class="o">(</span><span class="n">x</span><span class="o">,</span> <span class="n">y</span><span class="o">)</span>
+</span><span class='line'><span class="c1">// Change the foreground colour to the colour you want</span>
+</span><span class='line'><span class="nn">Console</span><span class="p">.</span><span class="nc">ForegroundColor</span> <span class="o">&lt;-</span> <span class="n">c</span>
+</span><span class='line'><span class="c1">// Write the character</span>
+</span><span class='line'><span class="nn">Console</span><span class="p">.</span><span class="nc">Write</span> <span class="o">(</span><span class="kt">string</span> <span class="n">m</span><span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In async code, different threads doing this at the same time will mix these operations up,
+as there&rsquo;s no way to know what an other thread is doing with the cursor while you try and
+set up your own write.</p>
+
+<p>For this we&rsquo;re going to set up our first agent: the console agent. It will be responsible
+for all writes to the screen in our program.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="o">(|</span><span class="nc">ConsoleColour</span><span class="o">|)</span> <span class="n">i</span> <span class="o">=</span>
+</span><span class='line'>  <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="k">then</span>
+</span><span class='line'>    <span class="nn">ConsoleColor</span><span class="p">.</span><span class="nc">Black</span>
+</span><span class='line'>  <span class="k">elif</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">15</span> <span class="k">then</span>
+</span><span class='line'>    <span class="nn">ConsoleColor</span><span class="p">.</span><span class="nc">White</span>
+</span><span class='line'>  <span class="k">else</span>
+</span><span class='line'>    <span class="n">enum</span> <span class="n">i</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">console</span> <span class="o">=</span>
+</span><span class='line'>  <span class="nn">MailboxProcessor</span><span class="p">.</span><span class="nc">Start</span><span class="o">(</span>
+</span><span class='line'>    <span class="k">fun</span> <span class="n">agent</span> <span class="o">-&gt;</span>
+</span><span class='line'>      <span class="k">let</span> <span class="k">rec</span> <span class="n">inner</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">async</span> <span class="o">{</span>
+</span><span class='line'>          <span class="k">let</span><span class="o">!</span> <span class="o">(</span><span class="n">x</span><span class="o">,</span> <span class="n">y</span><span class="o">,</span> <span class="nc">ConsoleColour</span> <span class="n">c</span><span class="o">,</span> <span class="n">m</span> <span class="o">:</span> <span class="kt">char</span><span class="o">)</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="nc">Receive</span><span class="bp">()</span>
+</span><span class='line'>          <span class="nn">Console</span><span class="p">.</span><span class="nc">SetCursorPosition</span><span class="o">(</span><span class="n">x</span><span class="o">,</span> <span class="n">y</span><span class="o">)</span>
+</span><span class='line'>          <span class="nn">Console</span><span class="p">.</span><span class="nc">ForegroundColor</span> <span class="o">&lt;-</span> <span class="n">c</span>
+</span><span class='line'>          <span class="nn">Console</span><span class="p">.</span><span class="nc">Write</span> <span class="o">(</span><span class="kt">string</span> <span class="n">m</span><span class="o">)</span>
+</span><span class='line'>          <span class="k">return</span><span class="o">!</span> <span class="n">inner</span> <span class="bp">()</span> <span class="o">}</span>
+</span><span class='line'>      <span class="n">inner</span> <span class="bp">()</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">console</span><span class="o">.</span><span class="nn">Error</span><span class="p">.</span><span class="nc">Add</span><span class="o">(</span><span class="k">fun</span> <span class="n">e</span> <span class="o">-&gt;</span> <span class="n">printfn</span> <span class="s2">&quot;%A&quot;</span> <span class="n">e</span><span class="o">.</span><span class="nc">Message</span><span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The <code>(|ConsoleColour|)</code> construct is what&rsquo;s called an active pattern. With it, we can pattern
+match on any integer and be guaranteed to get a valid ConsoleColor enum out. It also spells
+&ldquo;colour&rdquo; correctly :D.</p>
+
+<p>Then we start a <code>MailboxProcessor</code> (the default name for an agent in F#). This agent listens
+for messages which consist of: an x coordinate, a y coordinate, an int for colour and a character
+to write. The overall agent is implemented as an async block and so will not block a thread while
+waiting for messages &ndash; but it will guarantee that it will not start processing the next message
+until the current one is finished.</p>
+
+<p>Hey presto! We can now safely write to the console from any thread simply by calling <code>console.Post.</code></p>
+
+<p>We&rsquo;ll try it out by creating some random stationary angels.</p>
+
+<p>First, we&rsquo;ll initialize some infinite sequences of random numbers:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">seedx</span><span class="o">,</span> <span class="n">seedy</span><span class="o">,</span> <span class="n">seedc</span> <span class="o">=</span> <span class="mi">100</span><span class="o">,</span> <span class="mi">150</span><span class="o">,</span> <span class="mi">200</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">randX</span> <span class="o">=</span> <span class="nc">Random</span><span class="o">(</span><span class="n">seedx</span><span class="o">)</span>
+</span><span class='line'><span class="k">let</span> <span class="n">randY</span> <span class="o">=</span> <span class="nc">Random</span><span class="o">(</span><span class="n">seedy</span><span class="o">)</span>
+</span><span class='line'><span class="k">let</span> <span class="n">randC</span> <span class="o">=</span> <span class="nc">Random</span><span class="o">(</span><span class="n">seedc</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">randSeq</span> <span class="o">(</span><span class="n">rand</span> <span class="o">:</span> <span class="nc">Random</span><span class="o">)</span> <span class="n">min&#39;</span> <span class="n">max&#39;</span> <span class="o">=</span>
+</span><span class='line'>  <span class="nn">Seq</span><span class="p">.</span><span class="n">unfold</span> <span class="o">(</span><span class="k">fun</span> <span class="bp">()</span> <span class="o">-&gt;</span> <span class="nc">Some</span><span class="o">(</span><span class="n">rand</span><span class="o">.</span><span class="nc">Next</span><span class="o">(</span><span class="n">min&#39;</span><span class="o">,</span> <span class="n">max&#39;</span><span class="o">),</span> <span class="bp">()</span><span class="o">))</span> <span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">xSeq</span> <span class="o">=</span> <span class="n">randSeq</span> <span class="n">randX</span> <span class="n">xZero</span> <span class="o">(</span><span class="n">width</span> <span class="o">+</span> <span class="n">xZero</span> <span class="o">-</span> <span class="mi">1</span><span class="o">)</span>
+</span><span class='line'><span class="k">let</span> <span class="n">ySeq</span> <span class="o">=</span> <span class="n">randSeq</span> <span class="n">randY</span> <span class="n">yZero</span> <span class="o">(</span><span class="n">height</span> <span class="o">+</span> <span class="n">yZero</span> <span class="o">-</span> <span class="mi">1</span><span class="o">)</span>
+</span><span class='line'><span class="k">let</span> <span class="n">cSeq</span> <span class="o">=</span> <span class="n">randSeq</span> <span class="n">randC</span> <span class="mi">0</span> <span class="mi">15</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Then we&rsquo;ll wrap the write in an async method, and draw our angels across the screen concurrently;
+each angel will wait 50 milliseconds per unit across the x axis to give a nice staggered appearance.</p>
+
+<p>You can find a full listing in <a href="https://github.com/mavnn/advent2015/blob/master/advent1.fsx">advent1.fsx</a>. Running it should give you something like this:</p>
+
+<p><img src="http://blog.mavnn.co.uk/images/angels2.gif"/></p>
+
+<blockquote><p>But the angel said to them, “Do not be afraid. I bring you good news that will cause great joy for all the people. Today in the town of David a Savior has been born to you; he is the Messiah, the Lord. This will be a sign to you: You will find a baby wrapped in cloths and lying in a manger.” <ref><a href="https://www.biblegateway.com/passage/?search=luke+2:10-12&version=NIV" title="Luke 2:10-12">Luke 2:10-12</a></ref></p></blockquote>
+
+<h2>Step 2: Add event loop</h2>
+
+<p>Onwards! Time to make our angels move. Following on with the theme, we&rsquo;re going to make an agent
+responsible for ticking off each &lsquo;loop&rsquo; of events.</p>
+
+<p>We&rsquo;ll add some safety to our console agent to make sure that writes outside the console don&rsquo;t
+cause us issues:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">width</span>  <span class="o">=</span> <span class="nn">Console</span><span class="p">.</span><span class="nc">WindowWidth</span>
+</span><span class='line'><span class="k">let</span> <span class="n">height</span> <span class="o">=</span> <span class="nn">Console</span><span class="p">.</span><span class="nc">WindowHeight</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">xZero</span>  <span class="o">=</span> <span class="nn">Console</span><span class="p">.</span><span class="nc">WindowLeft</span>
+</span><span class='line'><span class="k">let</span> <span class="n">yZero</span>  <span class="o">=</span> <span class="nn">Console</span><span class="p">.</span><span class="nc">WindowTop</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="o">(|</span><span class="nc">ConsoleColour</span><span class="o">|)</span> <span class="n">i</span> <span class="o">=</span>
+</span><span class='line'>  <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="k">then</span>
+</span><span class='line'>    <span class="nn">ConsoleColor</span><span class="p">.</span><span class="nc">Black</span>
+</span><span class='line'>  <span class="k">elif</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">15</span> <span class="k">then</span>
+</span><span class='line'>    <span class="nn">ConsoleColor</span><span class="p">.</span><span class="nc">White</span>
+</span><span class='line'>  <span class="k">else</span>
+</span><span class='line'>    <span class="n">enum</span> <span class="n">i</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="o">(|</span><span class="nc">X</span><span class="o">|)</span> <span class="n">x</span> <span class="o">=</span>
+</span><span class='line'>  <span class="k">if</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="n">xZero</span> <span class="k">then</span>
+</span><span class='line'>    <span class="n">xZero</span>
+</span><span class='line'>  <span class="k">elif</span> <span class="n">x</span> <span class="o">&gt;=</span> <span class="n">width</span> <span class="k">then</span>
+</span><span class='line'>    <span class="n">width</span> <span class="o">-</span> <span class="mi">1</span>
+</span><span class='line'>  <span class="k">else</span>
+</span><span class='line'>    <span class="n">x</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="o">(|</span><span class="nc">Y</span><span class="o">|)</span> <span class="n">y</span> <span class="o">=</span>
+</span><span class='line'>  <span class="k">if</span> <span class="n">y</span> <span class="o">&lt;</span> <span class="n">yZero</span> <span class="k">then</span>
+</span><span class='line'>    <span class="n">yZero</span>
+</span><span class='line'>  <span class="k">elif</span> <span class="n">y</span> <span class="o">&gt;=</span> <span class="n">height</span> <span class="k">then</span>
+</span><span class='line'>    <span class="n">height</span> <span class="o">-</span> <span class="mi">1</span>
+</span><span class='line'>  <span class="k">else</span>
+</span><span class='line'>    <span class="n">y</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">console</span> <span class="o">=</span>
+</span><span class='line'>  <span class="nn">MailboxProcessor</span><span class="p">.</span><span class="nc">Start</span><span class="o">(</span>
+</span><span class='line'>    <span class="k">fun</span> <span class="n">agent</span> <span class="o">-&gt;</span>
+</span><span class='line'>      <span class="k">let</span> <span class="k">rec</span> <span class="n">inner</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">async</span> <span class="o">{</span>
+</span><span class='line'>          <span class="k">let</span><span class="o">!</span> <span class="o">(</span><span class="nc">X</span> <span class="n">x</span><span class="o">,</span> <span class="nc">Y</span> <span class="n">y</span><span class="o">,</span> <span class="nc">ConsoleColour</span> <span class="n">c</span><span class="o">,</span> <span class="n">m</span> <span class="o">:</span> <span class="kt">char</span><span class="o">)</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="nc">Receive</span><span class="bp">()</span>
+</span><span class='line'>          <span class="nn">Console</span><span class="p">.</span><span class="nc">SetCursorPosition</span><span class="o">(</span><span class="n">x</span><span class="o">,</span> <span class="n">y</span><span class="o">)</span>
+</span><span class='line'>          <span class="nn">Console</span><span class="p">.</span><span class="nc">ForegroundColor</span> <span class="o">&lt;-</span> <span class="n">c</span>
+</span><span class='line'>          <span class="nn">Console</span><span class="p">.</span><span class="nc">Write</span> <span class="o">(</span><span class="kt">string</span> <span class="n">m</span><span class="o">)</span>
+</span><span class='line'>          <span class="k">return</span><span class="o">!</span> <span class="n">inner</span> <span class="bp">()</span> <span class="o">}</span>
+</span><span class='line'>      <span class="n">inner</span> <span class="bp">()</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">console</span><span class="o">.</span><span class="nn">Error</span><span class="p">.</span><span class="nc">Add</span><span class="o">(</span><span class="k">fun</span> <span class="n">e</span> <span class="o">-&gt;</span> <span class="n">printfn</span> <span class="s2">&quot;%A&quot;</span> <span class="n">e</span><span class="o">.</span><span class="nc">Message</span><span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Notice the use of the X and Y active patterns to enforce our domain constraints on the underlying
+.net type.</p>
+
+<p>We&rsquo;ll also have some types for keeping track of an angels position and velocity.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">Vector2</span> <span class="o">=</span>
+</span><span class='line'>  <span class="o">{</span> <span class="n">x</span> <span class="o">:</span> <span class="kt">float</span><span class="o">;</span> <span class="n">y</span> <span class="o">:</span> <span class="kt">float</span> <span class="o">}</span>
+</span><span class='line'>  <span class="k">static</span> <span class="k">member</span> <span class="o">(+)</span> <span class="o">({</span> <span class="n">x</span> <span class="o">=</span> <span class="n">x1</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="n">y1</span> <span class="o">},</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="n">x2</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="n">y2</span> <span class="o">})</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="n">x1</span> <span class="o">+</span> <span class="n">x2</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="n">y1</span> <span class="o">+</span> <span class="n">y2</span> <span class="o">}</span>
+</span><span class='line'>  <span class="k">static</span> <span class="k">member</span> <span class="o">(-)</span> <span class="o">({</span> <span class="n">x</span> <span class="o">=</span> <span class="n">x1</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="n">y1</span> <span class="o">},</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="n">x2</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="n">y2</span> <span class="o">})</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="n">x1</span> <span class="o">-</span> <span class="n">x2</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="n">y1</span> <span class="o">-</span> <span class="n">y2</span> <span class="o">}</span>
+</span><span class='line'>  <span class="k">static</span> <span class="k">member</span> <span class="nc">Abs</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="n">x1</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="n">y1</span> <span class="o">}</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">x1</span> <span class="o">*</span> <span class="n">x1</span> <span class="o">+</span> <span class="n">y1</span> <span class="o">*</span> <span class="n">y1</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="n">sqrt</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">AngelInfo</span> <span class="o">=</span>
+</span><span class='line'>  <span class="o">{</span> <span class="nc">Position</span> <span class="o">:</span> <span class="nc">Vector2</span>
+</span><span class='line'>    <span class="nc">Velocity</span> <span class="o">:</span> <span class="nc">Vector2</span> <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Here we&rsquo;ve defined + and &ndash; on a two element vector, and a helper function to calculate the vectors
+magnitude.</p>
+
+<p>Now we&rsquo;re ready to set up our event loop agent. I&rsquo;m going to call mine <code>ping</code>.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">AngelMessage</span> <span class="o">=</span>
+</span><span class='line'>  <span class="o">|</span> <span class="nc">Init</span> <span class="k">of</span> <span class="nc">AsyncReplyChannel</span><span class="o">&lt;</span><span class="nc">AngelInfo</span><span class="o">&gt;</span>
+</span><span class='line'>  <span class="o">|</span> <span class="nc">Next</span> <span class="k">of</span> <span class="nc">AngelInfo</span> <span class="kt">list</span> <span class="o">*</span> <span class="nc">AsyncReplyChannel</span><span class="o">&lt;</span><span class="nc">AngelInfo</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">ping</span> <span class="o">=</span>
+</span><span class='line'>  <span class="nn">MailboxProcessor</span><span class="p">.</span><span class="nc">Start</span><span class="o">(</span>
+</span><span class='line'>    <span class="k">fun</span> <span class="n">agent</span> <span class="o">-&gt;</span>
+</span><span class='line'>      <span class="k">let</span> <span class="k">rec</span> <span class="n">inner</span> <span class="o">(</span><span class="n">angels</span> <span class="o">:</span> <span class="nc">MailboxProcessor</span><span class="o">&lt;</span><span class="nc">AngelMessage</span><span class="o">&gt;</span> <span class="kt">list</span><span class="o">)</span> <span class="n">infos</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">async</span> <span class="o">{</span>
+</span><span class='line'>          <span class="c1">// Ask the angels where they will be next</span>
+</span><span class='line'>          <span class="k">let</span><span class="o">!</span> <span class="n">newInfos</span> <span class="o">=</span>
+</span><span class='line'>            <span class="n">angels</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">angel</span> <span class="o">-&gt;</span> <span class="n">angel</span><span class="o">.</span><span class="nc">PostAndAsyncReply</span> <span class="o">(</span><span class="k">fun</span> <span class="n">r</span> <span class="o">-&gt;</span> <span class="nc">Next</span><span class="o">(</span><span class="n">infos</span><span class="o">,</span> <span class="n">r</span><span class="o">)))</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Parallel</span>
+</span><span class='line'>
+</span><span class='line'>          <span class="k">let</span> <span class="n">newInfos</span> <span class="o">=</span> <span class="n">newInfos</span> <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">ofArray</span>
+</span><span class='line'>
+</span><span class='line'>          <span class="c1">// Erase old locations</span>
+</span><span class='line'>          <span class="k">do</span><span class="o">!</span>
+</span><span class='line'>            <span class="n">infos</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="o">{</span> <span class="nc">Position</span> <span class="o">=</span> <span class="n">p</span> <span class="o">}</span> <span class="o">-&gt;</span> <span class="n">p</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">p</span> <span class="o">-&gt;</span> <span class="n">setAsync</span> <span class="o">(</span><span class="kt">int</span> <span class="n">p</span><span class="o">.</span><span class="n">x</span><span class="o">)</span> <span class="o">(</span><span class="kt">int</span> <span class="n">p</span><span class="o">.</span><span class="n">y</span><span class="o">)</span> <span class="mi">0</span> <span class="sc">&#39; &#39;</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Parallel</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Ignore</span>
+</span><span class='line'>
+</span><span class='line'>          <span class="c1">// Draw new locations</span>
+</span><span class='line'>          <span class="k">do</span><span class="o">!</span>
+</span><span class='line'>            <span class="n">newInfos</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="o">{</span> <span class="nc">Position</span> <span class="o">=</span> <span class="n">p</span> <span class="o">}</span> <span class="o">-&gt;</span> <span class="n">p</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">p</span> <span class="o">-&gt;</span> <span class="n">setAsync</span> <span class="o">(</span><span class="kt">int</span> <span class="n">p</span><span class="o">.</span><span class="n">x</span><span class="o">)</span> <span class="o">(</span><span class="kt">int</span> <span class="n">p</span><span class="o">.</span><span class="n">y</span><span class="o">)</span> <span class="mi">15</span> <span class="sc">&#39;*&#39;</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Parallel</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Ignore</span>
+</span><span class='line'>
+</span><span class='line'>          <span class="k">do</span><span class="o">!</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Sleep</span> <span class="mi">100</span>
+</span><span class='line'>          <span class="k">return</span><span class="o">!</span> <span class="n">inner</span> <span class="n">angels</span> <span class="n">newInfos</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>      <span class="k">let</span> <span class="n">init</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">async</span> <span class="o">{</span>
+</span><span class='line'>          <span class="c1">// Wait for angels to be passed in</span>
+</span><span class='line'>          <span class="k">let</span><span class="o">!</span> <span class="o">(</span><span class="n">msg</span> <span class="o">:</span> <span class="nc">MailboxProcessor</span><span class="o">&lt;</span><span class="nc">AngelMessage</span><span class="o">&gt;</span> <span class="kt">list</span><span class="o">)</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="nc">Receive</span><span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'>          <span class="k">let</span><span class="o">!</span> <span class="n">infos</span> <span class="o">=</span>
+</span><span class='line'>            <span class="n">msg</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">angel</span> <span class="o">-&gt;</span> <span class="n">angel</span><span class="o">.</span><span class="nc">PostAndAsyncReply</span> <span class="nc">Init</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Parallel</span>
+</span><span class='line'>
+</span><span class='line'>          <span class="k">return</span><span class="o">!</span> <span class="n">inner</span> <span class="n">msg</span> <span class="o">(</span><span class="n">infos</span> <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">ofArray</span><span class="o">)</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>      <span class="n">init</span> <span class="bp">()</span>
+</span><span class='line'>    <span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This agent is a bit more chunky. If you look down to the end of the body, you&rsquo;ll see it starts
+by calling <code>init</code>. This method is responsible for waiting for the initial list of angels that
+will populate our night sky. The angels themselves will be agents that listen for the AngelMessage
+type.</p>
+
+<p><code>init</code> sends an <code>Init</code> message to each angel, asking it for it&rsquo;s initial position and velocity.
+The message consists solely of a reply channel which the angel will use to pass back the information.</p>
+
+<p>Once all the angels have reported in, we pass control to the recursive inner loop. On each round
+through, the <code>ping</code> agent asks every angel where it&rsquo;s moving to. It then writes spaces to every square on the console that held an angel last
+tick, and finally draws the new positions of every angel.</p>
+
+<p>And most of our infrastructure is in place! Let&rsquo;s test it with a collection of angels that will
+start with a random position and velocity and move in a straight line for a while.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">xSeq</span>  <span class="o">=</span> <span class="n">randSeq</span> <span class="n">randX</span> <span class="n">xZero</span> <span class="o">(</span><span class="n">width</span> <span class="o">+</span> <span class="n">xZero</span> <span class="o">-</span> <span class="mi">1</span><span class="o">)</span>
+</span><span class='line'><span class="k">let</span> <span class="n">ySeq</span>  <span class="o">=</span> <span class="n">randSeq</span> <span class="n">randY</span> <span class="n">yZero</span> <span class="o">(</span><span class="n">height</span> <span class="o">+</span> <span class="n">yZero</span> <span class="o">-</span> <span class="mi">1</span><span class="o">)</span>
+</span><span class='line'><span class="k">let</span> <span class="n">vxSeq</span> <span class="o">=</span> <span class="n">randSeq</span> <span class="n">randX</span> <span class="o">-</span><span class="mi">5</span> <span class="mi">5</span>
+</span><span class='line'><span class="k">let</span> <span class="n">vySeq</span> <span class="o">=</span> <span class="n">randSeq</span> <span class="n">randY</span> <span class="o">-</span><span class="mi">5</span> <span class="mi">5</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">createAngel</span> <span class="n">logic</span> <span class="n">angelInfo</span> <span class="o">=</span>
+</span><span class='line'>  <span class="nn">MailboxProcessor</span><span class="p">.</span><span class="nc">Start</span><span class="o">(</span>
+</span><span class='line'>    <span class="k">fun</span> <span class="n">agent</span> <span class="o">-&gt;</span>
+</span><span class='line'>      <span class="k">let</span> <span class="k">rec</span> <span class="n">inner</span> <span class="n">currentInfo</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">async</span> <span class="o">{</span>
+</span><span class='line'>          <span class="k">let</span><span class="o">!</span> <span class="n">msg</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="nc">Receive</span><span class="bp">()</span>
+</span><span class='line'>          <span class="k">return</span><span class="o">!</span>
+</span><span class='line'>            <span class="k">match</span> <span class="n">msg</span> <span class="k">with</span>
+</span><span class='line'>            <span class="o">|</span> <span class="nc">Init</span> <span class="n">r</span> <span class="o">-&gt;</span>
+</span><span class='line'>              <span class="n">r</span><span class="o">.</span><span class="nc">Reply</span> <span class="n">currentInfo</span>
+</span><span class='line'>              <span class="n">inner</span> <span class="n">currentInfo</span>
+</span><span class='line'>            <span class="o">|</span> <span class="nc">Next</span> <span class="o">(</span><span class="n">infos</span><span class="o">,</span> <span class="n">r</span><span class="o">)</span> <span class="o">-&gt;</span>
+</span><span class='line'>              <span class="k">let</span> <span class="n">newInfo</span> <span class="o">=</span> <span class="n">logic</span> <span class="n">currentInfo</span> <span class="n">infos</span>
+</span><span class='line'>              <span class="n">r</span><span class="o">.</span><span class="nc">Reply</span> <span class="n">newInfo</span>
+</span><span class='line'>              <span class="n">inner</span> <span class="n">newInfo</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>      <span class="n">inner</span> <span class="n">angelInfo</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">angels</span> <span class="o">=</span>
+</span><span class='line'>  <span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="o">(</span><span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">xSeq</span> <span class="n">ySeq</span><span class="o">)</span> <span class="o">(</span><span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">vxSeq</span> <span class="n">vySeq</span><span class="o">)</span>
+</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">take</span> <span class="mi">10</span>
+</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span>
+</span><span class='line'>      <span class="o">(</span><span class="k">fun</span> <span class="o">((</span><span class="n">px</span><span class="o">,</span> <span class="n">py</span><span class="o">),</span> <span class="o">(</span><span class="n">vx</span><span class="o">,</span> <span class="n">vy</span><span class="o">))</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="o">{</span> <span class="nc">Position</span> <span class="o">=</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="kt">float</span> <span class="n">px</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="kt">float</span> <span class="n">py</span> <span class="o">};</span> <span class="nc">Velocity</span> <span class="o">=</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="kt">float</span> <span class="n">vx</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="kt">float</span> <span class="n">py</span> <span class="o">}})</span>
+</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="n">createAngel</span> <span class="o">(</span><span class="k">fun</span> <span class="n">c</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="o">{</span> <span class="n">c</span> <span class="k">with</span> <span class="nc">Position</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="nc">Position</span> <span class="o">+</span> <span class="n">c</span><span class="o">.</span><span class="nc">Velocity</span> <span class="o">}))</span>
+</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">toList</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// Start the whole thing off</span>
+</span><span class='line'><span class="n">ping</span><span class="o">.</span><span class="nc">Post</span> <span class="n">angels</span>
+</span><span class='line'>
+</span><span class='line'><span class="nn">Console</span><span class="p">.</span><span class="nc">ReadLine</span><span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'><span class="nn">Console</span><span class="p">.</span><span class="nc">ForegroundColor</span> <span class="o">&lt;-</span> <span class="nn">ConsoleColor</span><span class="p">.</span><span class="nc">White</span>
+</span><span class='line'><span class="nn">Console</span><span class="p">.</span><span class="nc">CursorVisible</span> <span class="o">&lt;-</span> <span class="bp">true</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Each of our angels knows how to report its initial state, and how to apply a function called <code>logic</code> to it&rsquo;s previous state to generate the new position. For testing, the <code>logic</code> we&rsquo;re passing in is just to add its velocity to it&rsquo;s current position each time its asked.</p>
+
+<p>Full listing is in <a href="https://github.com/mavnn/advent2015/blob/master/advent2.fsx">advent2.fsx</a>, and running it should give us something like this:</p>
+
+<p><img src="http://blog.mavnn.co.uk/images/angels3.gif"/></p>
+
+<blockquote><p>Suddenly a great company of the heavenly host appeared with the angel, praising God and saying,</p>
+
+<p>“Glory to God in the highest heaven,
+   and on earth peace to those on whom his favor rests.” <ref><a href="https://www.biblegateway.com/passage/?search=luke+2:13-14&version=NIV" title="Luke 2:13-14">Luke 2:13-14</a></ref></p></blockquote>
+
+<h3>Adding some dancing</h3>
+
+<p>But! Angels in straight lines doesn&rsquo;t sound much fun. We&rsquo;ll make our angels a bit more interesting
+by implementing a simple <a href="https://en.wikipedia.org/wiki/Boids">boid</a> variant.</p>
+
+<p>First we&rsquo;ll add the ability to specify a colour as part of our angel info (check the full listing for details). We&rsquo;ll also expand the vectors to implement multiplication, division and a magnitude limit.</p>
+
+<p>Then we can add a <code>logic</code> module:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nc">Logic</span> <span class="o">=</span>
+</span><span class='line'>  <span class="k">let</span> <span class="k">private</span> <span class="n">surrounding</span> <span class="n">radius</span> <span class="o">(</span><span class="n">us</span> <span class="o">:</span> <span class="nc">AngelInfo</span><span class="o">)</span> <span class="o">(</span><span class="n">others</span> <span class="o">:</span> <span class="nc">AngelInfo</span> <span class="kt">list</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">others</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">filter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">a</span> <span class="o">-&gt;</span> <span class="nn">Vector2</span><span class="p">.</span><span class="n">abs</span> <span class="o">(</span><span class="n">a</span><span class="o">.</span><span class="nc">Position</span> <span class="o">-</span> <span class="n">us</span><span class="o">.</span><span class="nc">Position</span><span class="o">)</span> <span class="o">&lt;</span> <span class="n">radius</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">let</span> <span class="k">private</span> <span class="n">desiredVel</span> <span class="n">angels</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">angels</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">fold</span>
+</span><span class='line'>        <span class="o">(</span><span class="k">fun</span> <span class="o">(</span><span class="n">v</span><span class="o">,</span> <span class="n">i</span><span class="o">)</span> <span class="n">angel</span> <span class="o">-&gt;</span>
+</span><span class='line'>          <span class="o">(</span><span class="n">angel</span><span class="o">.</span><span class="nc">Velocity</span> <span class="o">+</span> <span class="n">v</span><span class="o">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="o">))</span> <span class="o">({</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.;</span> <span class="n">y</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.},</span> <span class="mi">0</span><span class="o">)</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="k">fun</span> <span class="o">(</span><span class="n">v</span><span class="o">,</span> <span class="n">i</span><span class="o">)</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="k">match</span> <span class="n">i</span> <span class="k">with</span>
+</span><span class='line'>        <span class="o">|</span> <span class="mi">0</span> <span class="o">-&gt;</span>
+</span><span class='line'>          <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.;</span> <span class="n">y</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.</span> <span class="o">}</span>
+</span><span class='line'>        <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
+</span><span class='line'>          <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">x</span> <span class="o">/</span> <span class="kt">float</span> <span class="n">i</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">y</span> <span class="o">/</span> <span class="kt">float</span> <span class="n">i</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">let</span> <span class="k">private</span> <span class="n">avoid</span> <span class="n">this</span> <span class="n">angels</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">dodge</span> <span class="n">v</span> <span class="o">=</span>
+</span><span class='line'>      <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">1</span><span class="o">.</span> <span class="o">/</span> <span class="n">v</span><span class="o">.</span><span class="n">x</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span><span class="o">.</span>
+</span><span class='line'>        <span class="n">y</span> <span class="o">=</span> <span class="mi">1</span><span class="o">.</span> <span class="o">/</span> <span class="n">v</span><span class="o">.</span><span class="n">y</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span><span class="o">.</span> <span class="o">}</span> <span class="o">*</span> <span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">length</span> <span class="n">angels</span> <span class="o">|&gt;</span> <span class="kt">float</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">match</span> <span class="n">angels</span> <span class="k">with</span>
+</span><span class='line'>    <span class="o">|</span> <span class="bp">[]</span> <span class="o">|</span> <span class="o">[_]</span> <span class="o">-&gt;</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.;</span> <span class="n">y</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.</span> <span class="o">}</span>
+</span><span class='line'>    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
+</span><span class='line'>      <span class="n">angels</span>
+</span><span class='line'>      <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">angel</span> <span class="o">-&gt;</span> <span class="n">angel</span><span class="o">.</span><span class="nc">Position</span> <span class="o">-</span> <span class="n">this</span><span class="o">.</span><span class="nc">Position</span><span class="o">)</span>
+</span><span class='line'>      <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">reduce</span> <span class="o">(+)</span>
+</span><span class='line'>      <span class="o">|&gt;</span> <span class="n">dodge</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">let</span> <span class="n">boid</span> <span class="n">midpoint</span> <span class="n">friendRadius</span> <span class="n">dodgeRadius</span> <span class="n">maxAcc</span> <span class="n">maxVel</span> <span class="n">this</span> <span class="n">angels</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">groupVel</span> <span class="o">=</span>
+</span><span class='line'>      <span class="n">surrounding</span> <span class="n">friendRadius</span> <span class="n">this</span> <span class="n">angels</span>
+</span><span class='line'>      <span class="o">|&gt;</span> <span class="n">desiredVel</span>
+</span><span class='line'>      <span class="o">|&gt;</span> <span class="nn">Vector2</span><span class="p">.</span><span class="n">limit</span> <span class="n">maxVel</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">avoidCollision</span> <span class="o">=</span>
+</span><span class='line'>      <span class="n">surrounding</span> <span class="n">dodgeRadius</span> <span class="n">this</span> <span class="n">angels</span>
+</span><span class='line'>      <span class="o">|&gt;</span> <span class="n">avoid</span> <span class="n">this</span>
+</span><span class='line'>      <span class="o">|&gt;</span> <span class="nn">Vector2</span><span class="p">.</span><span class="n">limit</span> <span class="n">maxVel</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">towardsMiddle</span> <span class="o">=</span>
+</span><span class='line'>      <span class="n">midpoint</span> <span class="o">-</span> <span class="n">this</span><span class="o">.</span><span class="nc">Position</span>
+</span><span class='line'>      <span class="o">|&gt;</span> <span class="nn">Vector2</span><span class="p">.</span><span class="n">limit</span> <span class="n">maxVel</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">acceleration</span> <span class="o">=</span>
+</span><span class='line'>      <span class="o">(</span><span class="n">groupVel</span> <span class="o">*</span> <span class="mi">0</span><span class="o">.</span><span class="mi">5</span> <span class="o">+</span> <span class="n">avoidCollision</span> <span class="o">*</span> <span class="mi">2</span><span class="o">.</span> <span class="o">+</span> <span class="n">towardsMiddle</span><span class="o">)</span>
+</span><span class='line'>      <span class="o">/</span> <span class="mi">3</span><span class="o">.</span>
+</span><span class='line'>    <span class="o">{</span> <span class="n">this</span> <span class="k">with</span> <span class="nc">Position</span> <span class="o">=</span> <span class="n">this</span><span class="o">.</span><span class="nc">Position</span> <span class="o">+</span> <span class="n">this</span><span class="o">.</span><span class="nc">Velocity</span>
+</span><span class='line'>                <span class="nc">Velocity</span> <span class="o">=</span> <span class="o">(</span><span class="n">this</span><span class="o">.</span><span class="nc">Velocity</span> <span class="o">+</span> <span class="n">acceleration</span><span class="o">)</span> <span class="o">|&gt;</span> <span class="nn">Vector2</span><span class="p">.</span><span class="n">limit</span> <span class="n">maxVel</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">let</span> <span class="n">stationary</span> <span class="n">this</span> <span class="o">_</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span> <span class="n">this</span> <span class="k">with</span> <span class="nc">Velocity</span> <span class="o">=</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.;</span> <span class="n">y</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.</span> <span class="o">}</span> <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Nothing super exciting here individually &ndash; we have methods for discovering other angels nearby
+(<code>surrounding</code>), the average velocity of a group of angels (<code>desiredVel</code>) and a rough guess
+at not running into a group of nearby angels (<code>avoid</code>). All could probably be improved!</p>
+
+<p>Putting it all together, the <code>boid</code> method calculates the acceleration the angel would &ldquo;like&rdquo; to
+have to follow all if its rules fully, and then limits that by a specified maximum acceleration.
+I played with the weighting of the rules a bit to get something that looked kind of nice, and also
+decided to make my life easier by aiming cohesion towards the middle of the screen rather than the
+middle of the flock.</p>
+
+<p>Generating our angels is now just a case of partially applying boid with the parameters of our
+choice:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">angels</span> <span class="o">=</span>
+</span><span class='line'>  <span class="nn">Seq</span><span class="p">.</span><span class="n">zip3</span> <span class="o">(</span><span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">xSeq</span> <span class="n">ySeq</span><span class="o">)</span> <span class="o">(</span><span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">vxSeq</span> <span class="n">vySeq</span><span class="o">)</span> <span class="n">cSeq</span>
+</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">take</span> <span class="mi">40</span>
+</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span>
+</span><span class='line'>      <span class="o">(</span><span class="k">fun</span> <span class="o">((</span><span class="n">px</span><span class="o">,</span> <span class="n">py</span><span class="o">),</span> <span class="o">(</span><span class="n">vx</span><span class="o">,</span> <span class="n">vy</span><span class="o">),</span> <span class="n">c</span><span class="o">)</span> <span class="o">-&gt;</span>
+</span><span class='line'>       <span class="o">{</span> <span class="nc">Position</span> <span class="o">=</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="kt">float</span> <span class="n">px</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="kt">float</span> <span class="n">py</span> <span class="o">}</span>
+</span><span class='line'>         <span class="nc">Velocity</span> <span class="o">=</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="kt">float</span> <span class="n">vx</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="kt">float</span> <span class="n">vy</span> <span class="o">}</span>
+</span><span class='line'>         <span class="nc">Colour</span>   <span class="o">=</span> <span class="n">c</span> <span class="o">})</span>
+</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="n">createAngel</span> <span class="o">(</span><span class="nn">Logic</span><span class="p">.</span><span class="n">boid</span> <span class="n">midpoint</span> <span class="mi">10</span><span class="o">.</span> <span class="mi">1</span><span class="o">.</span> <span class="mi">0</span><span class="o">.</span><span class="mi">3</span> <span class="mi">1</span><span class="o">.))</span>
+</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">append</span>
+</span><span class='line'>      <span class="o">[(</span><span class="n">createAngel</span>
+</span><span class='line'>         <span class="nn">Logic</span><span class="p">.</span><span class="n">stationary</span> <span class="o">{</span> <span class="nc">Position</span> <span class="o">=</span> <span class="n">midpoint</span>
+</span><span class='line'>                            <span class="nc">Velocity</span> <span class="o">=</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.;</span> <span class="n">y</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.</span> <span class="o">}</span>
+</span><span class='line'>                            <span class="nc">Colour</span>   <span class="o">=</span> <span class="mi">15</span> <span class="o">})]</span>
+</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">toList</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The ones in listing <a href="https://github.com/mavnn/advent2015/blob/master/advent3.fsx">advent3.fsx</a> give something reasonably nice, looking like:</p>
+
+<p><img src="http://blog.mavnn.co.uk/images/angels4.gif"/></p>
+
+<p>One word of warning: there&rsquo;s a bug in the avoidance which I haven&rsquo;t had a chance to track down,
+so if you add too many angels they&rsquo;ll all push each other into the top left corner. Oops.</p>
+
+<p>And that&rsquo;s all for now. I hope you enjoyed this brief dive into agent based programming,
+and how we can use agents to separate responsibility and protect against unwanted race conditions.</p>
+
+<p>As you can see, this framework allows easy modification of angel logic, and in fact allows for
+every angel to have its own implementation without much added complexity &ndash; as long as it replies to
+the same messages.</p>
+
+<p>Happy Christmas, and God bless.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Annoucing @mavnn Ltd]]></title>
@@ -2425,7 +3100,7 @@ management responsibility. We&rsquo;re hiring developers, and while we&rsquo;ll 
 
 <p>So, there you have. My own personal list of things that increase or decrease your chances that I&rsquo;ll recommend you&rsquo;re interviewed.</p>
 
-<p>If you think that you&rsquo;d be interested in working for the type of company that uses this type of criteria&hellip; well, oddly enough we&rsquo;re hiring at the moment. Ping me or drop a note through to <a href="&#109;&#97;&#x69;&#x6c;&#x74;&#x6f;&#58;&#x6a;&#111;&#x62;&#115;&#x40;&#49;&#x35;&#98;&#101;&#x6c;&#111;&#x77;&#x2e;&#x63;&#111;&#x6d;&#x2e;">&#x6a;&#111;&#98;&#x73;&#64;&#49;&#x35;&#x62;&#101;&#108;&#111;&#119;&#x2e;&#99;&#x6f;&#109;&#x2e;</a></p>
+<p>If you think that you&rsquo;d be interested in working for the type of company that uses this type of criteria&hellip; well, oddly enough we&rsquo;re hiring at the moment. Ping me or drop a note through to <a href="&#x6d;&#97;&#x69;&#x6c;&#116;&#x6f;&#58;&#x6a;&#111;&#x62;&#x73;&#x40;&#49;&#x35;&#98;&#101;&#108;&#x6f;&#x77;&#x2e;&#x63;&#x6f;&#x6d;&#46;">&#106;&#x6f;&#98;&#x73;&#x40;&#x31;&#53;&#x62;&#x65;&#x6c;&#111;&#x77;&#46;&#x63;&#111;&#109;&#46;</a></p>
 ]]></content>
   </entry>
   
@@ -4840,165 +5515,6 @@ reconstructing the tree afterwards.</p>
 
 
 <p>That&rsquo;s all till next time, and I hope your brains recover sooner than mine.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[If I Ruled the World... Remote Working]]></title>
-    <link href="http://blog.mavnn.co.uk/remote-working/"/>
-    <updated>2014-07-15T20:43:06+01:00</updated>
-    <id>http://blog.mavnn.co.uk/remote-working</id>
-    <content type="html"><![CDATA[<p>Welcome to a new category of posts for my blog. It&rsquo;s the &ldquo;Rule the World&rdquo; category, where I spout opinions on a subject with gay abandon, even if I can&rsquo;t actually offer that much beyond anecdotal evidence to back the opinion up.</p>
-
-<p>On this occasion I even feel justified as someone has actively asked my opinion about something.</p>
-
-<p>Well, that was foolish now, wasn&rsquo;t it?</p>
-
-<!-- more -->
-
-
-<h2>In the Blue Corner</h2>
-
-<p>These questions are coming from a friend who is heading up the development team of a small but reasonably established start up in London. Hiring is competitive, wages are high, and all of their production services are running in a remote data center somewhere else anyway.</p>
-
-<p>He&rsquo;d also like to be able to go surfing before work some mornings, which is hard in central London.</p>
-
-<p>All of this has lead to an interest in both remote working and working from home.</p>
-
-<h2>In the Red Corner</h2>
-
-<p>I&rsquo;ve never been a fully remote worker, but for family reasons I&rsquo;ve been working somewhere between one and two days a week from home for about 6 years now. I&rsquo;ve also worked occasional periods of a week or two completely remotely. I&rsquo;ve therefore lived one of the scenarios that is concern to my surfing friend: can you mix and match remote/home working and office based workers, or do you have to really go the whole hog and be a fully distributed company if you want to open up the
-option at all?</p>
-
-<h2>Let&rsquo;s get started!</h2>
-
-<p>The questions were originally sent to me by email, which I asked for permission to reproduce here, slightly reformatted and with a few bits redacted to protect the potentially innocent:</p>
-
-<blockquote><p>At [our company] the &ldquo;default&rdquo; is very much in the office. I want to actively encourage/enable people to work remotely without it evolving into a &ldquo;second class&rdquo; citizen? Partly because I think it&rsquo;s a &ldquo;good&rdquo; thing, and so we can genuinely hire the best possible talent. And the longer the company exists the harder it will be to establish that culture. I for one would like to try surfing in the morning and working later&hellip; and I can&rsquo;t do that in London!</p>
-
-<p>Current tools/workflow:</p>
-
-<ul>
-<li>We all use [chat software] already &ndash; I <em>think</em> we&rsquo;ll just need more discipline to ensure as much chat as possible is on [chat software] even if it&rsquo;s discussed in the office.</li>
-<li>All dev goes through pull requests, which should work fine remotely too. We&rsquo;ve experimented with ScreenHero for pair programming, which in theory would work though haven&rsquo;t tried more than once or twice.</li>
-</ul>
-
-
-<p>Current unknowns:</p>
-
-<ul>
-<li>Are we talking working remotely, but commutable in to the office, or genuinely distributed team? Pros/cons.</li>
-<li>Core working hours? How do we deal with non-devs and ensuring we have customer support covered as a company?</li>
-<li>More ad-hoc catch ups? How to deal with weekly planning/priorities?</li>
-<li>What kinds of machines do we buy people? Currently they&rsquo;re fast desktops, but you won&rsquo;t get the same spec on a laptop unless it&rsquo;s a brick. Jon is experimenting with top of the range 15&#8221; macbook, but personally I wouldn&rsquo;t want to lug that to the office either.</li>
-<li>Web cams / other things like Sqwiggle? Do we care?</li>
-</ul>
-</blockquote>
-
-<p>There&rsquo;s a fair amount of stuff there, so let&rsquo;s start knocking questions out :).</p>
-
-<p>Starting with the easy ones first&hellip;</p>
-
-<h2>Kit</h2>
-
-<blockquote><ul>
-<li>What kinds of machines do we buy people? Currently they&rsquo;re fast desktops, but you won&rsquo;t get the same spec on a laptop unless it&rsquo;s a brick. Jon is experimenting with top of the range 15&#8221; macbook, but personally I wouldn&rsquo;t want to lug that to the office either.</li>
-<li>Web cams / other things like Sqwiggle? Do we care?</li>
-</ul>
-</blockquote>
-
-<p>I do a fair amount of heavy dev work as part of my current job. My working from home kit? A <a href="http://shop.lenovo.com/gb/en/laptops/lenovo/yoga/yoga-13/#tab-tech_specs">Yoga IdeaPad</a> and a headset. It&rsquo;s a relatively high end model, and I&rsquo;d probably recommend the ThinkPad version now it exists, but really &ndash; it&rsquo;s good enough.</p>
-
-<p>Between having an SSD and 8gb of RAM, you can easily run several copies of Visual Studio, a couple of virtual machines and all your normal background apps (email, chat, browser, etc) without noticeable slow down. It&rsquo;s light weight, has a long battery life and is comfortable to use on the move. I&rsquo;m with Hanselman &ndash; <a href="http://www.hanselman.com/blog/MyNextPCWillBeAnUltrabook.aspx">the ultrabook has arrived</a> as a development environment, and that was two years ago.</p>
-
-<p>Is it slower than the desktop the guy next to me uses? Yes. Do I notice in day to day, even heavy weight development? No.</p>
-
-<p>As a bonus, most ultrabooks also have a web cam built in. But you want the headset. Oh, yes. You want the headset.</p>
-
-<p>For small groups at least, Google Hangouts or Skype appear to work pretty well. I&rsquo;ve not had reason to try anything heavier weight, although I could see some of the pair programming tools being helpful.</p>
-
-<h2>Core working hours</h2>
-
-<blockquote><ul>
-<li>Core working hours? How do we deal with non-devs and ensuring we have customer support covered as a company?</li>
-</ul>
-</blockquote>
-
-<p><strong>&hellip;rant mode: on&hellip;</strong></p>
-
-<p>So: <a href="http://heeris.id.au/2013/this-is-why-you-shouldnt-interrupt-a-programmer/">you</a> <a href="http://lifehacker.com/how-to-stay-productive-in-an-open-working-environment-1443536319">shouldn&rsquo;t</a> <a href="http://mattrogish.com/blog/2012/03/17/open-plan-offices-must-die/">interrupt</a> <a href="http://www.thesoundagency.com/2011/sound-news/more-damaging-evidence-on-open-plan-offices/">programmers</a>. Those are just the first few results on Google, I haven&rsquo;t even started digging into the actual
-scientific references.</p>
-
-<p><strong>&hellip;rant mode: off&hellip;</strong></p>
-
-<p>Given that you&rsquo;re not interrupting your programmers, what do you want? Well &ndash; you want asynchronous communication channels (chat, email) for when your programmer choose to interrupt themselves and you want at least each person to have at least one time a day when they&rsquo;re online with a group simultaneously. I was going to say when you have everyone on at the same time, but I&rsquo;m not actually sure that&rsquo;s a prerequisite.</p>
-
-<p>One thing I&rsquo;ve often felt working from home in an environment where it isn&rsquo;t the norm is the pressure to &ldquo;appear to be online&rdquo; in the same way that there&rsquo;s the pressure to be &ldquo;sitting at the desk&rdquo; when you&rsquo;re in the office. In reality, both are stupid; you&rsquo;ll get better code out of me between 8pm and 10pm if I&rsquo;ve taken 3pm-5pm off to pick up my son from school and spend some time with him. In the same way, you&rsquo;ll get better code out of me after I&rsquo;ve nipped out of
-the office to get a coffee than if I sit at my desk pretending to be productive when I&rsquo;m stuck on a difficult mental problem.</p>
-
-<p>It&rsquo;s hard to judge how much of this pressure is real, and how much is in my head. But if I ruled the world, er, company, the lack of core hours would be explicit.</p>
-
-<p>Are there exceptions to this? Yes, especially during planning phases of projects where it&rsquo;s helpful to have more people on at the same time more often. Also, as mentioned above, support isn&rsquo;t something you can turn on and off depending who happens to be online. You might not be able to allow unpredictable working hours; but that doesn&rsquo;t mean everyone has to have the same working hours.</p>
-
-<h2>There isn&rsquo;t a water cooler!</h2>
-
-<blockquote><ul>
-<li>More ad-hoc catch ups? How to deal with weekly planning/priorities?</li>
-</ul>
-</blockquote>
-
-<p>Ok, so I miss white boards when I&rsquo;m not in the office.</p>
-
-<p>Having said that, because we don&rsquo;t like interrupting each other too much, in practice the teams I&rsquo;ve worked best with have done a great deal of their catching up via chat <em>even when they&rsquo;ve all been sitting next to each other</em>. Why? No interruptions, instant record of decisions.</p>
-
-<p>When I&rsquo;m in the office, I do take advantage of being able to call someone over and point at the screen. It&rsquo;s a genuine downside of not being physically present that you can&rsquo;t do that when you&rsquo;re working remotely, but screen sharing tech covers most of the same ground.</p>
-
-<h2>How does it work?</h2>
-
-<blockquote><ul>
-<li>Are we talking working remotely, but commutable in to the office, or genuinely distributed team? Pros/cons.</li>
-</ul>
-</blockquote>
-
-<p>I&rsquo;ve deliberately left the most interesting question till last.</p>
-
-<p>All of the places where I&rsquo;ve regularly worked from home have been primarily office based organisations (two have been local councils). This has had some consequences on occasion.</p>
-
-<p>Most importantly, if you want fully remote workers and you want them to feel involved my experience suggests you will have to work <strong>hard</strong> at it to make it work. As someone who works from home some of the time, I often find I&rsquo;ve missed things when I&rsquo;ve been out of the office because they didn&rsquo;t make it onto chat or email but I then spot them when I come back in. But for me, that&rsquo;s a delay of just a day or two. For a fully remote worker, that content is just lost. The exchange
-is that on the days I&rsquo;m out of the office I feel I get a lot more done, especially if I&rsquo;m working on heavily conceptual problems, and it adds an extra flexibility to the home work balance exchange that makes it massively easier to stay sane. In fact, at times (with a young child and a wife who was suffering from a chronic health condition) it has been the only way I could work full time hours. The overhead of the commute and more fixed working times would have left me unable to
-get close to full time otherwise.</p>
-
-<p>This might make it sound like I&rsquo;m claiming that the ideal is people who regularly commute into the office, and regularly work from home. And we&rsquo;ll just ignore all those hard issues with fully remote workers and building in all that deliberate extra communication.</p>
-
-<p>But actually, I&rsquo;m not convinced.</p>
-
-<p>Why not?</p>
-
-<p>1) <em>That extra communication is useful anyway.</em> A lot of this stuff is things that should really, <strong>really</strong> be written down regardless, but we&rsquo;re human so we don&rsquo;t bother if there isn&rsquo;t an immediate reason.</p>
-
-<p>2) <em>There is a high possibility you&rsquo;ll end up with fully remote workers anyway.</em> I nearly moved to Italy this year to help look after my elderly parents-in-law. If I had, I wouldn&rsquo;t have wanted to stop working for my current employer, and they didn&rsquo;t really want to let me go. And then you have the whole 24 hour support question &ndash; doesn&rsquo;t just setting up an Australian office make more sense? (Which is, in fact, what the current company have ended up doing.)</p>
-
-<p>3) <em>You&rsquo;re already paying for the infrastructure &ndash; but not getting the cost benefits.</em> If you want to allow people to work from home, there are some cost implications. You&rsquo;ll probably want a VPN, possibly phone forwarding, etc. But you&rsquo;re still paying everyone a full London salary. And you&rsquo;ve still got as many desks as you used to. You&rsquo;re not getting all the pain, but you&rsquo;re not getting all the benefits either.</p>
-
-<p>4) <em>Talent.</em> Not all the clever people live in [substitute your town/country here]. Most programming communities are full of online, highly English literate people (almost by definition) who <em>do not live where you do</em>. Why waste the opportunity?</p>
-
-<p>On a more general note, things that have helped or hurt my remote working:</p>
-
-<ul>
-<li>A sensible VPN set up is great; don&rsquo;t make me bounce Spotify over <em>your</em> bandwidth.</li>
-<li>Speaking of which: a basic build shouldn&rsquo;t require you to be on the VPN. Some of the integration tests may need it, but a basic build shouldn&rsquo;t. An unreliable VPN connection should be a minor inconvenience, not a reason to pack up and play tennis.</li>
-<li>Video chat is sometimes nice &ndash; text based chat is invaluable. Text based chat <strong>should not go through the VPN</strong>. It&rsquo;s how you tell people the VPN isn&rsquo;t working. You might think I&rsquo;ve experienced some VPN issues over the years, I couldn&rsquo;t possibly comment.</li>
-<li>If there are a group based in an office, it&rsquo;s worth investing in some kit. Having tried it, trying to have a multi-party video chat with headsets where two or more people are in the same room is painful. Get the group microphone/speaker with noise cancellation, it&rsquo;s worth it.</li>
-</ul>
-
-
-<h2>So &ndash; if I ruled the world&hellip;</h2>
-
-<p>I&rsquo;d be looking at making sure that my company was fully remote worker friendly, even if I didn&rsquo;t have remote workers yet. And I&rsquo;d be doing it as early as possible.</p>
-
-<p>YMMV :)</p>
-
-<p>(especially if you&rsquo;re not running a software house, which I&rsquo;ve kind of assumed here)</p>
 ]]></content>
   </entry>
   

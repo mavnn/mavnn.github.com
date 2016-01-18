@@ -4,7 +4,7 @@
   <title><![CDATA[Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2015-12-18T21:44:39+00:00</updated>
+  <updated>2016-01-18T18:03:19+00:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,368 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[EmParsec Embedded Parser Library]]></title>
+    <link href="http://blog.mavnn.co.uk/emparsec-embedded-parser-library/"/>
+    <updated>2016-01-18T12:53:11+00:00</updated>
+    <id>http://blog.mavnn.co.uk/emparsec-embedded-parser-library</id>
+    <content type="html"><![CDATA[<p>Type providers, by their very nature, tend to access data external to the .net ecosystem. It can also be very awkward technically to make use of dependencies during the actual type generation process.</p>
+
+<p>This is rather a pity, because accessing all of that external data is much nicer and easier when you have a decent parser to do it with. And F# has very, very nice parser support via the <a href="http://www.quanttec.com/fparsec/">FParsec</a> library. Instead, many (most?) type providers end up creating mini-one shot parsers which can be a bit slow to write and don&rsquo;t tend to have features that come for free in a more complete solution such as nice error reporting.</p>
+
+<p>Writing yet an other parser (YAOP) this week I decided that enough was enough. What I needed was a shared resource that people could pool improvements for that could be easily embedded in projects like type providers were it isn&rsquo;t desirable (or sometimes possible) to take external binary dependencies.</p>
+
+<p>So I built it.</p>
+
+<p>EmParsec is a single file parser combinator &ldquo;library&rdquo;, inspired by both FParsec library and <a href="http://fsharpforfunandprofit.com/posts/understanding-parser-combinators/">Scott&rsquo;s excellent series on building parser combinators</a>.</p>
+
+<p>It consists of a single fsx file that can be loaded in the editor of your choice without any requirement for a project file or similar. When you want to use it, you can just reference it as a <a href="https://fsprojects.github.io/Paket/github-dependencies.html">Paket GitHub dependency</a> (which you&rsquo;ll be wanting to do for the ProvidedTypes.fs file if you&rsquo;re creating a type provider anyway) or even just copy the file across.</p>
+
+<p>If you are compiling EmParsec into a larger project, it marks itself as &ldquo;internal&rdquo; so that you don&rsquo;t pollute the end users name space, and so that if two projects you reference have embedded different versions of EmParsec there are no collisions.</p>
+
+<h2>How do I use it?</h2>
+
+<p>So, you&rsquo;ve added EmParsec.fsx to your project (manually or with Paket) and now you&rsquo;re wondering how to use it. Let&rsquo;s build some simple examples.</p>
+
+<h3>Matching an exact string</h3>
+
+<p>Let&rsquo;s start with something simple: what if I just want to match a string?</p>
+
+<p>Parser combinator libraries allow you to combine parsers from simpler parsers (hence the name), but in this case <code>pstring</code> (the &lsquo;p&rsquo; is there to avoid clashing with the existing <code>string</code> function) is provided for us by EmParsec.</p>
+
+<p>Let&rsquo;s try it out!</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nc">EmParsec</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">thingParser</span> <span class="o">=</span> <span class="n">pstring</span> <span class="s2">&quot;thing&quot;</span>
+</span><span class='line'><span class="c1">// When you enter this line, F# give a &quot;Value restriction&quot; error.</span>
+</span><span class='line'><span class="c1">// You can either mark thingParser as type UParser&lt;string&gt;, or</span>
+</span><span class='line'><span class="c1">// use the parser with run as below and the error will disappear.</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">run</span> <span class="n">thingParser</span> <span class="s2">&quot;thing&quot;</span>
+</span><span class='line'><span class="c1">// val it : Choice&lt;string,string&gt; = Choice1Of2 &quot;thing&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">run</span> <span class="n">thingParser</span> <span class="s2">&quot;th1ng&quot;</span>
+</span><span class='line'><span class="c1">// val it : Choice&lt;string,string&gt; =</span>
+</span><span class='line'><span class="c1">//   Choice2Of2</span>
+</span><span class='line'><span class="c1">//     &quot;Parser &lt;string thing&gt; failed at line 0 column 2</span>
+</span><span class='line'><span class="c1">// Unexpected [&#39;1&#39;]</span>
+</span><span class='line'><span class="c1">// th1ng</span>
+</span><span class='line'><span class="c1">//   ^&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Not bad! It even marks the unexpected character in the error output.</p>
+
+<p>Unfortunately:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="n">run</span> <span class="n">thingParser</span> <span class="s2">&quot;thing and more&quot;</span>
+</span><span class='line'><span class="c1">// val it : Choice&lt;string,string&gt; = Choice1Of2 &quot;thing&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>That probably isn&rsquo;t the behaviour you were hoping for. There&rsquo;s still input left after the parser has finished, but that isn&rsquo;t being seen as an error. EmParsec includes the <code>pend</code> parser for just this type of occasion &ndash; a parser that checks the input is exhausted.</p>
+
+<p>So we want a parser that parses &ldquo;thing&rdquo; and then ends.</p>
+
+<p>Let&rsquo;s go:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">thingParser2</span> <span class="o">=</span> <span class="n">andThen</span> <span class="o">(</span><span class="n">pstring</span> <span class="s2">&quot;thing&quot;</span><span class="o">)</span> <span class="n">pend</span>
+</span><span class='line'><span class="c1">// normally written</span>
+</span><span class='line'><span class="k">let</span> <span class="n">thingParser2&#39;</span> <span class="o">=</span> <span class="n">pstring</span> <span class="s2">&quot;thing&quot;</span> <span class="o">.&gt;&gt;.</span> <span class="n">pend</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">run</span> <span class="n">thingParser2</span> <span class="s2">&quot;thing&quot;</span>
+</span><span class='line'><span class="c1">// val it : Choice&lt;(string * unit),string&gt; = Choice1Of2 (&quot;thing&quot;, null)</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">run</span> <span class="n">thingParser2</span> <span class="s2">&quot;th1ng&quot;</span>
+</span><span class='line'><span class="c1">// val it : Choice&lt;(string * unit),string&gt; =</span>
+</span><span class='line'><span class="c1">//   Choice2Of2</span>
+</span><span class='line'><span class="c1">//     &quot;Parser (&lt;string thing&gt; andThen &lt;end&gt;) failed at line 0 column 2</span>
+</span><span class='line'><span class="c1">// Unexpected [&#39;1&#39;]</span>
+</span><span class='line'><span class="c1">// th1ng</span>
+</span><span class='line'><span class="c1">//   ^&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">run</span> <span class="n">thingParser2</span> <span class="s2">&quot;thing and more&quot;</span>
+</span><span class='line'><span class="c1">// val it : Choice&lt;(string * unit),string&gt; =</span>
+</span><span class='line'><span class="c1">//   Choice2Of2</span>
+</span><span class='line'><span class="c1">//     &quot;Parser (&lt;string thing&gt; andThen &lt;end&gt;) failed at line 0 column 5</span>
+</span><span class='line'><span class="c1">// Unexpected input remaining &#39; and more&#39;</span>
+</span><span class='line'><span class="c1">// thing and more</span>
+</span><span class='line'><span class="c1">//      ^&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>That&rsquo;s more like it. The only issue now is that we&rsquo;ve combined two parser, so we&rsquo;re getting back a tuple of two results.</p>
+
+<p>A simple tweak tells EmParsec to throw away the unit result returned by <code>pend</code>.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">improvedThingParser</span> <span class="o">=</span> <span class="n">pstring</span> <span class="s2">&quot;thing&quot;</span> <span class="o">.&gt;&gt;</span> <span class="n">pend</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">run</span> <span class="n">improvedThingParser</span> <span class="s2">&quot;thing&quot;</span>
+</span><span class='line'><span class="c1">// val it : Choice&lt;string,string&gt; = Choice1Of2 &quot;thing&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>&ldquo;Impressive,&rdquo; I hear you say: &ldquo;You can parse static strings!&rdquo;</p>
+
+<h3>Parsing a simple template language</h3>
+
+<p>You have a point. Let&rsquo;s tackle a simple template language. You know the kind of thing:</p>
+
+<p><code>Welcome {name}! Please spend money here.</code></p>
+
+<p>That kind of thing. I&rsquo;m going to start building up a set of helper parsers for this, applying some type annotations both to make the example code clearer and to avoid the value restriction errors that crop up until you actually use the parsers (those occur because these parsers can carry generic user state, but we&rsquo;re not going to go into using that here).</p>
+
+<p>We have two &ldquo;types&rdquo; of token that can exist in our template language: values to be replaced, and text to be preserved. Let&rsquo;s start by creating a union type to contain our parse results:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">TemplatePart</span> <span class="o">=</span>
+</span><span class='line'>  <span class="o">|</span> <span class="nc">Text</span> <span class="k">of</span> <span class="kt">string</span>
+</span><span class='line'>  <span class="o">|</span> <span class="nc">Value</span> <span class="k">of</span> <span class="kt">string</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Then, we&rsquo;ll have a parser that will parse individual characters which are <em>not</em> an opening bracket:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">notOpenBracket</span> <span class="o">:</span> <span class="nc">UParser</span><span class="o">&lt;</span><span class="kt">char</span><span class="o">&gt;</span> <span class="o">=</span>
+</span><span class='line'>  <span class="n">satisfy</span> <span class="o">(</span><span class="k">fun</span> <span class="n">c</span> <span class="o">-&gt;</span> <span class="n">c</span> <span class="o">&lt;&gt;</span> <span class="kt">char</span> <span class="sc">&#39;{&#39;</span><span class="o">)</span> <span class="s2">&quot;not open bracket&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p><code>satisfy</code> is a function built into EmParsec which takes a predicate for whether or not it will consume the next character in the input stream. The final string argument is a name for the parser, which will be used in error messages.</p>
+
+<p>Then we&rsquo;ll use that parser to create one that consumes as many &ldquo;not open bracket&rdquo; characters as it can, combines them into a string and then counts that string as a <code>Text</code> part.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">textParser</span> <span class="o">:</span> <span class="nc">UParser</span><span class="o">&lt;</span><span class="nc">TemplatePart</span><span class="o">&gt;</span> <span class="o">=</span>
+</span><span class='line'>  <span class="n">many1</span> <span class="n">notOpenBracket</span>
+</span><span class='line'>  <span class="o">|&gt;&gt;</span> <span class="o">(</span><span class="k">fun</span> <span class="n">charList</span> <span class="o">-&gt;</span>
+</span><span class='line'>         <span class="n">charList</span>
+</span><span class='line'>         <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="kt">string</span>
+</span><span class='line'>         <span class="o">|&gt;</span> <span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot;&quot;</span>
+</span><span class='line'>         <span class="o">|&gt;</span> <span class="nc">Text</span><span class="o">)</span>
+</span><span class='line'>  <span class="o">&lt;?&gt;</span> <span class="s2">&quot;&lt;text parser&gt;&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>There&rsquo;s a new function here and a couple of new operators (all taken from FParsec, by the way). <code>|&gt;&gt;</code> is a map operator; it allows you to transform the result of a parser and then rewrap everything back up into a new parser. This is really at the heart of the power of parser combinator libraries.</p>
+
+<p>The <code>&lt;?&gt;</code> operator is much simpler: it allows you to name a parser rather than it&rsquo;s name being some combination of the parsers it&rsquo;s built of.</p>
+
+<p>The <code>many1</code> function says &ldquo;match one or more instances of the parser that follows&rdquo;. There is also a <code>many</code>, which matches 0 or more repeats.</p>
+
+<p>So that&rsquo;s good &ndash; we can capture the text in between our replacable values. Let&rsquo;s go with a parser for the bracketed value names next!</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">whitespace</span> <span class="o">:</span> <span class="nc">UParser</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span> <span class="o">=</span>
+</span><span class='line'>  <span class="n">many</span> <span class="o">(</span><span class="n">satisfy</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Char</span><span class="p">.</span><span class="nc">IsWhiteSpace</span> <span class="s2">&quot;&quot;</span><span class="o">)</span>
+</span><span class='line'>  <span class="o">|&gt;&gt;</span> <span class="n">ignore</span>
+</span><span class='line'>  <span class="o">&lt;?&gt;</span> <span class="s2">&quot;&lt;whitespace&gt;&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">valueName</span> <span class="o">:</span> <span class="nc">UParser</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span> <span class="o">=</span>
+</span><span class='line'>  <span class="n">many1</span> <span class="o">(</span><span class="n">satisfy</span> <span class="o">(</span><span class="k">fun</span> <span class="n">c</span> <span class="o">-&gt;</span> <span class="n">c</span> <span class="o">&lt;&gt;</span> <span class="sc">&#39;}&#39;</span> <span class="o">&amp;&amp;</span> <span class="o">(</span><span class="ow">not</span> <span class="o">&lt;|</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Char</span><span class="p">.</span><span class="nc">IsWhiteSpace</span> <span class="n">c</span><span class="o">))</span> <span class="s2">&quot;&quot;</span><span class="o">)</span>
+</span><span class='line'>  <span class="o">|&gt;&gt;</span> <span class="o">(</span><span class="k">fun</span> <span class="n">charList</span> <span class="o">-&gt;</span> <span class="n">charList</span> <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="kt">string</span> <span class="o">|&gt;</span> <span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot;&quot;</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">openValue</span> <span class="o">:</span> <span class="nc">UParser</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span> <span class="o">=</span>
+</span><span class='line'>  <span class="n">pchar</span> <span class="sc">&#39;{&#39;</span> <span class="o">.&gt;&gt;.</span> <span class="n">whitespace</span>
+</span><span class='line'>  <span class="o">|&gt;&gt;</span> <span class="n">ignore</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">closeValue</span> <span class="o">:</span> <span class="nc">UParser</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span> <span class="o">=</span>
+</span><span class='line'>  <span class="n">whitespace</span> <span class="o">.&gt;&gt;.</span> <span class="n">pchar</span> <span class="sc">&#39;}&#39;</span>
+</span><span class='line'>  <span class="o">|&gt;&gt;</span> <span class="n">ignore</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">value</span> <span class="o">:</span> <span class="nc">UParser</span><span class="o">&lt;</span><span class="nc">TemplatePart</span><span class="o">&gt;</span> <span class="o">=</span>
+</span><span class='line'>  <span class="n">between</span> <span class="n">openValue</span> <span class="n">closeValue</span> <span class="n">valueName</span>
+</span><span class='line'>  <span class="o">|&gt;&gt;</span> <span class="nc">Value</span>
+</span><span class='line'>  <span class="o">&lt;?&gt;</span> <span class="s2">&quot;&lt;value parser&gt;&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So we now have parsers for white space and our &ldquo;valueName&rdquo; (which we are saying must be at least one character long, and can consist of any character which is not whitespace or a closing curly bracket). We can then use pchar (&ldquo;parse char&rdquo;) and whitespace to allow for minor variations in syntax (some people like <code>{name}</code>, others like <code>{ name }</code>).</p>
+
+<p>Finally we build our value parser, using the <code>between</code> function, which does pretty much what you&rsquo;d expect: it takes an opening parser, a closing parser, and captures what&rsquo;s in between with third parser.</p>
+
+<p>Our final step is just to combine our parsers for value and text sections. We want to capture &ldquo;many&rdquo; of one or the other, until we run out of input. We&rsquo;ll put an explicit <code>pend</code> on there as well, otherwise things like (for example) an unclosed <code>}</code> at the end of the string will not show up as an error &ndash; the parser will just stop at the character before the opening <code>{</code> as the last matching input.</p>
+
+<p>Our final parser introduces the <code>&lt;|&gt;</code> (orElse) operator, and looks like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">template</span> <span class="o">:</span> <span class="nc">UParser</span><span class="o">&lt;</span><span class="nc">TemplatePart</span> <span class="kt">list</span><span class="o">&gt;</span> <span class="o">=</span>
+</span><span class='line'>  <span class="n">many</span> <span class="o">(</span><span class="n">value</span> <span class="o">&lt;|&gt;</span> <span class="n">textParser</span><span class="o">)</span>
+</span><span class='line'>  <span class="o">.&gt;&gt;</span> <span class="n">pend</span>
+</span><span class='line'>  <span class="o">&lt;?&gt;</span> <span class="s2">&quot;&lt;template parser&gt;&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Let&rsquo;s try it out!</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Text</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">showTemplate</span> <span class="n">values</span> <span class="n">parts</span> <span class="o">=</span>
+</span><span class='line'>  <span class="k">let</span> <span class="n">folder</span> <span class="o">(</span><span class="n">sb</span> <span class="o">:</span> <span class="nc">StringBuilder</span><span class="o">)</span> <span class="n">part</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">match</span> <span class="n">part</span> <span class="k">with</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Text</span> <span class="n">s</span> <span class="o">-&gt;</span>
+</span><span class='line'>      <span class="n">sb</span><span class="o">.</span><span class="nc">Append</span> <span class="n">s</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Value</span> <span class="n">v</span> <span class="o">-&gt;</span>
+</span><span class='line'>      <span class="n">defaultArg</span> <span class="o">(</span><span class="nn">Map</span><span class="p">.</span><span class="n">tryFind</span> <span class="n">v</span> <span class="n">values</span><span class="o">)</span> <span class="s2">&quot;&quot;</span>
+</span><span class='line'>      <span class="o">|&gt;</span> <span class="n">sb</span><span class="o">.</span><span class="nc">Append</span>
+</span><span class='line'>  <span class="k">let</span> <span class="n">sb</span> <span class="o">=</span> <span class="nn">List</span><span class="p">.</span><span class="n">fold</span> <span class="n">folder</span> <span class="o">(</span><span class="nc">StringBuilder</span><span class="bp">()</span><span class="o">)</span> <span class="n">parts</span>
+</span><span class='line'>  <span class="n">sb</span><span class="o">.</span><span class="nc">ToString</span><span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">values</span> <span class="o">=</span> <span class="nc">Map</span> <span class="o">[</span> <span class="s2">&quot;name&quot;</span><span class="o">,</span> <span class="s2">&quot;bob&quot;</span> <span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">run&#39;</span> <span class="n">parser</span> <span class="n">str</span> <span class="o">=</span>
+</span><span class='line'>  <span class="n">run</span> <span class="n">parser</span> <span class="n">str</span>
+</span><span class='line'>  <span class="o">|&gt;</span> <span class="k">function</span>
+</span><span class='line'>     <span class="o">|</span> <span class="nc">Choice1Of2</span> <span class="n">success</span> <span class="o">-&gt;</span> <span class="n">showTemplate</span> <span class="n">values</span> <span class="n">success</span>
+</span><span class='line'>     <span class="o">|</span> <span class="nc">Choice2Of2</span> <span class="n">fail</span> <span class="o">-&gt;</span> <span class="n">failwithf</span> <span class="s2">&quot;Parsing failed!</span><span class="se">\n</span><span class="s2">%s&quot;</span> <span class="n">fail</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>A couple of helpers: <code>showTemplate</code> knows how to build up a string from a list of template parts and a value map, <code>run'</code> is just a simple wrapper around <code>run</code> that throws if parsing is not successful.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">ex1</span> <span class="o">=</span> <span class="s2">&quot;Welcome {name}! Please spend money here!&quot;</span>
+</span><span class='line'><span class="k">let</span> <span class="n">ex2</span> <span class="o">=</span> <span class="s2">&quot;hello { name } thing&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">run&#39;</span> <span class="n">template</span> <span class="n">ex1</span>
+</span><span class='line'><span class="c1">// val it : string = &quot;Welcome bob! Please spend money here!&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">run&#39;</span> <span class="n">template</span> <span class="n">ex2</span>
+</span><span class='line'><span class="c1">// val it : string = &quot;hello bob thing&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">ex3</span> <span class="o">=</span> <span class="s2">&quot;Hello, { name }! How about {</span>
+</span><span class='line'><span class="s2"> date:alreadyrendered?</span>
+</span><span class='line'><span class="s2">}? &lt;- That should be left blank, but parse as valid.&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">run&#39;</span> <span class="n">template</span> <span class="n">ex3</span>
+</span><span class='line'><span class="c1">// val it : string =</span>
+</span><span class='line'><span class="c1">//   &quot;Hello, bob! How about ? &lt;- That should be left blank, but parse as valid.&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And finally our templates in action. You can see that even with a simple parser like this, it&rsquo;s already reaching a complexity that would be painful to match with a hand rolled creation.</p>
+
+<p>If you want to know more about parser combinators, and especially how to use them to create recursive grammars, do check out the <a href="http://www.quanttec.com/fparsec/">FParsec documentation</a> which is excellent. It is also more complete and <em>much</em> more performant than EmParsec.</p>
+
+<p>But if you need a small, single file parser where performance is not the primary concern &ndash; maybe EmParsec is your friend. Anyone who wants to join in making it better is more than welcome! Of particular note is that EmParsec does not yet support controlling when backtracking does or doesn&rsquo;t happen (it will always backtrack) which can make for some pretty confusing error messages.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Angels From the Realms of Glory]]></title>
@@ -3100,7 +3462,7 @@ management responsibility. We&rsquo;re hiring developers, and while we&rsquo;ll 
 
 <p>So, there you have. My own personal list of things that increase or decrease your chances that I&rsquo;ll recommend you&rsquo;re interviewed.</p>
 
-<p>If you think that you&rsquo;d be interested in working for the type of company that uses this type of criteria&hellip; well, oddly enough we&rsquo;re hiring at the moment. Ping me or drop a note through to <a href="&#x6d;&#97;&#x69;&#x6c;&#116;&#x6f;&#58;&#x6a;&#111;&#x62;&#x73;&#x40;&#49;&#x35;&#98;&#101;&#108;&#x6f;&#x77;&#x2e;&#x63;&#x6f;&#x6d;&#46;">&#106;&#x6f;&#98;&#x73;&#x40;&#x31;&#53;&#x62;&#x65;&#x6c;&#111;&#x77;&#46;&#x63;&#111;&#109;&#46;</a></p>
+<p>If you think that you&rsquo;d be interested in working for the type of company that uses this type of criteria&hellip; well, oddly enough we&rsquo;re hiring at the moment. Ping me or drop a note through to <a href="&#109;&#97;&#105;&#x6c;&#116;&#111;&#x3a;&#106;&#111;&#98;&#x73;&#x40;&#x31;&#x35;&#x62;&#x65;&#108;&#x6f;&#119;&#x2e;&#x63;&#x6f;&#x6d;&#46;">&#x6a;&#x6f;&#x62;&#x73;&#64;&#x31;&#x35;&#x62;&#x65;&#x6c;&#111;&#x77;&#x2e;&#x63;&#x6f;&#x6d;&#x2e;</a></p>
 ]]></content>
   </entry>
   
@@ -5078,443 +5440,6 @@ folder.</p>
 <p>The code from this blog post can, as normal be found on github in the <a href="https://github.com/mavnn/Advent2014">Advent2014</a> repository.</p>
 
 <p>It&rsquo;s set up to be developed in Vim or Emacs without project files on a nix system, but it will probably play nicely with Visual Studio as well.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Cutting Quotations Down to Size]]></title>
-    <link href="http://blog.mavnn.co.uk/cutting-quotations-down-to-size/"/>
-    <updated>2014-10-07T21:30:58+01:00</updated>
-    <id>http://blog.mavnn.co.uk/cutting-quotations-down-to-size</id>
-    <content type="html"><![CDATA[<blockquote><p>This is part 2 in my quotations series, following on from <a href="http://blog.mavnn.co.uk/tap/">Tap, Tap, Tapping on the Door</a>.</p></blockquote>
-
-<p>As promised in the first part of this series, here we&rsquo;re going to take a look at manipulating quotations. I mean, we&rsquo;ve got this <a href="http://en.wikipedia.org/wiki/Abstract_syntax_tree">AST</a> &ndash; now what are we going to do with it?</p>
-
-<p>Let&rsquo;s start with something fairly straightforward; <a href="http://en.wikipedia.org/wiki/Boolean_algebra">boolean algebra</a>.</p>
-
-<p>First, let&rsquo;s get a look at how some boolean expressions are represented in quotations.</p>
-
-<p>Firing up F# Interactive, we&rsquo;ll feed a few in and see what happens:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="o">&lt;@@</span> <span class="bp">true</span> <span class="o">@@&gt;;;</span>
-</span><span class='line'><span class="c">(* val it : Expr =</span>
-</span><span class='line'><span class="c">      Value (true)</span>
-</span><span class='line'><span class="c">        {CustomAttributes = [NewTuple (Value (&quot;DebugRange&quot;),</span>
-</span><span class='line'><span class="c">              NewTuple (Value (&quot;stdin&quot;), Value (4), Value (4), Value (4), Value (8)))];</span>
-</span><span class='line'><span class="c">         Type = System.Boolean;} *)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Hmm. That&rsquo;s&hellip; not as nice as we might want. The custom attributes are being added by F# interactive for debugging purposes, but hopefully the general shape is clear: our expression consists of a single value of <code>true</code>.</p>
-
-<p>I&rsquo;ll cut out the custom attributes from now on to make reading things a bit easier.</p>
-
-<p>Next!</p>
-
-<!-- more -->
-
-
-
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="o">&lt;@@</span> <span class="bp">true</span> <span class="o">&amp;&amp;</span> <span class="bp">true</span> <span class="o">@@&gt;;;</span>
-</span><span class='line'><span class="c">(* val it : Expr =</span>
-</span><span class='line'><span class="c">      IfThenElse (Value (true), Value (true), Value (false))</span>
-</span><span class='line'><span class="c">        {CustomAttributes = ...;</span>
-</span><span class='line'><span class="c">         Type = System.Boolean;} *)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>So. Looks like someone has decided to represent the <code>&amp;&amp;</code> operator with the expression tree of an <code>if</code> statement. Useful in some ways; after all, any logic we can apply to an <code>&amp;&amp;</code> operator will equally apply to a logically equivalent <code>if</code> statement. Checking the <a href="http://msdn.microsoft.com/en-us/library/ee370408.aspx">MSDN documentation for Expr.IfThenElse</a> tells if that the 3 values above are <code>guard</code>, <code>thenExpr</code> and <code>elseExpr</code>. Which kind of makes sense; our <code>&lt;@@ true &amp;&amp; true @@&gt;</code> is being turned (loosely) into <code>if true then true else false</code> &ndash; which is equivalent.</p>
-
-<p>Let&rsquo;s put something other than plain boolean constants in to see if we can make it clearer.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="o">&lt;@@</span> <span class="s2">&quot;b&quot;</span> <span class="o">=</span> <span class="s2">&quot;b&quot;</span> <span class="o">&amp;&amp;</span> <span class="s2">&quot;t&quot;</span> <span class="o">=</span> <span class="s2">&quot;t&quot;</span> <span class="o">@@&gt;;;</span>
-</span><span class='line'><span class="c">(* val it : Expr =</span>
-</span><span class='line'><span class="c">      IfThenElse (Call (None, op_Equality, [Value (&quot;b&quot;), Value (&quot;b&quot;)]),</span>
-</span><span class='line'><span class="c">                Call (None, op_Equality, [Value (&quot;t&quot;), Value (&quot;t&quot;)]), Value (false))</span>
-</span><span class='line'><span class="c">        {CustomAttributes = ...;</span>
-</span><span class='line'><span class="c">         Type = System.Boolean;} *)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Looks hopeful. As a last check, let&rsquo;s take advantage of the fact that quotations are structurally comparable to double check our understanding:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="o">&lt;@@</span> <span class="k">if</span> <span class="s2">&quot;b&quot;</span> <span class="o">=</span> <span class="s2">&quot;b&quot;</span> <span class="k">then</span> <span class="s2">&quot;t&quot;</span> <span class="o">=</span> <span class="s2">&quot;t&quot;</span> <span class="k">else</span> <span class="bp">false</span> <span class="o">@@&gt;</span> <span class="o">=</span> <span class="o">&lt;@@</span> <span class="s2">&quot;b&quot;</span> <span class="o">=</span> <span class="s2">&quot;b&quot;</span> <span class="o">&amp;&amp;</span> <span class="s2">&quot;t&quot;</span> <span class="o">=</span> <span class="s2">&quot;t&quot;</span> <span class="o">@@&gt;;;</span>
-</span><span class='line'><span class="c">(* val it : bool = true *)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Awesome!</p>
-
-<p>I&rsquo;m going to take a wild punt that the <code>||</code> operator does something similar:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="o">&lt;@@</span> <span class="k">if</span> <span class="s2">&quot;b&quot;</span> <span class="o">=</span> <span class="s2">&quot;t&quot;</span> <span class="k">then</span> <span class="bp">true</span> <span class="k">else</span> <span class="s2">&quot;t&quot;</span> <span class="o">=</span> <span class="s2">&quot;b&quot;</span> <span class="o">@@&gt;</span> <span class="o">=</span> <span class="o">&lt;@@</span> <span class="s2">&quot;b&quot;</span> <span class="o">=</span> <span class="s2">&quot;t&quot;</span> <span class="o">||</span> <span class="s2">&quot;t&quot;</span> <span class="o">=</span> <span class="s2">&quot;b&quot;</span> <span class="o">@@&gt;;;</span>
-</span><span class='line'><span class="c">(* val it : bool = true *)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>And it does. Excellent.</p>
-
-<p>We&rsquo;ve now got an idea what the expression trees are going to look like, but how do we go about manipulating them? The answer is the answer we always hope for when traversing data structure in F#: pattern matching.</p>
-
-<p>The <code>Expr</code> types are all recognized by a set of <a href="http://msdn.microsoft.com/en-us/library/ee370259.aspx">active patterns</a> in the <code>Microsoft.FSharp.Quotations.Patterns</code> module. The only problem is that there are about 40 cases in the active patterns, and at the moment we&rsquo;re only interested in one: the <code>IfThenElse</code> case.</p>
-
-<p>That&rsquo;s sounding rather verbose for a language that&rsquo;s normally as succinct as F# and fortunately the language designers agreed. As well as the specific cases in the main <code>Patterns</code> module, there are a number of other modules under the <code>Microsoft.FSharp.Quotations</code> namespace that contain &ldquo;broader&rdquo; active patterns, and helper methods for rebuilding expressions.</p>
-
-<p>Let&rsquo;s take the broadest set, from the <code>ExprShape</code> module, and have a look at a method that takes in an expression, recursively works it way through the tree, and rebuilds it exactly as it was before:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nc">Quotations</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nn">Quotations</span><span class="p">.</span><span class="nc">ExprShape</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="k">rec</span> <span class="n">id</span> <span class="n">q</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">match</span> <span class="n">q</span> <span class="k">with</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">ShapeVar</span> <span class="n">v</span> <span class="o">-&gt;</span> <span class="nn">Expr</span><span class="p">.</span><span class="nc">Var</span> <span class="n">v</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">ShapeLambda</span> <span class="o">(</span><span class="n">v</span><span class="o">,</span> <span class="n">e</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="nn">Expr</span><span class="p">.</span><span class="nc">Lambda</span><span class="o">(</span><span class="n">v</span><span class="o">,</span> <span class="n">id</span> <span class="n">e</span><span class="o">)</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">ShapeCombination</span> <span class="o">(</span><span class="n">o</span><span class="o">,</span> <span class="n">es</span><span class="o">)</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="nc">RebuildShapeCombination</span><span class="o">(</span><span class="n">o</span><span class="o">,</span> <span class="n">es</span> <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="n">id</span><span class="o">)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>So, as we recurse down there are three possibilities for our expression on any one pass through the <code>id</code> function:</p>
-
-<ul>
-<li>We&rsquo;ve hit a <code>Var</code>: this is a leaf node holding a variable, we&rsquo;re done with this branch of the tree.</li>
-<li>We&rsquo;ve hit a lambda function, with a variable being bound and an expression representing the body of the function. We apply <code>id</code> to the body to continue recursing down.</li>
-<li>We&rsquo;ve hit something else; anything else. The <code>ShapeCombination</code> pattern knows how to take the structure apart, and the <code>RebuildShapeCombination</code> method from the same module knows how to use the object <code>ShapeCombination</code> spits to put it back together again. In the mean time, we still apply <code>id</code> to all the sub-expressions of the combination, whatever they may be.</li>
-</ul>
-
-
-<p>(As an aside, don&rsquo;t actually call your functions <code>id</code> &ndash; there&rsquo;s already a function called that in the standard library.)</p>
-
-<p>Of course, on it&rsquo;s own that&rsquo;s not very exciting. But how about if before moving onto these very broad shapes, we first check some specific cases?</p>
-
-<p>Let&rsquo;s see if we can detect <code>true</code> literals within an expression.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nc">Quotations</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nn">Quotations</span><span class="p">.</span><span class="nc">ExprShape</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nn">Quotations</span><span class="p">.</span><span class="nc">Patterns</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="k">rec</span> <span class="n">detectTrue</span> <span class="n">q</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">match</span> <span class="n">q</span> <span class="k">with</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">Value</span> <span class="o">(</span><span class="n">o</span><span class="o">,</span> <span class="n">t</span><span class="o">)</span> <span class="k">when</span> <span class="n">t</span> <span class="o">=</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span> <span class="o">&amp;&amp;</span> <span class="o">(</span><span class="n">o</span> <span class="o">:?&gt;</span> <span class="kt">bool</span><span class="o">)</span> <span class="o">=</span> <span class="bp">true</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="bp">true</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">ShapeVar</span> <span class="o">_</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="bp">false</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">ShapeLambda</span> <span class="o">(_,</span> <span class="n">e</span><span class="o">)</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="n">detectTrue</span> <span class="n">e</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">ShapeCombination</span> <span class="o">(</span><span class="n">o</span><span class="o">,</span> <span class="n">es</span><span class="o">)</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="n">es</span>
-</span><span class='line'>        <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="n">detectTrue</span>
-</span><span class='line'>        <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">fold</span> <span class="o">(||)</span> <span class="bp">false</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>The <code>Value</code> pattern gives us an object representing a literal and it&rsquo;s type as a tuple. We&rsquo;ll add a guard condition to the pattern to specify that we&rsquo;re only interested when the type is <code>bool</code> and (taking advantage of short circuiting to make sure we don&rsquo;t try and cast if it&rsquo;s not a bool!) when the value is <code>true</code>. After that, we move back to our broader patterns, but this time we&rsquo;re happy to throw away most of the information at each step as we&rsquo;re not interested in
-reconstructing the tree afterwards.</p>
-
-<p>Loading up the function in F# Interactive, we can feed it some test inputs and see how we&rsquo;re doing.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="n">detectTrue</span> <span class="o">&lt;@@</span> <span class="k">fun</span> <span class="n">x</span> <span class="o">-&gt;</span> <span class="bp">true</span> <span class="o">@@&gt;;;</span>
-</span><span class='line'><span class="c">(* val it : bool = true *)</span>
-</span><span class='line'><span class="n">detectTrue</span> <span class="o">&lt;@@</span> <span class="k">fun</span> <span class="n">x</span> <span class="o">-&gt;</span> <span class="bp">false</span> <span class="o">@@&gt;;;</span>
-</span><span class='line'><span class="c">(* val it : bool = false *)</span>
-</span><span class='line'><span class="n">detectTrue</span> <span class="o">&lt;@@</span> <span class="k">fun</span> <span class="n">x</span> <span class="o">-&gt;</span> <span class="bp">false</span> <span class="o">||</span> <span class="bp">true</span> <span class="o">@@&gt;;;</span>
-</span><span class='line'><span class="c">(* val it : bool = true *)</span>
-</span><span class='line'><span class="n">detectTrue</span> <span class="o">&lt;@@</span> <span class="k">fun</span> <span class="n">x</span> <span class="n">y</span> <span class="o">-&gt;</span> <span class="n">y</span> <span class="o">||</span> <span class="n">x</span> <span class="bp">true</span> <span class="o">@@&gt;;;</span>
-</span><span class='line'><span class="c">(* val it : bool = true *)</span>
-</span><span class='line'><span class="n">detectTrue</span> <span class="o">&lt;@@</span> <span class="k">fun</span> <span class="n">x</span> <span class="n">y</span> <span class="o">-&gt;</span> <span class="n">y</span> <span class="o">||</span> <span class="n">x</span> <span class="o">=</span> <span class="bp">true</span> <span class="o">@@&gt;;;</span>
-</span><span class='line'><span class="c">(* val it : bool = true *)</span>
-</span><span class='line'><span class="n">detectTrue</span> <span class="o">&lt;@@</span> <span class="s2">&quot;bob&quot;</span> <span class="o">@@&gt;;;</span>
-</span><span class='line'><span class="c">(* val it : bool = false *)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Looking good.</p>
-
-<p>Looks like we need just one final step before we start playing with the rules of boolean algebra; let&rsquo;s check we can detect the <code>||</code> and <code>&amp;&amp;</code> operators.</p>
-
-<p>First, let&rsquo;s give ourselves some helper active patterns of our own to detect literal <code>true</code> and <code>false</code> values:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nc">Quotations</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nn">Quotations</span><span class="p">.</span><span class="nc">ExprShape</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nn">Quotations</span><span class="p">.</span><span class="nc">Patterns</span>
-</span><span class='line'>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="o">(|</span><span class="nc">True&#39;</span><span class="o">|_|)</span> <span class="n">expr</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">match</span> <span class="n">expr</span> <span class="k">with</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">Value</span> <span class="o">(</span><span class="n">o</span><span class="o">,</span> <span class="n">t</span><span class="o">)</span> <span class="k">when</span> <span class="n">t</span> <span class="o">=</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span> <span class="o">&amp;&amp;</span> <span class="o">(</span><span class="n">o</span> <span class="o">:?&gt;</span> <span class="kt">bool</span><span class="o">)</span> <span class="o">=</span> <span class="bp">true</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="nc">Some</span> <span class="n">expr</span>
-</span><span class='line'>    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="nc">None</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="o">(|</span><span class="nc">False&#39;</span><span class="o">|_|)</span> <span class="n">expr</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">match</span> <span class="n">expr</span> <span class="k">with</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">Value</span> <span class="o">(</span><span class="n">o</span><span class="o">,</span> <span class="n">t</span><span class="o">)</span> <span class="k">when</span> <span class="n">t</span> <span class="o">=</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span> <span class="o">&amp;&amp;</span> <span class="o">(</span><span class="n">o</span> <span class="o">:?&gt;</span> <span class="kt">bool</span><span class="o">)</span> <span class="o">=</span> <span class="bp">false</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="nc">Some</span> <span class="n">expr</span>
-</span><span class='line'>    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="nc">None</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Now, let&rsquo;s add some more for <code>||</code> and <code>&amp;&amp;</code>:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="o">(|</span><span class="nc">Or&#39;</span><span class="o">|_|)</span> <span class="n">expr</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">match</span> <span class="n">expr</span> <span class="k">with</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">IfThenElse</span> <span class="o">(</span><span class="n">left</span><span class="o">,</span> <span class="nc">True&#39;</span> <span class="o">_,</span> <span class="n">right</span><span class="o">)</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="nc">Some</span> <span class="o">(</span><span class="n">left</span><span class="o">,</span> <span class="n">right</span><span class="o">)</span>
-</span><span class='line'>    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="nc">None</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="o">(|</span><span class="nc">And&#39;</span><span class="o">|_|)</span> <span class="n">expr</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">match</span> <span class="n">expr</span> <span class="k">with</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">IfThenElse</span> <span class="o">(</span><span class="n">left</span><span class="o">,</span> <span class="n">right</span><span class="o">,</span> <span class="nc">False&#39;</span> <span class="o">_)</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="nc">Some</span> <span class="o">(</span><span class="n">left</span><span class="o">,</span> <span class="n">right</span><span class="o">)</span>
-</span><span class='line'>    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="nc">None</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Because you can nest patterns within a pattern match, here we&rsquo;re only matching <code>IfThenElse</code> expressions where the &lsquo;then&rsquo; clause (<code>||</code>) is always <code>true</code> or the &lsquo;else&rsquo; clause (<code>&amp;&amp;</code>) is always <code>false</code>.</p>
-
-<p>And now, with all our pieces in place, let&rsquo;s pick one of the rules of boolean algebra and see if we can apply it. Commutativity sounds like it&rsquo;s probably the simplest:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">commute</span> <span class="n">quote</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">match</span> <span class="n">quote</span> <span class="k">with</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">Or&#39;</span> <span class="o">(</span><span class="n">left</span><span class="o">,</span> <span class="n">right</span><span class="o">)</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="o">&lt;@@</span> <span class="o">%%</span><span class="n">right</span> <span class="o">||</span> <span class="o">%%</span><span class="n">left</span> <span class="o">@@&gt;</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">And&#39;</span> <span class="o">(</span><span class="n">left</span><span class="o">,</span> <span class="n">right</span><span class="o">)</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="o">&lt;@@</span> <span class="o">%%</span><span class="n">right</span> <span class="o">&amp;&amp;</span> <span class="o">%%</span><span class="n">left</span> <span class="o">@@&gt;</span>
-</span><span class='line'>    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="n">quote</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Pretty simple: if we see a <code>&amp;&amp;</code> or a <code>||</code> as the top expression in a quotation, swap the arguments. There&rsquo;s no recursion, so we won&rsquo;t go through the tree swapping every <code>&amp;&amp;</code> or <code>||</code> expression, although we could if we wanted&hellip;</p>
-
-<p>For example:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="c1">// basic usage</span>
-</span><span class='line'><span class="o">&lt;@@</span> <span class="bp">true</span> <span class="o">||</span> <span class="bp">false</span> <span class="o">@@&gt;</span> <span class="o">=</span> <span class="n">commute</span> <span class="o">&lt;@@</span> <span class="bp">false</span> <span class="o">||</span> <span class="bp">true</span> <span class="o">@@&gt;;;</span>
-</span><span class='line'><span class="c">(* val it : bool = true *)</span>
-</span><span class='line'><span class="o">&lt;@@</span> <span class="s2">&quot;bob&quot;</span> <span class="o">=</span> <span class="s2">&quot;fred&quot;</span> <span class="o">||</span> <span class="s2">&quot;fred&quot;</span> <span class="o">=</span> <span class="s2">&quot;bob&quot;</span> <span class="o">@@&gt;</span> <span class="o">=</span> <span class="n">commute</span> <span class="o">&lt;@@</span> <span class="s2">&quot;fred&quot;</span> <span class="o">=</span> <span class="s2">&quot;bob&quot;</span> <span class="o">||</span> <span class="s2">&quot;bob&quot;</span> <span class="o">=</span> <span class="s2">&quot;fred&quot;</span> <span class="o">@@&gt;;;</span>
-</span><span class='line'><span class="c">(* val it : bool = true *)</span>
-</span><span class='line'>
-</span><span class='line'><span class="c1">// only operates at the top level though</span>
-</span><span class='line'><span class="o">&lt;@@</span> <span class="k">fun</span> <span class="n">x</span> <span class="o">-&gt;</span> <span class="bp">true</span> <span class="o">||</span> <span class="bp">false</span> <span class="o">@@&gt;</span> <span class="o">=</span> <span class="n">commute</span> <span class="o">&lt;@@</span> <span class="k">fun</span> <span class="n">x</span> <span class="o">-&gt;</span> <span class="bp">false</span> <span class="o">||</span> <span class="bp">true</span> <span class="o">@@&gt;;;</span>
-</span><span class='line'><span class="c">(* val it : bool = false *)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>A nice simple function, to apply a nice simple rule. Generally you&rsquo;ll want to choose when to apply something like the <code>commute</code> function, hence not making it recursive. But what about something like the identity law?</p>
-
-<p>The identity law states that <code>true &amp;&amp; x = x</code> and <code>false || x = x</code> for all x. This looks like it might allow us to remove redundant statements from our boolean expressions without changing the logical result, and if we&rsquo;re interested in carrying out this operation at all we almost certainly want to apply it recursively down through the expression.</p>
-
-<p>Time to break out our broad <code>ExprShape</code> patterns again:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">identity</span> <span class="n">quote</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">let</span> <span class="k">rec</span> <span class="n">transform</span> <span class="n">q</span> <span class="o">=</span>
-</span><span class='line'>        <span class="k">match</span> <span class="n">q</span> <span class="k">with</span>
-</span><span class='line'>        <span class="o">|</span> <span class="nc">And&#39;</span> <span class="o">(</span><span class="nc">True&#39;</span> <span class="o">_,</span> <span class="n">p</span><span class="o">)</span>
-</span><span class='line'>        <span class="o">|</span> <span class="nc">And&#39;</span> <span class="o">(</span><span class="n">p</span><span class="o">,</span> <span class="nc">True&#39;</span> <span class="o">_)</span>
-</span><span class='line'>        <span class="o">|</span> <span class="nc">Or&#39;</span> <span class="o">(</span><span class="nc">False&#39;</span> <span class="o">_,</span> <span class="n">p</span><span class="o">)</span>
-</span><span class='line'>        <span class="o">|</span> <span class="nc">Or&#39;</span> <span class="o">(</span><span class="n">p</span><span class="o">,</span> <span class="nc">False&#39;</span> <span class="o">_)</span>
-</span><span class='line'>            <span class="o">-&gt;</span> <span class="n">transform</span> <span class="n">p</span>
-</span><span class='line'>        <span class="o">|</span> <span class="nc">ShapeVar</span> <span class="n">v</span> <span class="o">-&gt;</span> <span class="nn">Expr</span><span class="p">.</span><span class="nc">Var</span> <span class="n">v</span>
-</span><span class='line'>        <span class="o">|</span> <span class="nc">ShapeLambda</span> <span class="o">(</span><span class="n">v</span><span class="o">,</span> <span class="n">e</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="nn">Expr</span><span class="p">.</span><span class="nc">Lambda</span><span class="o">(</span><span class="n">v</span><span class="o">,</span> <span class="n">transform</span> <span class="n">e</span><span class="o">)</span>
-</span><span class='line'>        <span class="o">|</span> <span class="nc">ShapeCombination</span> <span class="o">(</span><span class="n">o</span><span class="o">,</span> <span class="n">es</span><span class="o">)</span> <span class="o">-&gt;</span>
-</span><span class='line'>            <span class="nc">RebuildShapeCombination</span><span class="o">(</span><span class="n">o</span><span class="o">,</span> <span class="n">es</span> <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="n">transform</span><span class="o">)</span>
-</span><span class='line'>    <span class="n">transform</span> <span class="n">quote</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Firstly, we check if the top of the quotation matches any of the four relevant conditions for the identity law. If any of them do, we bind the proposition that we&rsquo;re reducing to to the name <code>p</code>, and then we carry on recursing down the tree.</p>
-
-<p>Otherwise, we&rsquo;re back to the <code>id</code> function above: a <code>Var</code> is a leaf node, we <code>transform</code> the body of any lambdas and if we hit a combination we <code>transform</code> all of it&rsquo;s constituent expressions.</p>
-
-<p>This is starting to reach the stage it&rsquo;s worth unit testing, so let&rsquo;s break out xUnit and add some &ldquo;facts&rdquo; (you&rsquo;ll need to reference xUnit manually or via NuGet to build the tests.)</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nn">Algebra</span><span class="p">.</span><span class="nc">Boolean</span>
-</span><span class='line'><span class="k">open</span> <span class="nc">Xunit</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">[&lt;</span><span class="nc">Fact</span><span class="o">&gt;]</span>
-</span><span class='line'><span class="k">let</span> <span class="o">``</span><span class="nc">Identity</span> <span class="n">reduction</span> <span class="o">&amp;&amp;``</span> <span class="bp">()</span> <span class="o">=</span>
-</span><span class='line'>    <span class="nn">Assert</span><span class="p">.</span><span class="nc">Equal</span> <span class="o">(&lt;@@</span> <span class="bp">false</span> <span class="o">@@&gt;,</span> <span class="n">identity</span> <span class="o">&lt;@@</span> <span class="bp">true</span> <span class="o">&amp;&amp;</span> <span class="bp">false</span> <span class="o">@@&gt;)</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">[&lt;</span><span class="nc">Fact</span><span class="o">&gt;]</span>
-</span><span class='line'><span class="k">let</span> <span class="o">``</span><span class="nc">Identity</span> <span class="n">reduction</span> <span class="o">||``</span> <span class="bp">()</span> <span class="o">=</span>
-</span><span class='line'>    <span class="nn">Assert</span><span class="p">.</span><span class="nc">Equal</span> <span class="o">(&lt;@@</span> <span class="bp">true</span> <span class="o">@@&gt;,</span> <span class="n">identity</span> <span class="o">&lt;@@</span> <span class="bp">true</span> <span class="o">||</span> <span class="bp">false</span> <span class="o">@@&gt;)</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">[&lt;</span><span class="nc">Fact</span><span class="o">&gt;]</span>
-</span><span class='line'><span class="k">let</span> <span class="o">``</span><span class="nc">Identity</span> <span class="n">reduction</span> <span class="n">recurses</span><span class="o">``</span> <span class="bp">()</span> <span class="o">=</span>
-</span><span class='line'>    <span class="nn">Assert</span><span class="p">.</span><span class="nc">Equal</span> <span class="o">(&lt;@@</span> <span class="bp">true</span> <span class="o">@@&gt;,</span> <span class="n">identity</span> <span class="o">&lt;@@</span> <span class="o">(</span><span class="bp">true</span> <span class="o">||</span> <span class="bp">false</span><span class="o">)</span> <span class="o">&amp;&amp;</span> <span class="bp">true</span> <span class="o">@@&gt;)</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">[&lt;</span><span class="nc">Fact</span><span class="o">&gt;]</span>
-</span><span class='line'><span class="k">let</span> <span class="o">``</span><span class="nc">Identity</span> <span class="n">reduction</span> <span class="n">recurses</span> <span class="k">with</span> <span class="n">none</span> <span class="n">boolean</span><span class="o">``</span> <span class="bp">()</span> <span class="o">=</span>
-</span><span class='line'>    <span class="nn">Assert</span><span class="p">.</span><span class="nc">Equal</span> <span class="o">(&lt;@@</span> <span class="s2">&quot;bob&quot;</span> <span class="o">=</span> <span class="s2">&quot;fred&quot;</span> <span class="o">@@&gt;,</span> <span class="n">identity</span> <span class="o">&lt;@@</span> <span class="o">(</span><span class="s2">&quot;bob&quot;</span> <span class="o">=</span> <span class="s2">&quot;fred&quot;</span> <span class="o">||</span> <span class="bp">false</span><span class="o">)</span> <span class="o">&amp;&amp;</span> <span class="bp">true</span> <span class="o">@@&gt;)</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">[&lt;</span><span class="nc">Fact</span><span class="o">&gt;]</span>
-</span><span class='line'><span class="k">let</span> <span class="o">``</span><span class="nc">Identity</span> <span class="n">reduction</span> <span class="n">recurses</span> <span class="k">with</span> <span class="n">none</span> <span class="n">boolean</span> <span class="mi">2</span><span class="o">``</span> <span class="bp">()</span> <span class="o">=</span>
-</span><span class='line'>    <span class="nn">Assert</span><span class="p">.</span><span class="nc">Equal</span> <span class="o">(&lt;@@</span> <span class="s2">&quot;bob&quot;</span> <span class="o">=</span> <span class="s2">&quot;fred&quot;</span> <span class="o">@@&gt;,</span> <span class="n">identity</span> <span class="o">&lt;@@</span> <span class="o">(</span><span class="bp">false</span> <span class="o">||</span> <span class="s2">&quot;bob&quot;</span> <span class="o">=</span> <span class="s2">&quot;fred&quot;</span><span class="o">)</span> <span class="o">&amp;&amp;</span> <span class="bp">true</span> <span class="o">@@&gt;)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>And there you have it, a function that takes an expression tree and manipulates it in a potentially useful fashion.</p>
-
-<p>Why did we go to all this trouble? Well, I&rsquo;m afraid for that, dear reader, you&rsquo;ll have to either wait for the next installment or come along to my session at <a href="https://skillsmatter.com/conferences/1926-progressive-f-tutorials-2014#program">Progressive F# London 2014</a> where we look at translating quotations into other languages.</p>
-
-<p>If you want to look into this further yourself in the mean time, an implementation of all of the rules of boolean algebra and a basic test suite can be found in a <a href="https://gist.github.com/mavnn/9acfb52c8c311879266b">gist on github</a>.</p>
-
-<p>If you&rsquo;re feeling really brave, I also highly recommend looking into &ldquo;A Practical Theory of Language-Integrated Query&rdquo;:</p>
-
-<ul>
-<li><a href="https://skillsmatter.com/skillscasts/4486-a-practical-theory-of-language-integrated-query">Talk by Philip Wadler</a></li>
-<li><a href="http://homepages.inf.ed.ac.uk/slindley/papers/practical-theory-of-linq.pdf">Academic paper describing the techniques</a> &ndash; the first few sections are very readable even without a background in programming language research, and definitely worth looking at before you get to&hellip;</li>
-<li><a href="https://github.com/fsprojects/FSharp.Linq.ComposableQuery">The practical implementation</a> &ndash; if you want to watch people much cleverer than me <strong>really</strong> apply some of these principles.</li>
-</ul>
-
-
-<p>That&rsquo;s all till next time, and I hope your brains recover sooner than mine.</p>
 ]]></content>
   </entry>
   

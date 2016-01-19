@@ -4,7 +4,7 @@
   <title><![CDATA[Category: programming | Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/blog/categories/programming/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2016-01-18T18:03:19+00:00</updated>
+  <updated>2016-01-19T09:33:02+00:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,258 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[EmParsec Embedded Parser Library]]></title>
+    <link href="http://blog.mavnn.co.uk/emparsec-embedded-parser-library/"/>
+    <updated>2016-01-18T12:53:11+00:00</updated>
+    <id>http://blog.mavnn.co.uk/emparsec-embedded-parser-library</id>
+    <content type="html"><![CDATA[<p>Type providers, by their very nature, tend to access data external to the .net ecosystem. It can also be very awkward technically to make use of dependencies during the actual type generation process.</p>
+
+<p>This is rather a pity, because accessing all of that external data is much nicer and easier when you have a decent parser to do it with. And F# has very, very nice parser support via the <a href="http://www.quanttec.com/fparsec/">FParsec</a> library. Instead, many (most?) type providers end up creating mini-one shot parsers which can be a bit slow to write and don&rsquo;t tend to have features that come for free in a more complete solution such as nice error reporting.</p>
+
+<p>Writing yet an other parser (YAOP) this week I decided that enough was enough. What I needed was a shared resource that people could pool improvements for that could be easily embedded in projects like type providers were it isn&rsquo;t desirable (or sometimes possible) to take external binary dependencies.</p>
+
+<p>So I built it.</p>
+
+<p>EmParsec is a single file parser combinator &ldquo;library&rdquo;, inspired by both FParsec library and <a href="http://fsharpforfunandprofit.com/posts/understanding-parser-combinators/">Scott&rsquo;s excellent series on building parser combinators</a>.</p>
+
+<p>It consists of a single fsx file that can be loaded in the editor of your choice without any requirement for a project file or similar. When you want to use it, you can just reference it as a <a href="https://fsprojects.github.io/Paket/github-dependencies.html">Paket GitHub dependency</a> (which you&rsquo;ll be wanting to do for the ProvidedTypes.fs file if you&rsquo;re creating a type provider anyway) or even just copy the file across.</p>
+
+<p>If you are compiling EmParsec into a larger project, it marks itself as &ldquo;internal&rdquo; so that you don&rsquo;t pollute the end users name space, and so that if two projects you reference have embedded different versions of EmParsec there are no collisions.</p>
+
+<h2>How do I use it?</h2>
+
+<p>So, you&rsquo;ve added EmParsec.fsx to your project (manually or with Paket) and now you&rsquo;re wondering how to use it. Let&rsquo;s build some simple examples.</p>
+
+<h3>Matching an exact string</h3>
+
+<p>Let&rsquo;s start with something simple: what if I just want to match a string?</p>
+
+<p>Parser combinator libraries allow you to combine parsers from simpler parsers (hence the name), but in this case <code>pstring</code> (the &lsquo;p&rsquo; is there to avoid clashing with the existing <code>string</code> function) is provided for us by EmParsec.</p>
+
+<p>Let&rsquo;s try it out!</p>
+
+<p>``` fsharp
+open EmParsec</p>
+
+<p>let thingParser = pstring &ldquo;thing&rdquo;
+// When you enter this line, F# give a &ldquo;Value restriction&rdquo; error.
+// You can either mark thingParser as type UParser<string>, or
+// use the parser with run as below and the error will disappear.</p>
+
+<p>run thingParser &ldquo;thing&rdquo;
+// val it : Choice&lt;string,string> = Choice1Of2 &ldquo;thing&rdquo;</p>
+
+<p>run thingParser &ldquo;th1ng&rdquo;
+// val it : Choice&lt;string,string> =
+//   Choice2Of2
+//     &ldquo;Parser <string thing> failed at line 0 column 2
+// Unexpected [&lsquo;1&rsquo;]
+// th1ng
+//   ^&rdquo;
+```</p>
+
+<p>Not bad! It even marks the unexpected character in the error output.</p>
+
+<p>Unfortunately:</p>
+
+<p><code>fsharp
+run thingParser "thing and more"
+// val it : Choice&lt;string,string&gt; = Choice1Of2 "thing"
+</code></p>
+
+<p>That probably isn&rsquo;t the behaviour you were hoping for. There&rsquo;s still input left after the parser has finished, but that isn&rsquo;t being seen as an error. EmParsec includes the <code>pend</code> parser for just this type of occasion &ndash; a parser that checks the input is exhausted.</p>
+
+<p>So we want a parser that parses &ldquo;thing&rdquo; and then ends.</p>
+
+<p>Let&rsquo;s go:</p>
+
+<p>``` fsharp
+let thingParser2 = andThen (pstring &ldquo;thing&rdquo;) pend
+// normally written
+let thingParser2' = pstring &ldquo;thing&rdquo; .>>. pend</p>
+
+<p>run thingParser2 &ldquo;thing&rdquo;
+// val it : Choice&lt;(string * unit),string> = Choice1Of2 (&ldquo;thing&rdquo;, null)</p>
+
+<p>run thingParser2 &ldquo;th1ng&rdquo;
+// val it : Choice&lt;(string * unit),string> =
+//   Choice2Of2
+//     &ldquo;Parser (<string thing> andThen <end>) failed at line 0 column 2
+// Unexpected [&lsquo;1&rsquo;]
+// th1ng
+//   ^&rdquo;</p>
+
+<p>run thingParser2 &ldquo;thing and more&rdquo;
+// val it : Choice&lt;(string * unit),string> =
+//   Choice2Of2
+//     &ldquo;Parser (<string thing> andThen <end>) failed at line 0 column 5
+// Unexpected input remaining &lsquo; and more&rsquo;
+// thing and more
+//      ^&rdquo;
+```</p>
+
+<p>That&rsquo;s more like it. The only issue now is that we&rsquo;ve combined two parser, so we&rsquo;re getting back a tuple of two results.</p>
+
+<p>A simple tweak tells EmParsec to throw away the unit result returned by <code>pend</code>.</p>
+
+<p>``` fsharp
+let improvedThingParser = pstring &ldquo;thing&rdquo; .>> pend</p>
+
+<p>run improvedThingParser &ldquo;thing&rdquo;
+// val it : Choice&lt;string,string> = Choice1Of2 &ldquo;thing&rdquo;
+```</p>
+
+<p>&ldquo;Impressive,&rdquo; I hear you say: &ldquo;You can parse static strings!&rdquo;</p>
+
+<h3>Parsing a simple template language</h3>
+
+<p>You have a point. Let&rsquo;s tackle a simple template language. You know the kind of thing:</p>
+
+<p><code>Welcome {name}! Please spend money here.</code></p>
+
+<p>That kind of thing. I&rsquo;m going to start building up a set of helper parsers for this, applying some type annotations both to make the example code clearer and to avoid the value restriction errors that crop up until you actually use the parsers (those occur because these parsers can carry generic user state, but we&rsquo;re not going to go into using that here).</p>
+
+<p>We have two &ldquo;types&rdquo; of token that can exist in our template language: values to be replaced, and text to be preserved. Let&rsquo;s start by creating a union type to contain our parse results:</p>
+
+<p><code>fsharp
+type TemplatePart =
+  | Text of string
+  | Value of string
+</code></p>
+
+<p>Then, we&rsquo;ll have a parser that will parse individual characters which are <em>not</em> an opening bracket:</p>
+
+<p><code>fsharp
+let notOpenBracket : UParser&lt;char&gt; =
+  satisfy (fun c -&gt; c &lt;&gt; char '{') "not open bracket"
+</code></p>
+
+<p><code>satisfy</code> is a function built into EmParsec which takes a predicate for whether or not it will consume the next character in the input stream. The final string argument is a name for the parser, which will be used in error messages.</p>
+
+<p>Then we&rsquo;ll use that parser to create one that consumes as many &ldquo;not open bracket&rdquo; characters as it can, combines them into a string and then counts that string as a <code>Text</code> part.</p>
+
+<p>``` fsharp
+let textParser : UParser<TemplatePart> =
+  many1 notOpenBracket
+  |>> (fun charList &ndash;></p>
+
+<pre><code>     charList
+     |&gt; List.map string
+     |&gt; String.concat ""
+     |&gt; Text)
+</code></pre>
+
+<p>  &lt;?> &ldquo;<text parser>&rdquo;
+```</p>
+
+<p>There&rsquo;s a new function here and a couple of new operators (all taken from FParsec, by the way). <code>|&gt;&gt;</code> is a map operator; it allows you to transform the result of a parser and then rewrap everything back up into a new parser. This is really at the heart of the power of parser combinator libraries.</p>
+
+<p>The <code>&lt;?&gt;</code> operator is much simpler: it allows you to name a parser rather than its name being some combination of the parsers it&rsquo;s built of.</p>
+
+<p>The <code>many1</code> function says &ldquo;match one or more instances of the parser that follows&rdquo;. There is also a <code>many</code>, which matches 0 or more repeats.</p>
+
+<p>So that&rsquo;s good &ndash; we can capture the text in between our replacable values. Let&rsquo;s go with a parser for the bracketed value names next!</p>
+
+<p>``` fsharp
+let whitespace : UParser<unit> =
+  many (satisfy System.Char.IsWhiteSpace &ldquo;&rdquo;)
+  |>> ignore
+  &lt;?> &ldquo;<whitespace>&rdquo;</p>
+
+<p>let valueName : UParser<string> =
+  many1 (satisfy (fun c &ndash;> c &lt;> &lsquo;}&rsquo; &amp;&amp; (not &lt;| System.Char.IsWhiteSpace c)) &ldquo;&rdquo;)
+  |>> (fun charList &ndash;> charList |> List.map string |> String.concat &ldquo;&rdquo;)</p>
+
+<p>let openValue : UParser<unit> =
+  pchar &lsquo;{&rsquo; .>>. whitespace
+  |>> ignore</p>
+
+<p>let closeValue : UParser<unit> =
+  whitespace .>>. pchar &lsquo;}&rsquo;
+  |>> ignore</p>
+
+<p>let value : UParser<TemplatePart> =
+  between openValue closeValue valueName
+  |>> Value
+  &lt;?> &ldquo;<value parser>&rdquo;
+```</p>
+
+<p>So we now have parsers for white space and our &ldquo;valueName&rdquo; (which we are saying must be at least one character long, and can consist of any character which is not whitespace or a closing curly bracket). We can then use pchar (&ldquo;parse char&rdquo;) and whitespace to allow for minor variations in syntax (some people like <code>{name}</code>, others like <code>{ name }</code>).</p>
+
+<p>Finally we build our value parser, using the <code>between</code> function, which does pretty much what you&rsquo;d expect: it takes an opening parser, a closing parser, and captures what&rsquo;s in between with third parser.</p>
+
+<p>Our final step is just to combine our parsers for value and text sections. We want to capture &ldquo;many&rdquo; of one or the other, until we run out of input. We&rsquo;ll put an explicit <code>pend</code> on there as well, otherwise things like (for example) an unclosed <code>}</code> at the end of the string will not show up as an error &ndash; the parser will just stop at the character before the opening <code>{</code> as the last matching input.</p>
+
+<p>Our final parser introduces the <code>&lt;|&gt;</code> (orElse) operator, and looks like this:</p>
+
+<p><code>fsharp
+let template : UParser&lt;TemplatePart list&gt; =
+  many (value &lt;|&gt; textParser)
+  .&gt;&gt; pend
+  &lt;?&gt; "&lt;template parser&gt;"
+</code></p>
+
+<p>Let&rsquo;s try it out!</p>
+
+<p>``` fsharp
+open System.Text</p>
+
+<p>let showTemplate values parts =
+  let folder (sb : StringBuilder) part =</p>
+
+<pre><code>match part with
+| Text s -&gt;
+  sb.Append s
+| Value v -&gt;
+  defaultArg (Map.tryFind v values) ""
+  |&gt; sb.Append
+</code></pre>
+
+<p>  let sb = List.fold folder (StringBuilder()) parts
+  sb.ToString()</p>
+
+<p>let values = Map [ &ldquo;name&rdquo;, &ldquo;bob&rdquo; ]</p>
+
+<p>let run' parser str =
+  run parser str
+  |> function</p>
+
+<pre><code> | Choice1Of2 success -&gt; showTemplate values success
+ | Choice2Of2 fail -&gt; failwithf "Parsing failed!\n%s" fail
+</code></pre>
+
+<p>```</p>
+
+<p>A couple of helpers: <code>showTemplate</code> knows how to build up a string from a list of template parts and a value map, <code>run'</code> is just a simple wrapper around <code>run</code> that throws if parsing is not successful.</p>
+
+<p>``` fsharp
+let ex1 = &ldquo;Welcome {name}! Please spend money here!&rdquo;
+let ex2 = &ldquo;hello { name } thing&rdquo;</p>
+
+<p>run' template ex1
+// val it : string = &ldquo;Welcome bob! Please spend money here!&rdquo;</p>
+
+<p>run' template ex2
+// val it : string = &ldquo;hello bob thing&rdquo;</p>
+
+<p>let ex3 = &ldquo;Hello, { name }! How about {
+ date:alreadyrendered?
+}? &lt;&ndash; That should be left blank, but parse as valid.&rdquo;</p>
+
+<p>run' template ex3
+// val it : string =
+//   &ldquo;Hello, bob! How about ? &lt;&ndash; That should be left blank, but parse as valid.&rdquo;
+```</p>
+
+<p>And finally our templates in action. You can see that even with a simple parser like this, it&rsquo;s already reaching a complexity that would be painful to match with a hand rolled creation.</p>
+
+<p>If you want to know more about parser combinators, and especially how to use them to create recursive grammars, do check out the <a href="http://www.quanttec.com/fparsec/">FParsec documentation</a> which is excellent. It is also more complete and <em>much</em> more performant than EmParsec.</p>
+
+<p>But if you need a small, single file parser where performance is not the primary concern &ndash; maybe EmParsec is your friend. Anyone who wants to join in making it better is more than welcome! Of particular note is that EmParsec does not yet support controlling when backtracking does or doesn&rsquo;t happen (it will always backtrack) which can make for some pretty confusing error messages.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[EasyNetQ Process Management]]></title>
@@ -85,7 +337,7 @@ bus.Subscribe<EmailSent> (&ldquo;Process&rdquo;, fun es &ndash;> printfn &ldquo;
 bus.Publish { StoreModel.CorrelationId = Guid.NewGuid(); Model = model }
 bus.Publish { StoreTemplate.CorrelationId = Guid.NewGuid(); Name = &ldquo;mytemplate&rdquo;; Template = template }
 bus.Publish { RequestRender.CorrelationId = Guid.NewGuid(); TemplateId = 1; ModelId = 4 }
-bus.Publish { SendEmail.CorrelationId = Guid.NewGuid(); Content = &ldquo;Hello world!&rdquo;; EmailAddress = &ldquo;<a href="&#x6d;&#x61;&#105;&#x6c;&#116;&#x6f;&#x3a;&#x6d;&#x65;&#x40;&#101;&#x78;&#97;&#109;&#112;&#108;&#101;&#46;&#x63;&#x6f;&#109;">&#109;&#x65;&#x40;&#x65;&#120;&#x61;&#109;&#112;&#108;&#101;&#x2e;&#99;&#x6f;&#109;</a>&rdquo; }
+bus.Publish { SendEmail.CorrelationId = Guid.NewGuid(); Content = &ldquo;Hello world!&rdquo;; EmailAddress = &ldquo;<a href="&#109;&#97;&#x69;&#108;&#x74;&#x6f;&#x3a;&#109;&#x65;&#x40;&#101;&#x78;&#97;&#109;&#112;&#x6c;&#101;&#46;&#x63;&#x6f;&#109;">&#109;&#x65;&#x40;&#x65;&#x78;&#x61;&#109;&#112;&#x6c;&#x65;&#46;&#99;&#111;&#x6d;</a>&rdquo; }
 ```</p>
 
 <p>So, that&rsquo;s great. What now?</p>
@@ -804,232 +1056,6 @@ screen viewing; there&rsquo;s a fair amount of code in the presentation.</p>
 <p>If you want to play with the code from the demo yourself, it&rsquo;s available <a href="https://github.com/mavnn/SddConf2015">on Github</a>. The slides are also available <a href="http://sddconf.com/brands/sdd/library/Breaking_Your_Code_In_New_Exciting_Ways.pdf">as a PDF</a>.</p>
 
 <p>Many thanks to the conference organisers <a href="http://www.yellowstonetechmedia.com/">Yellowstone TechMedia</a>, and I&rsquo;ll definitely be considering submitting talks/attending again next year.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Serialization in .net]]></title>
-    <link href="http://blog.mavnn.co.uk/serialization-in-net/"/>
-    <updated>2015-05-21T16:11:28+01:00</updated>
-    <id>http://blog.mavnn.co.uk/serialization-in-net</id>
-    <content type="html"><![CDATA[<p>Leaving the confines of your own process&rsquo;s safe little memory space is always a potentially painful moment
-when you&rsquo;re coding up an up. Whether it&rsquo;s receiving data from the outside world, passing a message over
-RabbitMQ to an other in house service, or writing an audit trail that needs to be accessible for the next
-20 years, there&rsquo;s a bunch of considerations that need to be taken into account when you hit the joys of
-serialization and deserialization.</p>
-
-<!-- more -->
-
-
-<h2>Mirror, mirror on the wall</h2>
-
-<p>First up on the list is whether or not to use reflection. For those of you who aren&rsquo;t aware, reflection
-is a way of inspecting the properties of your .net code at runtime, and various serialization libraries
-take advantage of this to try and make your life easier.</p>
-
-<p>The best known example of this is <a href="http://www.newtonsoft.com/json">Json.NET</a> &ndash; which will take any .net
-object and try and create a Json representation of it &ndash; or vice versa.</p>
-
-<p>``` csharp
-Product product = new Product();
-product.Name = &ldquo;Apple&rdquo;;
-product.Expiry = new DateTime(2008, 12, 28);
-product.Sizes = new string[] { &ldquo;Small&rdquo; };</p>
-
-<p>string json = JsonConvert.SerializeObject(product);
-// {
-//   &ldquo;Name&rdquo;: &ldquo;Apple&rdquo;,
-//   &ldquo;Expiry&rdquo;: &ldquo;2008-12-28T00:00:00&rdquo;,
-//   &ldquo;Sizes&rdquo;: [
-//     &ldquo;Small&rdquo;
-//   ]
-// }
-```</p>
-
-<p>This is a common technique, but it does have a few problems.</p>
-
-<h3>Versioning</h3>
-
-<p>The &ldquo;schema&rdquo; here is actually the underlying .net type that you are serializing &ndash; this can be great for
-quick to implement communications between .net services which can share a &ldquo;messages&rdquo; dll with the type in.</p>
-
-<p>Unfortunately, this also plays merry havoc in any scenario where your messages might persist
-between versions of your messaging dll. Saving these objects to a document store for example, or trying to run two versions of a service at once (required for seamless deployment)
-connected to a messaging bus.</p>
-
-<p>Because .net will only allow you to have one version of an assembly loaded at once, you can&rsquo;t
-easily build a way of deserializing the old format.</p>
-
-<h3>Uglyness</h3>
-
-<p>This might sound like a purely aesthetic consideration, and therefore beneath us
-technical types but the result of automatic serialization is often ugly and strange
-looking. And to be fair, it isn&rsquo;t normally a huge problem for as long as you&rsquo;re working
-in a .net to .net scenario. But if, for example, you&rsquo;re writing an API to be consumed
-from JavaScript your UI developers (which is probably still you, right?) will curse your
-name forever more if you go this route. As well as this, as there&rsquo;s no schema, it&rsquo;s very
-hard to tell in any other language whether the object you&rsquo;ve created will make it through
-the deserialization process when it hits .net land again.</p>
-
-<h3>Runtime failure</h3>
-
-<p>That <code>JsonConvert.SerializeObject</code> method up there: it&rsquo;s generic. Which means it will
-take any .net object you want to throw at it.</p>
-
-<p>Unfortunately, the number of .net objects it can actually serialize is quite a bit more
-restricted than &ldquo;any .net object you want to throw at it&rdquo;. And it has no way of telling
-you that until run time, when it will just throw an exception, which can be pretty painful.</p>
-
-<h3>When to use?</h3>
-
-<p>Only use reflection based serialization in situations where you know the serialized
-representation will be transient, and where you can test your serialization works at
-runtime in advance. Additional, be very suspicious of using reflection based serialization
-in any scenario where anything outside the .net ecosystem will need to access the data.</p>
-
-<p>Typical scenarios:</p>
-
-<ul>
-<li>Caching</li>
-<li>Inter-process communication in distributed systems</li>
-<li>Message bus communications (only if you can guarantee the messages are transient)</li>
-</ul>
-
-
-<p>Avoid for:</p>
-
-<ul>
-<li>Permanent persistence</li>
-<li>Defining APIs to be used from outside .net</li>
-</ul>
-
-
-<h3>Recommended implementation</h3>
-
-<p>If you are doing reflection based serialization in .net, you want to use
-<a href="https://nessos.github.io/FsPickler/">FsPickler</a>. It covers binary, json, bson and xml
-serialization in a single library, is faster than Json.NET and successfully serializes
-more types than Json.NET. What&rsquo;s not to like?</p>
-
-<h2>Attribute all the things!</h2>
-
-<p>As well as just trying to guess how to serialize things with reflection in .net,
-there is also the <a href="https://msdn.microsoft.com/en-us/library/system.serializableattribute%28v=vs.110%29.aspx">Serializable</a> attribute that allows you to then serialize to a variety
-of formats using the <code>System.Runtime.Serialization</code> name space. This a few advantages
-over the raw reflection technique in theory (you can mark specific fields not to be serialized, for example) but to be blunt if you&rsquo;re going to go to this amount of effort you may
-as well go for one of the safer options below.</p>
-
-<h3>When to use?</h3>
-
-<p>When you&rsquo;re using a Microsoft library that requires you to.</p>
-
-<h2>Safety with (type) class</h2>
-
-<p>If you happen to be working in F#, then <a href="https://msdn.microsoft.com/en-us/library/dd233203.aspx">member constraints</a> allow you to try a more flexible and type safe way of expressing
-serialization &ndash; in exchange for a little more work.</p>
-
-<p>As an example, the Chiron library allows you to do things like this:</p>
-
-<p>``` fsharp
-open Chiron
-open Chiron.Operators</p>
-
-<p>type InnerRecord =</p>
-
-<pre><code>{
-    Start : System.DateTime
-    Id : System.Guid
-}
-static member FromJson (_ : InnerRecord) =
-    (fun s i -&gt; { Start = s; Id = i })
-    &lt;!&gt; Json.read "startTime"
-    &lt;*&gt; Json.read "identity"
-static member ToJson innerRecord =
-    Json.write "startTime" innerRecord.Start
-    *&gt; Json.write "identity" innerRecord.Id
-</code></pre>
-
-<p>type OuterRecord =</p>
-
-<pre><code>{
-    Name : string
-    Inner : InnerRecord
-}
-static member FromJson (_ : OuterRecord) =
-    (fun n i -&gt; { Name = n; Inner = i })
-    &lt;!&gt; Json.read "name"
-    &lt;*&gt; Json.read "inner"
-static member ToJson outerRecord =
-    Json.write "name" outerRecord.Name
-    *&gt; Json.write "inner" outerRecord.Inner
-</code></pre>
-
-<p>{
-  Name = &ldquo;my object&rdquo;
-  Inner = {</p>
-
-<pre><code>        Start = System.DateTime(2015, 5, 21)
-        Id = System.Guid.NewGuid()
-      }
-</code></pre>
-
-<p>}
-|> Json.serialize
-|> Json.format
-// Your json goes here
-```</p>
-
-<p>A few interesting things to note here. Firstly, as you&rsquo;ve probably guessed, the magic
-of telling Chiron how to serialize and deserialize things happens in the <code>ToJson</code> and
-<code>FromJson</code> methods. What might not be so obvious is that if these methods are not
-implemented with the correct signature, than <code>Json.serialize</code> will not compile when
-fed the erroneous object. Which does wonders for eliminating run time errors!</p>
-
-<p>Also, if you look carefully at the To and From methods you&rsquo;ll see that there&rsquo;s no need
-for the fields in the Json and the .net object to have the same name. In fact, you can
-apply what ever logic you want within them, allowing you to match a specific schema,
-allow for different versions of the serialized data to be deserialized or just generally
-make the serialized version prettier to use from other places.</p>
-
-<p>You do, of course, have to actually write the From and To methods, which is definitely
-more work. Having said that, it&rsquo;s not quite as bad as it sounds though: as you can see
-from the <code>OuterRecord</code> type with it&rsquo;s <code>InnerRecord</code> field, and can nest the To and
-From methods nicely &ndash; and the type system will check that your object is serializable
-all the way down. Nice.</p>
-
-<h3>When to use?</h3>
-
-<p>Any time when you might have to persist data between versions, or process data during
-the serialization/deserialization process &ndash; and you can specify your data types in F#.</p>
-
-<h3>Recommended implementation</h3>
-
-<p><a href="https://github.com/mausch/Fleece">Fleece</a> and <a href="https://github.com/xyncro/chiron/">Chiron</a>
-both implement these techniques. Fleece is a more established library that has been tested
-for longer, but I have had some performance issues with it in libraries with a lot of types
-that implement To and From methods. Chiron is a little bit&hellip; cutting edge in age, but
-has always been fast and reliable for me so far.</p>
-
-<p>We currently use Fleece in one of our projects, and have provided some support to improving
-the testing of Chiron as it looks like a hopeful alternative.</p>
-
-<p>Edit: Eirik points out in the comments that FsPickler (mentioned above) also has a mechanism
-for defining type safe (de)serialization <a href="http://nessos.github.io/FsPickler/tutorial.html#Picklers-and-Pickler-combinators">using Picklers</a>. I couldn&rsquo;t possibly guess where the library
-got it&rsquo;s name.</p>
-
-<h2>All the rest</h2>
-
-<p>I&rsquo;m sure that there are other ways of tackling these problems &ndash; for example, for our
-customer facing &ldquo;business&rdquo; APIs we&rsquo;re moving to specifying our API using hand crafted
-XSD and WSDL files and then autogenerating code behind. This assumes, of course, you
-have some reason to be using SOAP. But if you do, it works an awful lot better than
-trying to autogenerate the schema from the code &ndash; a path that&rsquo;s lead me to worlds of
-pain both as the consumer and producer of the schemas.</p>
-
-<p>But the routes above are the most common paths that I&rsquo;ve come across as a .net developer
-and I&rsquo;ve often discovered them being used in the &ldquo;wrong&rdquo; places. Retroactively having to
-version reflection based APIs is a particular pain point that I&rsquo;d recommend avoiding if
-you possibly can!</p>
 ]]></content>
   </entry>
   

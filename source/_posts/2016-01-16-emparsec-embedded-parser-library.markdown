@@ -64,16 +64,16 @@ run thingParser "thing and more"
 // val it : Choice<string,string> = Choice1Of2 "thing"
 ```
 
-That probably isn't the behaviour you were hoping for. There's still input left after the parser has finished, but that isn't being seen as an error. EmParsec includes the ``pend`` parser for just this type of occasion - a parser that checks the input is exhausted.
+That probably isn't the behaviour you were hoping for. There's still input left after the parser has finished, but that isn't being seen as an error. EmParsec includes the ``eof`` parser for just this type of occasion - a parser that checks the input is exhausted.
 
 So we want a parser that parses "thing" and then ends.
 
 Let's go:
 
 ``` fsharp
-let thingParser2 = andThen (pstring "thing") pend
+let thingParser2 = andThen (pstring "thing") eof
 // normally written
-let thingParser2' = pstring "thing" .>>. pend
+let thingParser2' = pstring "thing" .>>. eof
 
 run thingParser2 "thing"
 // val it : Choice<(string * unit),string> = Choice1Of2 ("thing", null)
@@ -97,10 +97,10 @@ run thingParser2 "thing and more"
 
 That's more like it. The only issue now is that we've combined two parser, so we're getting back a tuple of two results.
 
-A simple tweak tells EmParsec to throw away the unit result returned by ``pend``.
+A simple tweak tells EmParsec to throw away the unit result returned by ``eof``.
 
 ``` fsharp
-let improvedThingParser = pstring "thing" .>> pend
+let improvedThingParser = pstring "thing" .>> eof
 
 run improvedThingParser "thing"
 // val it : Choice<string,string> = Choice1Of2 "thing"
@@ -155,21 +155,16 @@ The ``many1`` function says "match one or more instances of the parser that foll
 So that's good - we can capture the text in between our replacable values. Let's go with a parser for the bracketed value names next!
 
 ``` fsharp
-let whitespace : UParser<unit> =
-  many (satisfy System.Char.IsWhiteSpace "")
-  |>> ignore
-  <?> "<whitespace>"
-
 let valueName : UParser<string> =
   many1 (satisfy (fun c -> c <> '}' && (not <| System.Char.IsWhiteSpace c)) "")
   |>> (fun charList -> charList |> List.map string |> String.concat "")
 
 let openValue : UParser<unit> =
-  pchar '{' .>>. whitespace
+  pchar '{' .>>. spaces
   |>> ignore
 
 let closeValue : UParser<unit> =
-  whitespace .>>. pchar '}'
+  spaces .>>. pchar '}'
   |>> ignore
 
 let value : UParser<TemplatePart> =
@@ -182,14 +177,14 @@ So we now have parsers for white space and our "valueName" (which we are saying 
 
 Finally we build our value parser, using the ``between`` function, which does pretty much what you'd expect: it takes an opening parser, a closing parser, and captures what's in between with third parser.
 
-Our final step is just to combine our parsers for value and text sections. We want to capture "many" of one or the other, until we run out of input. We'll put an explicit ``pend`` on there as well, otherwise things like (for example) an unclosed ``}`` at the end of the string will not show up as an error - the parser will just stop at the character before the opening ``{`` as the last matching input.
+Our final step is just to combine our parsers for value and text sections. We want to capture "many" of one or the other, until we run out of input. We'll put an explicit ``eof`` on there as well, otherwise things like (for example) an unclosed ``}`` at the end of the string will not show up as an error - the parser will just stop at the character before the opening ``{`` as the last matching input.
 
 Our final parser introduces the ``<|>`` (orElse) operator, and looks like this:
 
 ``` fsharp
 let template : UParser<TemplatePart list> =
   many (value <|> textParser)
-  .>> pend
+  .>> eof
   <?> "<template parser>"
 ```
 

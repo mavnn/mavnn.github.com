@@ -19,13 +19,13 @@ So I built it.
 
 EmParsec is a single file parser combinator "library", inspired by both FParsec library and [Scott's excellent series on building parser combinators](http://fsharpforfunandprofit.com/posts/understanding-parser-combinators/).
 
-It consists of a single fsx file that can be loaded in the editor of your choice without any requirement for a project file or similar. When you want to use it, you can just reference it as a [Paket GitHub dependency](https://fsprojects.github.io/Paket/github-dependencies.html) (which you'll be wanting to do for the ProvidedTypes.fs file if you're creating a type provider anyway) or even just copy the file across.
+It consists of a single fs file that can be loaded in the editor of your choice without any requirement for a project file or similar. When you want to use it, you can just reference it as a [Paket GitHub dependency](https://fsprojects.github.io/Paket/github-dependencies.html) (which you'll be wanting to do for the ProvidedTypes.fs file if you're creating a type provider anyway) or even just copy the file across.
 
 If you are compiling EmParsec into a larger project, it marks itself as "internal" so that you don't pollute the end users name space, and so that if two projects you reference have embedded different versions of EmParsec there are no collisions.
 
 ## How do I use it?
 
-So, you've added EmParsec.fsx to your project (manually or with Paket) and now you're wondering how to use it. Let's build some simple examples.
+So, you've added EmParsec.fs to your project (manually or with Paket) and now you're wondering how to use it. Let's build some simple examples.
 
 ### Matching an exact string
 

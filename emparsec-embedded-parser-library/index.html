@@ -184,7 +184,7 @@ ga('send', 'pageview');
 </span></code></pre></td></tr></table></div></figure>
 
 
-<p>That probably isn&rsquo;t the behaviour you were hoping for. There&rsquo;s still input left after the parser has finished, but that isn&rsquo;t being seen as an error. EmParsec includes the <code>pend</code> parser for just this type of occasion &ndash; a parser that checks the input is exhausted.</p>
+<p>That probably isn&rsquo;t the behaviour you were hoping for. There&rsquo;s still input left after the parser has finished, but that isn&rsquo;t being seen as an error. EmParsec includes the <code>eof</code> parser for just this type of occasion &ndash; a parser that checks the input is exhausted.</p>
 
 <p>So we want a parser that parses &ldquo;thing&rdquo; and then ends.</p>
 
@@ -212,9 +212,9 @@ ga('send', 'pageview');
 <span class='line-number'>20</span>
 <span class='line-number'>21</span>
 <span class='line-number'>22</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">thingParser2</span> <span class="o">=</span> <span class="n">andThen</span> <span class="o">(</span><span class="n">pstring</span> <span class="s2">&quot;thing&quot;</span><span class="o">)</span> <span class="n">pend</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">thingParser2</span> <span class="o">=</span> <span class="n">andThen</span> <span class="o">(</span><span class="n">pstring</span> <span class="s2">&quot;thing&quot;</span><span class="o">)</span> <span class="n">eof</span>
 </span><span class='line'><span class="c1">// normally written</span>
-</span><span class='line'><span class="k">let</span> <span class="n">thingParser2&#39;</span> <span class="o">=</span> <span class="n">pstring</span> <span class="s2">&quot;thing&quot;</span> <span class="o">.&gt;&gt;.</span> <span class="n">pend</span>
+</span><span class='line'><span class="k">let</span> <span class="n">thingParser2&#39;</span> <span class="o">=</span> <span class="n">pstring</span> <span class="s2">&quot;thing&quot;</span> <span class="o">.&gt;&gt;.</span> <span class="n">eof</span>
 </span><span class='line'>
 </span><span class='line'><span class="n">run</span> <span class="n">thingParser2</span> <span class="s2">&quot;thing&quot;</span>
 </span><span class='line'><span class="c1">// val it : Choice&lt;(string * unit),string&gt; = Choice1Of2 (&quot;thing&quot;, null)</span>
@@ -239,13 +239,13 @@ ga('send', 'pageview');
 
 <p>That&rsquo;s more like it. The only issue now is that we&rsquo;ve combined two parser, so we&rsquo;re getting back a tuple of two results.</p>
 
-<p>A simple tweak tells EmParsec to throw away the unit result returned by <code>pend</code>.</p>
+<p>A simple tweak tells EmParsec to throw away the unit result returned by <code>eof</code>.</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
 <span class='line-number'>3</span>
 <span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">improvedThingParser</span> <span class="o">=</span> <span class="n">pstring</span> <span class="s2">&quot;thing&quot;</span> <span class="o">.&gt;&gt;</span> <span class="n">pend</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">improvedThingParser</span> <span class="o">=</span> <span class="n">pstring</span> <span class="s2">&quot;thing&quot;</span> <span class="o">.&gt;&gt;</span> <span class="n">eof</span>
 </span><span class='line'>
 </span><span class='line'><span class="n">run</span> <span class="n">improvedThingParser</span> <span class="s2">&quot;thing&quot;</span>
 </span><span class='line'><span class="c1">// val it : Choice&lt;string,string&gt; = Choice1Of2 &quot;thing&quot;</span>
@@ -329,26 +329,16 @@ ga('send', 'pageview');
 <span class='line-number'>14</span>
 <span class='line-number'>15</span>
 <span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">whitespace</span> <span class="o">:</span> <span class="nc">UParser</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span> <span class="o">=</span>
-</span><span class='line'>  <span class="n">many</span> <span class="o">(</span><span class="n">satisfy</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Char</span><span class="p">.</span><span class="nc">IsWhiteSpace</span> <span class="s2">&quot;&quot;</span><span class="o">)</span>
-</span><span class='line'>  <span class="o">|&gt;&gt;</span> <span class="n">ignore</span>
-</span><span class='line'>  <span class="o">&lt;?&gt;</span> <span class="s2">&quot;&lt;whitespace&gt;&quot;</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="n">valueName</span> <span class="o">:</span> <span class="nc">UParser</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span> <span class="o">=</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">valueName</span> <span class="o">:</span> <span class="nc">UParser</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span> <span class="o">=</span>
 </span><span class='line'>  <span class="n">many1</span> <span class="o">(</span><span class="n">satisfy</span> <span class="o">(</span><span class="k">fun</span> <span class="n">c</span> <span class="o">-&gt;</span> <span class="n">c</span> <span class="o">&lt;&gt;</span> <span class="sc">&#39;}&#39;</span> <span class="o">&amp;&amp;</span> <span class="o">(</span><span class="ow">not</span> <span class="o">&lt;|</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Char</span><span class="p">.</span><span class="nc">IsWhiteSpace</span> <span class="n">c</span><span class="o">))</span> <span class="s2">&quot;&quot;</span><span class="o">)</span>
 </span><span class='line'>  <span class="o">|&gt;&gt;</span> <span class="o">(</span><span class="k">fun</span> <span class="n">charList</span> <span class="o">-&gt;</span> <span class="n">charList</span> <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="kt">string</span> <span class="o">|&gt;</span> <span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot;&quot;</span><span class="o">)</span>
 </span><span class='line'>
 </span><span class='line'><span class="k">let</span> <span class="n">openValue</span> <span class="o">:</span> <span class="nc">UParser</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span> <span class="o">=</span>
-</span><span class='line'>  <span class="n">pchar</span> <span class="sc">&#39;{&#39;</span> <span class="o">.&gt;&gt;.</span> <span class="n">whitespace</span>
+</span><span class='line'>  <span class="n">pchar</span> <span class="sc">&#39;{&#39;</span> <span class="o">.&gt;&gt;.</span> <span class="n">spaces</span>
 </span><span class='line'>  <span class="o">|&gt;&gt;</span> <span class="n">ignore</span>
 </span><span class='line'>
 </span><span class='line'><span class="k">let</span> <span class="n">closeValue</span> <span class="o">:</span> <span class="nc">UParser</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span> <span class="o">=</span>
-</span><span class='line'>  <span class="n">whitespace</span> <span class="o">.&gt;&gt;.</span> <span class="n">pchar</span> <span class="sc">&#39;}&#39;</span>
+</span><span class='line'>  <span class="n">spaces</span> <span class="o">.&gt;&gt;.</span> <span class="n">pchar</span> <span class="sc">&#39;}&#39;</span>
 </span><span class='line'>  <span class="o">|&gt;&gt;</span> <span class="n">ignore</span>
 </span><span class='line'>
 </span><span class='line'><span class="k">let</span> <span class="n">value</span> <span class="o">:</span> <span class="nc">UParser</span><span class="o">&lt;</span><span class="nc">TemplatePart</span><span class="o">&gt;</span> <span class="o">=</span>
@@ -362,7 +352,7 @@ ga('send', 'pageview');
 
 <p>Finally we build our value parser, using the <code>between</code> function, which does pretty much what you&rsquo;d expect: it takes an opening parser, a closing parser, and captures what&rsquo;s in between with third parser.</p>
 
-<p>Our final step is just to combine our parsers for value and text sections. We want to capture &ldquo;many&rdquo; of one or the other, until we run out of input. We&rsquo;ll put an explicit <code>pend</code> on there as well, otherwise things like (for example) an unclosed <code>}</code> at the end of the string will not show up as an error &ndash; the parser will just stop at the character before the opening <code>{</code> as the last matching input.</p>
+<p>Our final step is just to combine our parsers for value and text sections. We want to capture &ldquo;many&rdquo; of one or the other, until we run out of input. We&rsquo;ll put an explicit <code>eof</code> on there as well, otherwise things like (for example) an unclosed <code>}</code> at the end of the string will not show up as an error &ndash; the parser will just stop at the character before the opening <code>{</code> as the last matching input.</p>
 
 <p>Our final parser introduces the <code>&lt;|&gt;</code> (orElse) operator, and looks like this:</p>
 
@@ -372,7 +362,7 @@ ga('send', 'pageview');
 <span class='line-number'>4</span>
 </pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">template</span> <span class="o">:</span> <span class="nc">UParser</span><span class="o">&lt;</span><span class="nc">TemplatePart</span> <span class="kt">list</span><span class="o">&gt;</span> <span class="o">=</span>
 </span><span class='line'>  <span class="n">many</span> <span class="o">(</span><span class="n">value</span> <span class="o">&lt;|&gt;</span> <span class="n">textParser</span><span class="o">)</span>
-</span><span class='line'>  <span class="o">.&gt;&gt;</span> <span class="n">pend</span>
+</span><span class='line'>  <span class="o">.&gt;&gt;</span> <span class="n">eof</span>
 </span><span class='line'>  <span class="o">&lt;?&gt;</span> <span class="s2">&quot;&lt;template parser&gt;&quot;</span>
 </span></code></pre></td></tr></table></div></figure>
 

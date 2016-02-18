@@ -4,7 +4,7 @@
   <title><![CDATA[Category: programming | Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/blog/categories/programming/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2016-01-19T12:16:05+00:00</updated>
+  <updated>2016-02-18T11:52:46+00:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -78,16 +78,16 @@ run thingParser "thing and more"
 // val it : Choice&lt;string,string&gt; = Choice1Of2 "thing"
 </code></p>
 
-<p>That probably isn&rsquo;t the behaviour you were hoping for. There&rsquo;s still input left after the parser has finished, but that isn&rsquo;t being seen as an error. EmParsec includes the <code>pend</code> parser for just this type of occasion &ndash; a parser that checks the input is exhausted.</p>
+<p>That probably isn&rsquo;t the behaviour you were hoping for. There&rsquo;s still input left after the parser has finished, but that isn&rsquo;t being seen as an error. EmParsec includes the <code>eof</code> parser for just this type of occasion &ndash; a parser that checks the input is exhausted.</p>
 
 <p>So we want a parser that parses &ldquo;thing&rdquo; and then ends.</p>
 
 <p>Let&rsquo;s go:</p>
 
 <p>``` fsharp
-let thingParser2 = andThen (pstring &ldquo;thing&rdquo;) pend
+let thingParser2 = andThen (pstring &ldquo;thing&rdquo;) eof
 // normally written
-let thingParser2' = pstring &ldquo;thing&rdquo; .>>. pend</p>
+let thingParser2' = pstring &ldquo;thing&rdquo; .>>. eof</p>
 
 <p>run thingParser2 &ldquo;thing&rdquo;
 // val it : Choice&lt;(string * unit),string> = Choice1Of2 (&ldquo;thing&rdquo;, null)</p>
@@ -111,10 +111,10 @@ let thingParser2' = pstring &ldquo;thing&rdquo; .>>. pend</p>
 
 <p>That&rsquo;s more like it. The only issue now is that we&rsquo;ve combined two parser, so we&rsquo;re getting back a tuple of two results.</p>
 
-<p>A simple tweak tells EmParsec to throw away the unit result returned by <code>pend</code>.</p>
+<p>A simple tweak tells EmParsec to throw away the unit result returned by <code>eof</code>.</p>
 
 <p>``` fsharp
-let improvedThingParser = pstring &ldquo;thing&rdquo; .>> pend</p>
+let improvedThingParser = pstring &ldquo;thing&rdquo; .>> eof</p>
 
 <p>run improvedThingParser &ldquo;thing&rdquo;
 // val it : Choice&lt;string,string> = Choice1Of2 &ldquo;thing&rdquo;
@@ -172,21 +172,16 @@ let textParser : UParser<TemplatePart> =
 <p>So that&rsquo;s good &ndash; we can capture the text in between our replacable values. Let&rsquo;s go with a parser for the bracketed value names next!</p>
 
 <p>``` fsharp
-let whitespace : UParser<unit> =
-  many (satisfy System.Char.IsWhiteSpace &ldquo;&rdquo;)
-  |>> ignore
-  &lt;?> &ldquo;<whitespace>&rdquo;</p>
-
-<p>let valueName : UParser<string> =
+let valueName : UParser<string> =
   many1 (satisfy (fun c &ndash;> c &lt;> &lsquo;}&rsquo; &amp;&amp; (not &lt;| System.Char.IsWhiteSpace c)) &ldquo;&rdquo;)
   |>> (fun charList &ndash;> charList |> List.map string |> String.concat &ldquo;&rdquo;)</p>
 
 <p>let openValue : UParser<unit> =
-  pchar &lsquo;{&rsquo; .>>. whitespace
+  pchar &lsquo;{&rsquo; .>>. spaces
   |>> ignore</p>
 
 <p>let closeValue : UParser<unit> =
-  whitespace .>>. pchar &lsquo;}&rsquo;
+  spaces .>>. pchar &lsquo;}&rsquo;
   |>> ignore</p>
 
 <p>let value : UParser<TemplatePart> =
@@ -199,14 +194,14 @@ let whitespace : UParser<unit> =
 
 <p>Finally we build our value parser, using the <code>between</code> function, which does pretty much what you&rsquo;d expect: it takes an opening parser, a closing parser, and captures what&rsquo;s in between with third parser.</p>
 
-<p>Our final step is just to combine our parsers for value and text sections. We want to capture &ldquo;many&rdquo; of one or the other, until we run out of input. We&rsquo;ll put an explicit <code>pend</code> on there as well, otherwise things like (for example) an unclosed <code>}</code> at the end of the string will not show up as an error &ndash; the parser will just stop at the character before the opening <code>{</code> as the last matching input.</p>
+<p>Our final step is just to combine our parsers for value and text sections. We want to capture &ldquo;many&rdquo; of one or the other, until we run out of input. We&rsquo;ll put an explicit <code>eof</code> on there as well, otherwise things like (for example) an unclosed <code>}</code> at the end of the string will not show up as an error &ndash; the parser will just stop at the character before the opening <code>{</code> as the last matching input.</p>
 
 <p>Our final parser introduces the <code>&lt;|&gt;</code> (orElse) operator, and looks like this:</p>
 
 <p><code>fsharp
 let template : UParser&lt;TemplatePart list&gt; =
   many (value &lt;|&gt; textParser)
-  .&gt;&gt; pend
+  .&gt;&gt; eof
   &lt;?&gt; "&lt;template parser&gt;"
 </code></p>
 
@@ -342,7 +337,7 @@ bus.Subscribe<EmailSent> (&ldquo;Process&rdquo;, fun es &ndash;> printfn &ldquo;
 bus.Publish { StoreModel.CorrelationId = Guid.NewGuid(); Model = model }
 bus.Publish { StoreTemplate.CorrelationId = Guid.NewGuid(); Name = &ldquo;mytemplate&rdquo;; Template = template }
 bus.Publish { RequestRender.CorrelationId = Guid.NewGuid(); TemplateId = 1; ModelId = 4 }
-bus.Publish { SendEmail.CorrelationId = Guid.NewGuid(); Content = &ldquo;Hello world!&rdquo;; EmailAddress = &ldquo;<a href="&#109;&#x61;&#x69;&#x6c;&#x74;&#111;&#x3a;&#109;&#x65;&#64;&#x65;&#x78;&#x61;&#x6d;&#112;&#x6c;&#101;&#x2e;&#99;&#x6f;&#109;">&#109;&#x65;&#x40;&#x65;&#x78;&#97;&#x6d;&#x70;&#108;&#x65;&#x2e;&#x63;&#111;&#x6d;</a>&rdquo; }
+bus.Publish { SendEmail.CorrelationId = Guid.NewGuid(); Content = &ldquo;Hello world!&rdquo;; EmailAddress = &ldquo;<a href="&#109;&#x61;&#x69;&#108;&#x74;&#111;&#x3a;&#x6d;&#x65;&#64;&#x65;&#x78;&#97;&#x6d;&#112;&#108;&#x65;&#x2e;&#x63;&#x6f;&#x6d;">&#x6d;&#101;&#64;&#101;&#120;&#x61;&#x6d;&#112;&#x6c;&#x65;&#46;&#99;&#111;&#x6d;</a>&rdquo; }
 ```</p>
 
 <p>So, that&rsquo;s great. What now?</p>

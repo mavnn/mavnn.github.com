@@ -9,8 +9,9 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="One of the big sells of shared runtime functional languages such as F#, Scala
-and Clojure is that you can carrying on using the surrounding library &hellip;">
+  <meta name="description" content="Designing an API is hard. You want to actually apply the
+principle of least astonishment &ndash;
+but you&rsquo;re the person who wrote the code. You& &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -80,6 +81,68 @@ ga('send', 'pageview');
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/api-design-workshop/">API Design Workshop</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-05-07T15:35:51+01:00" pubdate data-updated="true">May 7<span>th</span>, 2015</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Designing an API is hard.</p>
+
+<p>You want to actually apply the
+<a href="https://en.wikipedia.org/wiki/Principle_of_least_astonishment">principle of least astonishment</a> &ndash;
+but you&rsquo;re the person who wrote the code. You&rsquo;re unlikely to be astonished. So
+you&rsquo;re trying to think how someone who didn&rsquo;t know what you know would think &ndash;
+which is never an easy starting point!</p>
+
+<p>Similarly, you&rsquo;re trying to create the
+<a href="http://blog.codinghorror.com/falling-into-the-pit-of-success/">pit of success</a>
+for users. Which means trying to make it <em>very hard</em> to do the wrong thing with
+your API. Preferably, in strongly typed languages, this should include using the
+type system to
+<a href="http://fsharpforfunandprofit.com/posts/designing-with-types-making-illegal-states-unrepresentable/">make illegal states unrepresentable</a>
+so that code that compiles is very likely to work.</p>
+
+<p>In general, the core libraries for .net are not bad at API design, but there are
+a few places where this isn&rsquo;t true. As an exercise, we at
+<a href="http://www.15below.com/">15below</a> are going to take one of them, split into
+teams and spend an hour or so seeing what alternatives we can come up with. Feel
+free to follow along at home, and if you do give it a try ping me a code snippet
+and I&rsquo;ll post it up with our internal attempts in a week or so.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/api-design-workshop/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -338,7 +401,7 @@ management responsibility. We&rsquo;re hiring developers, and while we&rsquo;ll 
 
 <p>So, there you have. My own personal list of things that increase or decrease your chances that I&rsquo;ll recommend you&rsquo;re interviewed.</p>
 
-<p>If you think that you&rsquo;d be interested in working for the type of company that uses this type of criteria&hellip; well, oddly enough we&rsquo;re hiring at the moment. Ping me or drop a note through to <a href="&#109;&#x61;&#x69;&#x6c;&#x74;&#x6f;&#58;&#106;&#111;&#x62;&#x73;&#x40;&#49;&#53;&#98;&#x65;&#x6c;&#x6f;&#x77;&#46;&#99;&#111;&#109;&#x2e;">&#x6a;&#x6f;&#98;&#115;&#x40;&#49;&#53;&#x62;&#x65;&#108;&#111;&#119;&#x2e;&#99;&#x6f;&#109;&#46;</a></p>
+<p>If you think that you&rsquo;d be interested in working for the type of company that uses this type of criteria&hellip; well, oddly enough we&rsquo;re hiring at the moment. Ping me or drop a note through to <a href="&#109;&#x61;&#105;&#x6c;&#x74;&#x6f;&#58;&#106;&#111;&#x62;&#x73;&#64;&#49;&#53;&#98;&#101;&#108;&#x6f;&#x77;&#x2e;&#x63;&#x6f;&#109;&#x2e;">&#106;&#x6f;&#98;&#x73;&#64;&#49;&#53;&#98;&#x65;&#108;&#x6f;&#119;&#46;&#x63;&#x6f;&#109;&#x2e;</a></p>
 </div>
   
   
@@ -661,65 +724,6 @@ shaped handle and you have to hammer sideways instead of down.</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/modelling-inheritance-with-inheritance/">Modelling Inheritance With Inheritance</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-12-18T12:01:41+00:00" pubdate data-updated="true">Dec 18<span>th</span>, 2014</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><blockquote><p>This post is part of the <a href="https://sergeytihon.wordpress.com/tag/fsadvent/">F# Advent Calendar</a> 2014, which is stuffed full of other interesting posts. Go have a read!</p></blockquote>
-
-<p>Note: This post is epic in length. If you just want to see the final resulting script of much silliness, skip straight to <a href="#conclusion">the conclusion</a>!</p>
-
-<p>Note 2: If you just want to see an example of a sane generated type provider, <a href="https://github.com/mavnn/FPDays.TypeProvider/">the code from my FPDays tutorial</a> is a much better bet.</p>
-
-<p>Note 3: There is a lot of code below. If you&rsquo;re viewing this on a desktop, I suggest collapsing the sidebar to the right otherwise you&rsquo;ll have a lot of horizontal scroll bars. If you&rsquo;re on a mobile device, you might want to bookmark for later.</p>
-
-<p>So&hellip; I&rsquo;ve been playing with generated (not erased) type providers for a bit, and meaning to write something up about them. Most of the documentation out there is for erased type providers, and to be honest they have a lot of advantages in terms of performance.</p>
-
-<p>But they also have two fundamental limitations:</p>
-
-<ul>
-<li>You can&rsquo;t used erased F# types in any other .net language</li>
-<li>You can&rsquo;t use reflection on erased types (even in F#)</li>
-</ul>
-
-
-<p>So let&rsquo;s see if we can have a play with generated types, and then &ndash; given this is Christmas, and all &ndash; let&rsquo;s see if we can build Jesus&#8217; family tree in the .net type system. After all, if you&rsquo;re going to use inheritance to model something, how about modelling inheritance?</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/modelling-inheritance-with-inheritance/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/3/">&larr; Older</a>
@@ -737,6 +741,10 @@ shaped handle and you have to hammer sideways instead of down.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/type-providers-live-the-movie/">Type Providers Live - the Movie</a>
+      </li>
+    
+      <li class="post">
         <a href="/emparsec-embedded-parser-library/">EmParsec Embedded Parser Library</a>
       </li>
     
@@ -750,10 +758,6 @@ shaped handle and you have to hammer sideways instead of down.</p>
     
       <li class="post">
         <a href="/beginnings-and-endings/">Beginnings and Endings</a>
-      </li>
-    
-      <li class="post">
-        <a href="/easynetq-process-management/">EasyNetQ Process Management</a>
       </li>
     
   </ul>

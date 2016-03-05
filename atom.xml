@@ -4,7 +4,7 @@
   <title><![CDATA[Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2016-02-29T21:19:35+00:00</updated>
+  <updated>2016-03-05T16:49:34+00:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,313 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Type Provider Pro-Tip: Using Dictionary]]></title>
+    <link href="http://blog.mavnn.co.uk/type-provider-pro-tip-using-dictionary/"/>
+    <updated>2016-03-05T15:38:45+00:00</updated>
+    <id>http://blog.mavnn.co.uk/type-provider-pro-tip-using-dictionary</id>
+    <content type="html"><![CDATA[<p>During the <a href="http://blog.mavnn.co.uk/type-providers-live-the-movie/">Type Provider Live</a> recording, <a href="https://twitter.com/panesofglass">Ryan</a> asked me about basing erased provided types on dictionary types, and then exposing nicely typed properties to access data stored within the dictionary.</p>
+
+<p>This will sound familiar to users of a number of dynamically typed languages as in many cases objects in these languages are just dictionaries under the hood.</p>
+
+<p>This is such a common thing to be doing in a type provider that I thought it was worth writing up a working example that can then be modified to your individual situation. I&rsquo;ve presented the entire listing below with comments, but there is one particular trick I&rsquo;ll explain in a bit more detail. Let&rsquo;s have a look at let bindings in quotations!</p>
+
+<p>So, normally when you write a <code>let</code> binding in F#, and end up writing something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">myFunction</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>  <span class="k">let</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">10</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">x</span> <span class="o">+</span> <span class="mi">10</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Here, the body of function <code>myFunction</code> is an expression that evaluates to 20. But it turns out that this is actually syntax sugar for:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">myFunction</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>  <span class="k">let</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">10</span> <span class="k">in</span> <span class="n">x</span> <span class="o">+</span> <span class="mi">10</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>A quotation in F# always represents a single expression, so it shouldn&rsquo;t come as a surprise at this point that the <code>Expr.Let</code> class has a constructor this three arguments. The variable being bound, the value to bind to it, and the body in which it is used. So if you want to express the body of the function above you end up with something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nn">FSharp</span><span class="p">.</span><span class="nc">Quotations</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">version1</span> <span class="o">=</span>
+</span><span class='line'>  <span class="o">&lt;@@</span> <span class="k">let</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">10</span> <span class="k">in</span> <span class="n">x</span> <span class="o">+</span> <span class="mi">10</span> <span class="o">@@&gt;</span> <span class="c1">// cheat!</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">version2</span> <span class="o">=</span>
+</span><span class='line'>  <span class="k">let</span> <span class="n">xVar</span> <span class="o">=</span> <span class="nc">Var</span><span class="o">(</span><span class="s2">&quot;x&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;)</span>
+</span><span class='line'>  <span class="k">let</span> <span class="n">x</span> <span class="o">=</span> <span class="nn">Expr</span><span class="p">.</span><span class="nc">Var</span> <span class="n">xVar</span>
+</span><span class='line'>  <span class="nn">Expr</span><span class="p">.</span><span class="nc">Let</span><span class="o">(</span><span class="n">xVar</span><span class="o">,</span> <span class="o">&lt;@@</span> <span class="mi">10</span> <span class="o">@@&gt;,</span> <span class="o">&lt;@@</span> <span class="o">%%</span><span class="n">x</span> <span class="o">+</span> <span class="mi">10</span> <span class="o">@@&gt;)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The trick you need to know is that <code>Expr.Var</code> produces an Expr that represents a place where a variable will be used. But it creates an untyped Expr, and this can (and does) cause issues with type inference. We can work around this by making use of typed expressions, represented by the generic <code>Expr&lt;'a&gt;</code> class. The type provider API takes the untyped version, but you can convert back to the untyped version either by calling the <code>Raw</code> property on the typed expression or just by using it to help construct an expression which contains the typed expression but which is untyped itself using the <code>Expr</code> classes.</p>
+
+<p>In the code below, notice the use of <code>&lt;@ ... @&gt;</code> and <code>%</code> rather than <code>&lt;@@ ... @@&gt;</code> and <code>%%</code> to work with typed expressions rather than untyped.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nn">FSharp</span><span class="p">.</span><span class="nc">Quotations</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">GD</span> <span class="o">=</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Collections</span><span class="p">.</span><span class="nn">Generic</span><span class="p">.</span><span class="nc">Dictionary</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">,</span><span class="kt">string</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">dictExpr</span> <span class="o">=</span>
+</span><span class='line'>  <span class="k">let</span> <span class="n">gdVar</span> <span class="o">=</span> <span class="nc">Var</span><span class="o">(</span><span class="s2">&quot;gd&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="nc">GD</span><span class="o">&gt;)</span>
+</span><span class='line'>  <span class="k">let</span> <span class="n">gdExpr</span> <span class="o">=</span>
+</span><span class='line'>    <span class="nn">Expr</span><span class="p">.</span><span class="nc">Var</span> <span class="n">gdVar</span> <span class="o">|&gt;</span> <span class="nn">Expr</span><span class="p">.</span><span class="nc">Cast</span><span class="o">&lt;</span><span class="nc">GD</span><span class="o">&gt;</span>
+</span><span class='line'>    <span class="c1">// Expr.Cast forces this to be a typed expression</span>
+</span><span class='line'>  <span class="k">let</span> <span class="n">addValue</span> <span class="o">=</span>
+</span><span class='line'>    <span class="nn">Expr</span><span class="p">.</span><span class="nc">Let</span><span class="o">(</span><span class="n">gdVar</span><span class="o">,</span> <span class="o">&lt;@</span> <span class="nc">GD</span><span class="bp">()</span> <span class="o">@&gt;,</span> <span class="o">&lt;@</span> <span class="o">%</span><span class="n">gdExpr</span><span class="o">.[</span><span class="s2">&quot;one&quot;</span><span class="o">]</span> <span class="o">&lt;-</span> <span class="s2">&quot;the number one&quot;</span> <span class="o">@&gt;)</span>
+</span><span class='line'>    <span class="c1">// the line above fails without typed expressions</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>With that out of the way, we&rsquo;re good to go. The type provider below is a simple wrapper around a string, string dictionary. It looks like this in use:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">MyType</span> <span class="o">=</span> <span class="nn">DictProvider</span><span class="p">.</span><span class="nc">ParaProvider</span><span class="o">&lt;</span><span class="s2">&quot;name1, name2&quot;</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">thing</span> <span class="o">=</span> <span class="nc">MyType</span><span class="o">(</span><span class="s2">&quot;1&quot;</span><span class="o">,</span><span class="s2">&quot;2&quot;</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">thing</span><span class="o">.</span><span class="n">name1</span> <span class="c1">// &quot;1&quot;</span>
+</span><span class='line'><span class="n">thing</span><span class="o">.</span><span class="n">name2</span> <span class="c1">// &quot;2&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">thing</span><span class="o">.</span><span class="n">name1</span> <span class="o">&lt;-</span> <span class="s2">&quot;not one. Muhahahaha!&quot;</span>
+</span><span class='line'><span class="n">thing</span><span class="o">.</span><span class="n">name2</span> <span class="o">&lt;-</span> <span class="s2">&quot;that&#39;s why you shouldn&#39;t make things mutable&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">thing</span><span class="o">.</span><span class="n">name1</span> <span class="c1">// &quot;not one. Muhahahaha!&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>You&rsquo;ll get different properties depending which strings you supply as parameters.</p>
+
+<p>Here&rsquo;s the source:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+<span class='line-number'>85</span>
+<span class='line-number'>86</span>
+<span class='line-number'>87</span>
+<span class='line-number'>88</span>
+<span class='line-number'>89</span>
+<span class='line-number'>90</span>
+<span class='line-number'>91</span>
+<span class='line-number'>92</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nc">DictProvider</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Reflection</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">FSharp</span><span class="p">.</span><span class="nn">Core</span><span class="p">.</span><span class="nc">CompilerServices</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">FSharp</span><span class="p">.</span><span class="nc">Quotations</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">ProviderImplementation</span><span class="p">.</span><span class="nc">ProvidedTypes</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">GD</span> <span class="o">=</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Collections</span><span class="p">.</span><span class="nn">Generic</span><span class="p">.</span><span class="nc">Dictionary</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">,</span> <span class="kt">string</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="nc">TypeProvider</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">type</span> <span class="nc">DictionaryProvider</span><span class="bp">()</span> <span class="k">as</span> <span class="n">this</span> <span class="o">=</span>
+</span><span class='line'>  <span class="k">inherit</span> <span class="nc">TypeProviderForNamespaces</span><span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">let</span> <span class="n">ns</span> <span class="o">=</span> <span class="s2">&quot;DictProvider&quot;</span>
+</span><span class='line'>  <span class="k">let</span> <span class="n">asm</span> <span class="o">=</span> <span class="nn">Assembly</span><span class="p">.</span><span class="nc">GetExecutingAssembly</span><span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">let</span> <span class="n">createType</span> <span class="n">typeName</span> <span class="o">(</span><span class="n">parameters</span> <span class="o">:</span> <span class="n">obj</span> <span class="bp">[]</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="c1">// We&#39;ll get our property names by just splitting</span>
+</span><span class='line'>    <span class="c1">// our single parameter on commas</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">propNames</span> <span class="o">=</span>
+</span><span class='line'>      <span class="o">(</span><span class="n">parameters</span><span class="o">.[</span><span class="mi">0</span><span class="o">]</span> <span class="o">:?&gt;</span> <span class="kt">string</span><span class="o">).</span><span class="nc">Split</span> <span class="sc">&#39;,&#39;</span>
+</span><span class='line'>      <span class="o">|&gt;</span> <span class="nn">Array</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">s</span> <span class="o">-&gt;</span> <span class="n">s</span><span class="o">.</span><span class="nc">Trim</span><span class="bp">()</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// Each of our properties has setter code to set the value in the dict with the</span>
+</span><span class='line'>    <span class="c1">// name of the property, and getter code with gets the same value</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">aProp</span> <span class="n">name</span> <span class="o">=</span>
+</span><span class='line'>      <span class="nc">ProvidedProperty</span><span class="o">(</span>
+</span><span class='line'>        <span class="n">name</span><span class="o">,</span>
+</span><span class='line'>        <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;,</span>
+</span><span class='line'>        <span class="nc">IsStatic</span> <span class="o">=</span> <span class="bp">false</span><span class="o">,</span>
+</span><span class='line'>        <span class="nc">GetterCode</span> <span class="o">=</span> <span class="o">(</span><span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="o">(%%</span><span class="n">args</span><span class="o">.[</span><span class="mi">0</span><span class="o">]:</span><span class="nc">GD</span><span class="o">).[</span><span class="n">name</span><span class="o">]</span> <span class="o">@@&gt;),</span>
+</span><span class='line'>        <span class="nc">SetterCode</span> <span class="o">=</span> <span class="o">(</span><span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="o">(%%</span><span class="n">args</span><span class="o">.[</span><span class="mi">0</span><span class="o">]:</span><span class="nc">GD</span><span class="o">).[</span><span class="n">name</span><span class="o">]</span> <span class="o">&lt;-</span> <span class="o">(%%</span><span class="n">args</span><span class="o">.[</span><span class="mi">1</span><span class="o">]:</span><span class="kt">string</span><span class="o">)</span> <span class="o">@@&gt;))</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// Here we set the type to be erased to as &quot;GD&quot; (our type alias for a dictionary)</span>
+</span><span class='line'>    <span class="c1">// If we want to hide the normal dictionary methods, we could use:</span>
+</span><span class='line'>    <span class="c1">// &#39;myType.HideObjectMethods &lt;- true&#39;</span>
+</span><span class='line'>    <span class="c1">// But here we&#39;ll just let people use the type as a dictionary as well.</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">myType</span> <span class="o">=</span>
+</span><span class='line'>      <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="n">typeName</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="nc">GD</span><span class="o">&gt;)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// Make sure we add all the properties to the object.</span>
+</span><span class='line'>    <span class="n">propNames</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Array</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">propName</span> <span class="o">-&gt;</span> <span class="n">aProp</span> <span class="n">propName</span><span class="o">)</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">ofArray</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="n">myType</span><span class="o">.</span><span class="nc">AddMembers</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// We&#39;ll want a constructor that takes as many parameters as we have</span>
+</span><span class='line'>    <span class="c1">// properties, as we&#39;ll want to set the value in the dictionary of our</span>
+</span><span class='line'>    <span class="c1">// properties during construction. If we don&#39;t, trying to use the properties</span>
+</span><span class='line'>    <span class="c1">// will result in a key not found exception.</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">cstorParams</span> <span class="o">=</span>
+</span><span class='line'>      <span class="n">propNames</span>
+</span><span class='line'>      <span class="o">|&gt;</span> <span class="nn">Array</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">propName</span> <span class="o">-&gt;</span> <span class="nc">ProvidedParameter</span><span class="o">(</span><span class="n">propName</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;))</span>
+</span><span class='line'>      <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">ofArray</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// Here&#39;s the constructor code where we set each property in turn.</span>
+</span><span class='line'>    <span class="c1">// Notice how the fold keeps on building up a larger let expression,</span>
+</span><span class='line'>    <span class="c1">// adding a set value line at the top of the expression each time through.</span>
+</span><span class='line'>    <span class="c1">// Our initial state (a line with only the dictionary variable on) is always</span>
+</span><span class='line'>    <span class="c1">// left last, so this is what will be returned from the constructor.</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">cstorCode</span> <span class="o">=</span>
+</span><span class='line'>      <span class="k">fun</span> <span class="o">(</span><span class="n">args</span> <span class="o">:</span> <span class="nc">Expr</span> <span class="kt">list</span><span class="o">)</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">dictionaryVar</span> <span class="o">=</span> <span class="nc">Var</span><span class="o">(</span><span class="s2">&quot;dictionary&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="nc">GD</span><span class="o">&gt;)</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">dictionary</span> <span class="o">:</span> <span class="nc">Expr</span><span class="o">&lt;</span><span class="nc">GD</span><span class="o">&gt;</span> <span class="o">=</span> <span class="n">dictionaryVar</span> <span class="o">|&gt;</span> <span class="nn">Expr</span><span class="p">.</span><span class="nc">Var</span> <span class="o">|&gt;</span> <span class="nn">Expr</span><span class="p">.</span><span class="nc">Cast</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">setValues</span> <span class="o">=</span>
+</span><span class='line'>          <span class="n">args</span>
+</span><span class='line'>          <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">propNames</span>
+</span><span class='line'>          <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">fold</span> <span class="o">(</span><span class="k">fun</span> <span class="n">state</span> <span class="o">(</span><span class="n">name</span><span class="o">,</span> <span class="n">arg</span><span class="o">)</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="o">&lt;@</span> <span class="o">(%</span><span class="n">dictionary</span><span class="o">).[</span><span class="n">name</span><span class="o">]</span> <span class="o">&lt;-</span> <span class="o">(%%</span><span class="n">arg</span><span class="o">:</span><span class="kt">string</span><span class="o">)</span>
+</span><span class='line'>               <span class="o">%</span><span class="n">state</span> <span class="o">@&gt;)</span> <span class="o">&lt;@</span> <span class="o">%</span><span class="n">dictionary</span> <span class="o">@&gt;</span>
+</span><span class='line'>        <span class="nn">Expr</span><span class="p">.</span><span class="nc">Let</span><span class="o">(</span><span class="n">dictionaryVar</span><span class="o">,</span> <span class="o">&lt;@</span> <span class="nc">GD</span><span class="bp">()</span> <span class="o">@&gt;,</span> <span class="n">setValues</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// Build the constructor out of our helpers</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">cstor</span> <span class="o">=</span>
+</span><span class='line'>      <span class="nc">ProvidedConstructor</span><span class="o">(</span><span class="n">cstorParams</span><span class="o">,</span> <span class="nc">InvokeCode</span> <span class="o">=</span> <span class="n">cstorCode</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// And make sure you add it to the class!</span>
+</span><span class='line'>    <span class="n">myType</span><span class="o">.</span><span class="nc">AddMember</span> <span class="n">cstor</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">myType</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">let</span> <span class="n">provider</span> <span class="o">=</span>
+</span><span class='line'>    <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="s2">&quot;ParaProvider&quot;</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;)</span>
+</span><span class='line'>  <span class="k">let</span> <span class="n">parameters</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">[</span><span class="nc">ProvidedStaticParameter</span><span class="o">(</span><span class="s2">&quot;PropNames&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;)]</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">do</span>
+</span><span class='line'>    <span class="n">provider</span><span class="o">.</span><span class="nc">DefineStaticParameters</span><span class="o">(</span><span class="n">parameters</span><span class="o">,</span> <span class="n">createType</span><span class="o">)</span>
+</span><span class='line'>    <span class="n">this</span><span class="o">.</span><span class="nc">AddNamespace</span><span class="o">(</span><span class="n">ns</span><span class="o">,</span> <span class="o">[</span><span class="n">provider</span><span class="o">])</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="n">assembly</span><span class="o">:</span><span class="nc">TypeProviderAssembly</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">do</span><span class="bp">()</span>
+</span></code></pre></td></tr></table></div></figure>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Type Providers Live - the Movie]]></title>
@@ -3475,7 +3782,7 @@ management responsibility. We&rsquo;re hiring developers, and while we&rsquo;ll 
 
 <p>So, there you have. My own personal list of things that increase or decrease your chances that I&rsquo;ll recommend you&rsquo;re interviewed.</p>
 
-<p>If you think that you&rsquo;d be interested in working for the type of company that uses this type of criteria&hellip; well, oddly enough we&rsquo;re hiring at the moment. Ping me or drop a note through to <a href="&#109;&#x61;&#105;&#x6c;&#x74;&#x6f;&#58;&#106;&#111;&#x62;&#x73;&#64;&#49;&#53;&#98;&#101;&#108;&#x6f;&#x77;&#x2e;&#x63;&#x6f;&#109;&#x2e;">&#106;&#x6f;&#98;&#x73;&#64;&#49;&#53;&#98;&#x65;&#108;&#x6f;&#119;&#46;&#x63;&#x6f;&#109;&#x2e;</a></p>
+<p>If you think that you&rsquo;d be interested in working for the type of company that uses this type of criteria&hellip; well, oddly enough we&rsquo;re hiring at the moment. Ping me or drop a note through to <a href="&#109;&#x61;&#x69;&#x6c;&#x74;&#111;&#58;&#x6a;&#111;&#x62;&#x73;&#x40;&#x31;&#53;&#98;&#101;&#x6c;&#111;&#x77;&#x2e;&#x63;&#x6f;&#109;&#46;">&#106;&#111;&#98;&#x73;&#x40;&#49;&#53;&#x62;&#x65;&#108;&#111;&#119;&#46;&#99;&#111;&#109;&#x2e;</a></p>
 ]]></content>
   </entry>
   
@@ -4147,180 +4454,6 @@ types &ldquo;persistent&rdquo; data types as they &ldquo;persist&rdquo; a previo
 <li>If you place a technical requirement (&ldquo;it must be clustered &ndash; no single points of failure!&rdquo;) make sure you understand the technical trade offs that you are imposing. This may take a long time. Alternatively, and preferably, rephrase your requirement to be your actual business requirement (&ldquo;We promised 98% uptime &ndash; what&rsquo;s your design to make sure it happens?&rdquo;).</li>
 <li>You must be able and willing to say &ldquo;no&rdquo; to a customer when they ask for something impossible. You can offer alternatives, work arounds &ndash; but don&rsquo;t promise the impossible. It will come back, and it will hurt you.</li>
 </ol>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Keeping Up With the Latest Hammer]]></title>
-    <link href="http://blog.mavnn.co.uk/keeping-up-with-the-latest-hammer/"/>
-    <updated>2014-12-22T12:07:02+00:00</updated>
-    <id>http://blog.mavnn.co.uk/keeping-up-with-the-latest-hammer</id>
-    <content type="html"><![CDATA[<h2>Making Sure Your Developers Keep Developing</h2>
-
-<p>Software development is a strange profession, mostly because it&rsquo;s so young and because the tools are changing so fast. I&rsquo;ve not been an established enough craftsman in any other trade to know whether other professions are moving as quickly these days, but at least in my imagination once a carpenter learns to use a hammer, it doesn&rsquo;t get discontinued after 2 years and the hammer taken off the market. Or a new hammer released that hammers nails ten times as fast, but has a different
-shaped handle and you have to hammer sideways instead of down.</p>
-
-<p>We don&rsquo;t even seem to be able to decide whether it&rsquo;s a craft or a science. You can earn Computer Science degrees &ndash; but then well known software professionals choose titles like <a href="https://twitter.com/unclebobmartin">Software Craftsman</a>.</p>
-
-<p>Despite all of our claims of best practice and shared knowledge, it largely boils down to: developers don&rsquo;t know what they&rsquo;re doing yet. We&rsquo;re a new profession, and we&rsquo;re still learning &ndash; not just as individuals, but as a profession.</p>
-
-<p>This means that both as an individual developers, and as software houses &ndash; if we stop learning, we sink. The competitive advantage of keeping up with what&rsquo;s happening in the industry so outweighs the cost of doing the research that it would be foolish not to. Because while we might not yet know the <em>right</em> way to do things, we&rsquo;re still definitely finding <em>better</em> ways to do things.</p>
-
-<p>So: how do we do keep up to date, as <a href="http://blog.mavnn.co.uk/keeping-up-with-the-latest-hammer/#individuals">individuals</a> and as <a href="http://blog.mavnn.co.uk/keeping-up-with-the-latest-hammer/#companies">companies</a>?</p>
-
-<!-- More -->
-
-
-<h2><a name="individuals"></a> As individuals</h2>
-
-<h3>Books and Blogs</h3>
-
-<p>Firstly of course, you need to read. Technical books are still excellent when you need a deep dive into a specific subject, but in general a lot of the information is now becoming available in blog posts which seem to be developers main method of swapping information, ideas, and &ldquo;best practice&rdquo;. In general, if you need a deep dive into an established technology or you need to read up on a subject at a conceptual level (Test Driven Development, Functional Programming, etc.)
-then a book can be very helpful. If you&rsquo;re looking into something new, or very specific (AngularJS, a particular unit testing framework) then it&rsquo;s time to hit google and read up on some blog posts. Otherwise you&rsquo;ll just have a stack of dead trees to be taking to the recycling center every six months.</p>
-
-<h3>Conferences</h3>
-
-<p>Sometimes, there&rsquo;s nothing like seeing somebody do something. Or hearing from someone who&rsquo;s actually done the thing you&rsquo;re thinking of doing.</p>
-
-<p>Conferences come into their own in these situations; large conferences can be nice because of the big name speakers and the wide range of subjects but in my experience small specialist conferences have two big advantages. They give you much more access to the speakers outside the sessions, and they tend to be much cheaper!</p>
-
-<p>Speaking at conferences is a great way to attend them cheaply, and is also a great way of ending up at things like speaker&rsquo;s dinners and making some contacts as well as learning the particular skill you went for. If you or your company is doing something well &ndash; pretty much anything well &ndash; get yourself out there. It provides great opportunities for you, and other people&rsquo;s gratefulness is a currency you can&rsquo;t buy with money.</p>
-
-<p>And&hellip; ssssh, don&rsquo;t tell everyone: it&rsquo;s actually really easy to get speaking gigs at specialist conferences if you know about a relevant specialist subject. Why? Because people like you don&rsquo;t bother applying, and so the organisers tend to be a bit desperate. Yes, you&rsquo;ll need to do some public speaking &ndash; but that&rsquo;s not exactly a bad skill to have under your belt anyway, is it now?</p>
-
-<h3>Research Papers</h3>
-
-<p>Keeping up with computer science research would be a more than full time job in its own right &ndash; but the research that is turning out to have practical applications is often referenced in talks and blog posts by the people who are basing projects off it. If the project looks interesting to you, don&rsquo;t be afraid to go back and read the original research papers! There&rsquo;s generally more in there than the current project needs which might help you even further &ndash; and they are often
-surprisingly readable.</p>
-
-<h3>Training Courses</h3>
-
-<p>And for some skills, you just need the hands on training. It can be expensive, but on occasion its worth it to pay your money and actually be taught to do something.</p>
-
-<h3>Discernment</h3>
-
-<p>It&rsquo;s not a word that comes up very often, but discernment is critical to software developers. Remember what I was saying above about it being a new profession? Well, one of the side effects of that is we&rsquo;re still learning from our mistakes and we&rsquo;re still repeating them. Not everything that people say is new is actually new &ndash; try and check back in the (relatively short) history of computer science to see if it&rsquo;s already been tried and failed.</p>
-
-<p>A classic example of this is distributed computing; making lots of computers do lots of things at the same time is actually pretty hard to get right. A lot of the &ldquo;new&rdquo; solutions to the problem you see being suggested are actually ideas that people have already tried and do not work; if you need to work with distributed systems it&rsquo;s worth doing enough background research to have a hope of spotting these issues.</p>
-
-<p>This doesn&rsquo;t necessarily mean you have to be an expert on everything you consider touching. It does mean you&rsquo;ll have to do enough research to discover the people who <em>are</em> experts so that you can get well thought out feedback about the ideas you&rsquo;re considering using.</p>
-
-<p>This extends even to things like choosing which blogs to follow. You won&rsquo;t be able to follow all of them, so if you can find a &ldquo;core&rdquo; of people whose opinion you value they can act as a pre-filter for you on interesting new ideas, with out you trying to track all of their sources independently.</p>
-
-<h2><a name="companies"></a> As a Company</h2>
-
-<p>This is all great &ndash; but all of these things give knowledge to an individual. How do you share the learning around?</p>
-
-<p>Some of these things carry across directly, of course: you should have a conference budget. You should have a training budget, too &ndash; and you should almost certainly be providing in house training for your own in house tools and procedures.</p>
-
-<p>But that only really helps for the things that people know they don&rsquo;t know; when they&rsquo;ve realised they&rsquo;ve hit a problem and they need some knowledge. How do you share the more nebulous things? No one is going to wake up one morning and realise that the problem they&rsquo;re currently tackling would be better solved by a functional programming technique if they don&rsquo;t know what functional programming <em>is</em>.</p>
-
-<p><a href="https://mikehadlow.com">Mike Hadlow</a> came up with a solution for this years ago that he implemented at <a href="http://15below.com">15below</a> which we&rsquo;re still using.</p>
-
-<p>His proposal was deceptive simple: one hour a week is spent on group &ldquo;Developer Education.&rdquo; Someone prepares a topic and promises to provide notes (or a recording) afterwards &ndash; everyone else just turns up. We call them DevEds, and they run every Friday morning at 9:00am.</p>
-
-<p>It doesn&rsquo;t sound much, does it? But actually, it&rsquo;s had a huge impact in the company. And we keep on getting asked how we do it, and how it works, so I&rsquo;m going to try and explain!</p>
-
-<h3>What subjects?</h3>
-
-<p>We&rsquo;re not completely random in subject choices &ndash; but we are deliberately broad. Basically, the subjects fall into three main categories:</p>
-
-<p>1) Communication of internal changes</p>
-
-<p>A team releases a new service for our core product. A new internal code review process is put in place. For these kind of events, we use the DevEd as a vehicle for communication to developers within the company, making sure everyone is aware of the change and allowing people to ask questions. Sometimes we&rsquo;ll put a requirement on a DevEd of this type that at least one developer from each team needs to be there (DevEds are not compulsory &ndash; just highly recommended).</p>
-
-<p>2) Things we could be using already</p>
-
-<p>We use Microsoft&rsquo;s .net languages for development, so (for example) we run sessions on the new features in the latest version of C# each time we upgrade. These are things that developers can go back out into the office and use today; also in this category are things like open source libraries we&rsquo;re already using.</p>
-
-<p>3) Potential new tools and general programming knowledge</p>
-
-<p><a href="http://en.wikipedia.org/wiki/SOLID_%28object-oriented_design%29">SOLID</a> programming. Why you shouldn&rsquo;t do thread management by hand. <a href="http://blog.mavnn.co.uk/property-checking-start-challenge/">Property based testing</a> (that link is a write up of an actual DevEd session, if you&rsquo;re interested). This is where we try and introduce people to ideas they should be aware of, introduce new tools and languages that we are considering using but aren&rsquo;t yet or try and teach people how to <em>think</em> about development rather than how to <em>do</em> development. We also
-tend to throw some fairly odd ball things into this category to keep people thinking, and to avoid people only knowing about things within &ldquo;our expertise.&rdquo; For example, although we&rsquo;re a Windows .net programming house we&rsquo;ve run sessions on using Emacs and Vim. Why? Because a lot of programmers use these tools, and get a great deal of value from them. Which means they probably have things to teach us if we care to learn. And yes &ndash; this blog post was written in Vim!</p>
-
-<p>The idea in this category is not normally that a person will come out of the session being able to use something straight away &ndash; but they should now be aware it exists, and know what to look up if they do need to use it.</p>
-
-<h3>But I don&rsquo;t learn listening to lectures!</h3>
-
-<p>Different people learn in different ways. So we try and teach in different ways: most of our sessions are live coding demos, but some are straight up presentations; others are white board round table discussions (thrown Lego pieces optional); and we&rsquo;re trying to build in more and more practical sessions as we go forward, with groups of two or three people (preferably from different teams) working together to explore the &lsquo;thing&rsquo; we&rsquo;re looking at.</p>
-
-<h3>The benefits</h3>
-
-<p>What does all this buy us?</p>
-
-<p>Well: a few things. The benefits of having a built in internal comms session is a big benefit in it&rsquo;s own right. Breaking changes to our auto-deploy system can be announced up front in a format that has more impact than any email would ever had. We don&rsquo;t always have the luxury (or remember to use it!) but when we have, it&rsquo;s worked well.</p>
-
-<p>For keeping people up to date on the technologies and techniques within the company, I count it as invaluable. For an old-ish code base, you&rsquo;ll find C# 5.0 async/await, F# code, LINQ usage in our core product&hellip; all the types of shiny new things that save bucket loads of time when you&rsquo;re coding, but a lot of &ldquo;enterprise&rdquo; development houses will tell you not to use in case &lsquo;not everyone can understand and maintain the code&rsquo;. For us, this is much less of a problem: if a DevEd has already happened, you&rsquo;ve
-either been exposed to the concepts or you can look up the presenter and, hey presto, you have an expert to ask. If there hasn&rsquo;t been one, you just ask for it &ndash; and you&rsquo;re guaranteed to have a suitable expert to deliver the session (the author of the code in question).</p>
-
-<p>The blue sky sessions sound the least practical, but I suspect they actually have the largest impact. As software houses, we tend to specialise: a particular programming language, a particular operating system, preferred libraries, preferred database server, the list goes on. On the one hand, this is good: you <em>must</em> be expert in the tools of your trade. On the other hand, this can be crippling: if you stop evaluating the new things that come along, you&rsquo;ll go out of date. This
-causes two big problems: firstly, you&rsquo;re no longer using the best tools for the job. Secondly, the staff you want most will leave.</p>
-
-<p>They will. The people who you really want building your code will be doing all of the things from the first half of this post <em>in their own time anyway</em>. That means they&rsquo;ll know that the grass is greener. That there&rsquo;s a better way to do things. That there&rsquo;s already a respected open source project that does the thing you&rsquo;ve asked them to create on a shoe string time and testing budget. They&rsquo;ll know, they&rsquo;ll skill up, and they&rsquo;ll leave. This doesn&rsquo;t mean you should always be using the
-latest &ldquo;new and shiny&rdquo; just because it is &ldquo;new and shiny&rdquo; &ndash; but it does mean that if one of your developers comes to you and says &lsquo;there is a better way!&rsquo;, you really should listen and find out if there is. And then tell the rest of the developers, so they stay excited about staying too.</p>
-
-<h3>Preparation time</h3>
-
-<p>Ok, so if you&rsquo;re a manager this has probably all sounded great up until this point. I mean, an hour on Friday morning when the Developers are still normally rubbing the sleep out of their eyes anyway? Good deal!</p>
-
-<p>Let&rsquo;s hit pause for a moment.</p>
-
-<p>These sessions are something we take reasonably seriously; some of them get more prep than others, but I can safely say that a lot of them take a full working day between preparation and post session write up (or recording upload etc). That&rsquo;s a lot of time.</p>
-
-<p>I&rsquo;ve had a lot of questions about how we make this work, and frankly the answer is mostly me. Not me, the individual person. But me, my role: having a person who has as a serious job priority internal technical training and communication. It&rsquo;s not my only responsibility, but it&rsquo;s up there on my list in a way that it isn&rsquo;t for our other developers. This means that I have a back up session planned most of the time for if an other developer has to drop doing a session because a
-project is running late. I make sure (most of the time!) that there are a few future sessions planned in. I provide support for people who know a subject but aren&rsquo;t comfortable presenting to do their first sessions.</p>
-
-<p>I do end up also delivering the majority of the sessions; I&rsquo;ve a fairly broad range of background knowledge and as I&rsquo;m not generally running on a project critical path I&rsquo;m the &ldquo;goto&rdquo; guy if no one else is available. But that&rsquo;s not the most important thing I provide: it&rsquo;s the ongoing push to make sure these sessions don&rsquo;t just happen this week, but that they keep on happening in the future. Which means I&rsquo;m not doing other things for the company.</p>
-
-<p>So I suppose the final message here is: if you&rsquo;re in a company where this isn&rsquo;t happening, and you have time/resource allocation responsibilities&hellip; read the benefits section again and ask yourself how your company is meeting those needs. If you&rsquo;re a developer in a company where this kind of thing or an equivalent doesn&rsquo;t happen, you pretty much only have two choices: make it happen yourself with &ldquo;brown bag&rdquo; sessions and lunch breaks &ndash; being aware that you&rsquo;re basically training yourself, and
-others, to be ready to leave. Or try and convince the decision makers that keeping the business up to date is worth it. I hope this post helps.</p>
-
-<p>If you are already doing something: awesome! Tell us about it in the comments. We like what we&rsquo;ve got, but we&rsquo;re not above stealing better ideas.</p>
-
-<h2>Appendix</h2>
-
-<p>Whenever I get asked about this whole process over a conference beer, the follow up is always: what subjects have you covered?</p>
-
-<p>In terms of what the output looks like, <a href="http://blog.mavnn.co.uk/blog/categories/15below/">this blog&rsquo;s achieves will give you a selection of DevEd write ups</a>.</p>
-
-<p>More generally, here&rsquo;s a selection of session titles from the last few years (with purely internal communication subjects removed, obviously):</p>
-
-<ul>
-<li><p>GitFlow Intro</p></li>
-<li><p>Database Normalisation</p></li>
-<li><p>SQL Server Storage and IO</p></li>
-<li><p>Error handling with Choice</p></li>
-<li><p>Introduction to NodaTime And Humanizer</p></li>
-<li><p>Text Editing with vim &amp; emacs</p></li>
-<li><p>Functionally SOLID</p></li>
-<li><p>Influx</p></li>
-<li><p>WebSQL</p></li>
-<li><p>Intro to Threading</p></li>
-<li><p>FsUnit and TickSpec</p></li>
-<li><p>Mobile apps using PhoneGap</p></li>
-<li><p>Adaptive Programming to Reduce Config</p></li>
-<li><p>What is a Reverse Proxy</p></li>
-<li><p>Meet EmoteBot &ndash; C# Async and Await</p></li>
-<li><p>SemVers and Nuget</p></li>
-<li><p>AOP &ndash; Aspect Oriented Programming</p></li>
-<li><p>How To Write Scalable Services</p></li>
-<li><p>A refactoring example</p></li>
-<li><p>DDD 2 &ndash; Applying Strategic Design</p></li>
-<li><p>DDD Strategic Design</p></li>
-<li><p>Introduction to F#</p></li>
-<li><p>What is REST</p></li>
-<li><p>The basics of TCP/IP</p></li>
-<li><p>RabbitMQ</p></li>
-<li><p>LINQ To Objects from scratch</p></li>
-<li><p>Estimation game</p></li>
-<li><p>Real world SRP</p></li>
-<li><p>Approval Tests</p></li>
-<li><p>Web API</p></li>
-<li><p>Octopus and Teamcity</p></li>
-<li><p>Solid</p></li>
-<li><p>Safe Refactoring</p></li>
-</ul>
 
 ]]></content>
   </entry>

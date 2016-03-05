@@ -4,7 +4,7 @@
   <title><![CDATA[Category: programming | Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/blog/categories/programming/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2016-02-29T21:19:35+00:00</updated>
+  <updated>2016-03-05T16:49:34+00:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,198 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Type Provider Pro-Tip: Using Dictionary]]></title>
+    <link href="http://blog.mavnn.co.uk/type-provider-pro-tip-using-dictionary/"/>
+    <updated>2016-03-05T15:38:45+00:00</updated>
+    <id>http://blog.mavnn.co.uk/type-provider-pro-tip-using-dictionary</id>
+    <content type="html"><![CDATA[<p>During the <a href="http://blog.mavnn.co.uk/type-providers-live-the-movie/">Type Provider Live</a> recording, <a href="https://twitter.com/panesofglass">Ryan</a> asked me about basing erased provided types on dictionary types, and then exposing nicely typed properties to access data stored within the dictionary.</p>
+
+<p>This will sound familiar to users of a number of dynamically typed languages as in many cases objects in these languages are just dictionaries under the hood.</p>
+
+<p>This is such a common thing to be doing in a type provider that I thought it was worth writing up a working example that can then be modified to your individual situation. I&rsquo;ve presented the entire listing below with comments, but there is one particular trick I&rsquo;ll explain in a bit more detail. Let&rsquo;s have a look at let bindings in quotations!</p>
+
+<p>So, normally when you write a <code>let</code> binding in F#, and end up writing something like this:</p>
+
+<p>``` fsharp
+let myFunction () =
+  let x = 10</p>
+
+<p>  x + 10
+```</p>
+
+<p>Here, the body of function <code>myFunction</code> is an expression that evaluates to 20. But it turns out that this is actually syntax sugar for:</p>
+
+<p><code>fsharp
+let myFunction () =
+  let x = 10 in x + 10
+</code></p>
+
+<p>A quotation in F# always represents a single expression, so it shouldn&rsquo;t come as a surprise at this point that the <code>Expr.Let</code> class has a constructor this three arguments. The variable being bound, the value to bind to it, and the body in which it is used. So if you want to express the body of the function above you end up with something like this:</p>
+
+<p>``` fsharp
+open FSharp.Quotations</p>
+
+<p>let version1 =
+  &lt;@@ let x = 10 in x + 10 @@> // cheat!</p>
+
+<p>let version2 =
+  let xVar = Var(&ldquo;x&rdquo;, typeof<int>)
+  let x = Expr.Var xVar
+  Expr.Let(xVar, &lt;@@ 10 @@>, &lt;@@ %%x + 10 @@>)
+```</p>
+
+<p>The trick you need to know is that <code>Expr.Var</code> produces an Expr that represents a place where a variable will be used. But it creates an untyped Expr, and this can (and does) cause issues with type inference. We can work around this by making use of typed expressions, represented by the generic <code>Expr&lt;'a&gt;</code> class. The type provider API takes the untyped version, but you can convert back to the untyped version either by calling the <code>Raw</code> property on the typed expression or just by using it to help construct an expression which contains the typed expression but which is untyped itself using the <code>Expr</code> classes.</p>
+
+<p>In the code below, notice the use of <code>&lt;@ ... @&gt;</code> and <code>%</code> rather than <code>&lt;@@ ... @@&gt;</code> and <code>%%</code> to work with typed expressions rather than untyped.</p>
+
+<p>``` fsharp
+open FSharp.Quotations</p>
+
+<p>type GD = System.Collections.Generic.Dictionary&lt;string,string></p>
+
+<p>let dictExpr =
+  let gdVar = Var(&ldquo;gd&rdquo;, typeof<GD>)
+  let gdExpr =</p>
+
+<pre><code>Expr.Var gdVar |&gt; Expr.Cast&lt;GD&gt;
+// Expr.Cast forces this to be a typed expression
+</code></pre>
+
+<p>  let addValue =</p>
+
+<pre><code>Expr.Let(gdVar, &lt;@ GD() @&gt;, &lt;@ %gdExpr.["one"] &lt;- "the number one" @&gt;)
+// the line above fails without typed expressions
+</code></pre>
+
+<p>```</p>
+
+<p>With that out of the way, we&rsquo;re good to go. The type provider below is a simple wrapper around a string, string dictionary. It looks like this in use:</p>
+
+<p>``` fsharp
+type MyType = DictProvider.ParaProvider&lt;&ldquo;name1, name2&rdquo;></p>
+
+<p>let thing = MyType(&ldquo;1&rdquo;,&ldquo;2&rdquo;)</p>
+
+<p>thing.name1 // &ldquo;1&rdquo;
+thing.name2 // &ldquo;2&rdquo;</p>
+
+<p>thing.name1 &lt;&ndash; &ldquo;not one. Muhahahaha!&rdquo;
+thing.name2 &lt;&ndash; &ldquo;that&rsquo;s why you shouldn&rsquo;t make things mutable&rdquo;</p>
+
+<p>thing.name1 // &ldquo;not one. Muhahahaha!&rdquo;
+```</p>
+
+<p>You&rsquo;ll get different properties depending which strings you supply as parameters.</p>
+
+<p>Here&rsquo;s the source:</p>
+
+<p>``` fsharp
+module DictProvider</p>
+
+<p>open System.Reflection
+open FSharp.Core.CompilerServices
+open FSharp.Quotations
+open ProviderImplementation.ProvidedTypes</p>
+
+<p>type GD = System.Collections.Generic.Dictionary&lt;string, string></p>
+
+<p>[<TypeProvider>]
+type DictionaryProvider() as this =
+  inherit TypeProviderForNamespaces()</p>
+
+<p>  let ns = &ldquo;DictProvider&rdquo;
+  let asm = Assembly.GetExecutingAssembly()</p>
+
+<p>  let createType typeName (parameters : obj []) =</p>
+
+<pre><code>// We'll get our property names by just splitting
+// our single parameter on commas
+let propNames =
+  (parameters.[0] :?&gt; string).Split ','
+  |&gt; Array.map (fun s -&gt; s.Trim())
+
+// Each of our properties has setter code to set the value in the dict with the
+// name of the property, and getter code with gets the same value
+let aProp name =
+  ProvidedProperty(
+    name,
+    typeof&lt;string&gt;,
+    IsStatic = false,
+    GetterCode = (fun args -&gt; &lt;@@ (%%args.[0]:GD).[name] @@&gt;),
+    SetterCode = (fun args -&gt; &lt;@@ (%%args.[0]:GD).[name] &lt;- (%%args.[1]:string) @@&gt;))
+
+// Here we set the type to be erased to as "GD" (our type alias for a dictionary)
+// If we want to hide the normal dictionary methods, we could use:
+// 'myType.HideObjectMethods &lt;- true'
+// But here we'll just let people use the type as a dictionary as well.
+let myType =
+  ProvidedTypeDefinition(asm, ns, typeName, Some typeof&lt;GD&gt;)
+
+// Make sure we add all the properties to the object.
+propNames
+|&gt; Array.map (fun propName -&gt; aProp propName)
+|&gt; List.ofArray
+|&gt; myType.AddMembers
+
+// We'll want a constructor that takes as many parameters as we have
+// properties, as we'll want to set the value in the dictionary of our
+// properties during construction. If we don't, trying to use the properties
+// will result in a key not found exception.
+let cstorParams =
+  propNames
+  |&gt; Array.map (fun propName -&gt; ProvidedParameter(propName, typeof&lt;string&gt;))
+  |&gt; List.ofArray
+
+// Here's the constructor code where we set each property in turn.
+// Notice how the fold keeps on building up a larger let expression,
+// adding a set value line at the top of the expression each time through.
+// Our initial state (a line with only the dictionary variable on) is always
+// left last, so this is what will be returned from the constructor.
+let cstorCode =
+  fun (args : Expr list) -&gt;
+    let dictionaryVar = Var("dictionary", typeof&lt;GD&gt;)
+    let dictionary : Expr&lt;GD&gt; = dictionaryVar |&gt; Expr.Var |&gt; Expr.Cast
+    let setValues =
+      args
+      |&gt; Seq.zip propNames
+      |&gt; Seq.fold (fun state (name, arg) -&gt;
+        &lt;@ (%dictionary).[name] &lt;- (%%arg:string)
+           %state @&gt;) &lt;@ %dictionary @&gt;
+    Expr.Let(dictionaryVar, &lt;@ GD() @&gt;, setValues)
+
+// Build the constructor out of our helpers
+let cstor =
+  ProvidedConstructor(cstorParams, InvokeCode = cstorCode)
+
+// And make sure you add it to the class!
+myType.AddMember cstor
+
+myType
+</code></pre>
+
+<p>  let provider =</p>
+
+<pre><code>ProvidedTypeDefinition(asm, ns, "ParaProvider", Some typeof&lt;obj&gt;)
+</code></pre>
+
+<p>  let parameters =</p>
+
+<pre><code>[ProvidedStaticParameter("PropNames", typeof&lt;string&gt;)]
+</code></pre>
+
+<p>  do</p>
+
+<pre><code>provider.DefineStaticParameters(parameters, createType)
+this.AddNamespace(ns, [provider])
+</code></pre>
+
+<p>[&lt;assembly:TypeProviderAssembly>]
+do()
+```</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[EmParsec Embedded Parser Library]]></title>
@@ -337,7 +529,7 @@ bus.Subscribe<EmailSent> (&ldquo;Process&rdquo;, fun es &ndash;> printfn &ldquo;
 bus.Publish { StoreModel.CorrelationId = Guid.NewGuid(); Model = model }
 bus.Publish { StoreTemplate.CorrelationId = Guid.NewGuid(); Name = &ldquo;mytemplate&rdquo;; Template = template }
 bus.Publish { RequestRender.CorrelationId = Guid.NewGuid(); TemplateId = 1; ModelId = 4 }
-bus.Publish { SendEmail.CorrelationId = Guid.NewGuid(); Content = &ldquo;Hello world!&rdquo;; EmailAddress = &ldquo;<a href="&#x6d;&#97;&#105;&#108;&#116;&#111;&#x3a;&#109;&#x65;&#64;&#x65;&#120;&#x61;&#109;&#112;&#108;&#x65;&#46;&#x63;&#111;&#x6d;">&#x6d;&#x65;&#x40;&#101;&#120;&#x61;&#109;&#112;&#x6c;&#x65;&#x2e;&#x63;&#x6f;&#x6d;</a>&rdquo; }
+bus.Publish { SendEmail.CorrelationId = Guid.NewGuid(); Content = &ldquo;Hello world!&rdquo;; EmailAddress = &ldquo;<a href="&#109;&#x61;&#105;&#108;&#x74;&#x6f;&#x3a;&#109;&#101;&#x40;&#x65;&#x78;&#x61;&#109;&#112;&#108;&#x65;&#46;&#x63;&#x6f;&#x6d;">&#109;&#101;&#64;&#x65;&#120;&#x61;&#109;&#x70;&#x6c;&#101;&#x2e;&#x63;&#111;&#109;</a>&rdquo; }
 ```</p>
 
 <p>So, that&rsquo;s great. What now?</p>
@@ -1013,49 +1205,6 @@ the videos are already up. It&rsquo;s a great place to talk from that point of v
 
 
 <p> <div style="margin-bottom:5px"> <strong> <a href="http://blog.mavnn.co.uk//www.slideshare.net/mavnn/functional-programming-in-an-imperitive-world" title="Functional Programming in an Imperitive World" target="_blank">Functional Programming in an Imperitive World</a> </strong> from <strong><a href="http://blog.mavnn.co.uk//www.slideshare.net/mavnn" target="_blank">mavnn</a></strong> </div></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Property Based Testing at SDD Conf 2015]]></title>
-    <link href="http://blog.mavnn.co.uk/sdd-conf-2015/"/>
-    <updated>2015-06-08T10:21:44+01:00</updated>
-    <id>http://blog.mavnn.co.uk/sdd-conf-2015</id>
-    <content type="html"><![CDATA[<p>So, nearly a month back now I had the fantastic opportunity to speak at this year&rsquo;s
-<a href="http://sddconf.com/">Software, Design &amp; Development</a> at the Barbican on property based
-testing &ndash; or more specifically, FsCheck.</p>
-
-<!-- more -->
-
-
-<p>It was a fun experience and a very different type of conference to the smaller, generally
-open source community based events that I normally attend. There were a wide variety of
-expert speakers, covering the whole range from people like myself presenting on potentially
-useful but relatively unknown technology (in the enterprise world, at least &ndash;
-property based testing is pretty well known in functional programming circles) through to
-known industry names.</p>
-
-<p>I won&rsquo;t go into the details of all the talks I attended as I was there for 3 days. But there
-were a lot of good ideas on display ranging through sane naming (always worth watching
-anything by <a href="https://twitter.com/KevlinHenney">Kevlin Henney</a> if you get a chance) to
-project design (as opposed to project planning, probably more thoughts on that later) to
-practical DDD examples in .net to the &ldquo;Zen of Architecture&rdquo;.</p>
-
-<p>As a thank you
-to <a href="https://twitter.com/kurt2001">Kurt Schelfthout</a> who wrote FsCheck, to spread further what
-I think is an awesome concept and to give an idea
-of some of the kind of things we do at <a href="http://www.15below.com/">15below</a> to any interested
-developers I managed to arrange for the recording of my talk to be released publicly. It&rsquo;s
-an unmanned camera, so you have a pretty good view of the slides with out having to see my
-face at any point, which many people will see as an advantage! I strongly recommend full
-screen viewing; there&rsquo;s a fair amount of code in the presentation.</p>
-
-<iframe src="https://player.vimeo.com/video/129109178" width="100%" height="400" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
-
-
-<p>If you want to play with the code from the demo yourself, it&rsquo;s available <a href="https://github.com/mavnn/SddConf2015">on Github</a>. The slides are also available <a href="http://sddconf.com/brands/sdd/library/Breaking_Your_Code_In_New_Exciting_Ways.pdf">as a PDF</a>.</p>
-
-<p>Many thanks to the conference organisers <a href="http://www.yellowstonetechmedia.com/">Yellowstone TechMedia</a>, and I&rsquo;ll definitely be considering submitting talks/attending again next year.</p>
 ]]></content>
   </entry>
   

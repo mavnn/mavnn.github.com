@@ -11,6 +11,8 @@ This will sound familiar to users of a number of dynamically typed languages as 
 
 This is such a common thing to be doing in a type provider that I thought it was worth writing up a working example that can then be modified to your individual situation. I've presented the entire listing below with comments, but there is one particular trick I'll explain in a bit more detail. Let's have a look at let bindings in quotations!
 
+<!-- more -->
+
 So, normally when you write a ``let`` binding in F#, and end up writing something like this:
 
 ``` fsharp

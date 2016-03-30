@@ -9,7 +9,7 @@ This is a "just because you can" post, although frankly bizarrely I have a genui
 
 Let the mind melting commence!
 
-Computational expressions in F# provide nice sugared syntax for monadic data structures such as ``seq`` and ``async``; but the specific expressions are not built in language features. You can [build your own](blog.mavnn.co.uk/corrected-error-handling-computational-expres).
+Computational expressions in F# provide nice sugared syntax for monadic data structures such as ``seq`` and ``async``; but the specific expressions are not built in language features. You can [build your own](http://fsharpforfunandprofit.com/series/computation-expressions.html).
 
 Which is fun and all, but you know what's even more fun? Well, it turns out that there's no requirements for computational expressions to be actual monads. Even more fun than that is that the bind operation (used when you invoke ``let!`` syntax) is a member on a class - and it is valid both for it to be an extension method, and for it to be overloaded. You can even add custom operators to computational expressions using the extension method trick.
 

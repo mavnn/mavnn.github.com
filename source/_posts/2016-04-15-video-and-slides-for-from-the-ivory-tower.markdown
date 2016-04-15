@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Video and slides for From the Ivory Tower"
+title: "Video and slides for \"From the Ivory Tower\""
 date: 2016-04-15 14:14:17 +0100
 comments: true
 categories: [fsharp]

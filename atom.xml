@@ -4,7 +4,7 @@
   <title><![CDATA[Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2016-03-30T10:32:01+01:00</updated>
+  <updated>2016-04-15T16:48:55+01:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,23 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Video and Slides for From the Ivory Tower]]></title>
+    <link href="http://blog.mavnn.co.uk/video-and-slides-for-from-the-ivory-tower/"/>
+    <updated>2016-04-15T14:14:17+01:00</updated>
+    <id>http://blog.mavnn.co.uk/video-and-slides-for-from-the-ivory-tower</id>
+    <content type="html"><![CDATA[<p>I spoke this morning at <a href="https://skillsmatter.com/conferences/7145-f-exchange-2016#program">F# Exchange</a> and this being SkillsMatter they&rsquo;ve published the recording already.</p>
+
+<p>It&rsquo;s a nice short talk, weighing in at about 15 minutes. So grab yourself a coffee and
+take a short tour of how some of F#&rsquo;s more esoteric features (active patterns, computational expressions,
+quotations and type providers) have been used to solve real problems in the real world.</p>
+
+<p>Video here: <a href="https://skillsmatter.com/skillscasts/7735-fixing-real-life-problems-from-the-ivory-tower">https://skillsmatter.com/skillscasts/7735-fixing-real-life-problems-from-the-ivory-tower</a></p>
+
+<p>Slides here: <a href="http://blog.mavnn.co.uk/FromTheIvoryTower/">http://blog.mavnn.co.uk/FromTheIvoryTower/</a></p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Expanding Existing Computational Expressions]]></title>
@@ -3900,7 +3917,7 @@ management responsibility. We&rsquo;re hiring developers, and while we&rsquo;ll 
 
 <p>So, there you have. My own personal list of things that increase or decrease your chances that I&rsquo;ll recommend you&rsquo;re interviewed.</p>
 
-<p>If you think that you&rsquo;d be interested in working for the type of company that uses this type of criteria&hellip; well, oddly enough we&rsquo;re hiring at the moment. Ping me or drop a note through to <a href="&#109;&#97;&#x69;&#108;&#x74;&#x6f;&#x3a;&#x6a;&#x6f;&#98;&#115;&#64;&#x31;&#x35;&#98;&#101;&#108;&#x6f;&#119;&#46;&#x63;&#x6f;&#x6d;&#x2e;">&#x6a;&#111;&#98;&#115;&#x40;&#49;&#53;&#98;&#x65;&#x6c;&#111;&#119;&#x2e;&#x63;&#x6f;&#109;&#x2e;</a></p>
+<p>If you think that you&rsquo;d be interested in working for the type of company that uses this type of criteria&hellip; well, oddly enough we&rsquo;re hiring at the moment. Ping me or drop a note through to <a href="&#x6d;&#x61;&#x69;&#108;&#x74;&#111;&#x3a;&#106;&#x6f;&#x62;&#115;&#x40;&#x31;&#53;&#98;&#x65;&#x6c;&#x6f;&#119;&#46;&#x63;&#111;&#109;&#46;">&#106;&#x6f;&#x62;&#x73;&#x40;&#x31;&#53;&#98;&#x65;&#x6c;&#111;&#119;&#x2e;&#x63;&#111;&#109;&#x2e;</a></p>
 ]]></content>
   </entry>
   
@@ -4297,179 +4314,6 @@ holds changes for a period of time before passing them on to subscribers. Or <co
 <p>We had 3 teams take up the challenge; I&rsquo;ve posted their solutions in <a href="http://blog.mavnn.co.uk/rx-solutions/">a separate solutions post</a> to avoid accidental spoilers :)</p>
 
 <p>P.S. A couple of people were interested in how the server worked. It&rsquo;s my very first attempt at writing both <a href="https://github.com/Hopac/Hopac">Hopac</a> and <a href="https://github.com/zeromq/fszmq">fszmq</a> (an F# zeromq wrapper library). I&rsquo;m hugely impressed by both, but wouldn&rsquo;t recommend my code in that repository as an introduction to either!</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Persistent Data Structures]]></title>
-    <link href="http://blog.mavnn.co.uk/persistent-data-structures/"/>
-    <updated>2015-02-02T15:36:51+00:00</updated>
-    <id>http://blog.mavnn.co.uk/persistent-data-structures</id>
-    <content type="html"><![CDATA[<p>In last week&rsquo;s <a href="http://blog.mavnn.co.uk/keeping-up-with-the-latest-hammer/">Developer Education session</a> at <a href="http://15below.com">15below</a> we had a look at immutable and persistent data structures, and why you&rsquo;d want to use them.</p>
-
-<blockquote><p>TL;DR version: are you writing performance critical, real time code? Do you have less memory available than a low end smart phone? No?</p>
-
-<p>Use immutable data types everywhere you can.</p></blockquote>
-
-<p>The session was inspired by <a href="https://twitter.com/ScottWlaschin">Scott Wlaschin</a>&rsquo;s excellent <a href="http://fsharpforfunandprofit.com/posts/is-your-language-unreasonable/">is your programming language unreasonable?</a> post. If you haven&rsquo;t read it yet, go and do so &ndash; it&rsquo;s much better than the rest of this post, and you can always come back here later if you remember.</p>
-
-<p>One of the points that Scott raises is that code written with mutable data structures (ones that you can change after they&rsquo;ve been created) is very hard to reason about. In the very literal sense of working out the reason why things happen.</p>
-
-<!-- more -->
-
-
-<p>So we kicked off with a couple of examples of the dangers of mutability. Consider the following C# code.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-</pre></td><td class='code'><pre><code class='csharp'><span class='line'><span class="k">static</span> <span class="k">void</span> <span class="nf">Main</span><span class="p">(</span><span class="kt">string</span><span class="p">[]</span> <span class="n">args</span><span class="p">)</span>
-</span><span class='line'><span class="p">{</span>
-</span><span class='line'>    <span class="kt">var</span> <span class="n">mercurial</span> <span class="p">=</span> <span class="k">new</span> <span class="n">List</span><span class="p">&lt;</span><span class="kt">string</span><span class="p">&gt;</span> <span class="p">{</span> <span class="s">&quot;Bob&quot;</span> <span class="p">};</span>
-</span><span class='line'>    <span class="n">DoWork</span><span class="p">(</span><span class="n">mercurial</span><span class="p">);</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">mercurial</span><span class="p">.</span><span class="n">First</span><span class="p">()</span> <span class="p">==</span> <span class="s">&quot;Bob&quot;</span><span class="p">)</span>
-</span><span class='line'>    <span class="p">{</span>
-</span><span class='line'>        <span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">&quot;Yay! We have Bob!&quot;</span><span class="p">);</span>
-</span><span class='line'>    <span class="p">}</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">DoSomeOtherWork</span><span class="p">();</span>
-</span><span class='line'>    <span class="c1">// Actually get around to doing some work.</span>
-</span><span class='line'>    <span class="k">if</span> <span class="p">(</span><span class="n">mercurial</span><span class="p">.</span><span class="n">First</span><span class="p">()</span> <span class="p">==</span> <span class="s">&quot;Bob&quot;</span><span class="p">)</span>
-</span><span class='line'>    <span class="p">{</span>
-</span><span class='line'>        <span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">&quot;Success&quot;</span><span class="p">);</span>
-</span><span class='line'>    <span class="p">}</span>
-</span><span class='line'>    <span class="k">else</span>
-</span><span class='line'>    <span class="p">{</span>
-</span><span class='line'>        <span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">&quot;Oops, I updated {0}&#39;s record by mistake.&quot;</span><span class="p">,</span> <span class="n">mercurial</span><span class="p">.</span><span class="n">First</span><span class="p">());</span>
-</span><span class='line'>    <span class="p">}</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">Console</span><span class="p">.</span><span class="n">ReadLine</span><span class="p">();</span>
-</span><span class='line'><span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Does it update Bob&rsquo;s record, or someone else&rsquo;s? Well &ndash; this is Scott&rsquo;s point. We&rsquo;ve passed the mutable <code>mercurial</code> object (here a <code>List</code>, but it could be anything mutable) into a function (<code>DoWork</code>), and now we don&rsquo;t know what will be done to it. Even if we check that it has the value we were expecting (line 6) there&rsquo;s no guarantee that it won&rsquo;t be changed under our nose. Which in fact, it is, because the rest of the code looks like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-</pre></td><td class='code'><pre><code class='csharp'><span class='line'><span class="k">private</span> <span class="k">static</span> <span class="k">void</span> <span class="nf">DoSomeOtherWork</span><span class="p">()</span>
-</span><span class='line'><span class="p">{</span>
-</span><span class='line'>    <span class="n">System</span><span class="p">.</span><span class="n">Threading</span><span class="p">.</span><span class="n">Thread</span><span class="p">.</span><span class="n">Sleep</span><span class="p">(</span><span class="m">500</span><span class="p">);</span>
-</span><span class='line'><span class="p">}</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">private</span> <span class="k">static</span> <span class="k">async</span> <span class="k">void</span> <span class="nf">DoWork</span><span class="p">(</span><span class="n">List</span><span class="p">&lt;</span><span class="kt">string</span><span class="p">&gt;</span> <span class="n">Mercurial</span><span class="p">)</span>
-</span><span class='line'><span class="p">{</span>
-</span><span class='line'>    <span class="k">new</span> <span class="n">Immutable</span><span class="p">.</span><span class="n">Thing</span><span class="p">(</span><span class="s">&quot;Hello world&quot;</span><span class="p">,</span> <span class="m">1</span><span class="p">);</span>
-</span><span class='line'>    <span class="k">await</span> <span class="n">Task</span><span class="p">.</span><span class="n">Delay</span><span class="p">(</span><span class="m">100</span><span class="p">);</span>
-</span><span class='line'>    <span class="n">Mercurial</span><span class="p">.</span><span class="n">Clear</span><span class="p">();</span>
-</span><span class='line'>    <span class="n">Mercurial</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="s">&quot;Fred&quot;</span><span class="p">);</span>
-</span><span class='line'><span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>This example is clearly contrived &ndash; but these kinds of bugs crop up in code a lot, and it doesn&rsquo;t even need to be asynchronous for it to happen.</p>
-
-<p>We then discussed equality, and the fact that it can be very hard to decide what equality means for a mutable object. Is a customer object the same as another customer object because they both have the same Id? Because they&rsquo;re both the same object in memory? Because they have the same value in all of their fields? What happens if one of the fields is changed? Overriding equality in .net <a href="http://visualstudiomagazine.com/articles/2011/02/01/equality-in-net.aspx">is not trivial</a>. Edit: found a
-better article on the subject of <a href="http://www.aaronstannard.com/overriding-equality-in-dotnet/">C# equality</a> by Aaron Stannard.</p>
-
-<p>Immutable objects cannot be changed, which means that they are nearly always defined as having value based equality. If all of the fields are equal, the object is equal &ndash; and it can&rsquo;t change, so you don&rsquo;t have to worry about it shifting under you. This is such a useful property (especially if you&rsquo;re loading data from another source that you want to run comparisons on) that we&rsquo;ve even had occasions here where we&rsquo;ve considered implementing our data types as <a href="https://msdn.microsoft.com/en-us/library/dd233184.aspx">F# records</a> even when writing C# services.</p>
-
-<p>For example, you can define an F# record like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="c1">// Yes, this is the entire file</span>
-</span><span class='line'><span class="k">module</span> <span class="nc">Immutable</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">type</span> <span class="nc">Thing</span> <span class="o">=</span>
-</span><span class='line'>    <span class="o">{</span>
-</span><span class='line'>        <span class="nc">One</span> <span class="o">:</span> <span class="kt">string</span>
-</span><span class='line'>        <span class="nc">Two</span> <span class="o">:</span> <span class="kt">int</span>
-</span><span class='line'>    <span class="o">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>And then use it from C# like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-</pre></td><td class='code'><pre><code class='csharp'><span class='line'><span class="c1">// You do need to reference the project with Thing in</span>
-</span><span class='line'><span class="k">static</span> <span class="kt">bool</span> <span class="nf">UseRecordTypeFromCSharp</span><span class="p">()</span>
-</span><span class='line'><span class="p">{</span>
-</span><span class='line'>    <span class="kt">var</span> <span class="n">myThing</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Immutable</span><span class="p">.</span><span class="n">Thing</span><span class="p">(</span><span class="s">&quot;Hello&quot;</span><span class="p">,</span> <span class="m">11</span><span class="p">);</span>
-</span><span class='line'>    <span class="kt">var</span> <span class="n">myThing2</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Immutable</span><span class="p">.</span><span class="n">Thing</span><span class="p">(</span><span class="s">&quot;Hello&quot;</span><span class="p">,</span> <span class="m">11</span><span class="p">);</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="k">return</span> <span class="n">myThing</span> <span class="p">==</span> <span class="n">myThing2</span><span class="p">;</span> <span class="c1">// Always returns true</span>
-</span><span class='line'><span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>If all you need is an immutable collection, rather than an immutable
-object with nice value based properties then you don&rsquo;t even need to
-leave the comfort of your C# window. Microsoft themselves have bought
-into the concept of immutable data structures sufficiently to release
-an <a href="https://msdn.microsoft.com/en-us/library/dn385366%28v=vs.110%29.aspx">Immutable Collections</a> library.</p>
-
-<h3>But what about the memory? Think of the RAM, the poor RAM!</h3>
-
-<p>We also discussed the downsides of immutable data types. There are two concerns which are raised most frequently. The first is performance &ndash; in .net, using immutable data structures and then doing a lot of transforms on the data will create a lot of objects. This can have a significant effect in very performance critical areas of your code. This is a valid concern where performance is paramount, and the normal way around this is to wrap a private mutable object (or raw array, for
-that matter) in a function that does all of your heavy manipulation. In that way you can take advantage of the speed of imperative coding techniques whilst keeping their scope small enough to reason about the effects.</p>
-
-<p>Of course, even if <strong>speed</strong> isn&rsquo;t of paramount importance &ndash; what about <strong>memory</strong>? After all, these allocations must be adding up on the memory side of things as well, no?</p>
-
-<p>Well, not as much as you might think, for two reasons. One is that if your code is asynchronous, you&rsquo;re almost certainly taking copies of your mutable data structures all over the place anyway to guarantee thread safety. Well, either that or you&rsquo;re taking a lot of locks, and you&rsquo;re back into performance issues.</p>
-
-<p>The second, and much more interesting, reason is that a very bright guy called Chris Okasaki realised back in 1996 (despite the recent surge of interest in functional programming, it&rsquo;s not new&hellip;) that you can take advantage of the fact that an object is immutable to avoid copying all of it when a new, similar object is required.</p>
-
-<p>For example, if you add a new object to the end of an immutable list, the new list you get back doesn&rsquo;t need to be a complete copy &ndash; it can just be the single new item with a pointer back to the original list. To the person using the list, it appears to be a three item list and they are none the wiser. Because it&rsquo;s immutable, the first two values never change, so it&rsquo;s never a concern to you whether your list is a completely new one, or a &ldquo;pointer&rdquo; list. Okasaki called these data
-types &ldquo;persistent&rdquo; data types as they &ldquo;persist&rdquo; a previous version of themselves when &ldquo;modified&rdquo;. You can read more about them in a <a href="https://en.wikipedia.org/wiki/Persistent_data_structure">surprisingly complete wikipedia article</a>.</p>
-
-<p>In .net land, both the F# immutable records and collections, and the <code>System.Collections.Immutable</code> library from Microsoft mentioned above are persistent data types. So unless you&rsquo;re extremely memory constrained, you should be good to go.</p>
-
-<p>And there you have it. An introduction to immutable data types: officially approved for use almost everywhere by your local Technical Architect.</p>
 ]]></content>
   </entry>
   

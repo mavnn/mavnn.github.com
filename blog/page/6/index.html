@@ -9,7 +9,9 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="Possibly my geekiest self Birthday present ever: the #NOOO! manifesto (http://notonlyoo.org) t-shirt, personalized with membership number (and a !). &hellip;">
+  <meta name="description" content="This is the first post in what will be a series about how we moved to
+using Fake for our build and testing
+at 15below. Feel free to follow along for &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -79,6 +81,117 @@ ga('send', 'pageview');
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/getting-started-with-fake-an-introduction-tag/index.html">Getting Started With Fake - an Introduction</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-01-09T00:00:00+00:00" pubdate data-updated="true"></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><blockquote><p>This is the first post in what will be a series about how we moved to
+using <a href="https://github.com/fsharp/FAKE">Fake</a> for our build and testing
+at <a href="http://15below.com">15below</a>. Feel free to follow along for the
+ride. It&rsquo;s partly there as a way of keeping the full development group
+within the company informed of what&rsquo;s going on, so it will get pretty
+detailed and gritty in the later sections, but we decided that there
+wasn&rsquo;t anything too company specific in here. So we&rsquo;re sharing it with
+you all&hellip;</p></blockquote>
+
+<p>At my current employer, we have a wide range of code all the way from
+automatically translated vb6 (to vb.net) to brand spanking new F# and
+C#. At the end of the day though, everything runs on .net 4.0
+(currently).</p>
+
+<p>With the newer components, we could in theory be building and testing
+them independently: messaging based and developed in a TDD style they
+tend to have an existing test harness around them and be easy to add
+further tests to if it proves necessary.</p>
+
+<p>The legacy code on the other hand, is a bit of a different matter.
+It&rsquo;s still in the code base because it works. We know it works,
+because customers are using it and getting value from it. The bits
+that didn&rsquo;t, or looked like they were getting flaky, are the bits that
+have been refactored as we went along. But they are old enough that
+what is now considered basic testing hygiene was still a little more
+than a twinkle in Kent Beck&rsquo;s eye. (Ok, ok, so the book had been
+released. But it wasn&rsquo;t exactly considered common best practice yet).
+So until the refactoring work is complete, we&rsquo;re stuck with a system
+where the only feasible way of testing some aspects of it is to
+actually deploy it somewhere and run some jobs through.</p>
+
+<p>So what does this all have to do with Fake?</p>
+
+<p>Well, basically our continuous integration was getting out of control.
+To get the level of functionality and control we needed, we were
+ending up with somewhere in the region of 500 lines of re-entrant,
+recursive MsBuild scripts. I seriously considered starting the
+alt.ms.build.die.die.die newsgroup. A full build on a developer&rsquo;s
+machine could take upwards of 45 minutes. Even more painfully, as the
+refactoring continued we ended up with TeamCity build configurations
+tightly coupled to specific versions of our software, and it was
+becoming clear that the whole CI system was going to rapidly collapse
+under it&rsquo;s own weight unless things changed.</p>
+
+<p>We needed a solution.</p>
+
+<p>It had to be:</p>
+
+<ul>
+<li>Powerful. Programming in MsBuild is&hellip; not fun. Xml is for data.</li>
+<li>Storable in git along with our source code.</li>
+<li>.net based. We&rsquo;re a .net shop, and our specialist knowledge is .net;
+rake wasn&rsquo;t going to cut it. We also didn&rsquo;t want the management
+overhead of even more tooling on the build agents.</li>
+<li>In active development.</li>
+<li>Preferably open source, so even if external development stopped we
+could continue to maintain it.</li>
+</ul>
+
+
+<p>As both the company F# evangelist and one of the two people doing most
+of the CI work, I was very interested to hear about Fake, especially
+after having a chance to chat to it&rsquo;s author (<a href="https://twitter.com/sforkmann">Steffen
+Forkmann</a>) and having it recommended by
+Don Syme (who wrote F#).</p>
+
+<p>It met all of the criteria above. It&rsquo;s scripts are full F# &ndash; a
+language fully supported by Microsoft within it&rsquo;s flagship Visual
+Studio product. The scripts can easily be stored in git. It&rsquo;s actively
+being worked on, and accepting contributions as a fully open source
+product.</p>
+
+<p>Time to give it a try.</p>
+
+<p>Next post: how to set up your &ldquo;HelloWorld.fsx&rdquo; Fake script with your
+source, with all the niceties like intellisense that you would want.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -437,42 +550,6 @@ ga('send', 'pageview');
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/stress-testing-easynetq-services-with-f/index.html">Stress Testing EasyNetQ Services With F#</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2012-10-04T00:00:00+01:00" pubdate data-updated="true"></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><div>Having recently moved one of our (<a href="http://15below.com">http://15below.com</a>) infrastructure services from using MSMQs to RabbitMq (via using EasyNetQ: <a href="https://github.com/mikehadlow/EasyNetQ">https://github.com/mikehadlow/EasyNetQ</a>), I then wanted to run it through some simple stress tests. One of the reasons for this is that the old service used to time out on messages regularly, leaving them in a dead letter queue and requiring us to write the &#39;DeadLetterProcessor&#39; (a complete service in it&#39;s own right) to deal with the time outs.</div> <p /><div>74 lines of F# later, I was hitting the service with 40,000 requests spread across 4 parallel processes.</div><br /><div><script src="https://gist.github.com/3832369.js"></script></div> <p /><div>And the results: 18 seconds to process the lot, with no time outs or losses. Requests were going in faster than the service could process them, but Rabbit was admirably handling that side of things, and with the new setup multiple copies of the service would automatically round robin requests if that was ever needed.</div> <p /><div>Adious, DeadLetterProcessor: it was nice deleting you&#8230;</div>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/7/">&larr; Older</a>
@@ -490,6 +567,10 @@ ga('send', 'pageview');
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/video-and-slides-for-from-the-ivory-tower/">Video and Slides for From the Ivory Tower</a>
+      </li>
+    
+      <li class="post">
         <a href="/expanding-existing-computational-expressions/">Expanding Existing Computational Expressions</a>
       </li>
     
@@ -503,10 +584,6 @@ ga('send', 'pageview');
     
       <li class="post">
         <a href="/emparsec-embedded-parser-library/">EmParsec Embedded Parser Library</a>
-      </li>
-    
-      <li class="post">
-        <a href="/angels-from-the-realms-of-glory/">Angels From the Realms of Glory</a>
       </li>
     
   </ul>

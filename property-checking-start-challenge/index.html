@@ -9,7 +9,7 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="Almost a year ago now, I wrote up a blog post on using FsCheck. I still rate it as an excellent tool, but unfortunately we don&rsquo;t manage to use &hellip;">
+  <meta name="description" content="Almost a year ago now, I wrote up a blog post on using FsCheck. I still rate it as an excellent tool, but unfortunately we don&#39;t manage to use it &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -105,20 +105,19 @@ ga('send', 'pageview');
   </header>
 
 
-<div class="entry-content"><p>Almost a year ago now, I wrote up a <a href="/fscheck-breaking-your-code-in-new-and-exciting-ways/">blog post</a> on using <a href="https://github.com/fsharp/FsCheck">FsCheck</a>. I still rate it as an excellent tool, but unfortunately we don&rsquo;t manage to use it that much. The reasons for this basically boil down to the fact that a) we tend to forget it exists and b) a good deal of our code is written in C# or VB.net, and the original API is not very friendly from those languages.</p>
+<div class="entry-content"><p>Almost a year ago now, I wrote up a <a href="/fscheck-breaking-your-code-in-new-and-exciting-ways/">blog post</a> on using <a href="https://github.com/fsharp/FsCheck">FsCheck</a>. I still rate it as an excellent tool, but unfortunately we don&#39;t manage to use it that much. The reasons for this basically boil down to the fact that a) we tend to forget it exists and b) a good deal of our code is written in C# or VB.net, and the original API is not very friendly from those languages.</p>
 
-<p>So as part of the <a href="http://15below.com/">15below</a> developer education sessions we&rsquo;re going to try an exercise to see if we can bring a bit more property based testing into our code base!</p>
+<p>So as part of the <a href="http://15below.com/">15below</a> developer education sessions we&#39;re going to try an exercise to see if we can bring a bit more property based testing into our code base!</p>
 
 <!-- more -->
 
+<h2>Never trust the user&#8230;</h2>
 
-<h2>Never trust the user&hellip;</h2>
+<p>One of the things we do quite a lot of as a company is sending either automated voice calls or SMS messages. The phone number we&#39;re trying to contact is often free text provided by the customer, while the voice/SMS companies tend to be very keen on phone numbers that are in (something at least similar to) the <a href="http://en.wikipedia.org/wiki/E.164">international E.164</a> phone number format.</p>
 
-<p>One of the things we do quite a lot of as a company is sending either automated voice calls or SMS messages. The phone number we&rsquo;re trying to contact is often free text provided by the customer, while the voice/SMS companies tend to be very keen on phone numbers that are in (something at least similar to) the <a href="http://en.wikipedia.org/wiki/E.164">international E.164</a> phone number format.</p>
+<p>Unfortunately, users don&#39;t tend to very good at sticking to standards in free text fields - so it some point your code needs to make the call about whether you&#39;re convinced the phone number you have is valid or not&#8230;</p>
 
-<p>Unfortunately, users don&rsquo;t tend to very good at sticking to standards in free text fields &ndash; so it some point your code needs to make the call about whether you&rsquo;re convinced the phone number you have is valid or not&hellip;</p>
-
-<p>For the exercise, I&rsquo;ve created idiomatic stubs of a <code>PhoneNumber</code> class in both F# and C# with methods for creating them that check if the input string is valid. The C# version uses <code>PhoneNumber.TryParse</code>:</p>
+<p>For the exercise, I&#39;ve created idiomatic stubs of a <code>PhoneNumber</code> class in both F# and C# with methods for creating them that check if the input string is valid. The C# version uses <code>PhoneNumber.TryParse</code>:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -198,7 +197,6 @@ ga('send', 'pageview');
 </span><span class='line'><span class="p">}</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
 <p>Whilst the F# version uses a discriminated union:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
@@ -259,20 +257,18 @@ ga('send', 'pageview');
 </span><span class='line'>
 </span></code></pre></td></tr></table></div></figure>
 
-
 <p>The challenge will be to use property checking to take the stub to a class that fulfils the following properties:</p>
 
 <ul>
 <li>Country code between 1 and 3 digits</li>
 <li>Identification code 4 or less digits (may be missing)</li>
-<li>Subscription number between 1 and (15 &ndash; country code &ndash; identification code) digits</li>
+<li>Subscription number between 1 and (15 - country code - identification code) digits</li>
 <li>Less than 15 total digits</li>
 </ul>
 
+<p>These all come straight from the specification - we&#39;re going to ignore country groups for now.</p>
 
-<p>These all come straight from the specification &ndash; we&rsquo;re going to ignore country groups for now.</p>
-
-<p>Each of the two projects also includes a PropertyChecks file that contains the skeleton of an NUnit based FsCheck test suite. We only have an hour for our DevEd sessions, so the project includes a reasonable amount to get you going. Each one has a &ldquo;sanity check&rdquo; test with a known good phone number, and property based checks for the length of the country code and whether all valid numbers are recognised as valid. To make the second property test work, they also both include a custom
+<p>Each of the two projects also includes a PropertyChecks file that contains the skeleton of an NUnit based FsCheck test suite. We only have an hour for our DevEd sessions, so the project includes a reasonable amount to get you going. Each one has a &quot;sanity check&quot; test with a known good phone number, and property based checks for the length of the country code and whether all valid numbers are recognised as valid. To make the second property test work, they also both include a custom
 generator for valid phone numbers.</p>
 
 <p>The C# version ended up looking like this:</p>
@@ -463,7 +459,6 @@ generator for valid phone numbers.</p>
 </span><span class='line'><span class="p">}</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
 <p>while the F# version looks like this:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
@@ -604,12 +599,11 @@ generator for valid phone numbers.</p>
 </span><span class='line'>            <span class="o">|</span> <span class="nc">InvalidPhoneNumber</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">false</span><span class="o">)</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-<p>These run fine as NUnit tests &ndash; apart from the fact that in true TDD style, they fail.</p>
+<p>These run fine as NUnit tests - apart from the fact that in true TDD style, they fail.</p>
 
 <h2>The challenge!</h2>
 
-<p>So, the challenge (which is open to people outside 15below as well). Basically, fork the <a href="https://github.com/mavnn/DevEd.PropertyChecks">git repository</a> and then check out locally. This contains everything, including both projects and the binaries of all their dependencies to avoid any NuGet issues. Within 15below, we&rsquo;ll be working in pairs &ndash; otherwise when you&rsquo;re sitting at your own computer with &ldquo;real work&rdquo; to do, it&rsquo;s very hard to actually take the hour out on the exercise.</p>
+<p>So, the challenge (which is open to people outside 15below as well). Basically, fork the <a href="https://github.com/mavnn/DevEd.PropertyChecks">git repository</a> and then check out locally. This contains everything, including both projects and the binaries of all their dependencies to avoid any NuGet issues. Within 15below, we&#39;ll be working in pairs - otherwise when you&#39;re sitting at your own computer with &quot;real work&quot; to do, it&#39;s very hard to actually take the hour out on the exercise.</p>
 
 <p>In the order of your choice:</p>
 
@@ -618,11 +612,10 @@ generator for valid phone numbers.</p>
 <li>Update the PhoneNumber class to pass all of the tests</li>
 <li><em>Extra credit</em>: Add a generator for local numbers from a known country (i.e. the UK) and property test your conversion method</li>
 <li><em>Extra credit 2</em>: complete any of all of the above in both F# and C#</li>
-<li><em>Completely carried away:</em> pick a real piece of production code and add a property test to it&hellip;</li>
+<li><em>Completely carried away:</em> pick a real piece of production code and add a property test to it&#8230;</li>
 </ol>
 
-
-<p>Once you&rsquo;ve got as far as you&rsquo;re going to, commit your changes and push back up to GitHub, then send a pull request with progress back to the parent repository. I won&rsquo;t merge these, but the different implementations of both the phone number class and property tests will form the basis of the DevEd session the week after, possibly with votes for the most elegant/robust solutions. If you&rsquo;re not a member of staff here at 15below, I&rsquo;ll try and update your pull request with any
+<p>Once you&#39;ve got as far as you&#39;re going to, commit your changes and push back up to GitHub, then send a pull request with progress back to the parent repository. I won&#39;t merge these, but the different implementations of both the phone number class and property tests will form the basis of the DevEd session the week after, possibly with votes for the most elegant/robust solutions. If you&#39;re not a member of staff here at 15below, I&#39;ll try and update your pull request with any
 feedback from our discussions!</p>
 </div>
 
@@ -695,6 +688,10 @@ feedback from our discussions!</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/advent-2016/">Advent 2016</a>
+      </li>
+    
+      <li class="post">
         <a href="/video-and-slides-for-from-the-ivory-tower/">Video and Slides for "From the Ivory Tower"</a>
       </li>
     
@@ -708,10 +705,6 @@ feedback from our discussions!</p>
     
       <li class="post">
         <a href="/type-providers-live-the-movie/">Type Providers Live - the Movie</a>
-      </li>
-    
-      <li class="post">
-        <a href="/emparsec-embedded-parser-library/">EmParsec Embedded Parser Library</a>
       </li>
     
   </ul>

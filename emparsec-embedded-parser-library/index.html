@@ -105,36 +105,37 @@ ga('send', 'pageview');
   </header>
 
 
-<div class="entry-content"><blockquote><p>You can find EmParsec on GitHub: <a href="https://github.com/mavnn/EmParsec">https://github.com/mavnn/EmParsec</a></p></blockquote>
+<div class="entry-content"><blockquote>
+<p>You can find EmParsec on GitHub: https://github.com/mavnn/EmParsec </p>
+</blockquote>
 
 <p>Type providers, by their very nature, tend to access data external to the .net ecosystem. It can also be very awkward technically to make use of dependencies during the actual type generation process.</p>
 
-<p>This is rather a pity, because accessing all of that external data is much nicer and easier when you have a decent parser to do it with. And F# has very, very nice parser support via the <a href="http://www.quanttec.com/fparsec/">FParsec</a> library. Instead, many (most?) type providers end up creating mini-one shot parsers which can be a bit slow to write and don&rsquo;t tend to have features that come for free in a more complete solution such as nice error reporting.</p>
+<p>This is rather a pity, because accessing all of that external data is much nicer and easier when you have a decent parser to do it with. And F# has very, very nice parser support via the <a href="http://www.quanttec.com/fparsec/">FParsec</a> library. Instead, many (most?) type providers end up creating mini-one shot parsers which can be a bit slow to write and don&#39;t tend to have features that come for free in a more complete solution such as nice error reporting.</p>
 
-<p>Writing yet an other parser (YAOP) this week I decided that enough was enough. What I needed was a shared resource that people could pool improvements for that could be easily embedded in projects like type providers were it isn&rsquo;t desirable (or sometimes possible) to take external binary dependencies.</p>
+<p>Writing yet an other parser (YAOP) this week I decided that enough was enough. What I needed was a shared resource that people could pool improvements for that could be easily embedded in projects like type providers were it isn&#39;t desirable (or sometimes possible) to take external binary dependencies.</p>
 
 <p>So I built it.</p>
 
 <!-- more -->
 
+<p>EmParsec is a single file parser combinator &quot;library&quot;, inspired by both FParsec library and <a href="http://fsharpforfunandprofit.com/posts/understanding-parser-combinators/">Scott&#39;s excellent series on building parser combinators</a>.</p>
 
-<p>EmParsec is a single file parser combinator &ldquo;library&rdquo;, inspired by both FParsec library and <a href="http://fsharpforfunandprofit.com/posts/understanding-parser-combinators/">Scott&rsquo;s excellent series on building parser combinators</a>.</p>
+<p>It consists of a single fs file that can be loaded in the editor of your choice without any requirement for a project file or similar. When you want to use it, you can just reference it as a <a href="https://fsprojects.github.io/Paket/github-dependencies.html">Paket GitHub dependency</a> (which you&#39;ll be wanting to do for the ProvidedTypes.fs file if you&#39;re creating a type provider anyway) or even just copy the file across.</p>
 
-<p>It consists of a single fs file that can be loaded in the editor of your choice without any requirement for a project file or similar. When you want to use it, you can just reference it as a <a href="https://fsprojects.github.io/Paket/github-dependencies.html">Paket GitHub dependency</a> (which you&rsquo;ll be wanting to do for the ProvidedTypes.fs file if you&rsquo;re creating a type provider anyway) or even just copy the file across.</p>
-
-<p>If you are compiling EmParsec into a larger project, it marks itself as &ldquo;internal&rdquo; so that you don&rsquo;t pollute the end users name space, and so that if two projects you reference have embedded different versions of EmParsec there are no collisions.</p>
+<p>If you are compiling EmParsec into a larger project, it marks itself as &quot;internal&quot; so that you don&#39;t pollute the end users name space, and so that if two projects you reference have embedded different versions of EmParsec there are no collisions.</p>
 
 <h2>How do I use it?</h2>
 
-<p>So, you&rsquo;ve added EmParsec.fs to your project (manually or with Paket) and now you&rsquo;re wondering how to use it. Let&rsquo;s build some simple examples.</p>
+<p>So, you&#39;ve added EmParsec.fs to your project (manually or with Paket) and now you&#39;re wondering how to use it. Let&#39;s build some simple examples.</p>
 
 <h3>Matching an exact string</h3>
 
-<p>Let&rsquo;s start with something simple: what if I just want to match a string?</p>
+<p>Let&#39;s start with something simple: what if I just want to match a string?</p>
 
-<p>Parser combinator libraries allow you to combine parsers from simpler parsers (hence the name), but in this case <code>pstring</code> (the &lsquo;p&rsquo; is there to avoid clashing with the existing <code>string</code> function) is provided for us by EmParsec.</p>
+<p>Parser combinator libraries allow you to combine parsers from simpler parsers (hence the name), but in this case <code>pstring</code> (the &#39;p&#39; is there to avoid clashing with the existing <code>string</code> function) is provided for us by EmParsec.</p>
 
-<p>Let&rsquo;s try it out!</p>
+<p>Let&#39;s try it out!</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -172,7 +173,6 @@ ga('send', 'pageview');
 </span><span class='line'><span class="c1">//   ^&quot;</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
 <p>Not bad! It even marks the unexpected character in the error output.</p>
 
 <p>Unfortunately:</p>
@@ -183,12 +183,11 @@ ga('send', 'pageview');
 </span><span class='line'><span class="c1">// val it : Choice&lt;string,string&gt; = Choice1Of2 &quot;thing&quot;</span>
 </span></code></pre></td></tr></table></div></figure>
 
+<p>That probably isn&#39;t the behaviour you were hoping for. There&#39;s still input left after the parser has finished, but that isn&#39;t being seen as an error. EmParsec includes the <code>eof</code> parser for just this type of occasion - a parser that checks the input is exhausted.</p>
 
-<p>That probably isn&rsquo;t the behaviour you were hoping for. There&rsquo;s still input left after the parser has finished, but that isn&rsquo;t being seen as an error. EmParsec includes the <code>eof</code> parser for just this type of occasion &ndash; a parser that checks the input is exhausted.</p>
+<p>So we want a parser that parses &quot;thing&quot; and then ends.</p>
 
-<p>So we want a parser that parses &ldquo;thing&rdquo; and then ends.</p>
-
-<p>Let&rsquo;s go:</p>
+<p>Let&#39;s go:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -236,8 +235,7 @@ ga('send', 'pageview');
 </span><span class='line'><span class="c1">//      ^&quot;</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-<p>That&rsquo;s more like it. The only issue now is that we&rsquo;ve combined two parser, so we&rsquo;re getting back a tuple of two results.</p>
+<p>That&#39;s more like it. The only issue now is that we&#39;ve combined two parser, so we&#39;re getting back a tuple of two results.</p>
 
 <p>A simple tweak tells EmParsec to throw away the unit result returned by <code>eof</code>.</p>
 
@@ -251,18 +249,17 @@ ga('send', 'pageview');
 </span><span class='line'><span class="c1">// val it : Choice&lt;string,string&gt; = Choice1Of2 &quot;thing&quot;</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-<p>&ldquo;Impressive,&rdquo; I hear you say: &ldquo;You can parse static strings!&rdquo;</p>
+<p>&quot;Impressive,&quot; I hear you say: &quot;You can parse static strings!&quot;</p>
 
 <h3>Parsing a simple template language</h3>
 
-<p>You have a point. Let&rsquo;s tackle a simple template language. You know the kind of thing:</p>
+<p>You have a point. Let&#39;s tackle a simple template language. You know the kind of thing:</p>
 
 <p><code>Welcome {name}! Please spend money here.</code></p>
 
-<p>That kind of thing. I&rsquo;m going to start building up a set of helper parsers for this, applying some type annotations both to make the example code clearer and to avoid the value restriction errors that crop up until you actually use the parsers (those occur because these parsers can carry generic user state, but we&rsquo;re not going to go into using that here).</p>
+<p>That kind of thing. I&#39;m going to start building up a set of helper parsers for this, applying some type annotations both to make the example code clearer and to avoid the value restriction errors that crop up until you actually use the parsers (those occur because these parsers can carry generic user state, but we&#39;re not going to go into using that here).</p>
 
-<p>We have two &ldquo;types&rdquo; of token that can exist in our template language: values to be replaced, and text to be preserved. Let&rsquo;s start by creating a union type to contain our parse results:</p>
+<p>We have two &quot;types&quot; of token that can exist in our template language: values to be replaced, and text to be preserved. Let&#39;s start by creating a union type to contain our parse results:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -272,8 +269,7 @@ ga('send', 'pageview');
 </span><span class='line'>  <span class="o">|</span> <span class="nc">Value</span> <span class="k">of</span> <span class="kt">string</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-<p>Then, we&rsquo;ll have a parser that will parse individual characters which are <em>not</em> an opening bracket:</p>
+<p>Then, we&#39;ll have a parser that will parse individual characters which are <em>not</em> an opening bracket:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -281,10 +277,9 @@ ga('send', 'pageview');
 </span><span class='line'>  <span class="n">satisfy</span> <span class="o">(</span><span class="k">fun</span> <span class="n">c</span> <span class="o">-&gt;</span> <span class="n">c</span> <span class="o">&lt;&gt;</span> <span class="kt">char</span> <span class="sc">&#39;{&#39;</span><span class="o">)</span> <span class="s2">&quot;not open bracket&quot;</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
 <p><code>satisfy</code> is a function built into EmParsec which takes a predicate for whether or not it will consume the next character in the input stream. The final string argument is a name for the parser, which will be used in error messages.</p>
 
-<p>Then we&rsquo;ll use that parser to create one that consumes as many &ldquo;not open bracket&rdquo; characters as it can, combines them into a string and then counts that string as a <code>Text</code> part.</p>
+<p>Then we&#39;ll use that parser to create one that consumes as many &quot;not open bracket&quot; characters as it can, combines them into a string and then counts that string as a <code>Text</code> part.</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -304,14 +299,13 @@ ga('send', 'pageview');
 </span><span class='line'>  <span class="o">&lt;?&gt;</span> <span class="s2">&quot;&lt;text parser&gt;&quot;</span>
 </span></code></pre></td></tr></table></div></figure>
 
+<p>There&#39;s a new function here and a couple of new operators (all taken from FParsec, by the way). <code>|&gt;&gt;</code> is a map operator; it allows you to transform the result of a parser and then rewrap everything back up into a new parser. This is really at the heart of the power of parser combinator libraries.</p>
 
-<p>There&rsquo;s a new function here and a couple of new operators (all taken from FParsec, by the way). <code>|&gt;&gt;</code> is a map operator; it allows you to transform the result of a parser and then rewrap everything back up into a new parser. This is really at the heart of the power of parser combinator libraries.</p>
+<p>The <code>&lt;?&gt;</code> operator is much simpler: it allows you to name a parser rather than its name being some combination of the parsers it&#39;s built of.</p>
 
-<p>The <code>&lt;?&gt;</code> operator is much simpler: it allows you to name a parser rather than its name being some combination of the parsers it&rsquo;s built of.</p>
+<p>The <code>many1</code> function says &quot;match one or more instances of the parser that follows&quot;. There is also a <code>many</code>, which matches 0 or more repeats.</p>
 
-<p>The <code>many1</code> function says &ldquo;match one or more instances of the parser that follows&rdquo;. There is also a <code>many</code>, which matches 0 or more repeats.</p>
-
-<p>So that&rsquo;s good &ndash; we can capture the text in between our replacable values. Let&rsquo;s go with a parser for the bracketed value names next!</p>
+<p>So that&#39;s good - we can capture the text in between our replacable values. Let&#39;s go with a parser for the bracketed value names next!</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -347,12 +341,11 @@ ga('send', 'pageview');
 </span><span class='line'>  <span class="o">&lt;?&gt;</span> <span class="s2">&quot;&lt;value parser&gt;&quot;</span>
 </span></code></pre></td></tr></table></div></figure>
 
+<p>So we now have parsers for white space and our &quot;valueName&quot; (which we are saying must be at least one character long, and can consist of any character which is not whitespace or a closing curly bracket). We can then use pchar (&quot;parse char&quot;) and whitespace to allow for minor variations in syntax (some people like <code>{name}</code>, others like <code>{ name }</code>).</p>
 
-<p>So we now have parsers for white space and our &ldquo;valueName&rdquo; (which we are saying must be at least one character long, and can consist of any character which is not whitespace or a closing curly bracket). We can then use pchar (&ldquo;parse char&rdquo;) and whitespace to allow for minor variations in syntax (some people like <code>{name}</code>, others like <code>{ name }</code>).</p>
+<p>Finally we build our value parser, using the <code>between</code> function, which does pretty much what you&#39;d expect: it takes an opening parser, a closing parser, and captures what&#39;s in between with third parser.</p>
 
-<p>Finally we build our value parser, using the <code>between</code> function, which does pretty much what you&rsquo;d expect: it takes an opening parser, a closing parser, and captures what&rsquo;s in between with third parser.</p>
-
-<p>Our final step is just to combine our parsers for value and text sections. We want to capture &ldquo;many&rdquo; of one or the other, until we run out of input. We&rsquo;ll put an explicit <code>eof</code> on there as well, otherwise things like (for example) an unclosed <code>}</code> at the end of the string will not show up as an error &ndash; the parser will just stop at the character before the opening <code>{</code> as the last matching input.</p>
+<p>Our final step is just to combine our parsers for value and text sections. We want to capture &quot;many&quot; of one or the other, until we run out of input. We&#39;ll put an explicit <code>eof</code> on there as well, otherwise things like (for example) an unclosed <code>}</code> at the end of the string will not show up as an error - the parser will just stop at the character before the opening <code>{</code> as the last matching input.</p>
 
 <p>Our final parser introduces the <code>&lt;|&gt;</code> (orElse) operator, and looks like this:</p>
 
@@ -366,8 +359,7 @@ ga('send', 'pageview');
 </span><span class='line'>  <span class="o">&lt;?&gt;</span> <span class="s2">&quot;&lt;template parser&gt;&quot;</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-<p>Let&rsquo;s try it out!</p>
+<p>Let&#39;s try it out!</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -411,8 +403,7 @@ ga('send', 'pageview');
 </span><span class='line'>     <span class="o">|</span> <span class="nc">Choice2Of2</span> <span class="n">fail</span> <span class="o">-&gt;</span> <span class="n">failwithf</span> <span class="s2">&quot;Parsing failed!</span><span class="se">\n</span><span class="s2">%s&quot;</span> <span class="n">fail</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-<p>A couple of helpers: <code>showTemplate</code> knows how to build up a string from a list of template parts and a value map, <code>run'</code> is just a simple wrapper around <code>run</code> that throws if parsing is not successful.</p>
+<p>A couple of helpers: <code>showTemplate</code> knows how to build up a string from a list of template parts and a value map, <code>run&#39;</code> is just a simple wrapper around <code>run</code> that throws if parsing is not successful.</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -448,12 +439,11 @@ ga('send', 'pageview');
 </span><span class='line'><span class="c1">//   &quot;Hello, bob! How about ? &lt;- That should be left blank, but parse as valid.&quot;</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-<p>And finally our templates in action. You can see that even with a simple parser like this, it&rsquo;s already reaching a complexity that would be painful to match with a hand rolled creation.</p>
+<p>And finally our templates in action. You can see that even with a simple parser like this, it&#39;s already reaching a complexity that would be painful to match with a hand rolled creation.</p>
 
 <p>If you want to know more about parser combinators, and especially how to use them to create recursive grammars, do check out the <a href="http://www.quanttec.com/fparsec/">FParsec documentation</a> which is excellent. It is also more complete and <em>much</em> more performant than EmParsec.</p>
 
-<p>But if you need a small, single file parser where performance is not the primary concern &ndash; maybe EmParsec is your friend. Anyone who wants to join in making it better is more than welcome! Of particular note is that EmParsec does not yet support controlling when backtracking does or doesn&rsquo;t happen (it will always backtrack) which can make for some pretty confusing error messages.</p>
+<p>But if you need a small, single file parser where performance is not the primary concern - maybe EmParsec is your friend. Anyone who wants to join in making it better is more than welcome! Of particular note is that EmParsec does not yet support controlling when backtracking does or doesn&#39;t happen (it will always backtrack) which can make for some pretty confusing error messages.</p>
 </div>
 
 
@@ -525,6 +515,10 @@ ga('send', 'pageview');
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/advent-2016/">Advent 2016</a>
+      </li>
+    
+      <li class="post">
         <a href="/video-and-slides-for-from-the-ivory-tower/">Video and Slides for "From the Ivory Tower"</a>
       </li>
     
@@ -538,10 +532,6 @@ ga('send', 'pageview');
     
       <li class="post">
         <a href="/type-providers-live-the-movie/">Type Providers Live - the Movie</a>
-      </li>
-    
-      <li class="post">
-        <a href="/emparsec-embedded-parser-library/">EmParsec Embedded Parser Library</a>
       </li>
     
   </ul>

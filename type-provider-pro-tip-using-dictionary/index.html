@@ -109,10 +109,9 @@ ga('send', 'pageview');
 
 <p>This will sound familiar to users of a number of dynamically typed languages as in many cases objects in these languages are just dictionaries under the hood.</p>
 
-<p>This is such a common thing to be doing in a type provider that I thought it was worth writing up a working example that can then be modified to your individual situation. I&rsquo;ve presented the entire listing below with comments, but there is one particular trick I&rsquo;ll explain in a bit more detail. Let&rsquo;s have a look at let bindings in quotations!</p>
+<p>This is such a common thing to be doing in a type provider that I thought it was worth writing up a working example that can then be modified to your individual situation. I&#39;ve presented the entire listing below with comments, but there is one particular trick I&#39;ll explain in a bit more detail. Let&#39;s have a look at let bindings in quotations!</p>
 
 <!-- more -->
-
 
 <p>So, normally when you write a <code>let</code> binding in F#, and end up writing something like this:</p>
 
@@ -126,7 +125,6 @@ ga('send', 'pageview');
 </span><span class='line'>  <span class="n">x</span> <span class="o">+</span> <span class="mi">10</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
 <p>Here, the body of function <code>myFunction</code> is an expression that evaluates to 20. But it turns out that this is actually syntax sugar for:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
@@ -135,8 +133,7 @@ ga('send', 'pageview');
 </span><span class='line'>  <span class="k">let</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">10</span> <span class="k">in</span> <span class="n">x</span> <span class="o">+</span> <span class="mi">10</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-<p>A quotation in F# always represents a single expression, so it shouldn&rsquo;t come as a surprise at this point that the <code>Expr.Let</code> class has a constructor this three arguments. The variable being bound, the value to bind to it, and the body in which it is used. So if you want to express the body of the function above you end up with something like this:</p>
+<p>A quotation in F# always represents a single expression, so it shouldn&#39;t come as a surprise at this point that the <code>Expr.Let</code> class has a constructor this three arguments. The variable being bound, the value to bind to it, and the body in which it is used. So if you want to express the body of the function above you end up with something like this:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -158,8 +155,7 @@ ga('send', 'pageview');
 </span><span class='line'>  <span class="nn">Expr</span><span class="p">.</span><span class="nc">Let</span><span class="o">(</span><span class="n">xVar</span><span class="o">,</span> <span class="o">&lt;@@</span> <span class="mi">10</span> <span class="o">@@&gt;,</span> <span class="o">&lt;@@</span> <span class="o">%%</span><span class="n">x</span> <span class="o">+</span> <span class="mi">10</span> <span class="o">@@&gt;)</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-<p>The trick you need to know is that <code>Expr.Var</code> produces an Expr that represents a place where a variable will be used. But it creates an untyped Expr, and this can (and does) cause issues with type inference. We can work around this by making use of typed expressions, represented by the generic <code>Expr&lt;'a&gt;</code> class. The type provider API takes the untyped version, but you can convert back to the untyped version either by calling the <code>Raw</code> property on the typed expression or just by using it to help construct an expression which contains the typed expression but which is untyped itself using the <code>Expr</code> classes.</p>
+<p>The trick you need to know is that <code>Expr.Var</code> produces an Expr that represents a place where a variable will be used. But it creates an untyped Expr, and this can (and does) cause issues with type inference. We can work around this by making use of typed expressions, represented by the generic <code>Expr&lt;&#39;a&gt;</code> class. The type provider API takes the untyped version, but you can convert back to the untyped version either by calling the <code>Raw</code> property on the typed expression or just by using it to help construct an expression which contains the typed expression but which is untyped itself using the <code>Expr</code> classes.</p>
 
 <p>In the code below, notice the use of <code>&lt;@ ... @&gt;</code> and <code>%</code> rather than <code>&lt;@@ ... @@&gt;</code> and <code>%%</code> to work with typed expressions rather than untyped.</p>
 
@@ -189,8 +185,7 @@ ga('send', 'pageview');
 </span><span class='line'>    <span class="c1">// the line above fails without typed expressions</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-<p>With that out of the way, we&rsquo;re good to go. The type provider below is a simple wrapper around a string, string dictionary. It looks like this in use:</p>
+<p>With that out of the way, we&#39;re good to go. The type provider below is a simple wrapper around a string, string dictionary. It looks like this in use:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -216,10 +211,9 @@ ga('send', 'pageview');
 </span><span class='line'><span class="n">thing</span><span class="o">.</span><span class="n">name1</span> <span class="c1">// &quot;not one. Muhahahaha!&quot;</span>
 </span></code></pre></td></tr></table></div></figure>
 
+<p>You&#39;ll get different properties depending which strings you supply as parameters.</p>
 
-<p>You&rsquo;ll get different properties depending which strings you supply as parameters.</p>
-
-<p>Here&rsquo;s the source:</p>
+<p>Here&#39;s the source:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -406,7 +400,6 @@ ga('send', 'pageview');
 </span><span class='line'><span class="o">[&lt;</span><span class="n">assembly</span><span class="o">:</span><span class="nc">TypeProviderAssembly</span><span class="o">&gt;]</span>
 </span><span class='line'><span class="k">do</span><span class="bp">()</span>
 </span></code></pre></td></tr></table></div></figure>
-
 </div>
 
 
@@ -478,6 +471,10 @@ ga('send', 'pageview');
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/advent-2016/">Advent 2016</a>
+      </li>
+    
+      <li class="post">
         <a href="/video-and-slides-for-from-the-ivory-tower/">Video and Slides for "From the Ivory Tower"</a>
       </li>
     
@@ -491,10 +488,6 @@ ga('send', 'pageview');
     
       <li class="post">
         <a href="/type-providers-live-the-movie/">Type Providers Live - the Movie</a>
-      </li>
-    
-      <li class="post">
-        <a href="/emparsec-embedded-parser-library/">EmParsec Embedded Parser Library</a>
       </li>
     
   </ul>

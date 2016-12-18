@@ -113,7 +113,6 @@ ga('send', 'pageview');
 
 <!-- more -->
 
-
 <p>Taking the format string and parsing it looks very similar to the Idris version, what with the common ML history of the two languages:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
@@ -146,12 +145,11 @@ ga('send', 'pageview');
 </span><span class='line'>    <span class="n">parseFormat</span> <span class="o">(</span><span class="nn">Seq</span><span class="p">.</span><span class="n">toList</span> <span class="n">str</span><span class="o">)</span>
 </span></code></pre></td></tr></table></div></figure>
 
+<p>This might not be the most efficient or flexible parsing method, but that&#39;s not really the point of the current exercise and it&#39;s very clear what it&#39;s doing.</p>
 
-<p>This might not be the most efficient or flexible parsing method, but that&rsquo;s not really the point of the current exercise and it&rsquo;s very clear what it&rsquo;s doing.</p>
+<p>Next, we want to create a <a href="http://msdn.microsoft.com/en-us/library/dd233212.aspx">quotation</a> that represents a curried function based on our format type. This is where I needed Tomas&#39; help - it turns out there isn&#39;t any easy way to do this with the <code>&lt;@@ ... @@&gt;</code> syntax I&#39;ve usually used to build quotations for type providers.</p>
 
-<p>Next, we want to create a <a href="http://msdn.microsoft.com/en-us/library/dd233212.aspx">quotation</a> that represents a curried function based on our format type. This is where I needed Tomas&#8217; help &ndash; it turns out there isn&rsquo;t any easy way to do this with the <code>&lt;@@ ... @@&gt;</code> syntax I&rsquo;ve usually used to build quotations for type providers.</p>
-
-<p>Tomas reminded me that the <code>Microsoft.FSharp.Quotations</code> namespace gives direct access to the underlying classes that represent the expression tree of the quotation. This allows us to build an expression tree recusively; check out <a href="http://stackoverflow.com/a/23375794/68457">Tomas&#8217; explanation</a>  of the technique for more details of how it works.</p>
+<p>Tomas reminded me that the <code>Microsoft.FSharp.Quotations</code> namespace gives direct access to the underlying classes that represent the expression tree of the quotation. This allows us to build an expression tree recusively; check out <a href="http://stackoverflow.com/a/23375794/68457">Tomas&#39; explanation</a>  of the technique for more details of how it works.</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -197,8 +195,7 @@ ga('send', 'pageview');
 </span><span class='line'>        <span class="nn">Expr</span><span class="p">.</span><span class="nc">Lambda</span><span class="o">(</span><span class="n">v</span><span class="o">,</span> <span class="n">invoker</span> <span class="o">(</span><span class="n">printer</span><span class="o">::</span><span class="n">printers</span><span class="o">)</span> <span class="n">t</span><span class="o">)</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-<p>That&rsquo;s the hard stuff out of the way! Now we just have some type provider boiler plate. We&rsquo;re going to provide a type provider named <code>TPrint</code> which takes a single parameter (our format string). Once the parameter is supplied, we provide a single static property which is an FSharpFunc type which matches the signature required by the format string.</p>
+<p>That&#39;s the hard stuff out of the way! Now we just have some type provider boiler plate. We&#39;re going to provide a type provider named <code>TPrint</code> which takes a single parameter (our format string). Once the parameter is supplied, we provide a single static property which is an FSharpFunc type which matches the signature required by the format string.</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -282,7 +279,6 @@ ga('send', 'pageview');
 </span><span class='line'><span class="k">do</span> <span class="bp">()</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
 <p>So, put it all together and you get a type provider which allows you to do this:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
@@ -297,8 +293,7 @@ ga('send', 'pageview');
 </span><span class='line'><span class="c1">// val it : string = &quot;Number one: 1! Number two: 2! A string: My string!!&quot;</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-<p>So; nothing there that the built in <code>printf</code> doesn&rsquo;t already do for you. But, this does start opening up some options for providing much more idiomatic F# style APIs then I&rsquo;ve really seen so far from Type Providers, which tend to provide very OO style interfaces. Should be some interesting ideas in there to explore!</p>
+<p>So; nothing there that the built in <code>printf</code> doesn&#39;t already do for you. But, this does start opening up some options for providing much more idiomatic F# style APIs then I&#39;ve really seen so far from Type Providers, which tend to provide very OO style interfaces. Should be some interesting ideas in there to explore!</p>
 
 <p>Full code can be found <a href="https://github.com/mavnn/TypeSet">at Github</a>.</p>
 </div>
@@ -372,6 +367,10 @@ ga('send', 'pageview');
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/advent-2016/">Advent 2016</a>
+      </li>
+    
+      <li class="post">
         <a href="/video-and-slides-for-from-the-ivory-tower/">Video and Slides for "From the Ivory Tower"</a>
       </li>
     
@@ -385,10 +384,6 @@ ga('send', 'pageview');
     
       <li class="post">
         <a href="/type-providers-live-the-movie/">Type Providers Live - the Movie</a>
-      </li>
-    
-      <li class="post">
-        <a href="/emparsec-embedded-parser-library/">EmParsec Embedded Parser Library</a>
       </li>
     
   </ul>

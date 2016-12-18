@@ -4,7 +4,7 @@
   <title><![CDATA[Category: programming | Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/blog/categories/programming/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2016-04-15T22:35:51+01:00</updated>
+  <updated>2016-12-18T01:25:28+00:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -22,190 +22,156 @@
 
 <p>This will sound familiar to users of a number of dynamically typed languages as in many cases objects in these languages are just dictionaries under the hood.</p>
 
-<p>This is such a common thing to be doing in a type provider that I thought it was worth writing up a working example that can then be modified to your individual situation. I&rsquo;ve presented the entire listing below with comments, but there is one particular trick I&rsquo;ll explain in a bit more detail. Let&rsquo;s have a look at let bindings in quotations!</p>
+<p>This is such a common thing to be doing in a type provider that I thought it was worth writing up a working example that can then be modified to your individual situation. I&#39;ve presented the entire listing below with comments, but there is one particular trick I&#39;ll explain in a bit more detail. Let&#39;s have a look at let bindings in quotations!</p>
 
 <!-- more -->
 
-
 <p>So, normally when you write a <code>let</code> binding in F#, and end up writing something like this:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="n">myFunction</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">10</span>
 
-<p>``` fsharp
-let myFunction () =
-  let x = 10</p>
-
-<p>  x + 10
-```</p>
-
+  <span class="n">x</span> <span class="o">+</span> <span class="mi">10</span>
+</code></pre></div>
 <p>Here, the body of function <code>myFunction</code> is an expression that evaluates to 20. But it turns out that this is actually syntax sugar for:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="n">myFunction</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">10</span> <span class="k">in</span> <span class="n">x</span> <span class="o">+</span> <span class="mi">10</span>
+</code></pre></div>
+<p>A quotation in F# always represents a single expression, so it shouldn&#39;t come as a surprise at this point that the <code>Expr.Let</code> class has a constructor this three arguments. The variable being bound, the value to bind to it, and the body in which it is used. So if you want to express the body of the function above you end up with something like this:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">open</span> <span class="nn">FSharp</span><span class="p">.</span><span class="nc">Quotations</span>
 
-<p><code>fsharp
-let myFunction () =
-  let x = 10 in x + 10
-</code></p>
+<span class="k">let</span> <span class="n">version1</span> <span class="o">=</span>
+  <span class="o">&lt;@@</span> <span class="k">let</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">10</span> <span class="k">in</span> <span class="n">x</span> <span class="o">+</span> <span class="mi">10</span> <span class="o">@@&gt;</span> <span class="c1">// cheat!</span>
 
-<p>A quotation in F# always represents a single expression, so it shouldn&rsquo;t come as a surprise at this point that the <code>Expr.Let</code> class has a constructor this three arguments. The variable being bound, the value to bind to it, and the body in which it is used. So if you want to express the body of the function above you end up with something like this:</p>
-
-<p>``` fsharp
-open FSharp.Quotations</p>
-
-<p>let version1 =
-  &lt;@@ let x = 10 in x + 10 @@> // cheat!</p>
-
-<p>let version2 =
-  let xVar = Var(&ldquo;x&rdquo;, typeof<int>)
-  let x = Expr.Var xVar
-  Expr.Let(xVar, &lt;@@ 10 @@>, &lt;@@ %%x + 10 @@>)
-```</p>
-
-<p>The trick you need to know is that <code>Expr.Var</code> produces an Expr that represents a place where a variable will be used. But it creates an untyped Expr, and this can (and does) cause issues with type inference. We can work around this by making use of typed expressions, represented by the generic <code>Expr&lt;'a&gt;</code> class. The type provider API takes the untyped version, but you can convert back to the untyped version either by calling the <code>Raw</code> property on the typed expression or just by using it to help construct an expression which contains the typed expression but which is untyped itself using the <code>Expr</code> classes.</p>
+<span class="k">let</span> <span class="n">version2</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">xVar</span> <span class="o">=</span> <span class="nc">Var</span><span class="o">(</span><span class="s2">&quot;x&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;)</span>
+  <span class="k">let</span> <span class="n">x</span> <span class="o">=</span> <span class="nn">Expr</span><span class="p">.</span><span class="nc">Var</span> <span class="n">xVar</span>
+  <span class="nn">Expr</span><span class="p">.</span><span class="nc">Let</span><span class="o">(</span><span class="n">xVar</span><span class="o">,</span> <span class="o">&lt;@@</span> <span class="mi">10</span> <span class="o">@@&gt;,</span> <span class="o">&lt;@@</span> <span class="o">%%</span><span class="n">x</span> <span class="o">+</span> <span class="mi">10</span> <span class="o">@@&gt;)</span>
+</code></pre></div>
+<p>The trick you need to know is that <code>Expr.Var</code> produces an Expr that represents a place where a variable will be used. But it creates an untyped Expr, and this can (and does) cause issues with type inference. We can work around this by making use of typed expressions, represented by the generic <code>Expr&lt;&#39;a&gt;</code> class. The type provider API takes the untyped version, but you can convert back to the untyped version either by calling the <code>Raw</code> property on the typed expression or just by using it to help construct an expression which contains the typed expression but which is untyped itself using the <code>Expr</code> classes.</p>
 
 <p>In the code below, notice the use of <code>&lt;@ ... @&gt;</code> and <code>%</code> rather than <code>&lt;@@ ... @@&gt;</code> and <code>%%</code> to work with typed expressions rather than untyped.</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">open</span> <span class="nn">FSharp</span><span class="p">.</span><span class="nc">Quotations</span>
 
-<p>``` fsharp
-open FSharp.Quotations</p>
+<span class="k">type</span> <span class="nc">GD</span> <span class="o">=</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Collections</span><span class="p">.</span><span class="nn">Generic</span><span class="p">.</span><span class="nc">Dictionary</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">,</span><span class="kt">string</span><span class="o">&gt;</span>
 
-<p>type GD = System.Collections.Generic.Dictionary&lt;string,string></p>
+<span class="k">let</span> <span class="n">dictExpr</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">gdVar</span> <span class="o">=</span> <span class="nc">Var</span><span class="o">(</span><span class="s2">&quot;gd&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="nc">GD</span><span class="o">&gt;)</span>
+  <span class="k">let</span> <span class="n">gdExpr</span> <span class="o">=</span>
+    <span class="nn">Expr</span><span class="p">.</span><span class="nc">Var</span> <span class="n">gdVar</span> <span class="o">|&gt;</span> <span class="nn">Expr</span><span class="p">.</span><span class="nc">Cast</span><span class="o">&lt;</span><span class="nc">GD</span><span class="o">&gt;</span>
+    <span class="c1">// Expr.Cast forces this to be a typed expression</span>
+  <span class="k">let</span> <span class="n">addValue</span> <span class="o">=</span>
+    <span class="nn">Expr</span><span class="p">.</span><span class="nc">Let</span><span class="o">(</span><span class="n">gdVar</span><span class="o">,</span> <span class="o">&lt;@</span> <span class="nc">GD</span><span class="bp">()</span> <span class="o">@&gt;,</span> <span class="o">&lt;@</span> <span class="o">%</span><span class="n">gdExpr</span><span class="o">.[</span><span class="s2">&quot;one&quot;</span><span class="o">]</span> <span class="o">&lt;-</span> <span class="s2">&quot;the number one&quot;</span> <span class="o">@&gt;)</span>
+    <span class="c1">// the line above fails without typed expressions</span>
+</code></pre></div>
+<p>With that out of the way, we&#39;re good to go. The type provider below is a simple wrapper around a string, string dictionary. It looks like this in use:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">type</span> <span class="nc">MyType</span> <span class="o">=</span> <span class="nn">DictProvider</span><span class="p">.</span><span class="nc">ParaProvider</span><span class="o">&lt;</span><span class="s2">&quot;name1, name2&quot;</span><span class="o">&gt;</span>
 
-<p>let dictExpr =
-  let gdVar = Var(&ldquo;gd&rdquo;, typeof<GD>)
-  let gdExpr =</p>
+<span class="k">let</span> <span class="n">thing</span> <span class="o">=</span> <span class="nc">MyType</span><span class="o">(</span><span class="s2">&quot;1&quot;</span><span class="o">,</span><span class="s2">&quot;2&quot;</span><span class="o">)</span>
 
-<pre><code>Expr.Var gdVar |&gt; Expr.Cast&lt;GD&gt;
-// Expr.Cast forces this to be a typed expression
-</code></pre>
+<span class="n">thing</span><span class="o">.</span><span class="n">name1</span> <span class="c1">// &quot;1&quot;</span>
+<span class="n">thing</span><span class="o">.</span><span class="n">name2</span> <span class="c1">// &quot;2&quot;</span>
 
-<p>  let addValue =</p>
+<span class="n">thing</span><span class="o">.</span><span class="n">name1</span> <span class="o">&lt;-</span> <span class="s2">&quot;not one. Muhahahaha!&quot;</span>
+<span class="n">thing</span><span class="o">.</span><span class="n">name2</span> <span class="o">&lt;-</span> <span class="s2">&quot;that&#39;s why you shouldn&#39;t make things mutable&quot;</span>
 
-<pre><code>Expr.Let(gdVar, &lt;@ GD() @&gt;, &lt;@ %gdExpr.["one"] &lt;- "the number one" @&gt;)
-// the line above fails without typed expressions
-</code></pre>
+<span class="n">thing</span><span class="o">.</span><span class="n">name1</span> <span class="c1">// &quot;not one. Muhahahaha!&quot;</span>
+</code></pre></div>
+<p>You&#39;ll get different properties depending which strings you supply as parameters.</p>
 
-<p>```</p>
+<p>Here&#39;s the source:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">module</span> <span class="nc">DictProvider</span>
 
-<p>With that out of the way, we&rsquo;re good to go. The type provider below is a simple wrapper around a string, string dictionary. It looks like this in use:</p>
+<span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Reflection</span>
+<span class="k">open</span> <span class="nn">FSharp</span><span class="p">.</span><span class="nn">Core</span><span class="p">.</span><span class="nc">CompilerServices</span>
+<span class="k">open</span> <span class="nn">FSharp</span><span class="p">.</span><span class="nc">Quotations</span>
+<span class="k">open</span> <span class="nn">ProviderImplementation</span><span class="p">.</span><span class="nc">ProvidedTypes</span>
 
-<p>``` fsharp
-type MyType = DictProvider.ParaProvider&lt;&ldquo;name1, name2&rdquo;></p>
+<span class="k">type</span> <span class="nc">GD</span> <span class="o">=</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Collections</span><span class="p">.</span><span class="nn">Generic</span><span class="p">.</span><span class="nc">Dictionary</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">,</span> <span class="kt">string</span><span class="o">&gt;</span>
 
-<p>let thing = MyType(&ldquo;1&rdquo;,&ldquo;2&rdquo;)</p>
+<span class="o">[&lt;</span><span class="nc">TypeProvider</span><span class="o">&gt;]</span>
+<span class="k">type</span> <span class="nc">DictionaryProvider</span><span class="bp">()</span> <span class="k">as</span> <span class="n">this</span> <span class="o">=</span>
+  <span class="k">inherit</span> <span class="nc">TypeProviderForNamespaces</span><span class="bp">()</span>
 
-<p>thing.name1 // &ldquo;1&rdquo;
-thing.name2 // &ldquo;2&rdquo;</p>
+  <span class="k">let</span> <span class="n">ns</span> <span class="o">=</span> <span class="s2">&quot;DictProvider&quot;</span>
+  <span class="k">let</span> <span class="n">asm</span> <span class="o">=</span> <span class="nn">Assembly</span><span class="p">.</span><span class="nc">GetExecutingAssembly</span><span class="bp">()</span>
 
-<p>thing.name1 &lt;&ndash; &ldquo;not one. Muhahahaha!&rdquo;
-thing.name2 &lt;&ndash; &ldquo;that&rsquo;s why you shouldn&rsquo;t make things mutable&rdquo;</p>
+  <span class="k">let</span> <span class="n">createType</span> <span class="n">typeName</span> <span class="o">(</span><span class="n">parameters</span> <span class="o">:</span> <span class="n">obj</span> <span class="bp">[]</span><span class="o">)</span> <span class="o">=</span>
+    <span class="c1">// We&#39;ll get our property names by just splitting</span>
+    <span class="c1">// our single parameter on commas</span>
+    <span class="k">let</span> <span class="n">propNames</span> <span class="o">=</span>
+      <span class="o">(</span><span class="n">parameters</span><span class="o">.[</span><span class="mi">0</span><span class="o">]</span> <span class="o">:?&gt;</span> <span class="kt">string</span><span class="o">).</span><span class="nc">Split</span> <span class="sc">&#39;,&#39;</span>
+      <span class="o">|&gt;</span> <span class="nn">Array</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">s</span> <span class="o">-&gt;</span> <span class="n">s</span><span class="o">.</span><span class="nc">Trim</span><span class="bp">()</span><span class="o">)</span>
 
-<p>thing.name1 // &ldquo;not one. Muhahahaha!&rdquo;
-```</p>
+    <span class="c1">// Each of our properties has setter code to set the value in the dict with the</span>
+    <span class="c1">// name of the property, and getter code with gets the same value</span>
+    <span class="k">let</span> <span class="n">aProp</span> <span class="n">name</span> <span class="o">=</span>
+      <span class="nc">ProvidedProperty</span><span class="o">(</span>
+        <span class="n">name</span><span class="o">,</span>
+        <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;,</span>
+        <span class="nc">IsStatic</span> <span class="o">=</span> <span class="bp">false</span><span class="o">,</span>
+        <span class="nc">GetterCode</span> <span class="o">=</span> <span class="o">(</span><span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="o">(%%</span><span class="n">args</span><span class="o">.[</span><span class="mi">0</span><span class="o">]:</span><span class="nc">GD</span><span class="o">).[</span><span class="n">name</span><span class="o">]</span> <span class="o">@@&gt;),</span>
+        <span class="nc">SetterCode</span> <span class="o">=</span> <span class="o">(</span><span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="o">(%%</span><span class="n">args</span><span class="o">.[</span><span class="mi">0</span><span class="o">]:</span><span class="nc">GD</span><span class="o">).[</span><span class="n">name</span><span class="o">]</span> <span class="o">&lt;-</span> <span class="o">(%%</span><span class="n">args</span><span class="o">.[</span><span class="mi">1</span><span class="o">]:</span><span class="kt">string</span><span class="o">)</span> <span class="o">@@&gt;))</span>
 
-<p>You&rsquo;ll get different properties depending which strings you supply as parameters.</p>
+    <span class="c1">// Here we set the type to be erased to as &quot;GD&quot; (our type alias for a dictionary)</span>
+    <span class="c1">// If we want to hide the normal dictionary methods, we could use:</span>
+    <span class="c1">// &#39;myType.HideObjectMethods &lt;- true&#39;</span>
+    <span class="c1">// But here we&#39;ll just let people use the type as a dictionary as well.</span>
+    <span class="k">let</span> <span class="n">myType</span> <span class="o">=</span>
+      <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="n">typeName</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="nc">GD</span><span class="o">&gt;)</span>
 
-<p>Here&rsquo;s the source:</p>
+    <span class="c1">// Make sure we add all the properties to the object.</span>
+    <span class="n">propNames</span>
+    <span class="o">|&gt;</span> <span class="nn">Array</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">propName</span> <span class="o">-&gt;</span> <span class="n">aProp</span> <span class="n">propName</span><span class="o">)</span>
+    <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">ofArray</span>
+    <span class="o">|&gt;</span> <span class="n">myType</span><span class="o">.</span><span class="nc">AddMembers</span>
 
-<p>``` fsharp
-module DictProvider</p>
+    <span class="c1">// We&#39;ll want a constructor that takes as many parameters as we have</span>
+    <span class="c1">// properties, as we&#39;ll want to set the value in the dictionary of our</span>
+    <span class="c1">// properties during construction. If we don&#39;t, trying to use the properties</span>
+    <span class="c1">// will result in a key not found exception.</span>
+    <span class="k">let</span> <span class="n">cstorParams</span> <span class="o">=</span>
+      <span class="n">propNames</span>
+      <span class="o">|&gt;</span> <span class="nn">Array</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">propName</span> <span class="o">-&gt;</span> <span class="nc">ProvidedParameter</span><span class="o">(</span><span class="n">propName</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;))</span>
+      <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">ofArray</span>
 
-<p>open System.Reflection
-open FSharp.Core.CompilerServices
-open FSharp.Quotations
-open ProviderImplementation.ProvidedTypes</p>
+    <span class="c1">// Here&#39;s the constructor code where we set each property in turn.</span>
+    <span class="c1">// Notice how the fold keeps on building up a larger let expression,</span>
+    <span class="c1">// adding a set value line at the top of the expression each time through.</span>
+    <span class="c1">// Our initial state (a line with only the dictionary variable on) is always</span>
+    <span class="c1">// left last, so this is what will be returned from the constructor.</span>
+    <span class="k">let</span> <span class="n">cstorCode</span> <span class="o">=</span>
+      <span class="k">fun</span> <span class="o">(</span><span class="n">args</span> <span class="o">:</span> <span class="nc">Expr</span> <span class="kt">list</span><span class="o">)</span> <span class="o">-&gt;</span>
+        <span class="k">let</span> <span class="n">dictionaryVar</span> <span class="o">=</span> <span class="nc">Var</span><span class="o">(</span><span class="s2">&quot;dictionary&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="nc">GD</span><span class="o">&gt;)</span>
+        <span class="k">let</span> <span class="n">dictionary</span> <span class="o">:</span> <span class="nc">Expr</span><span class="o">&lt;</span><span class="nc">GD</span><span class="o">&gt;</span> <span class="o">=</span> <span class="n">dictionaryVar</span> <span class="o">|&gt;</span> <span class="nn">Expr</span><span class="p">.</span><span class="nc">Var</span> <span class="o">|&gt;</span> <span class="nn">Expr</span><span class="p">.</span><span class="nc">Cast</span>
+        <span class="k">let</span> <span class="n">setValues</span> <span class="o">=</span>
+          <span class="n">args</span>
+          <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">propNames</span>
+          <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">fold</span> <span class="o">(</span><span class="k">fun</span> <span class="n">state</span> <span class="o">(</span><span class="n">name</span><span class="o">,</span> <span class="n">arg</span><span class="o">)</span> <span class="o">-&gt;</span>
+            <span class="o">&lt;@</span> <span class="o">(%</span><span class="n">dictionary</span><span class="o">).[</span><span class="n">name</span><span class="o">]</span> <span class="o">&lt;-</span> <span class="o">(%%</span><span class="n">arg</span><span class="o">:</span><span class="kt">string</span><span class="o">)</span>
+               <span class="o">%</span><span class="n">state</span> <span class="o">@&gt;)</span> <span class="o">&lt;@</span> <span class="o">%</span><span class="n">dictionary</span> <span class="o">@&gt;</span>
+        <span class="nn">Expr</span><span class="p">.</span><span class="nc">Let</span><span class="o">(</span><span class="n">dictionaryVar</span><span class="o">,</span> <span class="o">&lt;@</span> <span class="nc">GD</span><span class="bp">()</span> <span class="o">@&gt;,</span> <span class="n">setValues</span><span class="o">)</span>
 
-<p>type GD = System.Collections.Generic.Dictionary&lt;string, string></p>
+    <span class="c1">// Build the constructor out of our helpers</span>
+    <span class="k">let</span> <span class="n">cstor</span> <span class="o">=</span>
+      <span class="nc">ProvidedConstructor</span><span class="o">(</span><span class="n">cstorParams</span><span class="o">,</span> <span class="nc">InvokeCode</span> <span class="o">=</span> <span class="n">cstorCode</span><span class="o">)</span>
 
-<p>[<TypeProvider>]
-type DictionaryProvider() as this =
-  inherit TypeProviderForNamespaces()</p>
+    <span class="c1">// And make sure you add it to the class!</span>
+    <span class="n">myType</span><span class="o">.</span><span class="nc">AddMember</span> <span class="n">cstor</span>
 
-<p>  let ns = &ldquo;DictProvider&rdquo;
-  let asm = Assembly.GetExecutingAssembly()</p>
+    <span class="n">myType</span>
 
-<p>  let createType typeName (parameters : obj []) =</p>
+  <span class="k">let</span> <span class="n">provider</span> <span class="o">=</span>
+    <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="s2">&quot;ParaProvider&quot;</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;)</span>
+  <span class="k">let</span> <span class="n">parameters</span> <span class="o">=</span>
+    <span class="o">[</span><span class="nc">ProvidedStaticParameter</span><span class="o">(</span><span class="s2">&quot;PropNames&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;)]</span>
 
-<pre><code>// We'll get our property names by just splitting
-// our single parameter on commas
-let propNames =
-  (parameters.[0] :?&gt; string).Split ','
-  |&gt; Array.map (fun s -&gt; s.Trim())
+  <span class="k">do</span>
+    <span class="n">provider</span><span class="o">.</span><span class="nc">DefineStaticParameters</span><span class="o">(</span><span class="n">parameters</span><span class="o">,</span> <span class="n">createType</span><span class="o">)</span>
+    <span class="n">this</span><span class="o">.</span><span class="nc">AddNamespace</span><span class="o">(</span><span class="n">ns</span><span class="o">,</span> <span class="o">[</span><span class="n">provider</span><span class="o">])</span>
 
-// Each of our properties has setter code to set the value in the dict with the
-// name of the property, and getter code with gets the same value
-let aProp name =
-  ProvidedProperty(
-    name,
-    typeof&lt;string&gt;,
-    IsStatic = false,
-    GetterCode = (fun args -&gt; &lt;@@ (%%args.[0]:GD).[name] @@&gt;),
-    SetterCode = (fun args -&gt; &lt;@@ (%%args.[0]:GD).[name] &lt;- (%%args.[1]:string) @@&gt;))
-
-// Here we set the type to be erased to as "GD" (our type alias for a dictionary)
-// If we want to hide the normal dictionary methods, we could use:
-// 'myType.HideObjectMethods &lt;- true'
-// But here we'll just let people use the type as a dictionary as well.
-let myType =
-  ProvidedTypeDefinition(asm, ns, typeName, Some typeof&lt;GD&gt;)
-
-// Make sure we add all the properties to the object.
-propNames
-|&gt; Array.map (fun propName -&gt; aProp propName)
-|&gt; List.ofArray
-|&gt; myType.AddMembers
-
-// We'll want a constructor that takes as many parameters as we have
-// properties, as we'll want to set the value in the dictionary of our
-// properties during construction. If we don't, trying to use the properties
-// will result in a key not found exception.
-let cstorParams =
-  propNames
-  |&gt; Array.map (fun propName -&gt; ProvidedParameter(propName, typeof&lt;string&gt;))
-  |&gt; List.ofArray
-
-// Here's the constructor code where we set each property in turn.
-// Notice how the fold keeps on building up a larger let expression,
-// adding a set value line at the top of the expression each time through.
-// Our initial state (a line with only the dictionary variable on) is always
-// left last, so this is what will be returned from the constructor.
-let cstorCode =
-  fun (args : Expr list) -&gt;
-    let dictionaryVar = Var("dictionary", typeof&lt;GD&gt;)
-    let dictionary : Expr&lt;GD&gt; = dictionaryVar |&gt; Expr.Var |&gt; Expr.Cast
-    let setValues =
-      args
-      |&gt; Seq.zip propNames
-      |&gt; Seq.fold (fun state (name, arg) -&gt;
-        &lt;@ (%dictionary).[name] &lt;- (%%arg:string)
-           %state @&gt;) &lt;@ %dictionary @&gt;
-    Expr.Let(dictionaryVar, &lt;@ GD() @&gt;, setValues)
-
-// Build the constructor out of our helpers
-let cstor =
-  ProvidedConstructor(cstorParams, InvokeCode = cstorCode)
-
-// And make sure you add it to the class!
-myType.AddMember cstor
-
-myType
-</code></pre>
-
-<p>  let provider =</p>
-
-<pre><code>ProvidedTypeDefinition(asm, ns, "ParaProvider", Some typeof&lt;obj&gt;)
-</code></pre>
-
-<p>  let parameters =</p>
-
-<pre><code>[ProvidedStaticParameter("PropNames", typeof&lt;string&gt;)]
-</code></pre>
-
-<p>  do</p>
-
-<pre><code>provider.DefineStaticParameters(parameters, createType)
-this.AddNamespace(ns, [provider])
-</code></pre>
-
-<p>[&lt;assembly:TypeProviderAssembly>]
-do()
-```</p>
-]]></content>
+<span class="o">[&lt;</span><span class="n">assembly</span><span class="o">:</span><span class="nc">TypeProviderAssembly</span><span class="o">&gt;]</span>
+<span class="k">do</span><span class="bp">()</span>
+</code></pre></div>]]></content>
   </entry>
   
   <entry>
@@ -213,250 +179,209 @@ do()
     <link href="http://blog.mavnn.co.uk/emparsec-embedded-parser-library/"/>
     <updated>2016-01-18T12:53:11+00:00</updated>
     <id>http://blog.mavnn.co.uk/emparsec-embedded-parser-library</id>
-    <content type="html"><![CDATA[<blockquote><p>You can find EmParsec on GitHub: <a href="https://github.com/mavnn/EmParsec">https://github.com/mavnn/EmParsec</a></p></blockquote>
+    <content type="html"><![CDATA[<blockquote>
+<p>You can find EmParsec on GitHub: https://github.com/mavnn/EmParsec </p>
+</blockquote>
 
 <p>Type providers, by their very nature, tend to access data external to the .net ecosystem. It can also be very awkward technically to make use of dependencies during the actual type generation process.</p>
 
-<p>This is rather a pity, because accessing all of that external data is much nicer and easier when you have a decent parser to do it with. And F# has very, very nice parser support via the <a href="http://www.quanttec.com/fparsec/">FParsec</a> library. Instead, many (most?) type providers end up creating mini-one shot parsers which can be a bit slow to write and don&rsquo;t tend to have features that come for free in a more complete solution such as nice error reporting.</p>
+<p>This is rather a pity, because accessing all of that external data is much nicer and easier when you have a decent parser to do it with. And F# has very, very nice parser support via the <a href="http://www.quanttec.com/fparsec/">FParsec</a> library. Instead, many (most?) type providers end up creating mini-one shot parsers which can be a bit slow to write and don&#39;t tend to have features that come for free in a more complete solution such as nice error reporting.</p>
 
-<p>Writing yet an other parser (YAOP) this week I decided that enough was enough. What I needed was a shared resource that people could pool improvements for that could be easily embedded in projects like type providers were it isn&rsquo;t desirable (or sometimes possible) to take external binary dependencies.</p>
+<p>Writing yet an other parser (YAOP) this week I decided that enough was enough. What I needed was a shared resource that people could pool improvements for that could be easily embedded in projects like type providers were it isn&#39;t desirable (or sometimes possible) to take external binary dependencies.</p>
 
 <p>So I built it.</p>
 
 <!-- more -->
 
+<p>EmParsec is a single file parser combinator &quot;library&quot;, inspired by both FParsec library and <a href="http://fsharpforfunandprofit.com/posts/understanding-parser-combinators/">Scott&#39;s excellent series on building parser combinators</a>.</p>
 
-<p>EmParsec is a single file parser combinator &ldquo;library&rdquo;, inspired by both FParsec library and <a href="http://fsharpforfunandprofit.com/posts/understanding-parser-combinators/">Scott&rsquo;s excellent series on building parser combinators</a>.</p>
+<p>It consists of a single fs file that can be loaded in the editor of your choice without any requirement for a project file or similar. When you want to use it, you can just reference it as a <a href="https://fsprojects.github.io/Paket/github-dependencies.html">Paket GitHub dependency</a> (which you&#39;ll be wanting to do for the ProvidedTypes.fs file if you&#39;re creating a type provider anyway) or even just copy the file across.</p>
 
-<p>It consists of a single fs file that can be loaded in the editor of your choice without any requirement for a project file or similar. When you want to use it, you can just reference it as a <a href="https://fsprojects.github.io/Paket/github-dependencies.html">Paket GitHub dependency</a> (which you&rsquo;ll be wanting to do for the ProvidedTypes.fs file if you&rsquo;re creating a type provider anyway) or even just copy the file across.</p>
-
-<p>If you are compiling EmParsec into a larger project, it marks itself as &ldquo;internal&rdquo; so that you don&rsquo;t pollute the end users name space, and so that if two projects you reference have embedded different versions of EmParsec there are no collisions.</p>
+<p>If you are compiling EmParsec into a larger project, it marks itself as &quot;internal&quot; so that you don&#39;t pollute the end users name space, and so that if two projects you reference have embedded different versions of EmParsec there are no collisions.</p>
 
 <h2>How do I use it?</h2>
 
-<p>So, you&rsquo;ve added EmParsec.fs to your project (manually or with Paket) and now you&rsquo;re wondering how to use it. Let&rsquo;s build some simple examples.</p>
+<p>So, you&#39;ve added EmParsec.fs to your project (manually or with Paket) and now you&#39;re wondering how to use it. Let&#39;s build some simple examples.</p>
 
 <h3>Matching an exact string</h3>
 
-<p>Let&rsquo;s start with something simple: what if I just want to match a string?</p>
+<p>Let&#39;s start with something simple: what if I just want to match a string?</p>
 
-<p>Parser combinator libraries allow you to combine parsers from simpler parsers (hence the name), but in this case <code>pstring</code> (the &lsquo;p&rsquo; is there to avoid clashing with the existing <code>string</code> function) is provided for us by EmParsec.</p>
+<p>Parser combinator libraries allow you to combine parsers from simpler parsers (hence the name), but in this case <code>pstring</code> (the &#39;p&#39; is there to avoid clashing with the existing <code>string</code> function) is provided for us by EmParsec.</p>
 
-<p>Let&rsquo;s try it out!</p>
+<p>Let&#39;s try it out!</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">open</span> <span class="nc">EmParsec</span>
 
-<p>``` fsharp
-open EmParsec</p>
+<span class="k">let</span> <span class="n">thingParser</span> <span class="o">=</span> <span class="n">pstring</span> <span class="s2">&quot;thing&quot;</span>
+<span class="c1">// When you enter this line, F# give a &quot;Value restriction&quot; error.</span>
+<span class="c1">// You can either mark thingParser as type UParser&lt;string&gt;, or</span>
+<span class="c1">// use the parser with run as below and the error will disappear.</span>
 
-<p>let thingParser = pstring &ldquo;thing&rdquo;
-// When you enter this line, F# give a &ldquo;Value restriction&rdquo; error.
-// You can either mark thingParser as type UParser<string>, or
-// use the parser with run as below and the error will disappear.</p>
+<span class="n">run</span> <span class="n">thingParser</span> <span class="s2">&quot;thing&quot;</span>
+<span class="c1">// val it : Choice&lt;string,string&gt; = Choice1Of2 &quot;thing&quot;</span>
 
-<p>run thingParser &ldquo;thing&rdquo;
-// val it : Choice&lt;string,string> = Choice1Of2 &ldquo;thing&rdquo;</p>
-
-<p>run thingParser &ldquo;th1ng&rdquo;
-// val it : Choice&lt;string,string> =
-//   Choice2Of2
-//     &ldquo;Parser <string thing> failed at line 0 column 2
-// Unexpected [&lsquo;1&rsquo;]
-// th1ng
-//   ^&rdquo;
-```</p>
-
+<span class="n">run</span> <span class="n">thingParser</span> <span class="s2">&quot;th1ng&quot;</span>
+<span class="c1">// val it : Choice&lt;string,string&gt; =</span>
+<span class="c1">//   Choice2Of2</span>
+<span class="c1">//     &quot;Parser &lt;string thing&gt; failed at line 0 column 2</span>
+<span class="c1">// Unexpected [&#39;1&#39;]</span>
+<span class="c1">// th1ng</span>
+<span class="c1">//   ^&quot;</span>
+</code></pre></div>
 <p>Not bad! It even marks the unexpected character in the error output.</p>
 
 <p>Unfortunately:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="n">run</span> <span class="n">thingParser</span> <span class="s2">&quot;thing and more&quot;</span>
+<span class="c1">// val it : Choice&lt;string,string&gt; = Choice1Of2 &quot;thing&quot;</span>
+</code></pre></div>
+<p>That probably isn&#39;t the behaviour you were hoping for. There&#39;s still input left after the parser has finished, but that isn&#39;t being seen as an error. EmParsec includes the <code>eof</code> parser for just this type of occasion - a parser that checks the input is exhausted.</p>
 
-<p><code>fsharp
-run thingParser "thing and more"
-// val it : Choice&lt;string,string&gt; = Choice1Of2 "thing"
-</code></p>
+<p>So we want a parser that parses &quot;thing&quot; and then ends.</p>
 
-<p>That probably isn&rsquo;t the behaviour you were hoping for. There&rsquo;s still input left after the parser has finished, but that isn&rsquo;t being seen as an error. EmParsec includes the <code>eof</code> parser for just this type of occasion &ndash; a parser that checks the input is exhausted.</p>
+<p>Let&#39;s go:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="n">thingParser2</span> <span class="o">=</span> <span class="n">andThen</span> <span class="o">(</span><span class="n">pstring</span> <span class="s2">&quot;thing&quot;</span><span class="o">)</span> <span class="n">eof</span>
+<span class="c1">// normally written</span>
+<span class="k">let</span> <span class="n">thingParser2&#39;</span> <span class="o">=</span> <span class="n">pstring</span> <span class="s2">&quot;thing&quot;</span> <span class="o">.&gt;&gt;.</span> <span class="n">eof</span>
 
-<p>So we want a parser that parses &ldquo;thing&rdquo; and then ends.</p>
+<span class="n">run</span> <span class="n">thingParser2</span> <span class="s2">&quot;thing&quot;</span>
+<span class="c1">// val it : Choice&lt;(string * unit),string&gt; = Choice1Of2 (&quot;thing&quot;, null)</span>
 
-<p>Let&rsquo;s go:</p>
+<span class="n">run</span> <span class="n">thingParser2</span> <span class="s2">&quot;th1ng&quot;</span>
+<span class="c1">// val it : Choice&lt;(string * unit),string&gt; =</span>
+<span class="c1">//   Choice2Of2</span>
+<span class="c1">//     &quot;Parser (&lt;string thing&gt; andThen &lt;end&gt;) failed at line 0 column 2</span>
+<span class="c1">// Unexpected [&#39;1&#39;]</span>
+<span class="c1">// th1ng</span>
+<span class="c1">//   ^&quot;</span>
 
-<p>``` fsharp
-let thingParser2 = andThen (pstring &ldquo;thing&rdquo;) eof
-// normally written
-let thingParser2' = pstring &ldquo;thing&rdquo; .>>. eof</p>
-
-<p>run thingParser2 &ldquo;thing&rdquo;
-// val it : Choice&lt;(string * unit),string> = Choice1Of2 (&ldquo;thing&rdquo;, null)</p>
-
-<p>run thingParser2 &ldquo;th1ng&rdquo;
-// val it : Choice&lt;(string * unit),string> =
-//   Choice2Of2
-//     &ldquo;Parser (<string thing> andThen <end>) failed at line 0 column 2
-// Unexpected [&lsquo;1&rsquo;]
-// th1ng
-//   ^&rdquo;</p>
-
-<p>run thingParser2 &ldquo;thing and more&rdquo;
-// val it : Choice&lt;(string * unit),string> =
-//   Choice2Of2
-//     &ldquo;Parser (<string thing> andThen <end>) failed at line 0 column 5
-// Unexpected input remaining &lsquo; and more&rsquo;
-// thing and more
-//      ^&rdquo;
-```</p>
-
-<p>That&rsquo;s more like it. The only issue now is that we&rsquo;ve combined two parser, so we&rsquo;re getting back a tuple of two results.</p>
+<span class="n">run</span> <span class="n">thingParser2</span> <span class="s2">&quot;thing and more&quot;</span>
+<span class="c1">// val it : Choice&lt;(string * unit),string&gt; =</span>
+<span class="c1">//   Choice2Of2</span>
+<span class="c1">//     &quot;Parser (&lt;string thing&gt; andThen &lt;end&gt;) failed at line 0 column 5</span>
+<span class="c1">// Unexpected input remaining &#39; and more&#39;</span>
+<span class="c1">// thing and more</span>
+<span class="c1">//      ^&quot;</span>
+</code></pre></div>
+<p>That&#39;s more like it. The only issue now is that we&#39;ve combined two parser, so we&#39;re getting back a tuple of two results.</p>
 
 <p>A simple tweak tells EmParsec to throw away the unit result returned by <code>eof</code>.</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="n">improvedThingParser</span> <span class="o">=</span> <span class="n">pstring</span> <span class="s2">&quot;thing&quot;</span> <span class="o">.&gt;&gt;</span> <span class="n">eof</span>
 
-<p>``` fsharp
-let improvedThingParser = pstring &ldquo;thing&rdquo; .>> eof</p>
-
-<p>run improvedThingParser &ldquo;thing&rdquo;
-// val it : Choice&lt;string,string> = Choice1Of2 &ldquo;thing&rdquo;
-```</p>
-
-<p>&ldquo;Impressive,&rdquo; I hear you say: &ldquo;You can parse static strings!&rdquo;</p>
+<span class="n">run</span> <span class="n">improvedThingParser</span> <span class="s2">&quot;thing&quot;</span>
+<span class="c1">// val it : Choice&lt;string,string&gt; = Choice1Of2 &quot;thing&quot;</span>
+</code></pre></div>
+<p>&quot;Impressive,&quot; I hear you say: &quot;You can parse static strings!&quot;</p>
 
 <h3>Parsing a simple template language</h3>
 
-<p>You have a point. Let&rsquo;s tackle a simple template language. You know the kind of thing:</p>
+<p>You have a point. Let&#39;s tackle a simple template language. You know the kind of thing:</p>
 
 <p><code>Welcome {name}! Please spend money here.</code></p>
 
-<p>That kind of thing. I&rsquo;m going to start building up a set of helper parsers for this, applying some type annotations both to make the example code clearer and to avoid the value restriction errors that crop up until you actually use the parsers (those occur because these parsers can carry generic user state, but we&rsquo;re not going to go into using that here).</p>
+<p>That kind of thing. I&#39;m going to start building up a set of helper parsers for this, applying some type annotations both to make the example code clearer and to avoid the value restriction errors that crop up until you actually use the parsers (those occur because these parsers can carry generic user state, but we&#39;re not going to go into using that here).</p>
 
-<p>We have two &ldquo;types&rdquo; of token that can exist in our template language: values to be replaced, and text to be preserved. Let&rsquo;s start by creating a union type to contain our parse results:</p>
-
-<p><code>fsharp
-type TemplatePart =
-  | Text of string
-  | Value of string
-</code></p>
-
-<p>Then, we&rsquo;ll have a parser that will parse individual characters which are <em>not</em> an opening bracket:</p>
-
-<p><code>fsharp
-let notOpenBracket : UParser&lt;char&gt; =
-  satisfy (fun c -&gt; c &lt;&gt; char '{') "not open bracket"
-</code></p>
-
+<p>We have two &quot;types&quot; of token that can exist in our template language: values to be replaced, and text to be preserved. Let&#39;s start by creating a union type to contain our parse results:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">type</span> <span class="nc">TemplatePart</span> <span class="o">=</span>
+  <span class="o">|</span> <span class="nc">Text</span> <span class="k">of</span> <span class="kt">string</span>
+  <span class="o">|</span> <span class="nc">Value</span> <span class="k">of</span> <span class="kt">string</span>
+</code></pre></div>
+<p>Then, we&#39;ll have a parser that will parse individual characters which are <em>not</em> an opening bracket:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="n">notOpenBracket</span> <span class="o">:</span> <span class="nc">UParser</span><span class="o">&lt;</span><span class="kt">char</span><span class="o">&gt;</span> <span class="o">=</span>
+  <span class="n">satisfy</span> <span class="o">(</span><span class="k">fun</span> <span class="n">c</span> <span class="o">-&gt;</span> <span class="n">c</span> <span class="o">&lt;&gt;</span> <span class="kt">char</span> <span class="sc">&#39;{&#39;</span><span class="o">)</span> <span class="s2">&quot;not open bracket&quot;</span>
+</code></pre></div>
 <p><code>satisfy</code> is a function built into EmParsec which takes a predicate for whether or not it will consume the next character in the input stream. The final string argument is a name for the parser, which will be used in error messages.</p>
 
-<p>Then we&rsquo;ll use that parser to create one that consumes as many &ldquo;not open bracket&rdquo; characters as it can, combines them into a string and then counts that string as a <code>Text</code> part.</p>
+<p>Then we&#39;ll use that parser to create one that consumes as many &quot;not open bracket&quot; characters as it can, combines them into a string and then counts that string as a <code>Text</code> part.</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="n">textParser</span> <span class="o">:</span> <span class="nc">UParser</span><span class="o">&lt;</span><span class="nc">TemplatePart</span><span class="o">&gt;</span> <span class="o">=</span>
+  <span class="n">many1</span> <span class="n">notOpenBracket</span>
+  <span class="o">|&gt;&gt;</span> <span class="o">(</span><span class="k">fun</span> <span class="n">charList</span> <span class="o">-&gt;</span>
+         <span class="n">charList</span>
+         <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="kt">string</span>
+         <span class="o">|&gt;</span> <span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot;&quot;</span>
+         <span class="o">|&gt;</span> <span class="nc">Text</span><span class="o">)</span>
+  <span class="o">&lt;?&gt;</span> <span class="s2">&quot;&lt;text parser&gt;&quot;</span>
+</code></pre></div>
+<p>There&#39;s a new function here and a couple of new operators (all taken from FParsec, by the way). <code>|&gt;&gt;</code> is a map operator; it allows you to transform the result of a parser and then rewrap everything back up into a new parser. This is really at the heart of the power of parser combinator libraries.</p>
 
-<p>``` fsharp
-let textParser : UParser<TemplatePart> =
-  many1 notOpenBracket
-  |>> (fun charList &ndash;></p>
+<p>The <code>&lt;?&gt;</code> operator is much simpler: it allows you to name a parser rather than its name being some combination of the parsers it&#39;s built of.</p>
 
-<pre><code>     charList
-     |&gt; List.map string
-     |&gt; String.concat ""
-     |&gt; Text)
-</code></pre>
+<p>The <code>many1</code> function says &quot;match one or more instances of the parser that follows&quot;. There is also a <code>many</code>, which matches 0 or more repeats.</p>
 
-<p>  &lt;?> &ldquo;<text parser>&rdquo;
-```</p>
+<p>So that&#39;s good - we can capture the text in between our replacable values. Let&#39;s go with a parser for the bracketed value names next!</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="n">valueName</span> <span class="o">:</span> <span class="nc">UParser</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span> <span class="o">=</span>
+  <span class="n">many1</span> <span class="o">(</span><span class="n">satisfy</span> <span class="o">(</span><span class="k">fun</span> <span class="n">c</span> <span class="o">-&gt;</span> <span class="n">c</span> <span class="o">&lt;&gt;</span> <span class="sc">&#39;}&#39;</span> <span class="o">&amp;&amp;</span> <span class="o">(</span><span class="ow">not</span> <span class="o">&lt;|</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Char</span><span class="p">.</span><span class="nc">IsWhiteSpace</span> <span class="n">c</span><span class="o">))</span> <span class="s2">&quot;&quot;</span><span class="o">)</span>
+  <span class="o">|&gt;&gt;</span> <span class="o">(</span><span class="k">fun</span> <span class="n">charList</span> <span class="o">-&gt;</span> <span class="n">charList</span> <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="kt">string</span> <span class="o">|&gt;</span> <span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot;&quot;</span><span class="o">)</span>
 
-<p>There&rsquo;s a new function here and a couple of new operators (all taken from FParsec, by the way). <code>|&gt;&gt;</code> is a map operator; it allows you to transform the result of a parser and then rewrap everything back up into a new parser. This is really at the heart of the power of parser combinator libraries.</p>
+<span class="k">let</span> <span class="n">openValue</span> <span class="o">:</span> <span class="nc">UParser</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span> <span class="o">=</span>
+  <span class="n">pchar</span> <span class="sc">&#39;{&#39;</span> <span class="o">.&gt;&gt;.</span> <span class="n">spaces</span>
+  <span class="o">|&gt;&gt;</span> <span class="n">ignore</span>
 
-<p>The <code>&lt;?&gt;</code> operator is much simpler: it allows you to name a parser rather than its name being some combination of the parsers it&rsquo;s built of.</p>
+<span class="k">let</span> <span class="n">closeValue</span> <span class="o">:</span> <span class="nc">UParser</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span> <span class="o">=</span>
+  <span class="n">spaces</span> <span class="o">.&gt;&gt;.</span> <span class="n">pchar</span> <span class="sc">&#39;}&#39;</span>
+  <span class="o">|&gt;&gt;</span> <span class="n">ignore</span>
 
-<p>The <code>many1</code> function says &ldquo;match one or more instances of the parser that follows&rdquo;. There is also a <code>many</code>, which matches 0 or more repeats.</p>
+<span class="k">let</span> <span class="n">value</span> <span class="o">:</span> <span class="nc">UParser</span><span class="o">&lt;</span><span class="nc">TemplatePart</span><span class="o">&gt;</span> <span class="o">=</span>
+  <span class="n">between</span> <span class="n">openValue</span> <span class="n">closeValue</span> <span class="n">valueName</span>
+  <span class="o">|&gt;&gt;</span> <span class="nc">Value</span>
+  <span class="o">&lt;?&gt;</span> <span class="s2">&quot;&lt;value parser&gt;&quot;</span>
+</code></pre></div>
+<p>So we now have parsers for white space and our &quot;valueName&quot; (which we are saying must be at least one character long, and can consist of any character which is not whitespace or a closing curly bracket). We can then use pchar (&quot;parse char&quot;) and whitespace to allow for minor variations in syntax (some people like <code>{name}</code>, others like <code>{ name }</code>).</p>
 
-<p>So that&rsquo;s good &ndash; we can capture the text in between our replacable values. Let&rsquo;s go with a parser for the bracketed value names next!</p>
+<p>Finally we build our value parser, using the <code>between</code> function, which does pretty much what you&#39;d expect: it takes an opening parser, a closing parser, and captures what&#39;s in between with third parser.</p>
 
-<p>``` fsharp
-let valueName : UParser<string> =
-  many1 (satisfy (fun c &ndash;> c &lt;> &lsquo;}&rsquo; &amp;&amp; (not &lt;| System.Char.IsWhiteSpace c)) &ldquo;&rdquo;)
-  |>> (fun charList &ndash;> charList |> List.map string |> String.concat &ldquo;&rdquo;)</p>
-
-<p>let openValue : UParser<unit> =
-  pchar &lsquo;{&rsquo; .>>. spaces
-  |>> ignore</p>
-
-<p>let closeValue : UParser<unit> =
-  spaces .>>. pchar &lsquo;}&rsquo;
-  |>> ignore</p>
-
-<p>let value : UParser<TemplatePart> =
-  between openValue closeValue valueName
-  |>> Value
-  &lt;?> &ldquo;<value parser>&rdquo;
-```</p>
-
-<p>So we now have parsers for white space and our &ldquo;valueName&rdquo; (which we are saying must be at least one character long, and can consist of any character which is not whitespace or a closing curly bracket). We can then use pchar (&ldquo;parse char&rdquo;) and whitespace to allow for minor variations in syntax (some people like <code>{name}</code>, others like <code>{ name }</code>).</p>
-
-<p>Finally we build our value parser, using the <code>between</code> function, which does pretty much what you&rsquo;d expect: it takes an opening parser, a closing parser, and captures what&rsquo;s in between with third parser.</p>
-
-<p>Our final step is just to combine our parsers for value and text sections. We want to capture &ldquo;many&rdquo; of one or the other, until we run out of input. We&rsquo;ll put an explicit <code>eof</code> on there as well, otherwise things like (for example) an unclosed <code>}</code> at the end of the string will not show up as an error &ndash; the parser will just stop at the character before the opening <code>{</code> as the last matching input.</p>
+<p>Our final step is just to combine our parsers for value and text sections. We want to capture &quot;many&quot; of one or the other, until we run out of input. We&#39;ll put an explicit <code>eof</code> on there as well, otherwise things like (for example) an unclosed <code>}</code> at the end of the string will not show up as an error - the parser will just stop at the character before the opening <code>{</code> as the last matching input.</p>
 
 <p>Our final parser introduces the <code>&lt;|&gt;</code> (orElse) operator, and looks like this:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="n">template</span> <span class="o">:</span> <span class="nc">UParser</span><span class="o">&lt;</span><span class="nc">TemplatePart</span> <span class="kt">list</span><span class="o">&gt;</span> <span class="o">=</span>
+  <span class="n">many</span> <span class="o">(</span><span class="n">value</span> <span class="o">&lt;|&gt;</span> <span class="n">textParser</span><span class="o">)</span>
+  <span class="o">.&gt;&gt;</span> <span class="n">eof</span>
+  <span class="o">&lt;?&gt;</span> <span class="s2">&quot;&lt;template parser&gt;&quot;</span>
+</code></pre></div>
+<p>Let&#39;s try it out!</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Text</span>
 
-<p><code>fsharp
-let template : UParser&lt;TemplatePart list&gt; =
-  many (value &lt;|&gt; textParser)
-  .&gt;&gt; eof
-  &lt;?&gt; "&lt;template parser&gt;"
-</code></p>
+<span class="k">let</span> <span class="n">showTemplate</span> <span class="n">values</span> <span class="n">parts</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">folder</span> <span class="o">(</span><span class="n">sb</span> <span class="o">:</span> <span class="nc">StringBuilder</span><span class="o">)</span> <span class="n">part</span> <span class="o">=</span>
+    <span class="k">match</span> <span class="n">part</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="nc">Text</span> <span class="n">s</span> <span class="o">-&gt;</span>
+      <span class="n">sb</span><span class="o">.</span><span class="nc">Append</span> <span class="n">s</span>
+    <span class="o">|</span> <span class="nc">Value</span> <span class="n">v</span> <span class="o">-&gt;</span>
+      <span class="n">defaultArg</span> <span class="o">(</span><span class="nn">Map</span><span class="p">.</span><span class="n">tryFind</span> <span class="n">v</span> <span class="n">values</span><span class="o">)</span> <span class="s2">&quot;&quot;</span>
+      <span class="o">|&gt;</span> <span class="n">sb</span><span class="o">.</span><span class="nc">Append</span>
+  <span class="k">let</span> <span class="n">sb</span> <span class="o">=</span> <span class="nn">List</span><span class="p">.</span><span class="n">fold</span> <span class="n">folder</span> <span class="o">(</span><span class="nc">StringBuilder</span><span class="bp">()</span><span class="o">)</span> <span class="n">parts</span>
+  <span class="n">sb</span><span class="o">.</span><span class="nc">ToString</span><span class="bp">()</span>
 
-<p>Let&rsquo;s try it out!</p>
+<span class="k">let</span> <span class="n">values</span> <span class="o">=</span> <span class="nc">Map</span> <span class="o">[</span> <span class="s2">&quot;name&quot;</span><span class="o">,</span> <span class="s2">&quot;bob&quot;</span> <span class="o">]</span>
 
-<p>``` fsharp
-open System.Text</p>
+<span class="k">let</span> <span class="n">run&#39;</span> <span class="n">parser</span> <span class="n">str</span> <span class="o">=</span>
+  <span class="n">run</span> <span class="n">parser</span> <span class="n">str</span>
+  <span class="o">|&gt;</span> <span class="k">function</span>
+     <span class="o">|</span> <span class="nc">Choice1Of2</span> <span class="n">success</span> <span class="o">-&gt;</span> <span class="n">showTemplate</span> <span class="n">values</span> <span class="n">success</span>
+     <span class="o">|</span> <span class="nc">Choice2Of2</span> <span class="n">fail</span> <span class="o">-&gt;</span> <span class="n">failwithf</span> <span class="s2">&quot;Parsing failed!</span><span class="se">\n</span><span class="s2">%s&quot;</span> <span class="n">fail</span>
+</code></pre></div>
+<p>A couple of helpers: <code>showTemplate</code> knows how to build up a string from a list of template parts and a value map, <code>run&#39;</code> is just a simple wrapper around <code>run</code> that throws if parsing is not successful.</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="n">ex1</span> <span class="o">=</span> <span class="s2">&quot;Welcome {name}! Please spend money here!&quot;</span>
+<span class="k">let</span> <span class="n">ex2</span> <span class="o">=</span> <span class="s2">&quot;hello { name } thing&quot;</span>
 
-<p>let showTemplate values parts =
-  let folder (sb : StringBuilder) part =</p>
+<span class="n">run&#39;</span> <span class="n">template</span> <span class="n">ex1</span>
+<span class="c1">// val it : string = &quot;Welcome bob! Please spend money here!&quot;</span>
 
-<pre><code>match part with
-| Text s -&gt;
-  sb.Append s
-| Value v -&gt;
-  defaultArg (Map.tryFind v values) ""
-  |&gt; sb.Append
-</code></pre>
+<span class="n">run&#39;</span> <span class="n">template</span> <span class="n">ex2</span>
+<span class="c1">// val it : string = &quot;hello bob thing&quot;</span>
 
-<p>  let sb = List.fold folder (StringBuilder()) parts
-  sb.ToString()</p>
+<span class="k">let</span> <span class="n">ex3</span> <span class="o">=</span> <span class="s2">&quot;Hello, { name }! How about {</span>
+<span class="s2"> date:alreadyrendered?</span>
+<span class="s2">}? &lt;- That should be left blank, but parse as valid.&quot;</span>
 
-<p>let values = Map [ &ldquo;name&rdquo;, &ldquo;bob&rdquo; ]</p>
-
-<p>let run' parser str =
-  run parser str
-  |> function</p>
-
-<pre><code> | Choice1Of2 success -&gt; showTemplate values success
- | Choice2Of2 fail -&gt; failwithf "Parsing failed!\n%s" fail
-</code></pre>
-
-<p>```</p>
-
-<p>A couple of helpers: <code>showTemplate</code> knows how to build up a string from a list of template parts and a value map, <code>run'</code> is just a simple wrapper around <code>run</code> that throws if parsing is not successful.</p>
-
-<p>``` fsharp
-let ex1 = &ldquo;Welcome {name}! Please spend money here!&rdquo;
-let ex2 = &ldquo;hello { name } thing&rdquo;</p>
-
-<p>run' template ex1
-// val it : string = &ldquo;Welcome bob! Please spend money here!&rdquo;</p>
-
-<p>run' template ex2
-// val it : string = &ldquo;hello bob thing&rdquo;</p>
-
-<p>let ex3 = &ldquo;Hello, { name }! How about {
- date:alreadyrendered?
-}? &lt;&ndash; That should be left blank, but parse as valid.&rdquo;</p>
-
-<p>run' template ex3
-// val it : string =
-//   &ldquo;Hello, bob! How about ? &lt;&ndash; That should be left blank, but parse as valid.&rdquo;
-```</p>
-
-<p>And finally our templates in action. You can see that even with a simple parser like this, it&rsquo;s already reaching a complexity that would be painful to match with a hand rolled creation.</p>
+<span class="n">run&#39;</span> <span class="n">template</span> <span class="n">ex3</span>
+<span class="c1">// val it : string =</span>
+<span class="c1">//   &quot;Hello, bob! How about ? &lt;- That should be left blank, but parse as valid.&quot;</span>
+</code></pre></div>
+<p>And finally our templates in action. You can see that even with a simple parser like this, it&#39;s already reaching a complexity that would be painful to match with a hand rolled creation.</p>
 
 <p>If you want to know more about parser combinators, and especially how to use them to create recursive grammars, do check out the <a href="http://www.quanttec.com/fparsec/">FParsec documentation</a> which is excellent. It is also more complete and <em>much</em> more performant than EmParsec.</p>
 
-<p>But if you need a small, single file parser where performance is not the primary concern &ndash; maybe EmParsec is your friend. Anyone who wants to join in making it better is more than welcome! Of particular note is that EmParsec does not yet support controlling when backtracking does or doesn&rsquo;t happen (it will always backtrack) which can make for some pretty confusing error messages.</p>
+<p>But if you need a small, single file parser where performance is not the primary concern - maybe EmParsec is your friend. Anyone who wants to join in making it better is more than welcome! Of particular note is that EmParsec does not yet support controlling when backtracking does or doesn&#39;t happen (it will always backtrack) which can make for some pretty confusing error messages.</p>
 ]]></content>
   </entry>
   
@@ -465,662 +390,566 @@ let ex2 = &ldquo;hello { name } thing&rdquo;</p>
     <link href="http://blog.mavnn.co.uk/easynetq-process-management/"/>
     <updated>2015-10-05T12:23:02+01:00</updated>
     <id>http://blog.mavnn.co.uk/easynetq-process-management</id>
-    <content type="html"><![CDATA[<blockquote><p>TL;DR: I wrote a EasyNetQ aware process manager library. Read down for some examples, and leave feedback if you think anything should change before it&rsquo;s released.</p></blockquote>
+    <content type="html"><![CDATA[<blockquote>
+<p>TL;DR: I wrote a EasyNetQ aware process manager library. Read down for some examples, and leave feedback if you think anything should change before it&#39;s released.</p>
+</blockquote>
 
 <p><a href="http://easynetq.com/">EasyNetQ</a> is a nice little .net client library for RabbitMQ. Originally designed for introducing Rabbit (and the concepts of a bus based architecture)
-to a company and programmers who hadn&rsquo;t previously used them before, it uses conventions to set up exchanges and queues &ndash; basing them on the names of the .net types that are
+to a company and programmers who hadn&#39;t previously used them before, it uses conventions to set up exchanges and queues - basing them on the names of the .net types that are
 being sent and subscribe to.</p>
 
 <p>For example (from the EasyNetQ homepage):</p>
+<div class="highlight"><pre><code class="csharp"><span class="n">bus</span><span class="p">.</span><span class="n">Publish</span><span class="p">&lt;</span><span class="n">MyMessage</span><span class="p">&gt;(</span><span class="n">message</span><span class="p">);</span>
+</code></pre></div>
+<p>Will publish a message of type &quot;MyMessage&quot;. Generally there&#39;s no need to actually specify the type here, C# will infer it for you, but it makes the example clearer.</p>
 
-<p><code>csharp
-bus.Publish&lt;MyMessage&gt;(message);
-</code></p>
-
-<p>Will publish a message of type &ldquo;MyMessage&rdquo;. Generally there&rsquo;s no need to actually specify the type here, C# will infer it for you, but it makes the example clearer.</p>
-
-<p>Other services can subscribe to &ldquo;MyMessage&rdquo; like so:</p>
-
-<p>``` csharp
-bus.Subscribe<MyMessage>(&ldquo;my_subscription_id&rdquo;, msg =></p>
-
-<pre><code>  Console.WriteLine(msg.Text));
-</code></pre>
-
-<p>```</p>
-
+<p>Other services can subscribe to &quot;MyMessage&quot; like so:</p>
+<div class="highlight"><pre><code class="csharp"><span class="n">bus</span><span class="p">.</span><span class="n">Subscribe</span><span class="p">&lt;</span><span class="n">MyMessage</span><span class="p">&gt;(</span><span class="s">&quot;my_subscription_id&quot;</span><span class="p">,</span> <span class="n">msg</span> <span class="p">=&gt;</span> 
+      <span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="n">msg</span><span class="p">.</span><span class="n">Text</span><span class="p">));</span>
+</code></pre></div>
 <!-- more -->
-
 
 <p>If multiple services use the same subscription id, they will all connect to the same queue on the Rabbit server. This means in practice they will round-robin receipt of
 messages, allowing for easy horizontal scalability. Subscribers with a different subscription ID will create a new queue behind the scenes and so a copy of the message will
 be routed to both subscription IDs.</p>
 
-<p>At this point, the only real point of coupling between subscribers and publishers is the need to share a dll with your &ldquo;contract types&rdquo; &ndash; the types that are going to be
+<p>At this point, the only real point of coupling between subscribers and publishers is the need to share a dll with your &quot;contract types&quot; - the types that are going to be
 used for publishing and subscribing.</p>
 
-<p>This immediately gives you a lot of the ground work you need to start creating a message based system. But there is one big hole, which it&rsquo;s harder to fill than you might
+<p>This immediately gives you a lot of the ground work you need to start creating a message based system. But there is one big hole, which it&#39;s harder to fill than you might
 think.</p>
 
-<p>The hole is that at some point you&rsquo;re going to want to start building processes on top of your message based services which glue together some kind of long running
+<p>The hole is that at some point you&#39;re going to want to start building processes on top of your message based services which glue together some kind of long running
 work flow which requires information from several other components.</p>
 
-<p>Let&rsquo;s start with a simple example &ndash; we&rsquo;ll assume we have a email sending system. It has a bus based service that knows how to grab some data from somewhere;
+<p>Let&#39;s start with a simple example - we&#39;ll assume we have a email sending system. It has a bus based service that knows how to grab some data from somewhere;
 a service that stores email templates; a service that knows how to render the data and template together; and finally an email sender.</p>
 
-<p>Triggering the services might look a bit like this (if you&rsquo;re working in F#):</p>
+<p>Triggering the services might look a bit like this (if you&#39;re working in F#):</p>
+<div class="highlight"><pre><code class="fsharp"><span class="n">bus</span><span class="o">.</span><span class="nc">Publish</span> <span class="o">{</span> <span class="nn">StoreModel</span><span class="p">.</span><span class="nc">CorrelationId</span> <span class="o">=</span> <span class="nn">Guid</span><span class="p">.</span><span class="nc">NewGuid</span><span class="bp">()</span><span class="o">;</span> <span class="nc">Model</span> <span class="o">=</span> <span class="n">model</span> <span class="o">}</span>
+<span class="n">bus</span><span class="o">.</span><span class="nc">Publish</span> <span class="o">{</span> <span class="nn">StoreTemplate</span><span class="p">.</span><span class="nc">CorrelationId</span> <span class="o">=</span> <span class="nn">Guid</span><span class="p">.</span><span class="nc">NewGuid</span><span class="bp">()</span><span class="o">;</span> <span class="nc">Name</span> <span class="o">=</span> <span class="s2">&quot;mytemplate&quot;</span><span class="o">;</span> <span class="nc">Template</span> <span class="o">=</span> <span class="n">template</span> <span class="o">}</span>
+<span class="n">bus</span><span class="o">.</span><span class="nc">Publish</span> <span class="o">{</span> <span class="nn">RequestRender</span><span class="p">.</span><span class="nc">CorrelationId</span> <span class="o">=</span> <span class="nn">Guid</span><span class="p">.</span><span class="nc">NewGuid</span><span class="bp">()</span><span class="o">;</span> <span class="nc">TemplateId</span> <span class="o">=</span> <span class="mi">1</span><span class="o">;</span> <span class="nc">ModelId</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">}</span>
+<span class="n">bus</span><span class="o">.</span><span class="nc">Publish</span> <span class="o">{</span> <span class="nn">SendEmail</span><span class="p">.</span><span class="nc">CorrelationId</span> <span class="o">=</span> <span class="nn">Guid</span><span class="p">.</span><span class="nc">NewGuid</span><span class="bp">()</span><span class="o">;</span> <span class="nc">Content</span> <span class="o">=</span> <span class="s2">&quot;Hello world!&quot;</span><span class="o">;</span> <span class="nc">EmailAddress</span> <span class="o">=</span> <span class="s2">&quot;me@example.com&quot;</span> <span class="o">}</span>
+</code></pre></div>
+<p>That&#39;s fantastic; only, you&#39;ll notice the values for each step are hard coded. Obviously, we need to subscribe to the messages we&#39;re expecting to be published in response
+to these commands. We&#39;d better subscribe to the responses - in fact, we&#39;d better subscribe to everything before we start publishing, otherwise we might start getting responses
+back before we&#39;re listening for them:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="c1">// Subscribers</span>
+<span class="n">bus</span><span class="o">.</span><span class="nc">Subscribe</span><span class="o">&lt;</span><span class="nc">RenderComplete</span><span class="o">&gt;</span> <span class="o">(</span><span class="s2">&quot;Process&quot;</span><span class="o">,</span> <span class="k">fun</span> <span class="n">r</span> <span class="o">-&gt;</span> <span class="n">printfn</span> <span class="s2">&quot;%A&quot;</span> <span class="n">r</span><span class="o">)</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
+<span class="n">bus</span><span class="o">.</span><span class="nc">Subscribe</span><span class="o">&lt;</span><span class="nc">ModelStored</span><span class="o">&gt;</span> <span class="o">(</span><span class="s2">&quot;Process&quot;</span><span class="o">,</span> <span class="k">fun</span> <span class="n">ms</span> <span class="o">-&gt;</span> <span class="n">printfn</span> <span class="s2">&quot;%A&quot;</span> <span class="n">ms</span><span class="o">)</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
+<span class="n">bus</span><span class="o">.</span><span class="nc">Subscribe</span><span class="o">&lt;</span><span class="nc">TemplateStored</span><span class="o">&gt;</span> <span class="o">(</span><span class="s2">&quot;Process&quot;</span><span class="o">,</span> <span class="k">fun</span> <span class="n">ts</span> <span class="o">-&gt;</span> <span class="n">printfn</span> <span class="s2">&quot;%A&quot;</span> <span class="n">ts</span><span class="o">)</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
+<span class="n">bus</span><span class="o">.</span><span class="nc">Subscribe</span><span class="o">&lt;</span><span class="nc">EmailSent</span><span class="o">&gt;</span> <span class="o">(</span><span class="s2">&quot;Process&quot;</span><span class="o">,</span> <span class="k">fun</span> <span class="n">es</span> <span class="o">-&gt;</span> <span class="n">printfn</span> <span class="s2">&quot;%A&quot;</span> <span class="n">es</span><span class="o">)</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
 
-<p><code>fsharp
-bus.Publish { StoreModel.CorrelationId = Guid.NewGuid(); Model = model }
-bus.Publish { StoreTemplate.CorrelationId = Guid.NewGuid(); Name = "mytemplate"; Template = template }
-bus.Publish { RequestRender.CorrelationId = Guid.NewGuid(); TemplateId = 1; ModelId = 4 }
-bus.Publish { SendEmail.CorrelationId = Guid.NewGuid(); Content = "Hello world!"; EmailAddress = "me@example.com" }
-</code></p>
+<span class="c1">// Senders</span>
+<span class="n">bus</span><span class="o">.</span><span class="nc">Publish</span> <span class="o">{</span> <span class="nn">StoreModel</span><span class="p">.</span><span class="nc">CorrelationId</span> <span class="o">=</span> <span class="nn">Guid</span><span class="p">.</span><span class="nc">NewGuid</span><span class="bp">()</span><span class="o">;</span> <span class="nc">Model</span> <span class="o">=</span> <span class="n">model</span> <span class="o">}</span>
+<span class="n">bus</span><span class="o">.</span><span class="nc">Publish</span> <span class="o">{</span> <span class="nn">StoreTemplate</span><span class="p">.</span><span class="nc">CorrelationId</span> <span class="o">=</span> <span class="nn">Guid</span><span class="p">.</span><span class="nc">NewGuid</span><span class="bp">()</span><span class="o">;</span> <span class="nc">Name</span> <span class="o">=</span> <span class="s2">&quot;mytemplate&quot;</span><span class="o">;</span> <span class="nc">Template</span> <span class="o">=</span> <span class="n">template</span> <span class="o">}</span>
+<span class="n">bus</span><span class="o">.</span><span class="nc">Publish</span> <span class="o">{</span> <span class="nn">RequestRender</span><span class="p">.</span><span class="nc">CorrelationId</span> <span class="o">=</span> <span class="nn">Guid</span><span class="p">.</span><span class="nc">NewGuid</span><span class="bp">()</span><span class="o">;</span> <span class="nc">TemplateId</span> <span class="o">=</span> <span class="mi">1</span><span class="o">;</span> <span class="nc">ModelId</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">}</span>
+<span class="n">bus</span><span class="o">.</span><span class="nc">Publish</span> <span class="o">{</span> <span class="nn">SendEmail</span><span class="p">.</span><span class="nc">CorrelationId</span> <span class="o">=</span> <span class="nn">Guid</span><span class="p">.</span><span class="nc">NewGuid</span><span class="bp">()</span><span class="o">;</span> <span class="nc">Content</span> <span class="o">=</span> <span class="s2">&quot;Hello world!&quot;</span><span class="o">;</span> <span class="nc">EmailAddress</span> <span class="o">=</span> <span class="s2">&quot;me@example.com&quot;</span> <span class="o">}</span>
+</code></pre></div>
+<p>So, that&#39;s great. What now?</p>
 
-<p>That&rsquo;s fantastic; only, you&rsquo;ll notice the values for each step are hard coded. Obviously, we need to subscribe to the messages we&rsquo;re expecting to be published in response
-to these commands. We&rsquo;d better subscribe to the responses &ndash; in fact, we&rsquo;d better subscribe to everything before we start publishing, otherwise we might start getting responses
-back before we&rsquo;re listening for them:</p>
-
-<p>``` fsharp
-// Subscribers
-bus.Subscribe<RenderComplete> (&ldquo;Process&rdquo;, fun r &ndash;> printfn &ldquo;%A&rdquo; r) |> ignore
-bus.Subscribe<ModelStored> (&ldquo;Process&rdquo;, fun ms &ndash;> printfn &ldquo;%A&rdquo; ms) |> ignore
-bus.Subscribe<TemplateStored> (&ldquo;Process&rdquo;, fun ts &ndash;> printfn &ldquo;%A&rdquo; ts) |> ignore
-bus.Subscribe<EmailSent> (&ldquo;Process&rdquo;, fun es &ndash;> printfn &ldquo;%A&rdquo; es) |> ignore</p>
-
-<p>// Senders
-bus.Publish { StoreModel.CorrelationId = Guid.NewGuid(); Model = model }
-bus.Publish { StoreTemplate.CorrelationId = Guid.NewGuid(); Name = &ldquo;mytemplate&rdquo;; Template = template }
-bus.Publish { RequestRender.CorrelationId = Guid.NewGuid(); TemplateId = 1; ModelId = 4 }
-bus.Publish { SendEmail.CorrelationId = Guid.NewGuid(); Content = &ldquo;Hello world!&rdquo;; EmailAddress = &ldquo;<a href="&#x6d;&#97;&#105;&#x6c;&#116;&#111;&#58;&#109;&#101;&#64;&#101;&#120;&#x61;&#109;&#112;&#108;&#101;&#x2e;&#99;&#x6f;&#x6d;">&#109;&#x65;&#x40;&#x65;&#x78;&#x61;&#109;&#112;&#108;&#x65;&#46;&#99;&#x6f;&#x6d;</a>&rdquo; }
-```</p>
-
-<p>So, that&rsquo;s great. What now?</p>
-
-<p>Well: as is common in a message based system we&rsquo;re passing a correlation ID into the service we&rsquo;re sending a request to, and part of the contract is that the triggered response will
-have the same correlation ID. So we need some way to link a correlation ID back to a specific business process &ndash; a state store. But that needs to be safe for horizontal scaling.
+<p>Well: as is common in a message based system we&#39;re passing a correlation ID into the service we&#39;re sending a request to, and part of the contract is that the triggered response will
+have the same correlation ID. So we need some way to link a correlation ID back to a specific business process - a state store. But that needs to be safe for horizontal scaling.
 We also need to wire up all the various stages in our process to know which other message to publish next. And it would be good if storing the template and model data happened concurrently,
-because we&rsquo;re message based and why not? And finally, the client only wants the email sent if we can generate it within 15 seconds. Did we not mention that?</p>
+because we&#39;re message based and why not? And finally, the client only wants the email sent if we can generate it within 15 seconds. Did we not mention that?</p>
 
 <p>EasyNetQ provides one way of dealing with this, by allowing for what it calls a request/response pattern. But we found out the hard way that this still suffers from a few problems:
-at a practical level, it doesn&rsquo;t scale very well for services that need to handle a lot of requests. On a conceptual level it assumes that the service that issued the request will
-be around to process the response. That&rsquo;s an assumption that we really don&rsquo;t want if we&rsquo;re using a message bus to help us provide high availability.</p>
+at a practical level, it doesn&#39;t scale very well for services that need to handle a lot of requests. On a conceptual level it assumes that the service that issued the request will
+be around to process the response. That&#39;s an assumption that we really don&#39;t want if we&#39;re using a message bus to help us provide high availability.</p>
 
-<p>So after several rounds of consultation within the company, I&rsquo;ve written a library to help write process managers over the top of EasyNetQ, following the EasyNetQ conventions but
-meeting the needs we&rsquo;ve discovered.</p>
+<p>So after several rounds of consultation within the company, I&#39;ve written a library to help write process managers over the top of EasyNetQ, following the EasyNetQ conventions but
+meeting the needs we&#39;ve discovered.</p>
 
-<p>The code is available on github at <a href="https://github.com/15below/EasyNetQ.ProcessManager">https://github.com/15below/EasyNetQ.ProcessManager</a> ; if you want to run the examples you&rsquo;ll need a few db bits set up (see the README) and a
+<p>The code is available on github at https://github.com/15below/EasyNetQ.ProcessManager ; if you want to run the examples you&#39;ll need a few db bits set up (see the README) and a
 SMTP server (I recommend the excellent <a href="https://papercut.codeplex.com/">PaperCut</a> as a simple and convenient development SMTP server).</p>
 
-<blockquote><p>Please note: if you&rsquo;ve looked at this article before, the code below has changed after a <a href="https://twitter.com/BlythMeister">a colleague of mine</a> suggested much better method names for certain operations&hellip;</p></blockquote>
+<blockquote>
+<p>Please note: if you&#39;ve looked at this article before, the code below has changed after a <a href="https://twitter.com/BlythMeister">a colleague of mine</a> suggested much better method names for certain operations...</p>
+</blockquote>
 
-<p>Back to the world of C#; first we&rsquo;ll need an actual ProcessManager object:</p>
-
-<p><code>csharp
-var rabbitConnString = ConfigurationManager.AppSettings["rabbit connection"];
-var sqlConnString = ConfigurationManager.AppSettings["sql connection"];
-var bus = RabbitHutch.CreateBus(rabbitConnString);
-var active = new SqlActiveStore(sqlConnString);
-var store = new SqlStateStore(sqlConnString, new Serializer());
-var pm = new ProcessManager(new EasyNetQPMBus(bus), "Process", active, store);
-Workflow.Configure(pm);
-</code></p>
-
-<p>Obviously, most of this would normally be covered with an IoC container. So, the bus is probably pretty obvious, and <code>"Process"</code> is our subscription ID for any subscriptions we make
-&ndash; but what are the <code>SqlActiveStore</code> and <code>SqlStateStore</code>?</p>
+<p>Back to the world of C#; first we&#39;ll need an actual ProcessManager object:</p>
+<div class="highlight"><pre><code class="csharp"><span class="kt">var</span> <span class="n">rabbitConnString</span> <span class="p">=</span> <span class="n">ConfigurationManager</span><span class="p">.</span><span class="n">AppSettings</span><span class="p">[</span><span class="s">&quot;rabbit connection&quot;</span><span class="p">];</span>
+<span class="kt">var</span> <span class="n">sqlConnString</span> <span class="p">=</span> <span class="n">ConfigurationManager</span><span class="p">.</span><span class="n">AppSettings</span><span class="p">[</span><span class="s">&quot;sql connection&quot;</span><span class="p">];</span>
+<span class="kt">var</span> <span class="n">bus</span> <span class="p">=</span> <span class="n">RabbitHutch</span><span class="p">.</span><span class="n">CreateBus</span><span class="p">(</span><span class="n">rabbitConnString</span><span class="p">);</span>
+<span class="kt">var</span> <span class="n">active</span> <span class="p">=</span> <span class="k">new</span> <span class="n">SqlActiveStore</span><span class="p">(</span><span class="n">sqlConnString</span><span class="p">);</span>
+<span class="kt">var</span> <span class="n">store</span> <span class="p">=</span> <span class="k">new</span> <span class="n">SqlStateStore</span><span class="p">(</span><span class="n">sqlConnString</span><span class="p">,</span> <span class="k">new</span> <span class="n">Serializer</span><span class="p">());</span>
+<span class="kt">var</span> <span class="n">pm</span> <span class="p">=</span> <span class="k">new</span> <span class="n">ProcessManager</span><span class="p">(</span><span class="k">new</span> <span class="n">EasyNetQPMBus</span><span class="p">(</span><span class="n">bus</span><span class="p">),</span> <span class="s">&quot;Process&quot;</span><span class="p">,</span> <span class="n">active</span><span class="p">,</span> <span class="n">store</span><span class="p">);</span>
+<span class="n">Workflow</span><span class="p">.</span><span class="n">Configure</span><span class="p">(</span><span class="n">pm</span><span class="p">);</span>
+</code></pre></div>
+<p>Obviously, most of this would normally be covered with an IoC container. So, the bus is probably pretty obvious, and <code>&quot;Process&quot;</code> is our subscription ID for any subscriptions we make
+- but what are the <code>SqlActiveStore</code> and <code>SqlStateStore</code>?</p>
 
 <p>The active store is a component that will store the list of correlation IDs a process is waiting for, and which handlers to connect them to. Out of the box you get a
 memory based version (fast, good for testing, not horizontally scalable for hopefully obvious reasons) and an SQL Server based version.</p>
 
 <p>The state store, as you might have guessed, stores state for your workflow. Again both memory and SQL based implementations are provided, with the SQL implementation guaranteed to be not
-just thread safe, but &ldquo;process safe&rdquo;. One thing you do have to provide yourself is a serializer that knows how to serialize any work flow state objects you want stored.</p>
+just thread safe, but &quot;process safe&quot;. One thing you do have to provide yourself is a serializer that knows how to serialize any work flow state objects you want stored.</p>
 
-<p>Finally, and most interesting: let&rsquo;s see what&rsquo;s in <code>Workflow.Configure(pm)</code>. Let&rsquo;s take the file that actually configures our workflow, and break it down into sections (I&rsquo;ll chop some boilerplate out, full file at the end).</p>
+<p>Finally, and most interesting: let&#39;s see what&#39;s in <code>Workflow.Configure(pm)</code>. Let&#39;s take the file that actually configures our workflow, and break it down into sections (I&#39;ll chop some boilerplate out, full file at the end).</p>
+<div class="highlight"><pre><code class="csharp"><span class="k">using</span> <span class="nn">System</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">System.Collections.Generic</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">System.Runtime.Serialization</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">EasyNetQ.ProcessManager</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">Messenger.Messages.Email</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">Messenger.Messages.Render</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">Messenger.Messages.Store</span><span class="p">;</span>
+</code></pre></div>
+<p>All the standard bits - we&#39;ll need access to the various message types and the ProcessManager name space.</p>
+<div class="highlight"><pre><code class="csharp"><span class="na">[DataContract]</span>
+<span class="k">public</span> <span class="k">class</span> <span class="nc">WorkflowState</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="nf">WorkflowState</span><span class="p">()</span> <span class="p">{</span> <span class="p">}</span>
 
-<p><code>csharp
-using System;
-using System.Collections.Generic;
-using System.Runtime.Serialization;
-using EasyNetQ.ProcessManager;
-using Messenger.Messages.Email;
-using Messenger.Messages.Render;
-using Messenger.Messages.Store;
-</code></p>
+    <span class="k">public</span> <span class="nf">WorkflowState</span><span class="p">(</span><span class="kt">int?</span> <span class="n">modelId</span><span class="p">,</span> <span class="kt">int?</span> <span class="n">contentTemplateId</span><span class="p">,</span> <span class="kt">string</span> <span class="n">emailContent</span><span class="p">,</span> <span class="kt">string</span> <span class="n">emailAddress</span><span class="p">,</span> <span class="kt">int?</span> <span class="n">addressTemplateId</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">ModelId</span> <span class="p">=</span> <span class="n">modelId</span><span class="p">;</span>
+        <span class="n">ContentTemplateId</span> <span class="p">=</span> <span class="n">contentTemplateId</span><span class="p">;</span>
+        <span class="n">EmailContent</span> <span class="p">=</span> <span class="n">emailContent</span><span class="p">;</span>
+        <span class="n">EmailAddress</span> <span class="p">=</span> <span class="n">emailAddress</span><span class="p">;</span>
+        <span class="n">AddressTemplateId</span> <span class="p">=</span> <span class="n">addressTemplateId</span><span class="p">;</span>
+    <span class="p">}</span>
 
-<p>All the standard bits &ndash; we&rsquo;ll need access to the various message types and the ProcessManager name space.</p>
-
-<p>``` csharp
-[DataContract]
-public class WorkflowState
-{</p>
-
-<pre><code>public WorkflowState() { }
-
-public WorkflowState(int? modelId, int? contentTemplateId, string emailContent, string emailAddress, int? addressTemplateId)
-{
-    ModelId = modelId;
-    ContentTemplateId = contentTemplateId;
-    EmailContent = emailContent;
-    EmailAddress = emailAddress;
-    AddressTemplateId = addressTemplateId;
-}
-
-[DataMember]
-public int? ModelId { get; set; }
-[DataMember]
-public int? ContentTemplateId { get; set; }
-[DataMember]
-public int? AddressTemplateId { get; set; }
-[DataMember]
-public string EmailContent { get; set; }
-[DataMember]
-public string EmailAddress { get; set; }
-</code></pre>
-
-<p>}
-```</p>
-
+<span class="na">    [DataMember]</span>
+    <span class="k">public</span> <span class="kt">int?</span> <span class="n">ModelId</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+<span class="na">    [DataMember]</span>
+    <span class="k">public</span> <span class="kt">int?</span> <span class="n">ContentTemplateId</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+<span class="na">    [DataMember]</span>
+    <span class="k">public</span> <span class="kt">int?</span> <span class="n">AddressTemplateId</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+<span class="na">    [DataMember]</span>
+    <span class="k">public</span> <span class="kt">string</span> <span class="n">EmailContent</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+<span class="na">    [DataMember]</span>
+    <span class="k">public</span> <span class="kt">string</span> <span class="n">EmailAddress</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
 <p>This object will store the state of our work flow. As you might guess, it starts off empty and steps in the work flow will gradually fill in the gaps as
-they receive information back from the remote services. The basic flow of the process we&rsquo;re creating is to store a model (piece of data), an address template
-and a content template. We&rsquo;ll render an address once we have both address template and model IDs, and the content once we have both content template and model ID.</p>
+they receive information back from the remote services. The basic flow of the process we&#39;re creating is to store a model (piece of data), an address template
+and a content template. We&#39;ll render an address once we have both address template and model IDs, and the content once we have both content template and model ID.</p>
 
-<p>After both rendering jobs have finished, we&rsquo;ll send an email to the address, with the content. Note that our object does <em>not</em> need any awareness of which
-instance of the work flow it&rsquo;s storing information for &ndash; the ProcessManager will handle that for us.</p>
-
-<p><code>csharp
-public class Workflow
-{
-</code></p>
-
-<p>Let&rsquo;s have a class to group all of our work flow logic together in one place. This isn&rsquo;t in anyway required by ProcessManager, but it&rsquo;s definitely recommended to
+<p>After both rendering jobs have finished, we&#39;ll send an email to the address, with the content. Note that our object does <em>not</em> need any awareness of which
+instance of the work flow it&#39;s storing information for - the ProcessManager will handle that for us.</p>
+<div class="highlight"><pre><code class="csharp"><span class="k">public</span> <span class="k">class</span> <span class="nc">Workflow</span>
+<span class="p">{</span>
+</code></pre></div>
+<p>Let&#39;s have a class to group all of our work flow logic together in one place. This isn&#39;t in anyway required by ProcessManager, but it&#39;s definitely recommended to
 allow people to work out what on earth your project manager actually does.</p>
-
-<p><code>csharp
-private const string ModelStoredCheckRenderContentKey = "ModelStoredCheckRenderContentKey";
-private const string ModelStoredCheckRenderAddressKey = "ModelStoredCheckRenderAddress";
-private const string ContentTemplateStoredCheckRenderContentKey = "ContentTemplateStoredCheckRenderContent";
-private const string AddressTemplateStoredCheckRenderAddressKey = "AddressTemplateStoredCheckRenderAddress";
-private const string ContentRenderedCheckSendEmailKey = "ContentRenderedCheckSendEmail";
-private const string AddressRenderedCheckSendEmailKey = "AddressRenderedCheckSendEmail";
-</code></p>
-
-<p>We&rsquo;ll be specifying in each of our work flow steps which callbacks we&rsquo;re expecting to be fired when response messages are received. Because these callbacks may not
+<div class="highlight"><pre><code class="csharp"><span class="k">private</span> <span class="k">const</span> <span class="kt">string</span> <span class="n">ModelStoredCheckRenderContentKey</span> <span class="p">=</span> <span class="s">&quot;ModelStoredCheckRenderContentKey&quot;</span><span class="p">;</span>
+<span class="k">private</span> <span class="k">const</span> <span class="kt">string</span> <span class="n">ModelStoredCheckRenderAddressKey</span> <span class="p">=</span> <span class="s">&quot;ModelStoredCheckRenderAddress&quot;</span><span class="p">;</span>
+<span class="k">private</span> <span class="k">const</span> <span class="kt">string</span> <span class="n">ContentTemplateStoredCheckRenderContentKey</span> <span class="p">=</span> <span class="s">&quot;ContentTemplateStoredCheckRenderContent&quot;</span><span class="p">;</span>
+<span class="k">private</span> <span class="k">const</span> <span class="kt">string</span> <span class="n">AddressTemplateStoredCheckRenderAddressKey</span> <span class="p">=</span> <span class="s">&quot;AddressTemplateStoredCheckRenderAddress&quot;</span><span class="p">;</span>
+<span class="k">private</span> <span class="k">const</span> <span class="kt">string</span> <span class="n">ContentRenderedCheckSendEmailKey</span> <span class="p">=</span> <span class="s">&quot;ContentRenderedCheckSendEmail&quot;</span><span class="p">;</span>
+<span class="k">private</span> <span class="k">const</span> <span class="kt">string</span> <span class="n">AddressRenderedCheckSendEmailKey</span> <span class="p">=</span> <span class="s">&quot;AddressRenderedCheckSendEmail&quot;</span><span class="p">;</span>
+</code></pre></div>
+<p>We&#39;ll be specifying in each of our work flow steps which callbacks we&#39;re expecting to be fired when response messages are received. Because these callbacks may not
 happen in the same process (ProcessManager is horizontally scalable by design), callbacks are referred to by a string mapping. These get used in several places, so
-it&rsquo;s probably worth recording them all as <code>const</code>s to avoid typos.</p>
-
-<p>``` csharp
-public static Out Start(IDictionary&lt;string, object> model, string contentTemplate, string addressTemplate)
-{</p>
-
-<pre><code>var modelCid = Guid.NewGuid();
-var contentCid = Guid.NewGuid();
-var addressCid = Guid.NewGuid();
-return
-    Out.Empty
-        .Send(new StoreModel(modelCid, model), TimeSpan.FromSeconds(4))
-        .Expect&lt;ModelStored&gt;(modelCid.ToString(),
-            ModelStoredCheckRenderContentKey, TimeSpan.FromSeconds(5), "TimeOut")
-        .Expect&lt;ModelStored&gt;(modelCid.ToString(),
-            ModelStoredCheckRenderAddressKey, TimeSpan.FromSeconds(5), "TimeOut")
-        .Send(new StoreTemplate(contentCid, "content template",
-            contentTemplate), TimeSpan.FromSeconds(4))
-        .Expect&lt;TemplateStored&gt;(contentCid.ToString(),
-            ContentTemplateStoredCheckRenderContentKey, TimeSpan.FromSeconds(5),
-            "TimeOut")
-        .Send(new StoreTemplate(addressCid, "address template",
-            addressTemplate), TimeSpan.FromSeconds(4))
-        .Expect&lt;TemplateStored&gt;(addressCid.ToString(),
-            AddressTemplateStoredCheckRenderAddressKey, TimeSpan.FromSeconds(5),
-            "TimeOut");
-</code></pre>
-
-<p>}
-```</p>
-
-<p>So: our <code>Start</code> method is where the real fun starts. It&rsquo;s <code>static</code>, as an instance of the work flow class makes very little sense as all state will be stored in the
+it&#39;s probably worth recording them all as <code>const</code>s to avoid typos.</p>
+<div class="highlight"><pre><code class="csharp"><span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">Start</span><span class="p">(</span><span class="n">IDictionary</span><span class="p">&lt;</span><span class="kt">string</span><span class="p">,</span> <span class="kt">object</span><span class="p">&gt;</span> <span class="n">model</span><span class="p">,</span> <span class="kt">string</span> <span class="n">contentTemplate</span><span class="p">,</span> <span class="kt">string</span> <span class="n">addressTemplate</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">var</span> <span class="n">modelCid</span> <span class="p">=</span> <span class="n">Guid</span><span class="p">.</span><span class="n">NewGuid</span><span class="p">();</span>
+    <span class="kt">var</span> <span class="n">contentCid</span> <span class="p">=</span> <span class="n">Guid</span><span class="p">.</span><span class="n">NewGuid</span><span class="p">();</span>
+    <span class="kt">var</span> <span class="n">addressCid</span> <span class="p">=</span> <span class="n">Guid</span><span class="p">.</span><span class="n">NewGuid</span><span class="p">();</span>
+    <span class="k">return</span>
+        <span class="n">Out</span><span class="p">.</span><span class="n">Empty</span>
+            <span class="p">.</span><span class="n">Send</span><span class="p">(</span><span class="k">new</span> <span class="n">StoreModel</span><span class="p">(</span><span class="n">modelCid</span><span class="p">,</span> <span class="n">model</span><span class="p">),</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">4</span><span class="p">))</span>
+            <span class="p">.</span><span class="n">Expect</span><span class="p">&lt;</span><span class="n">ModelStored</span><span class="p">&gt;(</span><span class="n">modelCid</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span>
+                <span class="n">ModelStoredCheckRenderContentKey</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">),</span> <span class="s">&quot;TimeOut&quot;</span><span class="p">)</span>
+            <span class="p">.</span><span class="n">Expect</span><span class="p">&lt;</span><span class="n">ModelStored</span><span class="p">&gt;(</span><span class="n">modelCid</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span>
+                <span class="n">ModelStoredCheckRenderAddressKey</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">),</span> <span class="s">&quot;TimeOut&quot;</span><span class="p">)</span>
+            <span class="p">.</span><span class="n">Send</span><span class="p">(</span><span class="k">new</span> <span class="n">StoreTemplate</span><span class="p">(</span><span class="n">contentCid</span><span class="p">,</span> <span class="s">&quot;content template&quot;</span><span class="p">,</span>
+                <span class="n">contentTemplate</span><span class="p">),</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">4</span><span class="p">))</span>
+            <span class="p">.</span><span class="n">Expect</span><span class="p">&lt;</span><span class="n">TemplateStored</span><span class="p">&gt;(</span><span class="n">contentCid</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span>
+                <span class="n">ContentTemplateStoredCheckRenderContentKey</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">),</span>
+                <span class="s">&quot;TimeOut&quot;</span><span class="p">)</span>
+            <span class="p">.</span><span class="n">Send</span><span class="p">(</span><span class="k">new</span> <span class="n">StoreTemplate</span><span class="p">(</span><span class="n">addressCid</span><span class="p">,</span> <span class="s">&quot;address template&quot;</span><span class="p">,</span>
+                <span class="n">addressTemplate</span><span class="p">),</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">4</span><span class="p">))</span>
+            <span class="p">.</span><span class="n">Expect</span><span class="p">&lt;</span><span class="n">TemplateStored</span><span class="p">&gt;(</span><span class="n">addressCid</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span>
+                <span class="n">AddressTemplateStoredCheckRenderAddressKey</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">),</span>
+                <span class="s">&quot;TimeOut&quot;</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>So: our <code>Start</code> method is where the real fun starts. It&#39;s <code>static</code>, as an instance of the work flow class makes very little sense as all state will be stored in the
 state store. And basically all it does is set up our first set of expected requests (to <code>Send</code>) and continuations (to <code>Expect</code>).</p>
 
 <p>All functions within a work flow must return an <code>Out</code> object. Here, we create our Out using its fluent builder API; first adding a request to send a <code>StoreModel</code>,
-then hooking up two handlers to the response message we expect the store to send when it&rsquo;s done storing the model (there&rsquo;s no requirement for a specific message to trigger
+then hooking up two handlers to the response message we expect the store to send when it&#39;s done storing the model (there&#39;s no requirement for a specific message to trigger
 only one continuation). But what are these <code>TimeSpan</code>s floating around everywhere?</p>
 
 <p>Well, it turns out that RabbitMQ implements the idea of expiring messages. ProcessManager forces you to choose how long a message should stay available for before expiring,
 to avoid creating situations where you build up unbounded backlogs of ancient messages that no longer have any relevance. For time critical processes such as ours, it also
-means that we can put expectations on how long we expect a step to take. Here, we&rsquo;re saying: &ldquo;if the store doesn&rsquo;t accept the store model request within 4 seconds, do not
-deliver it.&rdquo;</p>
+means that we can put expectations on how long we expect a step to take. Here, we&#39;re saying: &quot;if the store doesn&#39;t accept the store model request within 4 seconds, do not
+deliver it.&quot;</p>
 
 <p>In a similar way, we must choose a timespan to process continuations within. Network issues or overloading of the ProcessManager itself might mean that the request is processed,
-but by the time the continuation trigger message returns we&rsquo;ve already missed our processing window. In this example, we&rsquo;re specifying: &ldquo;if we don&rsquo;t receive a model stored message
-within 5 seconds, do not process the continuation when (or if) it arrives; also, publish a time out message to be processed by a handler named TimeOut.&rdquo;</p>
+but by the time the continuation trigger message returns we&#39;ve already missed our processing window. In this example, we&#39;re specifying: &quot;if we don&#39;t receive a model stored message
+within 5 seconds, do not process the continuation when (or if) it arrives; also, publish a time out message to be processed by a handler named TimeOut.&quot;</p>
 
 <p>The rest of the method follows a similar pattern, setting up the requests to store content and address templates respectively, with the expected continuations.</p>
+<div class="highlight"><pre><code class="csharp"><span class="k">private</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">RenderContentIfReady</span><span class="p">(</span><span class="n">WorkflowState</span> <span class="n">state</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">if</span> <span class="p">(!</span><span class="n">state</span><span class="p">.</span><span class="n">ModelId</span><span class="p">.</span><span class="n">HasValue</span> <span class="p">||</span> <span class="p">!</span><span class="n">state</span><span class="p">.</span><span class="n">ContentTemplateId</span><span class="p">.</span><span class="n">HasValue</span><span class="p">)</span> <span class="k">return</span> <span class="n">Out</span><span class="p">.</span><span class="n">Ignore</span><span class="p">;</span>
+    <span class="kt">var</span> <span class="n">cid</span> <span class="p">=</span> <span class="n">Guid</span><span class="p">.</span><span class="n">NewGuid</span><span class="p">();</span>
+    <span class="kt">var</span> <span class="n">renderContent</span> <span class="p">=</span>
+        <span class="k">new</span> <span class="nf">RequestRender</span><span class="p">(</span><span class="n">cid</span><span class="p">,</span> <span class="n">state</span><span class="p">.</span><span class="n">ContentTemplateId</span><span class="p">.</span><span class="n">Value</span><span class="p">,</span> <span class="n">state</span><span class="p">.</span><span class="n">ModelId</span><span class="p">.</span><span class="n">Value</span><span class="p">);</span>
+    <span class="k">return</span>
+        <span class="n">Out</span><span class="p">.</span><span class="n">Empty</span>
+            <span class="p">.</span><span class="n">Send</span><span class="p">(</span><span class="n">renderContent</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">4</span><span class="p">))</span>
+            <span class="p">.</span><span class="n">Expect</span><span class="p">&lt;</span><span class="n">RenderComplete</span><span class="p">&gt;(</span><span class="n">cid</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="n">ContentRenderedCheckSendEmailKey</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">),</span>
+                <span class="s">&quot;TimeOut&quot;</span><span class="p">);</span>
+<span class="p">}</span>
 
-<p>``` csharp
-private static Out RenderContentIfReady(WorkflowState state)
-{</p>
-
-<pre><code>if (!state.ModelId.HasValue || !state.ContentTemplateId.HasValue) return Out.Ignore;
-var cid = Guid.NewGuid();
-var renderContent =
-    new RequestRender(cid, state.ContentTemplateId.Value, state.ModelId.Value);
-return
-    Out.Empty
-        .Send(renderContent, TimeSpan.FromSeconds(4))
-        .Expect&lt;RenderComplete&gt;(cid.ToString(), ContentRenderedCheckSendEmailKey, TimeSpan.FromSeconds(5),
-            "TimeOut");
-</code></pre>
-
-<p>}</p>
-
-<p>private static Out RenderAddressIfReady(WorkflowState state)
-{</p>
-
-<pre><code>if (!state.ModelId.HasValue || !state.AddressTemplateId.HasValue) return Out.Ignore;
-var cid = Guid.NewGuid();
-var renderContent =
-    new RequestRender(cid, state.AddressTemplateId.Value, state.ModelId.Value);
-return Out.Empty.Send(renderContent, TimeSpan.FromSeconds(4))
-    .Expect&lt;RenderComplete&gt;(cid.ToString(), AddressRenderedCheckSendEmailKey, TimeSpan.FromSeconds(5),
-        "TimeOut");
-</code></pre>
-
-<p>}
-```</p>
-
+<span class="k">private</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">RenderAddressIfReady</span><span class="p">(</span><span class="n">WorkflowState</span> <span class="n">state</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">if</span> <span class="p">(!</span><span class="n">state</span><span class="p">.</span><span class="n">ModelId</span><span class="p">.</span><span class="n">HasValue</span> <span class="p">||</span> <span class="p">!</span><span class="n">state</span><span class="p">.</span><span class="n">AddressTemplateId</span><span class="p">.</span><span class="n">HasValue</span><span class="p">)</span> <span class="k">return</span> <span class="n">Out</span><span class="p">.</span><span class="n">Ignore</span><span class="p">;</span>
+    <span class="kt">var</span> <span class="n">cid</span> <span class="p">=</span> <span class="n">Guid</span><span class="p">.</span><span class="n">NewGuid</span><span class="p">();</span>
+    <span class="kt">var</span> <span class="n">renderContent</span> <span class="p">=</span>
+        <span class="k">new</span> <span class="nf">RequestRender</span><span class="p">(</span><span class="n">cid</span><span class="p">,</span> <span class="n">state</span><span class="p">.</span><span class="n">AddressTemplateId</span><span class="p">.</span><span class="n">Value</span><span class="p">,</span> <span class="n">state</span><span class="p">.</span><span class="n">ModelId</span><span class="p">.</span><span class="n">Value</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">Out</span><span class="p">.</span><span class="n">Empty</span><span class="p">.</span><span class="n">Send</span><span class="p">(</span><span class="n">renderContent</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">4</span><span class="p">))</span>
+        <span class="p">.</span><span class="n">Expect</span><span class="p">&lt;</span><span class="n">RenderComplete</span><span class="p">&gt;(</span><span class="n">cid</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="n">AddressRenderedCheckSendEmailKey</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">),</span>
+            <span class="s">&quot;TimeOut&quot;</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
 <p>Next up: a couple of private helper methods. These take our <code>WorkflowState</code> object from above and know whether we can start the two rendering processes yet.</p>
 
 <p>Note the use of <code>Out.Ignore</code> if the state is not yet ready to trigger the next part of the work flow. <code>Ignore</code> is basically a way of marking this branch of the
-work flow complete. This is different to <code>Out.End</code>, which we&rsquo;ll have a look at a bit later &ndash; and which ends all branches of the work flow.</p>
+work flow complete. This is different to <code>Out.End</code>, which we&#39;ll have a look at a bit later - and which ends all branches of the work flow.</p>
+<div class="highlight"><pre><code class="csharp"><span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">ModelStoredCheckRenderContent</span><span class="p">(</span><span class="n">ModelStored</span> <span class="n">ms</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">var</span> <span class="n">ws</span> <span class="p">=</span> <span class="n">state</span><span class="p">.</span><span class="n">AddOrUpdate</span><span class="p">(</span><span class="k">new</span> <span class="n">WorkflowState</span> <span class="p">{</span><span class="n">ModelId</span> <span class="p">=</span> <span class="n">ms</span><span class="p">.</span><span class="n">ModelId</span><span class="p">},</span> <span class="n">existing</span> <span class="p">=&gt;</span>
+    <span class="p">{</span>
+        <span class="n">existing</span><span class="p">.</span><span class="n">ModelId</span> <span class="p">=</span> <span class="n">ms</span><span class="p">.</span><span class="n">ModelId</span><span class="p">;</span>
+        <span class="k">return</span> <span class="n">existing</span><span class="p">;</span>
+    <span class="p">});</span>
+    <span class="k">return</span> <span class="nf">RenderContentIfReady</span><span class="p">(</span><span class="n">ws</span><span class="p">);</span>
+<span class="p">}</span>
 
-<p>``` csharp
-public static Out ModelStoredCheckRenderContent(ModelStored ms, IState state)
-{</p>
+<span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">ModelStoredCheckRenderAddress</span><span class="p">(</span><span class="n">ModelStored</span> <span class="n">ms</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">var</span> <span class="n">ws</span> <span class="p">=</span> <span class="n">state</span><span class="p">.</span><span class="n">AddOrUpdate</span><span class="p">(</span><span class="k">new</span> <span class="n">WorkflowState</span> <span class="p">{</span><span class="n">ModelId</span> <span class="p">=</span> <span class="n">ms</span><span class="p">.</span><span class="n">ModelId</span><span class="p">},</span> <span class="n">existing</span> <span class="p">=&gt;</span>
+    <span class="p">{</span>
+        <span class="n">existing</span><span class="p">.</span><span class="n">ModelId</span> <span class="p">=</span> <span class="n">ms</span><span class="p">.</span><span class="n">ModelId</span><span class="p">;</span>
+        <span class="k">return</span> <span class="n">existing</span><span class="p">;</span>
+    <span class="p">});</span>
+    <span class="k">return</span> <span class="nf">RenderAddressIfReady</span><span class="p">(</span><span class="n">ws</span><span class="p">);</span>
+<span class="p">}</span>
 
-<pre><code>var ws = state.AddOrUpdate(new WorkflowState {ModelId = ms.ModelId}, existing =&gt;
-{
-    existing.ModelId = ms.ModelId;
-    return existing;
-});
-return RenderContentIfReady(ws);
-</code></pre>
+<span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">ContentTemplateStoredCheckRenderContent</span><span class="p">(</span><span class="n">TemplateStored</span> <span class="n">ts</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">var</span> <span class="n">ws</span> <span class="p">=</span> <span class="n">state</span><span class="p">.</span><span class="n">AddOrUpdate</span><span class="p">(</span><span class="k">new</span> <span class="n">WorkflowState</span> <span class="p">{</span><span class="n">ContentTemplateId</span> <span class="p">=</span> <span class="n">ts</span><span class="p">.</span><span class="n">TemplateId</span><span class="p">},</span> <span class="n">existing</span> <span class="p">=&gt;</span>
+    <span class="p">{</span>
+        <span class="n">existing</span><span class="p">.</span><span class="n">ContentTemplateId</span> <span class="p">=</span> <span class="n">ts</span><span class="p">.</span><span class="n">TemplateId</span><span class="p">;</span>
+        <span class="k">return</span> <span class="n">existing</span><span class="p">;</span>
+    <span class="p">});</span>
+    <span class="k">return</span> <span class="nf">RenderContentIfReady</span><span class="p">(</span><span class="n">ws</span><span class="p">);</span>
+<span class="p">}</span>
 
-<p>}</p>
-
-<p>public static Out ModelStoredCheckRenderAddress(ModelStored ms, IState state)
-{</p>
-
-<pre><code>var ws = state.AddOrUpdate(new WorkflowState {ModelId = ms.ModelId}, existing =&gt;
-{
-    existing.ModelId = ms.ModelId;
-    return existing;
-});
-return RenderAddressIfReady(ws);
-</code></pre>
-
-<p>}</p>
-
-<p>public static Out ContentTemplateStoredCheckRenderContent(TemplateStored ts, IState state)
-{</p>
-
-<pre><code>var ws = state.AddOrUpdate(new WorkflowState {ContentTemplateId = ts.TemplateId}, existing =&gt;
-{
-    existing.ContentTemplateId = ts.TemplateId;
-    return existing;
-});
-return RenderContentIfReady(ws);
-</code></pre>
-
-<p>}</p>
-
-<p>public static Out AddressTemplateStoredCheckRenderAddress(TemplateStored ts, IState state)
-{</p>
-
-<pre><code>var ws = state.AddOrUpdate(new WorkflowState {AddressTemplateId = ts.TemplateId}, existing =&gt;
-{
-    existing.AddressTemplateId = ts.TemplateId;
-    return existing;
-});
-return RenderAddressIfReady(ws);
-</code></pre>
-
-<p>}
-```</p>
-
+<span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">AddressTemplateStoredCheckRenderAddress</span><span class="p">(</span><span class="n">TemplateStored</span> <span class="n">ts</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">var</span> <span class="n">ws</span> <span class="p">=</span> <span class="n">state</span><span class="p">.</span><span class="n">AddOrUpdate</span><span class="p">(</span><span class="k">new</span> <span class="n">WorkflowState</span> <span class="p">{</span><span class="n">AddressTemplateId</span> <span class="p">=</span> <span class="n">ts</span><span class="p">.</span><span class="n">TemplateId</span><span class="p">},</span> <span class="n">existing</span> <span class="p">=&gt;</span>
+    <span class="p">{</span>
+        <span class="n">existing</span><span class="p">.</span><span class="n">AddressTemplateId</span> <span class="p">=</span> <span class="n">ts</span><span class="p">.</span><span class="n">TemplateId</span><span class="p">;</span>
+        <span class="k">return</span> <span class="n">existing</span><span class="p">;</span>
+    <span class="p">});</span>
+    <span class="k">return</span> <span class="nf">RenderAddressIfReady</span><span class="p">(</span><span class="n">ws</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
 <p>These four methods will be wired up to handle the four continuation options we created in our <code>Start</code> method.
 Each is very similar: it is passed the triggering message and the state of <em>this</em> work flow, updates or creates the
 state with the data it has received back, and then runs one of the private helpers we defined above.</p>
 
-<p>Why can we not just Add, or just Update the state? Well &ndash; we published 3 requests which are being handled by 4
-continuations. There are no guarantees what order these will be triggered in or that they won&rsquo;t be triggered simultaneously
+<p>Why can we not just Add, or just Update the state? Well - we published 3 requests which are being handled by 4
+continuations. There are no guarantees what order these will be triggered in or that they won&#39;t be triggered simultaneously
 on different threads or even on different machines. <code>AddOrUpdate</code> acts as a synchronization point for our work flow,
 guaranteeing that the operation happening within it will be atomic.</p>
 
 <p>We can apply similar logic to waiting for our two rendering jobs:</p>
+<div class="highlight"><pre><code class="csharp"><span class="k">private</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">SendEmailIfReady</span><span class="p">(</span><span class="n">WorkflowState</span> <span class="n">state</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">state</span><span class="p">.</span><span class="n">EmailAddress</span> <span class="p">==</span> <span class="k">null</span> <span class="p">||</span> <span class="n">state</span><span class="p">.</span><span class="n">EmailContent</span> <span class="p">==</span> <span class="k">null</span><span class="p">)</span> <span class="k">return</span> <span class="n">Out</span><span class="p">.</span><span class="n">Ignore</span><span class="p">;</span>
+    <span class="kt">var</span> <span class="n">cid</span> <span class="p">=</span> <span class="n">Guid</span><span class="p">.</span><span class="n">NewGuid</span><span class="p">();</span>
+    <span class="kt">var</span> <span class="n">sendEmail</span> <span class="p">=</span>
+        <span class="k">new</span> <span class="nf">SendEmail</span><span class="p">(</span><span class="n">cid</span><span class="p">,</span> <span class="n">state</span><span class="p">.</span><span class="n">EmailAddress</span><span class="p">,</span> <span class="n">state</span><span class="p">.</span><span class="n">EmailContent</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">Out</span><span class="p">.</span><span class="n">Empty</span><span class="p">.</span><span class="n">Send</span><span class="p">(</span><span class="n">sendEmail</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">4</span><span class="p">))</span>
+        <span class="p">.</span><span class="n">Expect</span><span class="p">&lt;</span><span class="n">EmailSent</span><span class="p">&gt;(</span><span class="n">cid</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="s">&quot;EmailSent&quot;</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">),</span> <span class="s">&quot;TimeOut&quot;</span><span class="p">);</span>
+<span class="p">}</span>
 
-<p>``` csharp
-private static Out SendEmailIfReady(WorkflowState state)
-{</p>
+<span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">AddressRenderedCheckSendEmail</span><span class="p">(</span><span class="n">RenderComplete</span> <span class="n">rc</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">var</span> <span class="n">ws</span> <span class="p">=</span> <span class="n">state</span><span class="p">.</span><span class="n">AddOrUpdate</span><span class="p">(</span><span class="k">new</span> <span class="n">WorkflowState</span> <span class="p">{</span><span class="n">EmailAddress</span> <span class="p">=</span> <span class="n">rc</span><span class="p">.</span><span class="n">Content</span><span class="p">},</span> <span class="n">existing</span> <span class="p">=&gt;</span>
+    <span class="p">{</span>
+        <span class="n">existing</span><span class="p">.</span><span class="n">EmailAddress</span> <span class="p">=</span> <span class="n">rc</span><span class="p">.</span><span class="n">Content</span><span class="p">;</span>
+        <span class="k">return</span> <span class="n">existing</span><span class="p">;</span>
+    <span class="p">});</span>
+    <span class="k">return</span> <span class="nf">SendEmailIfReady</span><span class="p">(</span><span class="n">ws</span><span class="p">);</span>
+<span class="p">}</span>
 
-<pre><code>if (state.EmailAddress == null || state.EmailContent == null) return Out.Ignore;
-var cid = Guid.NewGuid();
-var sendEmail =
-    new SendEmail(cid, state.EmailAddress, state.EmailContent);
-return Out.Empty.Send(sendEmail, TimeSpan.FromSeconds(4))
-    .Expect&lt;EmailSent&gt;(cid.ToString(), "EmailSent", TimeSpan.FromSeconds(5), "TimeOut");
-</code></pre>
-
-<p>}</p>
-
-<p>public static Out AddressRenderedCheckSendEmail(RenderComplete rc, IState state)
-{</p>
-
-<pre><code>var ws = state.AddOrUpdate(new WorkflowState {EmailAddress = rc.Content}, existing =&gt;
-{
-    existing.EmailAddress = rc.Content;
-    return existing;
-});
-return SendEmailIfReady(ws);
-</code></pre>
-
-<p>}</p>
-
-<p>public static Out ContentRenderedCheckSendEmail(RenderComplete rc, IState state)
-{</p>
-
-<pre><code>var ws = state.AddOrUpdate(new WorkflowState {EmailContent = rc.Content}, existing =&gt;
-{
-    existing.EmailContent = rc.Content;
-    return existing;
-});
-return SendEmailIfReady(ws);
-</code></pre>
-
-<p>}
-```</p>
-
+<span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">ContentRenderedCheckSendEmail</span><span class="p">(</span><span class="n">RenderComplete</span> <span class="n">rc</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">var</span> <span class="n">ws</span> <span class="p">=</span> <span class="n">state</span><span class="p">.</span><span class="n">AddOrUpdate</span><span class="p">(</span><span class="k">new</span> <span class="n">WorkflowState</span> <span class="p">{</span><span class="n">EmailContent</span> <span class="p">=</span> <span class="n">rc</span><span class="p">.</span><span class="n">Content</span><span class="p">},</span> <span class="n">existing</span> <span class="p">=&gt;</span>
+    <span class="p">{</span>
+        <span class="n">existing</span><span class="p">.</span><span class="n">EmailContent</span> <span class="p">=</span> <span class="n">rc</span><span class="p">.</span><span class="n">Content</span><span class="p">;</span>
+        <span class="k">return</span> <span class="n">existing</span><span class="p">;</span>
+    <span class="p">});</span>
+    <span class="k">return</span> <span class="nf">SendEmailIfReady</span><span class="p">(</span><span class="n">ws</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
 <p>Once they have both finished, and only once they have both finished, <code>SendEmailIfReady</code> will fire off a <code>SendEmail</code> request.</p>
-
-<p>``` csharp
-public static Out EmailSent(EmailSent es, IState state)
-{</p>
-
-<pre><code>var ws = state.Get&lt;WorkflowState&gt;().Value;
-Console.WriteLine("Email send success: {0}\nAddress: {1}\nContent: {2}", es.Successful, ws.EmailAddress, ws.EmailContent);
-return Out.End;
-</code></pre>
-
-<p>}
-```</p>
-
-<p>Finally on our happy path, we&rsquo;re informed that an email has been sent. Here we mark the work flow as ended using <code>Out.End</code>. This will cancel
+<div class="highlight"><pre><code class="csharp"><span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">EmailSent</span><span class="p">(</span><span class="n">EmailSent</span> <span class="n">es</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">var</span> <span class="n">ws</span> <span class="p">=</span> <span class="n">state</span><span class="p">.</span><span class="n">Get</span><span class="p">&lt;</span><span class="n">WorkflowState</span><span class="p">&gt;().</span><span class="n">Value</span><span class="p">;</span>
+    <span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">&quot;Email send success: {0}\nAddress: {1}\nContent: {2}&quot;</span><span class="p">,</span> <span class="n">es</span><span class="p">.</span><span class="n">Successful</span><span class="p">,</span> <span class="n">ws</span><span class="p">.</span><span class="n">EmailAddress</span><span class="p">,</span> <span class="n">ws</span><span class="p">.</span><span class="n">EmailContent</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">Out</span><span class="p">.</span><span class="n">End</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Finally on our happy path, we&#39;re informed that an email has been sent. Here we mark the work flow as ended using <code>Out.End</code>. This will cancel
 any outstanding continuations and remove the work flow state from the state store. ProcessManager <em>will not retain any information</em>
 about the running of a work flow. If you require (and you probably do) any kind of logging or auditing it is your responsibility to
 cover that within the handlers you write.</p>
 
-<p>But all this only covers the happy path. What happens if we hit one of those time outs we&rsquo;ve been talking about?</p>
-
-<p>``` csharp
-public static Out TimeOut(TimeOutMessage to, IState state)
-{</p>
-
-<pre><code>Console.WriteLine("Time out waiting for: {0}", to.TimedOutStep);
-return Out.End;
-</code></pre>
-
-<p>}
-```</p>
-
-<p>Well, in that case a <code>TimeOutMessage</code> will be published, and we can handle it appropriately. In this case, just printing out the fact the job timed out, and which step it was that didn&rsquo;t complete (one of the fields on the <code>TimeOutMessage</code> object).
+<p>But all this only covers the happy path. What happens if we hit one of those time outs we&#39;ve been talking about?</p>
+<div class="highlight"><pre><code class="csharp"><span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">TimeOut</span><span class="p">(</span><span class="n">TimeOutMessage</span> <span class="n">to</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">&quot;Time out waiting for: {0}&quot;</span><span class="p">,</span> <span class="n">to</span><span class="p">.</span><span class="n">TimedOutStep</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">Out</span><span class="p">.</span><span class="n">End</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Well, in that case a <code>TimeOutMessage</code> will be published, and we can handle it appropriately. In this case, just printing out the fact the job timed out, and which step it was that didn&#39;t complete (one of the fields on the <code>TimeOutMessage</code> object).
 As above, we explicitly <code>End</code> the work flow. No further continuations will be triggered beyond this point. One thing to bear in mind though: while a continuation
 timeout guarantees the continuation will not fire after the <code>TimeSpan</code> has expired, there is <strong>no</strong> guarantee that the <code>TimeOutMessage</code> will be either published
-or handled in any particular timescale. For example, if all your ProcessManager nodes go down; well you won&rsquo;t be publishing/handling any time outs until they&rsquo;re running
+or handled in any particular timescale. For example, if all your ProcessManager nodes go down; well you won&#39;t be publishing/handling any time outs until they&#39;re running
 again.</p>
 
-<p>Now we&rsquo;re ready to write our <code>Configure</code> method. Let&rsquo;s wire everything up:</p>
+<p>Now we&#39;re ready to write our <code>Configure</code> method. Let&#39;s wire everything up:</p>
+<div class="highlight"><pre><code class="csharp"><span class="k">public</span> <span class="k">static</span> <span class="k">void</span> <span class="nf">Configure</span><span class="p">(</span><span class="n">ProcessManager</span> <span class="n">pm</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="n">pm</span><span class="p">.</span><span class="n">AddProcessor</span><span class="p">(</span><span class="n">stored</span> <span class="p">=&gt;</span> <span class="n">stored</span><span class="p">.</span><span class="n">CorrelationId</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="k">new</span> <span class="p">[]</span>
+    <span class="p">{</span>
+        <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">ModelStored</span><span class="p">&gt;(</span><span class="n">ModelStoredCheckRenderContentKey</span><span class="p">,</span> <span class="n">ModelStoredCheckRenderContent</span><span class="p">),</span>
+        <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">ModelStored</span><span class="p">&gt;(</span><span class="n">ModelStoredCheckRenderAddressKey</span><span class="p">,</span> <span class="n">ModelStoredCheckRenderAddress</span><span class="p">)</span>
+    <span class="p">});</span>
 
-<p>``` csharp
-public static void Configure(ProcessManager pm)
-{</p>
+    <span class="n">pm</span><span class="p">.</span><span class="n">AddProcessor</span><span class="p">(</span><span class="n">stored</span> <span class="p">=&gt;</span> <span class="n">stored</span><span class="p">.</span><span class="n">CorrelationId</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="k">new</span><span class="p">[]</span>
+    <span class="p">{</span>
+        <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">TemplateStored</span><span class="p">&gt;(</span><span class="n">ContentTemplateStoredCheckRenderContentKey</span><span class="p">,</span>
+            <span class="n">ContentTemplateStoredCheckRenderContent</span><span class="p">),</span>
+        <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">TemplateStored</span><span class="p">&gt;(</span><span class="n">AddressTemplateStoredCheckRenderAddressKey</span><span class="p">,</span>
+            <span class="n">AddressTemplateStoredCheckRenderAddress</span><span class="p">)</span>
+    <span class="p">});</span>
 
-<pre><code>pm.AddProcessor(stored =&gt; stored.CorrelationId.ToString(), new []
-{
-    new Mapping&lt;ModelStored&gt;(ModelStoredCheckRenderContentKey, ModelStoredCheckRenderContent),
-    new Mapping&lt;ModelStored&gt;(ModelStoredCheckRenderAddressKey, ModelStoredCheckRenderAddress)
-});
+    <span class="n">pm</span><span class="p">.</span><span class="n">AddProcessor</span><span class="p">(</span><span class="n">complete</span> <span class="p">=&gt;</span> <span class="n">complete</span><span class="p">.</span><span class="n">CorrelationId</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="k">new</span> <span class="p">[]</span>
+    <span class="p">{</span>
+        <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">RenderComplete</span><span class="p">&gt;(</span><span class="n">AddressRenderedCheckSendEmailKey</span><span class="p">,</span> <span class="n">AddressRenderedCheckSendEmail</span><span class="p">),</span>
+        <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">RenderComplete</span><span class="p">&gt;(</span><span class="n">ContentRenderedCheckSendEmailKey</span><span class="p">,</span> <span class="n">ContentRenderedCheckSendEmail</span><span class="p">)</span>
+    <span class="p">});</span>
 
-pm.AddProcessor(stored =&gt; stored.CorrelationId.ToString(), new[]
-{
-    new Mapping&lt;TemplateStored&gt;(ContentTemplateStoredCheckRenderContentKey,
-        ContentTemplateStoredCheckRenderContent),
-    new Mapping&lt;TemplateStored&gt;(AddressTemplateStoredCheckRenderAddressKey,
-        AddressTemplateStoredCheckRenderAddress)
-});
+    <span class="n">pm</span><span class="p">.</span><span class="n">AddProcessor</span><span class="p">(</span><span class="n">sent</span> <span class="p">=&gt;</span> <span class="n">sent</span><span class="p">.</span><span class="n">CorrelationId</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">EmailSent</span><span class="p">&gt;(</span><span class="s">&quot;EmailSent&quot;</span><span class="p">,</span> <span class="n">EmailSent</span><span class="p">));</span>
 
-pm.AddProcessor(complete =&gt; complete.CorrelationId.ToString(), new []
-{
-    new Mapping&lt;RenderComplete&gt;(AddressRenderedCheckSendEmailKey, AddressRenderedCheckSendEmail),
-    new Mapping&lt;RenderComplete&gt;(ContentRenderedCheckSendEmailKey, ContentRenderedCheckSendEmail)
-});
-
-pm.AddProcessor(sent =&gt; sent.CorrelationId.ToString(), new Mapping&lt;EmailSent&gt;("EmailSent", EmailSent));
-
-pm.AddProcessor(to =&gt; to.CorrelationId.ToString(), new Mapping&lt;TimeOutMessage&gt;("TimeOut", TimeOut));
-</code></pre>
-
-<p>}
-```</p>
-
+    <span class="n">pm</span><span class="p">.</span><span class="n">AddProcessor</span><span class="p">(</span><span class="n">to</span> <span class="p">=&gt;</span> <span class="n">to</span><span class="p">.</span><span class="n">CorrelationId</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">TimeOutMessage</span><span class="p">&gt;(</span><span class="s">&quot;TimeOut&quot;</span><span class="p">,</span> <span class="n">TimeOut</span><span class="p">));</span>
+<span class="p">}</span>
+</code></pre></div>
 <p>The method takes our ProcessManager and starts adding processors to it. A processor knows how to extract a correlation ID from a specific message type, and an <code>IEnumerable</code> of mappings.
 Each mapping tells the ProcessManager which method to fire based on a string Key (remember our <code>const</code>s from above?).</p>
 
 <p>So, there you have it; a complete managed work flow on top of EasyNetQ with split and merge and time outs. The full work flow code file with out my commentary is below for those of you
 who find that easier!</p>
+<div class="highlight"><pre><code class="csharp"><span class="k">using</span> <span class="nn">System</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">System.Collections.Generic</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">System.Runtime.Serialization</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">EasyNetQ.ProcessManager</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">Messenger.Messages.Email</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">Messenger.Messages.Render</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">Messenger.Messages.Store</span><span class="p">;</span>
 
-<p>``` csharp
-using System;
-using System.Collections.Generic;
-using System.Runtime.Serialization;
-using EasyNetQ.ProcessManager;
-using Messenger.Messages.Email;
-using Messenger.Messages.Render;
-using Messenger.Messages.Store;</p>
+<span class="k">namespace</span> <span class="nn">Process3</span>
+<span class="p">{</span>
+<span class="na">    [DataContract]</span>
+    <span class="k">public</span> <span class="k">class</span> <span class="nc">WorkflowState</span>
+    <span class="p">{</span>
+        <span class="k">public</span> <span class="nf">WorkflowState</span><span class="p">()</span> <span class="p">{</span> <span class="p">}</span>
 
-<p>namespace Process3
-{</p>
+        <span class="k">public</span> <span class="nf">WorkflowState</span><span class="p">(</span><span class="kt">int?</span> <span class="n">modelId</span><span class="p">,</span> <span class="kt">int?</span> <span class="n">contentTemplateId</span><span class="p">,</span> <span class="kt">string</span> <span class="n">emailContent</span><span class="p">,</span> <span class="kt">string</span> <span class="n">emailAddress</span><span class="p">,</span> <span class="kt">int?</span> <span class="n">addressTemplateId</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="n">ModelId</span> <span class="p">=</span> <span class="n">modelId</span><span class="p">;</span>
+            <span class="n">ContentTemplateId</span> <span class="p">=</span> <span class="n">contentTemplateId</span><span class="p">;</span>
+            <span class="n">EmailContent</span> <span class="p">=</span> <span class="n">emailContent</span><span class="p">;</span>
+            <span class="n">EmailAddress</span> <span class="p">=</span> <span class="n">emailAddress</span><span class="p">;</span>
+            <span class="n">AddressTemplateId</span> <span class="p">=</span> <span class="n">addressTemplateId</span><span class="p">;</span>
+        <span class="p">}</span>
 
-<pre><code>[DataContract]
-public class WorkflowState
-{
-    public WorkflowState() { }
+<span class="na">        [DataMember]</span>
+        <span class="k">public</span> <span class="kt">int?</span> <span class="n">ModelId</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+<span class="na">        [DataMember]</span>
+        <span class="k">public</span> <span class="kt">int?</span> <span class="n">ContentTemplateId</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+<span class="na">        [DataMember]</span>
+        <span class="k">public</span> <span class="kt">int?</span> <span class="n">AddressTemplateId</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+<span class="na">        [DataMember]</span>
+        <span class="k">public</span> <span class="kt">string</span> <span class="n">EmailContent</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+<span class="na">        [DataMember]</span>
+        <span class="k">public</span> <span class="kt">string</span> <span class="n">EmailAddress</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+    <span class="p">}</span>
 
-    public WorkflowState(int? modelId, int? contentTemplateId, string emailContent, string emailAddress, int? addressTemplateId)
-    {
-        ModelId = modelId;
-        ContentTemplateId = contentTemplateId;
-        EmailContent = emailContent;
-        EmailAddress = emailAddress;
-        AddressTemplateId = addressTemplateId;
-    }
+    <span class="k">public</span> <span class="k">class</span> <span class="nc">Workflow</span>
+    <span class="p">{</span>
+        <span class="c1">// Callback keys</span>
+        <span class="k">private</span> <span class="k">const</span> <span class="kt">string</span> <span class="n">ModelStoredCheckRenderContentKey</span> <span class="p">=</span> <span class="s">&quot;ModelStoredCheckRenderContentKey&quot;</span><span class="p">;</span>
+        <span class="k">private</span> <span class="k">const</span> <span class="kt">string</span> <span class="n">ModelStoredCheckRenderAddressKey</span> <span class="p">=</span> <span class="s">&quot;ModelStoredCheckRenderAddress&quot;</span><span class="p">;</span>
+        <span class="k">private</span> <span class="k">const</span> <span class="kt">string</span> <span class="n">ContentTemplateStoredCheckRenderContentKey</span> <span class="p">=</span> <span class="s">&quot;ContentTemplateStoredCheckRenderContent&quot;</span><span class="p">;</span>
+        <span class="k">private</span> <span class="k">const</span> <span class="kt">string</span> <span class="n">AddressTemplateStoredCheckRenderAddressKey</span> <span class="p">=</span> <span class="s">&quot;AddressTemplateStoredCheckRenderAddress&quot;</span><span class="p">;</span>
+        <span class="k">private</span> <span class="k">const</span> <span class="kt">string</span> <span class="n">ContentRenderedCheckSendEmailKey</span> <span class="p">=</span> <span class="s">&quot;ContentRenderedCheckSendEmail&quot;</span><span class="p">;</span>
+        <span class="k">private</span> <span class="k">const</span> <span class="kt">string</span> <span class="n">AddressRenderedCheckSendEmailKey</span> <span class="p">=</span> <span class="s">&quot;AddressRenderedCheckSendEmail&quot;</span><span class="p">;</span>
 
-    [DataMember]
-    public int? ModelId { get; set; }
-    [DataMember]
-    public int? ContentTemplateId { get; set; }
-    [DataMember]
-    public int? AddressTemplateId { get; set; }
-    [DataMember]
-    public string EmailContent { get; set; }
-    [DataMember]
-    public string EmailAddress { get; set; }
-}
+        <span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">Start</span><span class="p">(</span><span class="n">IDictionary</span><span class="p">&lt;</span><span class="kt">string</span><span class="p">,</span> <span class="kt">object</span><span class="p">&gt;</span> <span class="n">model</span><span class="p">,</span> <span class="kt">string</span> <span class="n">contentTemplate</span><span class="p">,</span> <span class="kt">string</span> <span class="n">addressTemplate</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="kt">var</span> <span class="n">modelCid</span> <span class="p">=</span> <span class="n">Guid</span><span class="p">.</span><span class="n">NewGuid</span><span class="p">();</span>
+            <span class="kt">var</span> <span class="n">contentCid</span> <span class="p">=</span> <span class="n">Guid</span><span class="p">.</span><span class="n">NewGuid</span><span class="p">();</span>
+            <span class="kt">var</span> <span class="n">addressCid</span> <span class="p">=</span> <span class="n">Guid</span><span class="p">.</span><span class="n">NewGuid</span><span class="p">();</span>
+            <span class="k">return</span>
+                <span class="n">Out</span><span class="p">.</span><span class="n">Empty</span>
+                    <span class="p">.</span><span class="n">Send</span><span class="p">(</span><span class="k">new</span> <span class="n">StoreModel</span><span class="p">(</span><span class="n">modelCid</span><span class="p">,</span> <span class="n">model</span><span class="p">),</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">4</span><span class="p">))</span>
+                    <span class="p">.</span><span class="n">Expect</span><span class="p">&lt;</span><span class="n">ModelStored</span><span class="p">&gt;(</span><span class="n">modelCid</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="n">ModelStoredCheckRenderContentKey</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">),</span> <span class="s">&quot;TimeOut&quot;</span><span class="p">)</span>
+                    <span class="p">.</span><span class="n">Expect</span><span class="p">&lt;</span><span class="n">ModelStored</span><span class="p">&gt;(</span><span class="n">modelCid</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="n">ModelStoredCheckRenderAddressKey</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">),</span> <span class="s">&quot;TimeOut&quot;</span><span class="p">)</span>
+                    <span class="p">.</span><span class="n">Send</span><span class="p">(</span><span class="k">new</span> <span class="n">StoreTemplate</span><span class="p">(</span><span class="n">contentCid</span><span class="p">,</span> <span class="s">&quot;content template&quot;</span><span class="p">,</span> <span class="n">contentTemplate</span><span class="p">),</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">4</span><span class="p">))</span>
+                    <span class="p">.</span><span class="n">Expect</span><span class="p">&lt;</span><span class="n">TemplateStored</span><span class="p">&gt;(</span><span class="n">contentCid</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="n">ContentTemplateStoredCheckRenderContentKey</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">),</span>
+                        <span class="s">&quot;TimeOut&quot;</span><span class="p">)</span>
+                    <span class="p">.</span><span class="n">Send</span><span class="p">(</span><span class="k">new</span> <span class="n">StoreTemplate</span><span class="p">(</span><span class="n">addressCid</span><span class="p">,</span> <span class="s">&quot;address template&quot;</span><span class="p">,</span> <span class="n">addressTemplate</span><span class="p">),</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">4</span><span class="p">))</span>
+                    <span class="p">.</span><span class="n">Expect</span><span class="p">&lt;</span><span class="n">TemplateStored</span><span class="p">&gt;(</span><span class="n">addressCid</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="n">AddressTemplateStoredCheckRenderAddressKey</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">),</span>
+                        <span class="s">&quot;TimeOut&quot;</span><span class="p">);</span>
+        <span class="p">}</span>
 
-public class Workflow
-{
-    // Callback keys
-    private const string ModelStoredCheckRenderContentKey = "ModelStoredCheckRenderContentKey";
-    private const string ModelStoredCheckRenderAddressKey = "ModelStoredCheckRenderAddress";
-    private const string ContentTemplateStoredCheckRenderContentKey = "ContentTemplateStoredCheckRenderContent";
-    private const string AddressTemplateStoredCheckRenderAddressKey = "AddressTemplateStoredCheckRenderAddress";
-    private const string ContentRenderedCheckSendEmailKey = "ContentRenderedCheckSendEmail";
-    private const string AddressRenderedCheckSendEmailKey = "AddressRenderedCheckSendEmail";
+        <span class="k">private</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">RenderContentIfReady</span><span class="p">(</span><span class="n">WorkflowState</span> <span class="n">state</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="k">if</span> <span class="p">(!</span><span class="n">state</span><span class="p">.</span><span class="n">ModelId</span><span class="p">.</span><span class="n">HasValue</span> <span class="p">||</span> <span class="p">!</span><span class="n">state</span><span class="p">.</span><span class="n">ContentTemplateId</span><span class="p">.</span><span class="n">HasValue</span><span class="p">)</span> <span class="k">return</span> <span class="n">Out</span><span class="p">.</span><span class="n">Ignore</span><span class="p">;</span>
+            <span class="kt">var</span> <span class="n">cid</span> <span class="p">=</span> <span class="n">Guid</span><span class="p">.</span><span class="n">NewGuid</span><span class="p">();</span>
+            <span class="kt">var</span> <span class="n">renderContent</span> <span class="p">=</span>
+                <span class="k">new</span> <span class="nf">RequestRender</span><span class="p">(</span><span class="n">cid</span><span class="p">,</span> <span class="n">state</span><span class="p">.</span><span class="n">ContentTemplateId</span><span class="p">.</span><span class="n">Value</span><span class="p">,</span> <span class="n">state</span><span class="p">.</span><span class="n">ModelId</span><span class="p">.</span><span class="n">Value</span><span class="p">);</span>
+            <span class="k">return</span>
+                <span class="n">Out</span><span class="p">.</span><span class="n">Empty</span>
+                    <span class="p">.</span><span class="n">Send</span><span class="p">(</span><span class="n">renderContent</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">4</span><span class="p">))</span>
+                    <span class="p">.</span><span class="n">Expect</span><span class="p">&lt;</span><span class="n">RenderComplete</span><span class="p">&gt;(</span><span class="n">cid</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="n">ContentRenderedCheckSendEmailKey</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">),</span>
+                        <span class="s">&quot;TimeOut&quot;</span><span class="p">);</span>
+        <span class="p">}</span>
 
-    public static Out Start(IDictionary&lt;string, object&gt; model, string contentTemplate, string addressTemplate)
-    {
-        var modelCid = Guid.NewGuid();
-        var contentCid = Guid.NewGuid();
-        var addressCid = Guid.NewGuid();
-        return
-            Out.Empty
-                .Send(new StoreModel(modelCid, model), TimeSpan.FromSeconds(4))
-                .Expect&lt;ModelStored&gt;(modelCid.ToString(), ModelStoredCheckRenderContentKey, TimeSpan.FromSeconds(5), "TimeOut")
-                .Expect&lt;ModelStored&gt;(modelCid.ToString(), ModelStoredCheckRenderAddressKey, TimeSpan.FromSeconds(5), "TimeOut")
-                .Send(new StoreTemplate(contentCid, "content template", contentTemplate), TimeSpan.FromSeconds(4))
-                .Expect&lt;TemplateStored&gt;(contentCid.ToString(), ContentTemplateStoredCheckRenderContentKey, TimeSpan.FromSeconds(5),
-                    "TimeOut")
-                .Send(new StoreTemplate(addressCid, "address template", addressTemplate), TimeSpan.FromSeconds(4))
-                .Expect&lt;TemplateStored&gt;(addressCid.ToString(), AddressTemplateStoredCheckRenderAddressKey, TimeSpan.FromSeconds(5),
-                    "TimeOut");
-    }
+        <span class="k">private</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">RenderAddressIfReady</span><span class="p">(</span><span class="n">WorkflowState</span> <span class="n">state</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="k">if</span> <span class="p">(!</span><span class="n">state</span><span class="p">.</span><span class="n">ModelId</span><span class="p">.</span><span class="n">HasValue</span> <span class="p">||</span> <span class="p">!</span><span class="n">state</span><span class="p">.</span><span class="n">AddressTemplateId</span><span class="p">.</span><span class="n">HasValue</span><span class="p">)</span> <span class="k">return</span> <span class="n">Out</span><span class="p">.</span><span class="n">Ignore</span><span class="p">;</span>
+            <span class="kt">var</span> <span class="n">cid</span> <span class="p">=</span> <span class="n">Guid</span><span class="p">.</span><span class="n">NewGuid</span><span class="p">();</span>
+            <span class="kt">var</span> <span class="n">renderContent</span> <span class="p">=</span>
+                <span class="k">new</span> <span class="nf">RequestRender</span><span class="p">(</span><span class="n">cid</span><span class="p">,</span> <span class="n">state</span><span class="p">.</span><span class="n">AddressTemplateId</span><span class="p">.</span><span class="n">Value</span><span class="p">,</span> <span class="n">state</span><span class="p">.</span><span class="n">ModelId</span><span class="p">.</span><span class="n">Value</span><span class="p">);</span>
+            <span class="k">return</span> <span class="n">Out</span><span class="p">.</span><span class="n">Empty</span><span class="p">.</span><span class="n">Send</span><span class="p">(</span><span class="n">renderContent</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">4</span><span class="p">))</span>
+                <span class="p">.</span><span class="n">Expect</span><span class="p">&lt;</span><span class="n">RenderComplete</span><span class="p">&gt;(</span><span class="n">cid</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="n">AddressRenderedCheckSendEmailKey</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">),</span>
+                    <span class="s">&quot;TimeOut&quot;</span><span class="p">);</span>
+        <span class="p">}</span>
 
-    private static Out RenderContentIfReady(WorkflowState state)
-    {
-        if (!state.ModelId.HasValue || !state.ContentTemplateId.HasValue) return Out.Ignore;
-        var cid = Guid.NewGuid();
-        var renderContent =
-            new RequestRender(cid, state.ContentTemplateId.Value, state.ModelId.Value);
-        return
-            Out.Empty
-                .Send(renderContent, TimeSpan.FromSeconds(4))
-                .Expect&lt;RenderComplete&gt;(cid.ToString(), ContentRenderedCheckSendEmailKey, TimeSpan.FromSeconds(5),
-                    "TimeOut");
-    }
+        <span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">ModelStoredCheckRenderContent</span><span class="p">(</span><span class="n">ModelStored</span> <span class="n">ms</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="kt">var</span> <span class="n">ws</span> <span class="p">=</span> <span class="n">state</span><span class="p">.</span><span class="n">AddOrUpdate</span><span class="p">(</span><span class="k">new</span> <span class="n">WorkflowState</span> <span class="p">{</span><span class="n">ModelId</span> <span class="p">=</span> <span class="n">ms</span><span class="p">.</span><span class="n">ModelId</span><span class="p">},</span> <span class="n">existing</span> <span class="p">=&gt;</span>
+            <span class="p">{</span>
+                <span class="n">existing</span><span class="p">.</span><span class="n">ModelId</span> <span class="p">=</span> <span class="n">ms</span><span class="p">.</span><span class="n">ModelId</span><span class="p">;</span>
+                <span class="k">return</span> <span class="n">existing</span><span class="p">;</span>
+            <span class="p">});</span>
+            <span class="k">return</span> <span class="nf">RenderContentIfReady</span><span class="p">(</span><span class="n">ws</span><span class="p">);</span>
+        <span class="p">}</span>
 
-    private static Out RenderAddressIfReady(WorkflowState state)
-    {
-        if (!state.ModelId.HasValue || !state.AddressTemplateId.HasValue) return Out.Ignore;
-        var cid = Guid.NewGuid();
-        var renderContent =
-            new RequestRender(cid, state.AddressTemplateId.Value, state.ModelId.Value);
-        return Out.Empty.Send(renderContent, TimeSpan.FromSeconds(4))
-            .Expect&lt;RenderComplete&gt;(cid.ToString(), AddressRenderedCheckSendEmailKey, TimeSpan.FromSeconds(5),
-                "TimeOut");
-    }
+        <span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">ModelStoredCheckRenderAddress</span><span class="p">(</span><span class="n">ModelStored</span> <span class="n">ms</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="kt">var</span> <span class="n">ws</span> <span class="p">=</span> <span class="n">state</span><span class="p">.</span><span class="n">AddOrUpdate</span><span class="p">(</span><span class="k">new</span> <span class="n">WorkflowState</span> <span class="p">{</span><span class="n">ModelId</span> <span class="p">=</span> <span class="n">ms</span><span class="p">.</span><span class="n">ModelId</span><span class="p">},</span> <span class="n">existing</span> <span class="p">=&gt;</span>
+            <span class="p">{</span>
+                <span class="n">existing</span><span class="p">.</span><span class="n">ModelId</span> <span class="p">=</span> <span class="n">ms</span><span class="p">.</span><span class="n">ModelId</span><span class="p">;</span>
+                <span class="k">return</span> <span class="n">existing</span><span class="p">;</span>
+            <span class="p">});</span>
+            <span class="k">return</span> <span class="nf">RenderAddressIfReady</span><span class="p">(</span><span class="n">ws</span><span class="p">);</span>
+        <span class="p">}</span>
 
-    public static Out ModelStoredCheckRenderContent(ModelStored ms, IState state)
-    {
-        var ws = state.AddOrUpdate(new WorkflowState {ModelId = ms.ModelId}, existing =&gt;
-        {
-            existing.ModelId = ms.ModelId;
-            return existing;
-        });
-        return RenderContentIfReady(ws);
-    }
+        <span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">ContentTemplateStoredCheckRenderContent</span><span class="p">(</span><span class="n">TemplateStored</span> <span class="n">ts</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="kt">var</span> <span class="n">ws</span> <span class="p">=</span> <span class="n">state</span><span class="p">.</span><span class="n">AddOrUpdate</span><span class="p">(</span><span class="k">new</span> <span class="n">WorkflowState</span> <span class="p">{</span><span class="n">ContentTemplateId</span> <span class="p">=</span> <span class="n">ts</span><span class="p">.</span><span class="n">TemplateId</span><span class="p">},</span> <span class="n">existing</span> <span class="p">=&gt;</span>
+            <span class="p">{</span>
+                <span class="n">existing</span><span class="p">.</span><span class="n">ContentTemplateId</span> <span class="p">=</span> <span class="n">ts</span><span class="p">.</span><span class="n">TemplateId</span><span class="p">;</span>
+                <span class="k">return</span> <span class="n">existing</span><span class="p">;</span>
+            <span class="p">});</span>
+            <span class="k">return</span> <span class="nf">RenderContentIfReady</span><span class="p">(</span><span class="n">ws</span><span class="p">);</span>
+        <span class="p">}</span>
 
-    public static Out ModelStoredCheckRenderAddress(ModelStored ms, IState state)
-    {
-        var ws = state.AddOrUpdate(new WorkflowState {ModelId = ms.ModelId}, existing =&gt;
-        {
-            existing.ModelId = ms.ModelId;
-            return existing;
-        });
-        return RenderAddressIfReady(ws);
-    }
+        <span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">AddressTemplateStoredCheckRenderAddress</span><span class="p">(</span><span class="n">TemplateStored</span> <span class="n">ts</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="kt">var</span> <span class="n">ws</span> <span class="p">=</span> <span class="n">state</span><span class="p">.</span><span class="n">AddOrUpdate</span><span class="p">(</span><span class="k">new</span> <span class="n">WorkflowState</span> <span class="p">{</span><span class="n">AddressTemplateId</span> <span class="p">=</span> <span class="n">ts</span><span class="p">.</span><span class="n">TemplateId</span><span class="p">},</span> <span class="n">existing</span> <span class="p">=&gt;</span>
+            <span class="p">{</span>
+                <span class="n">existing</span><span class="p">.</span><span class="n">AddressTemplateId</span> <span class="p">=</span> <span class="n">ts</span><span class="p">.</span><span class="n">TemplateId</span><span class="p">;</span>
+                <span class="k">return</span> <span class="n">existing</span><span class="p">;</span>
+            <span class="p">});</span>
+            <span class="k">return</span> <span class="nf">RenderAddressIfReady</span><span class="p">(</span><span class="n">ws</span><span class="p">);</span>
+        <span class="p">}</span>
 
-    public static Out ContentTemplateStoredCheckRenderContent(TemplateStored ts, IState state)
-    {
-        var ws = state.AddOrUpdate(new WorkflowState {ContentTemplateId = ts.TemplateId}, existing =&gt;
-        {
-            existing.ContentTemplateId = ts.TemplateId;
-            return existing;
-        });
-        return RenderContentIfReady(ws);
-    }
+        <span class="k">private</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">SendEmailIfReady</span><span class="p">(</span><span class="n">WorkflowState</span> <span class="n">state</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">state</span><span class="p">.</span><span class="n">EmailAddress</span> <span class="p">==</span> <span class="k">null</span> <span class="p">||</span> <span class="n">state</span><span class="p">.</span><span class="n">EmailContent</span> <span class="p">==</span> <span class="k">null</span><span class="p">)</span> <span class="k">return</span> <span class="n">Out</span><span class="p">.</span><span class="n">Ignore</span><span class="p">;</span>
+            <span class="kt">var</span> <span class="n">cid</span> <span class="p">=</span> <span class="n">Guid</span><span class="p">.</span><span class="n">NewGuid</span><span class="p">();</span>
+            <span class="kt">var</span> <span class="n">sendEmail</span> <span class="p">=</span>
+                <span class="k">new</span> <span class="nf">SendEmail</span><span class="p">(</span><span class="n">cid</span><span class="p">,</span> <span class="n">state</span><span class="p">.</span><span class="n">EmailAddress</span><span class="p">,</span> <span class="n">state</span><span class="p">.</span><span class="n">EmailContent</span><span class="p">);</span>
+            <span class="k">return</span> <span class="n">Out</span><span class="p">.</span><span class="n">Empty</span><span class="p">.</span><span class="n">Send</span><span class="p">(</span><span class="n">sendEmail</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">4</span><span class="p">))</span>
+                <span class="p">.</span><span class="n">Expect</span><span class="p">&lt;</span><span class="n">EmailSent</span><span class="p">&gt;(</span><span class="n">cid</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="s">&quot;EmailSent&quot;</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">),</span> <span class="s">&quot;TimeOut&quot;</span><span class="p">);</span>
+        <span class="p">}</span>
 
-    public static Out AddressTemplateStoredCheckRenderAddress(TemplateStored ts, IState state)
-    {
-        var ws = state.AddOrUpdate(new WorkflowState {AddressTemplateId = ts.TemplateId}, existing =&gt;
-        {
-            existing.AddressTemplateId = ts.TemplateId;
-            return existing;
-        });
-        return RenderAddressIfReady(ws);
-    }
+        <span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">AddressRenderedCheckSendEmail</span><span class="p">(</span><span class="n">RenderComplete</span> <span class="n">rc</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="kt">var</span> <span class="n">ws</span> <span class="p">=</span> <span class="n">state</span><span class="p">.</span><span class="n">AddOrUpdate</span><span class="p">(</span><span class="k">new</span> <span class="n">WorkflowState</span> <span class="p">{</span><span class="n">EmailAddress</span> <span class="p">=</span> <span class="n">rc</span><span class="p">.</span><span class="n">Content</span><span class="p">},</span> <span class="n">existing</span> <span class="p">=&gt;</span>
+            <span class="p">{</span>
+                <span class="n">existing</span><span class="p">.</span><span class="n">EmailAddress</span> <span class="p">=</span> <span class="n">rc</span><span class="p">.</span><span class="n">Content</span><span class="p">;</span>
+                <span class="k">return</span> <span class="n">existing</span><span class="p">;</span>
+            <span class="p">});</span>
+            <span class="k">return</span> <span class="nf">SendEmailIfReady</span><span class="p">(</span><span class="n">ws</span><span class="p">);</span>
+        <span class="p">}</span>
 
-    private static Out SendEmailIfReady(WorkflowState state)
-    {
-        if (state.EmailAddress == null || state.EmailContent == null) return Out.Ignore;
-        var cid = Guid.NewGuid();
-        var sendEmail =
-            new SendEmail(cid, state.EmailAddress, state.EmailContent);
-        return Out.Empty.Send(sendEmail, TimeSpan.FromSeconds(4))
-            .Expect&lt;EmailSent&gt;(cid.ToString(), "EmailSent", TimeSpan.FromSeconds(5), "TimeOut");
-    }
+        <span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">ContentRenderedCheckSendEmail</span><span class="p">(</span><span class="n">RenderComplete</span> <span class="n">rc</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="kt">var</span> <span class="n">ws</span> <span class="p">=</span> <span class="n">state</span><span class="p">.</span><span class="n">AddOrUpdate</span><span class="p">(</span><span class="k">new</span> <span class="n">WorkflowState</span> <span class="p">{</span><span class="n">EmailContent</span> <span class="p">=</span> <span class="n">rc</span><span class="p">.</span><span class="n">Content</span><span class="p">},</span> <span class="n">existing</span> <span class="p">=&gt;</span>
+            <span class="p">{</span>
+                <span class="n">existing</span><span class="p">.</span><span class="n">EmailContent</span> <span class="p">=</span> <span class="n">rc</span><span class="p">.</span><span class="n">Content</span><span class="p">;</span>
+                <span class="k">return</span> <span class="n">existing</span><span class="p">;</span>
+            <span class="p">});</span>
+            <span class="k">return</span> <span class="nf">SendEmailIfReady</span><span class="p">(</span><span class="n">ws</span><span class="p">);</span>
+        <span class="p">}</span>
 
-    public static Out AddressRenderedCheckSendEmail(RenderComplete rc, IState state)
-    {
-        var ws = state.AddOrUpdate(new WorkflowState {EmailAddress = rc.Content}, existing =&gt;
-        {
-            existing.EmailAddress = rc.Content;
-            return existing;
-        });
-        return SendEmailIfReady(ws);
-    }
+        <span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">EmailSent</span><span class="p">(</span><span class="n">EmailSent</span> <span class="n">es</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="kt">var</span> <span class="n">ws</span> <span class="p">=</span> <span class="n">state</span><span class="p">.</span><span class="n">Get</span><span class="p">&lt;</span><span class="n">WorkflowState</span><span class="p">&gt;().</span><span class="n">Value</span><span class="p">;</span>
+            <span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">&quot;Email send success: {0}\nAddress: {1}\nContent: {2}&quot;</span><span class="p">,</span> <span class="n">es</span><span class="p">.</span><span class="n">Successful</span><span class="p">,</span> <span class="n">ws</span><span class="p">.</span><span class="n">EmailAddress</span><span class="p">,</span> <span class="n">ws</span><span class="p">.</span><span class="n">EmailContent</span><span class="p">);</span>
+            <span class="k">return</span> <span class="n">Out</span><span class="p">.</span><span class="n">End</span><span class="p">;</span>
+        <span class="p">}</span>
 
-    public static Out ContentRenderedCheckSendEmail(RenderComplete rc, IState state)
-    {
-        var ws = state.AddOrUpdate(new WorkflowState {EmailContent = rc.Content}, existing =&gt;
-        {
-            existing.EmailContent = rc.Content;
-            return existing;
-        });
-        return SendEmailIfReady(ws);
-    }
+        <span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">TimeOut</span><span class="p">(</span><span class="n">TimeOutMessage</span> <span class="n">to</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">&quot;Time out waiting for: {0}&quot;</span><span class="p">,</span> <span class="n">to</span><span class="p">.</span><span class="n">TimedOutStep</span><span class="p">);</span>
+            <span class="k">return</span> <span class="n">Out</span><span class="p">.</span><span class="n">End</span><span class="p">;</span>
+        <span class="p">}</span>
 
-    public static Out EmailSent(EmailSent es, IState state)
-    {
-        var ws = state.Get&lt;WorkflowState&gt;().Value;
-        Console.WriteLine("Email send success: {0}\nAddress: {1}\nContent: {2}", es.Successful, ws.EmailAddress, ws.EmailContent);
-        return Out.End;
-    }
+        <span class="k">public</span> <span class="k">static</span> <span class="k">void</span> <span class="nf">Configure</span><span class="p">(</span><span class="n">ProcessManager</span> <span class="n">pm</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="n">pm</span><span class="p">.</span><span class="n">AddProcessor</span><span class="p">(</span><span class="n">stored</span> <span class="p">=&gt;</span> <span class="n">stored</span><span class="p">.</span><span class="n">CorrelationId</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="k">new</span> <span class="p">[]</span>
+            <span class="p">{</span>
+                <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">ModelStored</span><span class="p">&gt;(</span><span class="n">ModelStoredCheckRenderContentKey</span><span class="p">,</span> <span class="n">ModelStoredCheckRenderContent</span><span class="p">),</span>
+                <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">ModelStored</span><span class="p">&gt;(</span><span class="n">ModelStoredCheckRenderAddressKey</span><span class="p">,</span> <span class="n">ModelStoredCheckRenderAddress</span><span class="p">)</span>
+            <span class="p">});</span>
 
-    public static Out TimeOut(TimeOutMessage to, IState state)
-    {
-        Console.WriteLine("Time out waiting for: {0}", to.TimedOutStep);
-        return Out.End;
-    }
+            <span class="n">pm</span><span class="p">.</span><span class="n">AddProcessor</span><span class="p">(</span><span class="n">stored</span> <span class="p">=&gt;</span> <span class="n">stored</span><span class="p">.</span><span class="n">CorrelationId</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="k">new</span><span class="p">[]</span>
+            <span class="p">{</span>
+                <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">TemplateStored</span><span class="p">&gt;(</span><span class="n">ContentTemplateStoredCheckRenderContentKey</span><span class="p">,</span>
+                    <span class="n">ContentTemplateStoredCheckRenderContent</span><span class="p">),</span>
+                <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">TemplateStored</span><span class="p">&gt;(</span><span class="n">AddressTemplateStoredCheckRenderAddressKey</span><span class="p">,</span>
+                    <span class="n">AddressTemplateStoredCheckRenderAddress</span><span class="p">)</span>
+            <span class="p">});</span>
 
-    public static void Configure(ProcessManager pm)
-    {
-        pm.AddProcessor(stored =&gt; stored.CorrelationId.ToString(), new []
-        {
-            new Mapping&lt;ModelStored&gt;(ModelStoredCheckRenderContentKey, ModelStoredCheckRenderContent),
-            new Mapping&lt;ModelStored&gt;(ModelStoredCheckRenderAddressKey, ModelStoredCheckRenderAddress)
-        });
+            <span class="n">pm</span><span class="p">.</span><span class="n">AddProcessor</span><span class="p">(</span><span class="n">complete</span> <span class="p">=&gt;</span> <span class="n">complete</span><span class="p">.</span><span class="n">CorrelationId</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="k">new</span> <span class="p">[]</span>
+            <span class="p">{</span>
+                <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">RenderComplete</span><span class="p">&gt;(</span><span class="n">AddressRenderedCheckSendEmailKey</span><span class="p">,</span> <span class="n">AddressRenderedCheckSendEmail</span><span class="p">),</span>
+                <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">RenderComplete</span><span class="p">&gt;(</span><span class="n">ContentRenderedCheckSendEmailKey</span><span class="p">,</span> <span class="n">ContentRenderedCheckSendEmail</span><span class="p">)</span>
+            <span class="p">});</span>
 
-        pm.AddProcessor(stored =&gt; stored.CorrelationId.ToString(), new[]
-        {
-            new Mapping&lt;TemplateStored&gt;(ContentTemplateStoredCheckRenderContentKey,
-                ContentTemplateStoredCheckRenderContent),
-            new Mapping&lt;TemplateStored&gt;(AddressTemplateStoredCheckRenderAddressKey,
-                AddressTemplateStoredCheckRenderAddress)
-        });
+            <span class="n">pm</span><span class="p">.</span><span class="n">AddProcessor</span><span class="p">(</span><span class="n">sent</span> <span class="p">=&gt;</span> <span class="n">sent</span><span class="p">.</span><span class="n">CorrelationId</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">EmailSent</span><span class="p">&gt;(</span><span class="s">&quot;EmailSent&quot;</span><span class="p">,</span> <span class="n">EmailSent</span><span class="p">));</span>
 
-        pm.AddProcessor(complete =&gt; complete.CorrelationId.ToString(), new []
-        {
-            new Mapping&lt;RenderComplete&gt;(AddressRenderedCheckSendEmailKey, AddressRenderedCheckSendEmail),
-            new Mapping&lt;RenderComplete&gt;(ContentRenderedCheckSendEmailKey, ContentRenderedCheckSendEmail)
-        });
-
-        pm.AddProcessor(sent =&gt; sent.CorrelationId.ToString(), new Mapping&lt;EmailSent&gt;("EmailSent", EmailSent));
-
-        pm.AddProcessor(to =&gt; to.CorrelationId.ToString(), new Mapping&lt;TimeOutMessage&gt;("TimeOut", TimeOut));
-    }
-}
-</code></pre>
-
-<p>}
-```</p>
-
+            <span class="n">pm</span><span class="p">.</span><span class="n">AddProcessor</span><span class="p">(</span><span class="n">to</span> <span class="p">=&gt;</span> <span class="n">to</span><span class="p">.</span><span class="n">CorrelationId</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">TimeOutMessage</span><span class="p">&gt;(</span><span class="s">&quot;TimeOut&quot;</span><span class="p">,</span> <span class="n">TimeOut</span><span class="p">));</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
 <p>Suggestions, additions and questions welcome.</p>
 ]]></content>
   </entry>
@@ -1130,67 +959,57 @@ public class Workflow
     <link href="http://blog.mavnn.co.uk/extracting-information-from-msbuild/"/>
     <updated>2015-08-07T14:45:28+01:00</updated>
     <id>http://blog.mavnn.co.uk/extracting-information-from-msbuild</id>
-    <content type="html"><![CDATA[<p>Recently as part of some research into making a large (very large) solution build more efficient, I started looking into whether there&rsquo;s anyway of getting MsBuild to do
-some of the donkey work for you. This is especially important in situations where you want to know what&rsquo;s being used/produced with this particular set of parameters.</p>
+    <content type="html"><![CDATA[<p>Recently as part of some research into making a large (very large) solution build more efficient, I started looking into whether there&#39;s anyway of getting MsBuild to do
+some of the donkey work for you. This is especially important in situations where you want to know what&#39;s being used/produced with this particular set of parameters.</p>
 
 <p>Obviously dealing with every possible custom build target is out of scope, but you can get a surprisingly long way by taking advantage of some of the intermediate build
 targets used within the MsBuild Common targets files (imported into every *proj file created by Visual Studio).</p>
 
 <p>Create yourself a little file called something like <code>Analyse.proj</code>, and put the following in it:</p>
-
-<p>``` xml
-&lt;?xml version=&ldquo;1.0&rdquo; encoding=&ldquo;utf-8&rdquo;?>
-<Project ToolsVersion="12.0" DefaultTargets="WriteStuff" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(TargetProject)"/>
-  <Target Name="WriteStuff" DependsOnTargets="ResolveReferences"></p>
-
-<pre><code>&lt;Message Importance="high" Text="References::@(ReferencePath)"/&gt;
-&lt;Message Importance="high" Text="Compiles::@(BeforeCompile);@(Compile);@(AfterCompile)"/&gt;
-&lt;Message Importance="high" Text="Output::$(OutputPath)"/&gt;
-</code></pre>
-
-<p>  </Target>
-</Project>
-```</p>
-
-<p>This is a mini-MsBuild project that imports an other project &ndash; the project you want to analyse. You can &ldquo;build&rdquo; this project like so:</p>
-
-<p>```
-PS C:\DirectoryWithProj> &amp; &lsquo;C:\Program Files (x86)\MSBuild\12.0\Bin\SBuild&rsquo; .\Analyse.proj /nologo /p:TargetProject=./Fake.Shake.fsproj
+<div class="highlight"><pre><code class="xml"><span class="cp">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span>
+<span class="nt">&lt;Project</span> <span class="na">ToolsVersion=</span><span class="s">&quot;12.0&quot;</span> <span class="na">DefaultTargets=</span><span class="s">&quot;WriteStuff&quot;</span> <span class="na">xmlns=</span><span class="s">&quot;http://schemas.microsoft.com/developer/msbuild/2003&quot;</span><span class="nt">&gt;</span>
+  <span class="nt">&lt;Import</span> <span class="na">Project=</span><span class="s">&quot;$(TargetProject)&quot;</span><span class="nt">/&gt;</span>
+  <span class="nt">&lt;Target</span> <span class="na">Name=</span><span class="s">&quot;WriteStuff&quot;</span> <span class="na">DependsOnTargets=</span><span class="s">&quot;ResolveReferences&quot;</span><span class="nt">&gt;</span>
+    <span class="nt">&lt;Message</span> <span class="na">Importance=</span><span class="s">&quot;high&quot;</span> <span class="na">Text=</span><span class="s">&quot;References::@(ReferencePath)&quot;</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;Message</span> <span class="na">Importance=</span><span class="s">&quot;high&quot;</span> <span class="na">Text=</span><span class="s">&quot;Compiles::@(BeforeCompile);@(Compile);@(AfterCompile)&quot;</span><span class="nt">/&gt;</span>
+    <span class="nt">&lt;Message</span> <span class="na">Importance=</span><span class="s">&quot;high&quot;</span> <span class="na">Text=</span><span class="s">&quot;Output::$(OutputPath)&quot;</span><span class="nt">/&gt;</span>
+  <span class="nt">&lt;/Target&gt;</span>
+<span class="nt">&lt;/Project&gt;</span>
+</code></pre></div>
+<p>This is a mini-MsBuild project that imports an other project - the project you want to analyse. You can &quot;build&quot; this project like so:</p>
+<div class="highlight"><pre><code class="text">PS C:\DirectoryWithProj&gt; &amp; &#39;C:\Program Files (x86)\MSBuild\12.0\Bin\SBuild&#39; .\Analyse.proj /nologo /p:TargetProject=./Fake.Shake.fsproj
 Build started 07/08/2015 15:05:27.
-Project &ldquo;C:\DirectoryWithProj\Analyse.proj&rdquo; on node 1 (default targ ets).
+Project &quot;C:\DirectoryWithProj\Analyse.proj&quot; on node 1 (default targ ets).
 WriteStuff:
   References::C:\rip\Fake.Shake\packages\FAKE.Lib\lib\net451\FakeLib.dll;C:\rip
   \Fake.Shake\packages\FSharp.Core\lib\net40\FSharp.Core.dll;C:\rip\Fake.Shake\
   packages\FsPickler\lib\net45\FsPickler.dll;C:\rip\Fake.Shake\packages\Hopac\l
   ib\net45\Hopac.Core.dll;C:\rip\Fake.Shake\packages\Hopac\lib\net45\Hopac.dll;
   C:\rip\Fake.Shake\packages\Hopac\lib\net45\Hopac.Platform.dll;C:\Program File
-  s (x86)\Reference Assemblies\Microsoft\Framework.NETFramework\v4.5.1\mscorli
-  b.dll;C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework.NETFra
+  s (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5.1\mscorli
+  b.dll;C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFra
   mework\v4.5.1\System.Core.dll;C:\Program Files (x86)\Reference Assemblies\Mic
-  rosoft\Framework.NETFramework\v4.5.1\System.dll;C:\Program Files (x86)\Refer
-  ence Assemblies\Microsoft\Framework.NETFramework\v4.5.1\System.Numerics.dll;
-  C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework.NETFramework
+  rosoft\Framework\.NETFramework\v4.5.1\System.dll;C:\Program Files (x86)\Refer
+  ence Assemblies\Microsoft\Framework\.NETFramework\v4.5.1\System.Numerics.dll;
+  C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework
   \v4.5.1\System.Runtime.Serialization.dll;C:\Program Files (x86)\Reference Ass
-  emblies\Microsoft\Framework.NETFramework\v4.5.1\System.Xml.dll
+  emblies\Microsoft\Framework\.NETFramework\v4.5.1\System.Xml.dll
   Compiles::;Fake.Shake.Core.fs;Fake.Shake.Control.fs;Fake.Shake.DefaultRules.f
   s;Fake.Shake.fs;
   Output::bin\Debug\
-Done Building Project &ldquo;C:\DirectoryWithProj\Analyse.proj&rdquo; (default
-targets).</p>
+Done Building Project &quot;C:\DirectoryWithProj\Analyse.proj&quot; (default
+targets).
 
-<p>Build succeeded.</p>
 
-<pre><code>0 Warning(s)
-0 Error(s)
-</code></pre>
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
 
-<p>Time Elapsed 00:00:00.12
-```</p>
+Time Elapsed 00:00:00.12
+</code></pre></div>
+<p>And as you can see, whilst it&#39;s a bit ugly it generates a whole load of useful information for you about how <em>this</em> build with <em>these</em> properties will be built.</p>
 
-<p>And as you can see, whilst it&rsquo;s a bit ugly it generates a whole load of useful information for you about how <em>this</em> build with <em>these</em> properties will be built.</p>
-
-<p>That&rsquo;s all for now!</p>
+<p>That&#39;s all for now!</p>
 ]]></content>
   </entry>
   
@@ -1200,14 +1019,11 @@ targets).</p>
     <updated>2015-06-12T10:54:20+01:00</updated>
     <id>http://blog.mavnn.co.uk/functional-programming-in-an-imperitive-world</id>
     <content type="html"><![CDATA[<p>Yesterday was the <a href="https://skillsmatter.com/conferences/7036-functional-programming-exchange-2015#skillscasts">Functional Programming Exchange 2015</a> and this being SkillsMatter,
-the videos are already up. It&rsquo;s a great place to talk from that point of view, with consistently excellent organisation.</p>
+the videos are already up. It&#39;s a great place to talk from that point of view, with consistently excellent organisation.</p>
 
-<p>I was talking on being a &ldquo;Functional Programmer in an Imperative World&rdquo;; the slides are embedded below, but for the full experience check out the video at the link above.</p>
+<p>I was talking on being a &quot;Functional Programmer in an Imperative World&quot;; the slides are embedded below, but for the full experience check out the video at the link above.</p>
 
-<iframe src="http://blog.mavnn.co.uk//www.slideshare.net/slideshow/embed_code/key/cSlUuPevYKsSHL" width="425" height="355" frameborder="0" marginwidth="0" marginheight="0" scrolling="no" style="border:1px solid #CCC; border-width:1px; margin-bottom:5px; max-width: 100%;" allowfullscreen> </iframe>
-
-
-<p> <div style="margin-bottom:5px"> <strong> <a href="http://blog.mavnn.co.uk//www.slideshare.net/mavnn/functional-programming-in-an-imperitive-world" title="Functional Programming in an Imperitive World" target="_blank">Functional Programming in an Imperitive World</a> </strong> from <strong><a href="http://blog.mavnn.co.uk//www.slideshare.net/mavnn" target="_blank">mavnn</a></strong> </div></p>
+<p><iframe src="http://blog.mavnn.co.uk//www.slideshare.net/slideshow/embed_code/key/cSlUuPevYKsSHL" width="425" height="355" frameborder="0" marginwidth="0" marginheight="0" scrolling="no" style="border:1px solid #CCC; border-width:1px; margin-bottom:5px; max-width: 100%;" allowfullscreen> </iframe> <div style="margin-bottom:5px"> <strong> <a href="http://blog.mavnn.co.uk//www.slideshare.net/mavnn/functional-programming-in-an-imperitive-world" title="Functional Programming in an Imperitive World" target="_blank">Functional Programming in an Imperitive World</a> </strong> from <strong><a href="http://blog.mavnn.co.uk//www.slideshare.net/mavnn" target="_blank">mavnn</a></strong> </div></p>
 ]]></content>
   </entry>
   

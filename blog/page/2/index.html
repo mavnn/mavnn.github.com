@@ -9,8 +9,7 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="Yesterday was the Functional Programming Exchange 2015 and this being SkillsMatter,
-the videos are already up. It&rsquo;s a great place to talk from &hellip;">
+  <meta name="description" content="Recently as part of some research into making a large (very large) solution build more efficient, I started looking into whether there&#39;s anyway &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -86,6 +85,134 @@ ga('send', 'pageview');
       
   <header>
     
+      <h1 class="entry-title"><a href="/extracting-information-from-msbuild/">Extracting Information From MsBuild</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-08-07T14:45:28+01:00" pubdate data-updated="true">Aug 7<span>th</span>, 2015</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Recently as part of some research into making a large (very large) solution build more efficient, I started looking into whether there&#39;s anyway of getting MsBuild to do
+some of the donkey work for you. This is especially important in situations where you want to know what&#39;s being used/produced with this particular set of parameters.</p>
+
+<p>Obviously dealing with every possible custom build target is out of scope, but you can get a surprisingly long way by taking advantage of some of the intermediate build
+targets used within the MsBuild Common targets files (imported into every *proj file created by Visual Studio).</p>
+
+<p>Create yourself a little file called something like <code>Analyse.proj</code>, and put the following in it:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'><span class="cp">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span>
+</span><span class='line'><span class="nt">&lt;Project</span> <span class="na">ToolsVersion=</span><span class="s">&quot;12.0&quot;</span> <span class="na">DefaultTargets=</span><span class="s">&quot;WriteStuff&quot;</span> <span class="na">xmlns=</span><span class="s">&quot;http://schemas.microsoft.com/developer/msbuild/2003&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>  <span class="nt">&lt;Import</span> <span class="na">Project=</span><span class="s">&quot;$(TargetProject)&quot;</span><span class="nt">/&gt;</span>
+</span><span class='line'>  <span class="nt">&lt;Target</span> <span class="na">Name=</span><span class="s">&quot;WriteStuff&quot;</span> <span class="na">DependsOnTargets=</span><span class="s">&quot;ResolveReferences&quot;</span><span class="nt">&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;Message</span> <span class="na">Importance=</span><span class="s">&quot;high&quot;</span> <span class="na">Text=</span><span class="s">&quot;References::@(ReferencePath)&quot;</span><span class="nt">/&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;Message</span> <span class="na">Importance=</span><span class="s">&quot;high&quot;</span> <span class="na">Text=</span><span class="s">&quot;Compiles::@(BeforeCompile);@(Compile);@(AfterCompile)&quot;</span><span class="nt">/&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;Message</span> <span class="na">Importance=</span><span class="s">&quot;high&quot;</span> <span class="na">Text=</span><span class="s">&quot;Output::$(OutputPath)&quot;</span><span class="nt">/&gt;</span>
+</span><span class='line'>  <span class="nt">&lt;/Target&gt;</span>
+</span><span class='line'><span class="nt">&lt;/Project&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>This is a mini-MsBuild project that imports an other project - the project you want to analyse. You can &quot;build&quot; this project like so:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'>PS C:\DirectoryWithProj&gt; <span class="err">&amp;</span> &#39;C:\Program Files (x86)\MSBuild\12.0\Bin\SBuild&#39; .\Analyse.proj /nologo /p:TargetProject=./Fake.Shake.fsproj
+</span><span class='line'>Build started 07/08/2015 15:05:27.
+</span><span class='line'>Project &quot;C:\DirectoryWithProj\Analyse.proj&quot; on node 1 (default targ ets).
+</span><span class='line'>WriteStuff:
+</span><span class='line'>  References::C:\rip\Fake.Shake\packages\FAKE.Lib\lib\net451\FakeLib.dll;C:\rip
+</span><span class='line'>  \Fake.Shake\packages\FSharp.Core\lib\net40\FSharp.Core.dll;C:\rip\Fake.Shake\
+</span><span class='line'>  packages\FsPickler\lib\net45\FsPickler.dll;C:\rip\Fake.Shake\packages\Hopac\l
+</span><span class='line'>  ib\net45\Hopac.Core.dll;C:\rip\Fake.Shake\packages\Hopac\lib\net45\Hopac.dll;
+</span><span class='line'>  C:\rip\Fake.Shake\packages\Hopac\lib\net45\Hopac.Platform.dll;C:\Program File
+</span><span class='line'>  s (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5.1\mscorli
+</span><span class='line'>  b.dll;C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFra
+</span><span class='line'>  mework\v4.5.1\System.Core.dll;C:\Program Files (x86)\Reference Assemblies\Mic
+</span><span class='line'>  rosoft\Framework\.NETFramework\v4.5.1\System.dll;C:\Program Files (x86)\Refer
+</span><span class='line'>  ence Assemblies\Microsoft\Framework\.NETFramework\v4.5.1\System.Numerics.dll;
+</span><span class='line'>  C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework
+</span><span class='line'>  \v4.5.1\System.Runtime.Serialization.dll;C:\Program Files (x86)\Reference Ass
+</span><span class='line'>  emblies\Microsoft\Framework\.NETFramework\v4.5.1\System.Xml.dll
+</span><span class='line'>  Compiles::;Fake.Shake.Core.fs;Fake.Shake.Control.fs;Fake.Shake.DefaultRules.f
+</span><span class='line'>  s;Fake.Shake.fs;
+</span><span class='line'>  Output::bin\Debug\
+</span><span class='line'>Done Building Project &quot;C:\DirectoryWithProj\Analyse.proj&quot; (default
+</span><span class='line'>targets).
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'>Build succeeded.
+</span><span class='line'>    0 Warning(s)
+</span><span class='line'>    0 Error(s)
+</span><span class='line'>
+</span><span class='line'>Time Elapsed 00:00:00.12
+</span></code></pre></td></tr></table></div></figure>
+
+<p>And as you can see, whilst it&#39;s a bit ugly it generates a whole load of useful information for you about how <em>this</em> build with <em>these</em> properties will be built.</p>
+
+<p>That&#39;s all for now!</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
       <h1 class="entry-title"><a href="/functional-programming-in-an-imperitive-world/">Functional Programming in an Imperative World</a></h1>
     
     
@@ -110,14 +237,11 @@ ga('send', 'pageview');
 
 
   <div class="entry-content"><p>Yesterday was the <a href="https://skillsmatter.com/conferences/7036-functional-programming-exchange-2015#skillscasts">Functional Programming Exchange 2015</a> and this being SkillsMatter,
-the videos are already up. It&rsquo;s a great place to talk from that point of view, with consistently excellent organisation.</p>
+the videos are already up. It&#39;s a great place to talk from that point of view, with consistently excellent organisation.</p>
 
-<p>I was talking on being a &ldquo;Functional Programmer in an Imperative World&rdquo;; the slides are embedded below, but for the full experience check out the video at the link above.</p>
+<p>I was talking on being a &quot;Functional Programmer in an Imperative World&quot;; the slides are embedded below, but for the full experience check out the video at the link above.</p>
 
-<iframe src="//www.slideshare.net/slideshow/embed_code/key/cSlUuPevYKsSHL" width="425" height="355" frameborder="0" marginwidth="0" marginheight="0" scrolling="no" style="border:1px solid #CCC; border-width:1px; margin-bottom:5px; max-width: 100%;" allowfullscreen> </iframe>
-
-
-<p> <div style="margin-bottom:5px"> <strong> <a href="//www.slideshare.net/mavnn/functional-programming-in-an-imperitive-world" title="Functional Programming in an Imperitive World" target="_blank">Functional Programming in an Imperitive World</a> </strong> from <strong><a href="//www.slideshare.net/mavnn" target="_blank">mavnn</a></strong> </div></p>
+<p><iframe src="//www.slideshare.net/slideshow/embed_code/key/cSlUuPevYKsSHL" width="425" height="355" frameborder="0" marginwidth="0" marginheight="0" scrolling="no" style="border:1px solid #CCC; border-width:1px; margin-bottom:5px; max-width: 100%;" allowfullscreen> </iframe> <div style="margin-bottom:5px"> <strong> <a href="//www.slideshare.net/mavnn/functional-programming-in-an-imperitive-world" title="Functional Programming in an Imperitive World" target="_blank">Functional Programming in an Imperitive World</a> </strong> from <strong><a href="//www.slideshare.net/mavnn" target="_blank">mavnn</a></strong> </div></p>
 </div>
   
   
@@ -153,9 +277,9 @@ the videos are already up. It&rsquo;s a great place to talk from that point of v
   </header>
 
 
-  <div class="entry-content"><p>So, nearly a month back now I had the fantastic opportunity to speak at this year&rsquo;s
+  <div class="entry-content"><p>So, nearly a month back now I had the fantastic opportunity to speak at this year&#39;s
 <a href="http://sddconf.com/">Software, Design &amp; Development</a> at the Barbican on property based
-testing &ndash; or more specifically, FsCheck.</p>
+testing - or more specifically, FsCheck.</p>
 
 </div>
   
@@ -196,10 +320,10 @@ testing &ndash; or more specifically, FsCheck.</p>
   </header>
 
 
-  <div class="entry-content"><p>Leaving the confines of your own process&rsquo;s safe little memory space is always a potentially painful moment
-when you&rsquo;re coding up an up. Whether it&rsquo;s receiving data from the outside world, passing a message over
+  <div class="entry-content"><p>Leaving the confines of your own process&#39;s safe little memory space is always a potentially painful moment
+when you&#39;re coding up an up. Whether it&#39;s receiving data from the outside world, passing a message over
 RabbitMQ to an other in house service, or writing an audit trail that needs to be accessible for the next
-20 years, there&rsquo;s a bunch of considerations that need to be taken into account when you hit the joys of
+20 years, there&#39;s a bunch of considerations that need to be taken into account when you hit the joys of
 serialization and deserialization.</p>
 
 </div>
@@ -244,12 +368,12 @@ serialization and deserialization.</p>
   <div class="entry-content"><p>Designing an API is hard.</p>
 
 <p>You want to actually apply the
-<a href="https://en.wikipedia.org/wiki/Principle_of_least_astonishment">principle of least astonishment</a> &ndash;
-but you&rsquo;re the person who wrote the code. You&rsquo;re unlikely to be astonished. So
-you&rsquo;re trying to think how someone who didn&rsquo;t know what you know would think &ndash;
+<a href="https://en.wikipedia.org/wiki/Principle_of_least_astonishment">principle of least astonishment</a> -
+but you&#39;re the person who wrote the code. You&#39;re unlikely to be astonished. So
+you&#39;re trying to think how someone who didn&#39;t know what you know would think -
 which is never an easy starting point!</p>
 
-<p>Similarly, you&rsquo;re trying to create the
+<p>Similarly, you&#39;re trying to create the
 <a href="http://blog.codinghorror.com/falling-into-the-pit-of-success/">pit of success</a>
 for users. Which means trying to make it <em>very hard</em> to do the wrong thing with
 your API. Preferably, in strongly typed languages, this should include using the
@@ -258,11 +382,11 @@ type system to
 so that code that compiles is very likely to work.</p>
 
 <p>In general, the core libraries for .net are not bad at API design, but there are
-a few places where this isn&rsquo;t true. As an exercise, we at
+a few places where this isn&#39;t true. As an exercise, we at
 <a href="http://www.15below.com/">15below</a> are going to take one of them, split into
 teams and spend an hour or so seeing what alternatives we can come up with. Feel
 free to follow along at home, and if you do give it a try ping me a code snippet
-and I&rsquo;ll post it up with our internal attempts in a week or so.</p>
+and I&#39;ll post it up with our internal attempts in a week or so.</p>
 
 </div>
   
@@ -311,16 +435,16 @@ functionally friendly way.</p>
 
 <p>This is not one of those blog posts. This is about making sure that your
 colleagues who are consuming your shiny new code in an imperative language
-(generally C# in my case) don&rsquo;t threaten to defenestrate you.</p>
+(generally C# in my case) don&#39;t threaten to defenestrate you.</p>
 
-<p>At <a href="http://15below.com">15below</a> we&rsquo;ve recently had need in some of our services
+<p>At <a href="http://15below.com">15below</a> we&#39;ve recently had need in some of our services
 of taking a distributed lock between servers. There are many services available
-designed for doing this, but after some deliberation we decided that we didn&rsquo;t
+designed for doing this, but after some deliberation we decided that we didn&#39;t
 want to add a new piece of infrastructure purely for this one purpose. So
 <a href="http://15below.github.io/Sproc.Lock">Sproc.Lock</a> was born: SQL Server based
 distributed locking.</p>
 
-<p>In this post, I&rsquo;m not going to talk about the design of the service. What I&rsquo;m
+<p>In this post, I&#39;m not going to talk about the design of the service. What I&#39;m
 going to write about is how I engineered the API to be pleasent to use from both
 C# and F#, giving a idiomatic interface from both languages.</p>
 
@@ -363,7 +487,7 @@ C# and F#, giving a idiomatic interface from both languages.</p>
   </header>
 
 
-  <div class="entry-content"><p>This weekend I had the honour of speaking at <a href="http://www.lambdacon.org/">LambdaCon</a>. My own talk I&rsquo;ll be writing some separate posts on in the future, but I also wanted to jot down some notes on the conference before the memory faded.</p>
+  <div class="entry-content"><p>This weekend I had the honour of speaking at <a href="http://www.lambdacon.org/">LambdaCon</a>. My own talk I&#39;ll be writing some separate posts on in the future, but I also wanted to jot down some notes on the conference before the memory faded.</p>
 
 </div>
   
@@ -406,15 +530,14 @@ C# and F#, giving a idiomatic interface from both languages.</p>
 
   <div class="entry-content"><p>The <a href="https://github.com/fsprojects/FSharp.TypeProviders.StarterPack">Type Provider Starter Pack</a> was designed with two purposes initially. Firstly, to be a canonical repository for the ProvidedTypes files which provide a source file based API for creating type providers. And secondly, to be a set of tutorials and examples for people wanting to dip their toes into building type providers for the first time.</p>
 
-<p>To be honest, it&rsquo;s not been doing a complete job of either:</p>
+<p>To be honest, it&#39;s not been doing a complete job of either:</p>
 
 <ul>
-<li>I think most people are using it as the source of ProvidedTypes.fs and .fsi now days, but it didn&rsquo;t provide any infrastructure or testing for progressing the library.</li>
-<li>The &ldquo;examples&rdquo; were limited to a link to my <a href="/type-providers-from-the-ground-up/">tutorial on building type providers</a></li>
+<li>I think most people are using it as the source of ProvidedTypes.fs and .fsi now days, but it didn&#39;t provide any infrastructure or testing for progressing the library.</li>
+<li>The &quot;examples&quot; were limited to a link to my <a href="/type-providers-from-the-ground-up/">tutorial on building type providers</a></li>
 </ul>
 
-
-<p>Today, that&rsquo;s changed. And I need your help!</p>
+<p>Today, that&#39;s changed. And I need your help!</p>
 
 <h3>Testing ProvidedTypes</h3>
 
@@ -422,7 +545,7 @@ C# and F#, giving a idiomatic interface from both languages.</p>
 
 <p>So I implemented a system for compiling and testing example .fsx scripts within the Starter Pack repository.</p>
 
-<p>Want to help out? As long as you have some basic git and F# knowledge, it&rsquo;s easy!</p>
+<p>Want to help out? As long as you have some basic git and F# knowledge, it&#39;s easy!</p>
 
 </div>
   
@@ -463,40 +586,40 @@ C# and F#, giving a idiomatic interface from both languages.</p>
   </header>
 
 
-  <div class="entry-content"><p>I&rsquo;ve been reviewing a number of CVs from developers of varying experience recently, and wanted to get a few notes out there about what to do (and <strong>not</strong> do) on your CV if you want to get noticed.</p>
+  <div class="entry-content"><p>I&#39;ve been reviewing a number of CVs from developers of varying experience recently, and wanted to get a few notes out there about what to do (and <strong>not</strong> do) on your CV if you want to get noticed.</p>
 
-<p>Well, by me at least. Your mileage may vary with other reviewers! But &ndash; remember that you&rsquo;re interviewing the company as much as they&rsquo;re interviewing you. Hopefully this advice will get you more interest from the kind of companies you <strong>want</strong> to work for, even if it doesn&rsquo;t get you through the enterprise HR screen quite as often.</p>
+<p>Well, by me at least. Your mileage may vary with other reviewers! But - remember that you&#39;re interviewing the company as much as they&#39;re interviewing you. Hopefully this advice will get you more interest from the kind of companies you <strong>want</strong> to work for, even if it doesn&#39;t get you through the enterprise HR screen quite as often.</p>
 
-<p>I&rsquo;ll start with the postives, and then go onto some things it&rsquo;s best to avoid.</p>
+<p>I&#39;ll start with the postives, and then go onto some things it&#39;s best to avoid.</p>
 
 <h3>Make yourself stand out!</h3>
 
-<p>Looking from the outside (at least, from the job descriptions!), <a href="http://15below.com">15below</a> probably looks like a Microsoft shop. That&rsquo;s because it is &ndash; all of our new code is written in MS supported .net languages, we use SQL Server as our primary data store, WebApi, ASP.net MVC, etc.</p>
+<p>Looking from the outside (at least, from the job descriptions!), <a href="http://15below.com">15below</a> probably looks like a Microsoft shop. That&#39;s because it is - all of our new code is written in MS supported .net languages, we use SQL Server as our primary data store, WebApi, ASP.net MVC, etc.</p>
 
-<p>But! One of the things that makes us who we are is that we&rsquo;ve deliberately hired outside the box, especially for senior developer roles. I have professional Python experience, use F# by preference and run my personal computers on Linux. Three of us use Vim (or at least VsVim). One of us used to write C++ code for nuclear reactors (the testing is strong in that one). My colleagues tweet about Erlang, code for fun in Idris and steal ideas liberally from all these places to make 15below
-the kind of place it is. Not all of it makes it into production code, but even there you&rsquo;ll find technologies like RabbitMQ that don&rsquo;t show up that often in the Microsoft world.</p>
+<p>But! One of the things that makes us who we are is that we&#39;ve deliberately hired outside the box, especially for senior developer roles. I have professional Python experience, use F# by preference and run my personal computers on Linux. Three of us use Vim (or at least VsVim). One of us used to write C++ code for nuclear reactors (the testing is strong in that one). My colleagues tweet about Erlang, code for fun in Idris and steal ideas liberally from all these places to make 15below
+the kind of place it is. Not all of it makes it into production code, but even there you&#39;ll find technologies like RabbitMQ that don&#39;t show up that often in the Microsoft world.</p>
 
-<p>If you tailor your CV to what it looks like we prefer, you immediately sink to almost invisibility. &ldquo;Oh, an other developer with 5+ years C# experience who knows T-SQL and knows to buzzword Scrum onto the CV.&rdquo; To be clear: that&rsquo;s not a bad thing to have on your CV. It shouldn&rsquo;t be the only thing on your CV.</p>
+<p>If you tailor your CV to what it looks like we prefer, you immediately sink to almost invisibility. &quot;Oh, an other developer with 5+ years C# experience who knows T-SQL and knows to buzzword Scrum onto the CV.&quot; To be clear: that&#39;s not a bad thing to have on your CV. It shouldn&#39;t be the only thing on your CV.</p>
 
 <h3>Show me the codez</h3>
 
-<p>This isn&rsquo;t essential, and you may not be able to depending on your previous employment. But if you can link to some previous code you&rsquo;ve written (even a website where you can say &ldquo;I wrote the JavaScript for this one&rdquo;) you&rsquo;ll immediately gain a boost towards an interview. We&rsquo;ll still give you the technical test, because unfortunately there are people who are stupid enough to try and pass off others work as their own (and it is stupid &ndash; you will get yourself burnt trying that). But
-you&rsquo;re
-much more likely to get to the interview stage. This is a particularly useful piece of advice for those of you just coming out of university. Can you link to your final year project? A hobby project? Your github account? If the code is good, you&rsquo;re instantly up there competing with candidates who on paper have years of experience over you.</p>
+<p>This isn&#39;t essential, and you may not be able to depending on your previous employment. But if you can link to some previous code you&#39;ve written (even a website where you can say &quot;I wrote the JavaScript for this one&quot;) you&#39;ll immediately gain a boost towards an interview. We&#39;ll still give you the technical test, because unfortunately there are people who are stupid enough to try and pass off others work as their own (and it is stupid - you will get yourself burnt trying that). But
+you&#39;re
+much more likely to get to the interview stage. This is a particularly useful piece of advice for those of you just coming out of university. Can you link to your final year project? A hobby project? Your github account? If the code is good, you&#39;re instantly up there competing with candidates who on paper have years of experience over you.</p>
 
-<p>Whether you show us code in advance or not, we will ask you to write something trivial during the interview. We&rsquo;ll make it as unscary as we can, but unfortunately enough people have come to us who cannot actually write code that we feel we have very little choice about this step. If you&rsquo;re nervous about this kind of thing, I would seriously suggest getting in a practice session or two with friends before getting to an interview for a development post. And be very, very wary of a company that
-doesn&rsquo;t ask you to demonstrate you can actually code.</p>
+<p>Whether you show us code in advance or not, we will ask you to write something trivial during the interview. We&#39;ll make it as unscary as we can, but unfortunately enough people have come to us who cannot actually write code that we feel we have very little choice about this step. If you&#39;re nervous about this kind of thing, I would seriously suggest getting in a practice session or two with friends before getting to an interview for a development post. And be very, very wary of a company that
+doesn&#39;t ask you to demonstrate you can actually code.</p>
 
-<h3>Don&rsquo;t bother me with trivia, especially if it makes you look bad</h3>
+<h3>Don&#39;t bother me with trivia, especially if it makes you look bad</h3>
 
-<p>Been out of school for more than 5 years? I couldn&rsquo;t give two figs about your grades. Unless you explicitly list the fact that you achieved a C and 3 E&rsquo;s at AS level. That gives me pause for thought. It&rsquo;s not a make or break thing, but no need to cut your own chances.</p>
+<p>Been out of school for more than 5 years? I couldn&#39;t give two figs about your grades. Unless you explicitly list the fact that you achieved a C and 3 E&#39;s at AS level. That gives me pause for thought. It&#39;s not a make or break thing, but no need to cut your own chances.</p>
 
-<h3>Don&rsquo;t fluff up your management skills (unless you want to be a manager)</h3>
+<h3>Don&#39;t fluff up your management skills (unless you want to be a manager)</h3>
 
-<p>We&rsquo;ve been very borderline about interviewing several candidates because it was completely unclear from their CVs whether they actually <em>write any code</em>. Oh, it says &ldquo;experienced C# software engineer&rdquo; at the top of the CV, but if you look at the description of their last job it&rsquo;s all about &ldquo;Team Leader&rdquo;, &ldquo;Mentor&rdquo;, &ldquo;SCRUM master&rdquo;&hellip; Again, none of that&rsquo;s bad (well &ndash; maybe SCRUM master is a bit dubious) but we&rsquo;re not a Local Council where the only way of being &ldquo;Senior&rdquo; is to have
-management responsibility. We&rsquo;re hiring developers, and while we&rsquo;ll expect a senior developer to be a good communicator we&rsquo;re not expecting them to be graduates of Atlassian University. If you want to get into people management, it&rsquo;s a fine career path. If you want to be a developer, highlight your development skills.</p>
+<p>We&#39;ve been very borderline about interviewing several candidates because it was completely unclear from their CVs whether they actually <em>write any code</em>. Oh, it says &quot;experienced C# software engineer&quot; at the top of the CV, but if you look at the description of their last job it&#39;s all about &quot;Team Leader&quot;, &quot;Mentor&quot;, &quot;SCRUM master&quot;&#8230; Again, none of that&#39;s bad (well - maybe SCRUM master is a bit dubious) but we&#39;re not a Local Council where the only way of being &quot;Senior&quot; is to have
+management responsibility. We&#39;re hiring developers, and while we&#39;ll expect a senior developer to be a good communicator we&#39;re not expecting them to be graduates of Atlassian University. If you want to get into people management, it&#39;s a fine career path. If you want to be a developer, highlight your development skills.</p>
 
-<h3>Don&rsquo;t give in depth technical examples that give me the fear</h3>
+<h3>Don&#39;t give in depth technical examples that give me the fear</h3>
 
 <p>We got a CV from someone who had recently written a desktop application that used every multithreading techniques. Really? All of them? In one app? An interesting design decision.</p>
 
@@ -508,31 +631,29 @@ management responsibility. We&rsquo;re hiring developers, and while we&rsquo;ll 
 <li>Manual Dispatch</li>
 </ul>
 
+<p>In 2015 this is not the way to highlight your expertise in writing asynchronous and concurrent reliable, maintainable code. If someone wrote code like this within the company, the code review would immediately result in some pair programming on &quot;here&#39;s all the easier, more reliable ways you could have done this.&quot; From an applicant applying for a senior role it&#39;s an instant fail.</p>
 
-<p>In 2015 this is not the way to highlight your expertise in writing asynchronous and concurrent reliable, maintainable code. If someone wrote code like this within the company, the code review would immediately result in some pair programming on &ldquo;here&rsquo;s all the easier, more reliable ways you could have done this.&rdquo; From an applicant applying for a senior role it&rsquo;s an instant fail.</p>
-
-<p>The problem is not here that someone didn&rsquo;t know how to write concurrent code: not every developer has reason to have learnt those skills. The problem is using a subject where you have very little expertise to try and boost your technical credentials.</p>
+<p>The problem is not here that someone didn&#39;t know how to write concurrent code: not every developer has reason to have learnt those skills. The problem is using a subject where you have very little expertise to try and boost your technical credentials.</p>
 
 <p>Three things to take away here:</p>
 
 <ol>
-<li>Don&rsquo;t claim to be an expert on something unless you&rsquo;re certain that you actually are.</li>
-<li>Did something in a previous job in a way you wouldn&rsquo;t now? List the result, not the detail of the technique</li>
-<li>If you need ManualResetEvent you&rsquo;re probably doing something very wrong</li>
+<li>Don&#39;t claim to be an expert on something unless you&#39;re certain that you actually are.</li>
+<li>Did something in a previous job in a way you wouldn&#39;t now? List the result, not the detail of the technique</li>
+<li>If you need ManualResetEvent you&#39;re probably doing something very wrong</li>
 </ol>
 
+<h3>Don&#39;t try and out Agile us</h3>
 
-<h3>Don&rsquo;t try and out Agile us</h3>
+<p>Yes, yes, we say we&#39;re an agile company. But frankly, a lot of stuff that people call agile is a complete waste of time, and other things we just can&#39;t do because we spend a lot of time working with customers who are <em>not</em> agile. At all. So, we do 15below agile. It&#39;s a nice shorthand to give you a good idea of how we generally work. And agile being as dispersed an idea as it is, that&#39;s going to be true of pretty much any company that says it&#39;s agile.</p>
 
-<p>Yes, yes, we say we&rsquo;re an agile company. But frankly, a lot of stuff that people call agile is a complete waste of time, and other things we just can&rsquo;t do because we spend a lot of time working with customers who are <em>not</em> agile. At all. So, we do 15below agile. It&rsquo;s a nice shorthand to give you a good idea of how we generally work. And agile being as dispersed an idea as it is, that&rsquo;s going to be true of pretty much any company that says it&rsquo;s agile.</p>
+<p>So be wary getting too carried away on your &quot;agility&quot;. Again, don&#39;t claim to be expert if you&#39;re not: &quot;we had a morning meeting everyday&quot;, as one of our candidates noted in his agile experience. And you&#39;re going to make me very wary if you try and come across as being an agile zealot - not because agile is bad, but because whatever it is you&#39;re a zealot about, it&#39;s not going to be &quot;15below agile&quot;. And life&#39;s too short for getting into arguments about that kind of thing.</p>
 
-<p>So be wary getting too carried away on your &ldquo;agility&rdquo;. Again, don&rsquo;t claim to be expert if you&rsquo;re not: &ldquo;we had a morning meeting everyday&rdquo;, as one of our candidates noted in his agile experience. And you&rsquo;re going to make me very wary if you try and come across as being an agile zealot &ndash; not because agile is bad, but because whatever it is you&rsquo;re a zealot about, it&rsquo;s not going to be &ldquo;15below agile&rdquo;. And life&rsquo;s too short for getting into arguments about that kind of thing.</p>
+<hr>
 
-<hr />
+<p>So, there you have. My own personal list of things that increase or decrease your chances that I&#39;ll recommend you&#39;re interviewed.</p>
 
-<p>So, there you have. My own personal list of things that increase or decrease your chances that I&rsquo;ll recommend you&rsquo;re interviewed.</p>
-
-<p>If you think that you&rsquo;d be interested in working for the type of company that uses this type of criteria&hellip; well, oddly enough we&rsquo;re hiring at the moment. Ping me or drop a note through to <a href="&#109;&#x61;&#x69;&#108;&#116;&#x6f;&#x3a;&#106;&#x6f;&#x62;&#x73;&#64;&#49;&#53;&#x62;&#x65;&#108;&#111;&#x77;&#46;&#x63;&#x6f;&#x6d;&#46;">&#x6a;&#x6f;&#98;&#115;&#x40;&#x31;&#53;&#x62;&#101;&#108;&#111;&#119;&#x2e;&#x63;&#x6f;&#109;&#46;</a></p>
+<p>If you think that you&#39;d be interested in working for the type of company that uses this type of criteria&#8230; well, oddly enough we&#39;re hiring at the moment. Ping me or drop a note through to jobs@15below.com.</p>
 </div>
   
   
@@ -581,49 +702,6 @@ management responsibility. We&rsquo;re hiring developers, and while we&rsquo;ll 
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/exploring-reactive-extensions/">Exploring Reactive Extensions</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2015-02-09T13:01:36+00:00" pubdate data-updated="true">Feb 9<span>th</span>, 2015</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>The <a href="http://rx.codeplex.com/">Reactive Extensions</a> project is &ldquo;a library for composing asynchronous and event-based programs using observable sequences and LINQ-style query operators&rdquo;. That doesn&rsquo;t immediately give most people an intuitive grasp of exactly what it is &ndash; but it&rsquo;s a useful addition to the toolset so we put together a practical for people to experiment with.</p>
-
-<p>At it&rsquo;s simplest, RX (as it&rsquo;s called&hellip; the Nuget package you&rsquo;re looking for is <a href="https://www.nuget.org/packages/Rx-Main">Rx-Main</a>, obviously!) allows you to create an <code>IObservable</code> object which you can then&hellip; erm&hellip; observe.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/exploring-reactive-extensions/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/3/">&larr; Older</a>
@@ -641,6 +719,10 @@ management responsibility. We&rsquo;re hiring developers, and while we&rsquo;ll 
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/advent-2016/">Advent 2016</a>
+      </li>
+    
+      <li class="post">
         <a href="/video-and-slides-for-from-the-ivory-tower/">Video and Slides for &#8220;From the Ivory Tower&#8221;</a>
       </li>
     
@@ -654,10 +736,6 @@ management responsibility. We&rsquo;re hiring developers, and while we&rsquo;ll 
     
       <li class="post">
         <a href="/type-providers-live-the-movie/">Type Providers Live - the Movie</a>
-      </li>
-    
-      <li class="post">
-        <a href="/emparsec-embedded-parser-library/">EmParsec Embedded Parser Library</a>
       </li>
     
   </ul>

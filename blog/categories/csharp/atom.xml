@@ -4,7 +4,7 @@
   <title><![CDATA[Category: csharp | Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/blog/categories/csharp/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2016-04-15T22:35:51+01:00</updated>
+  <updated>2016-12-18T01:25:28+00:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -26,21 +26,20 @@ functionally friendly way.</p>
 
 <p>This is not one of those blog posts. This is about making sure that your
 colleagues who are consuming your shiny new code in an imperative language
-(generally C# in my case) don&rsquo;t threaten to defenestrate you.</p>
+(generally C# in my case) don&#39;t threaten to defenestrate you.</p>
 
-<p>At <a href="http://15below.com">15below</a> we&rsquo;ve recently had need in some of our services
+<p>At <a href="http://15below.com">15below</a> we&#39;ve recently had need in some of our services
 of taking a distributed lock between servers. There are many services available
-designed for doing this, but after some deliberation we decided that we didn&rsquo;t
+designed for doing this, but after some deliberation we decided that we didn&#39;t
 want to add a new piece of infrastructure purely for this one purpose. So
 <a href="http://15below.github.io/Sproc.Lock">Sproc.Lock</a> was born: SQL Server based
 distributed locking.</p>
 
-<p>In this post, I&rsquo;m not going to talk about the design of the service. What I&rsquo;m
+<p>In this post, I&#39;m not going to talk about the design of the service. What I&#39;m
 going to write about is how I engineered the API to be pleasent to use from both
 C# and F#, giving a idiomatic interface from both languages.</p>
 
 <!-- more -->
-
 
 <h2>The original interface (F#)</h2>
 
@@ -49,87 +48,69 @@ immediately familiar to an F# programmer. Our lock can be of 3 types (global,
 organisation or environment) and so we have a discriminated union (<code>Lock</code>)
 representing these three options.</p>
 
-<p>(I&rsquo;ve removed the implementations of the various bits to leave the shape of the
+<p>(I&#39;ve removed the implementations of the various bits to leave the shape of the
 code clear)</p>
-
-<p>``` fsharp
-/// Type representing a Lock that has definitely been acquired. Locks are
-/// IDisposable; disposing the lock will ensure it is released.
-type Lock =</p>
-
-<pre><code> /// A lock that applies globally across the lock server
- | Global of ...
- /// A lock scoped to a specific organisation
- | Organisation of ...
- /// A lock scoped to a particular environment belonging to a particular organisation
- | Environment of ...
- /// The LockId acquired. Useful in combination when getting one of a list of locks to determine which was free.
- member lock.LockId =
-     ...
- /// Disposing releases the lock
- member lock.Dispose () =
-     ...
- interface IDisposable with
-     /// Disposing releases the lock
-     member lock.Dispose () =
-        lock.Dispose()
-</code></pre>
-
-<p>```</p>
-
-<p>The lock is <code>IDisposable</code> to take advantage of .net&rsquo;s most common resource
+<div class="highlight"><pre><code class="fsharp"><span class="c1">/// Type representing a Lock that has definitely been acquired. Locks are</span>
+<span class="c1">/// IDisposable; disposing the lock will ensure it is released.</span>
+<span class="k">type</span> <span class="nc">Lock</span> <span class="o">=</span>
+     <span class="c1">/// A lock that applies globally across the lock server</span>
+     <span class="o">|</span> <span class="nc">Global</span> <span class="k">of</span> <span class="o">...</span>
+     <span class="c1">/// A lock scoped to a specific organisation</span>
+     <span class="o">|</span> <span class="nc">Organisation</span> <span class="k">of</span> <span class="o">...</span>
+     <span class="c1">/// A lock scoped to a particular environment belonging to a particular organisation</span>
+     <span class="o">|</span> <span class="nc">Environment</span> <span class="k">of</span> <span class="o">...</span>
+     <span class="c1">/// The LockId acquired. Useful in combination when getting one of a list of locks to determine which was free.</span>
+     <span class="k">member</span> <span class="n">lock</span><span class="o">.</span><span class="nc">LockId</span> <span class="o">=</span>
+         <span class="o">...</span>
+     <span class="c1">/// Disposing releases the lock</span>
+     <span class="k">member</span> <span class="n">lock</span><span class="o">.</span><span class="nc">Dispose</span> <span class="bp">()</span> <span class="o">=</span>
+         <span class="o">...</span>
+     <span class="k">interface</span> <span class="nc">IDisposable</span> <span class="k">with</span>
+         <span class="c1">/// Disposing releases the lock</span>
+         <span class="k">member</span> <span class="n">lock</span><span class="o">.</span><span class="nc">Dispose</span> <span class="bp">()</span> <span class="o">=</span>
+            <span class="n">lock</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
+</code></pre></div>
+<p>The lock is <code>IDisposable</code> to take advantage of .net&#39;s most common resource
 management idiom. You can release a lock by disposing it.</p>
 
-<p>Then, of course, when we try and acquire a lock we may or may not be able to &ndash;
+<p>Then, of course, when we try and acquire a lock we may or may not be able to -
 the whole point of locks is that you cannot obtain them if someone else has
 locked it already, after all.</p>
 
 <p>So we have a second discriminated union (<code>LockResult</code>) wrapping the first,
 with (again) three potential cases:</p>
-
-<p>``` fsharp
-/// A type representing the possible results of attempting to acquire a lock.
-type LockResult =</p>
-
-<pre><code> /// A lock was successfully acquired
- | Locked of Lock
- /// No lock was available
- | Unavailable
- /// The attempt to acquire a lock caused an error in SQL Server
- | Error of int
- /// Disposing a lock result disposes the lock if it was acquired, and has no effect otherwise
- member x.Dispose () =
-    match x with
-    | Locked l -&gt; l.Dispose()
-    | Unavailable -&gt; ()
-    | Error _ -&gt; ()
- interface IDisposable with
-    member x.Dispose () =
-        x.Dispose()
-</code></pre>
-
-<p>```</p>
-
+<div class="highlight"><pre><code class="fsharp"><span class="c1">/// A type representing the possible results of attempting to acquire a lock.</span>
+<span class="k">type</span> <span class="nc">LockResult</span> <span class="o">=</span>
+     <span class="c1">/// A lock was successfully acquired</span>
+     <span class="o">|</span> <span class="nc">Locked</span> <span class="k">of</span> <span class="nc">Lock</span>
+     <span class="c1">/// No lock was available</span>
+     <span class="o">|</span> <span class="nc">Unavailable</span>
+     <span class="c1">/// The attempt to acquire a lock caused an error in SQL Server</span>
+     <span class="o">|</span> <span class="nc">Error</span> <span class="k">of</span> <span class="kt">int</span>
+     <span class="c1">/// Disposing a lock result disposes the lock if it was acquired, and has no effect otherwise</span>
+     <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Dispose</span> <span class="bp">()</span> <span class="o">=</span>
+        <span class="k">match</span> <span class="n">x</span> <span class="k">with</span>
+        <span class="o">|</span> <span class="nc">Locked</span> <span class="n">l</span> <span class="o">-&gt;</span> <span class="n">l</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
+        <span class="o">|</span> <span class="nc">Unavailable</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+        <span class="o">|</span> <span class="nc">Error</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+     <span class="k">interface</span> <span class="nc">IDisposable</span> <span class="k">with</span>
+        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Dispose</span> <span class="bp">()</span> <span class="o">=</span>
+            <span class="n">x</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
+</code></pre></div>
 <p>Again, this is <code>IDisposable</code> so that you can just dispose of your overall
 <code>LockResult</code> object which makes a lot of the code cleaner.</p>
 
 <p>So: how do we get a <code>LockResult</code>? Well, we have a set of functions for getting
-locks. Let&rsquo;s have a look at the skeleton of one of them:</p>
-
-<p>``` fsharp
-// val GetOrganisationLock : string &ndash;> string &ndash;> TimeSpan &ndash;> string &ndash;> LockResult
-let GetOrganisationLock connString organisation (maxDuration : TimeSpan) lockIdentifier =</p>
-
-<pre><code>...
-</code></pre>
-
-<p>```</p>
-
-<p>What&rsquo;s this doing? Well, it&rsquo;s going to (try and) create a lock scoped to a
+locks. Let&#39;s have a look at the skeleton of one of them:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="c1">// val GetOrganisationLock : string -&gt; string -&gt; TimeSpan -&gt; string -&gt; LockResult</span>
+<span class="k">let</span> <span class="nc">GetOrganisationLock</span> <span class="n">connString</span> <span class="n">organisation</span> <span class="o">(</span><span class="n">maxDuration</span> <span class="o">:</span> <span class="nc">TimeSpan</span><span class="o">)</span> <span class="n">lockIdentifier</span> <span class="o">=</span>
+    <span class="o">...</span>
+</code></pre></div>
+<p>What&#39;s this doing? Well, it&#39;s going to (try and) create a lock scoped to a
 particular database and organisation with a particular ID, returning a
-<code>LockResult</code>.</p>
+<code>LockResult</code>. </p>
 
-<p>From an API design point of view, what&rsquo;s interesting here is the order of the
+<p>From an API design point of view, what&#39;s interesting here is the order of the
 arguments. <a href="https://en.wikipedia.org/wiki/Currying">Currying</a> enables easy
 partial application, and here it is very likely that the application will want
 to take all locks from the same database (making the first parameter) and
@@ -137,65 +118,43 @@ reasonably likely that it will always want them scoped to the same organisation
 (second parameter). This is a common pattern in languages that allow for easy
 currying, and invariably a consumer of this library in F# will end up with a
 partially applied helper function looking something like this:</p>
-
-<p>``` fsharp
-// val getLock : string &ndash;> LockResult
-let getLock =</p>
-
-<pre><code>GetOrganisationLock "myDbConnString" "OrgName" (TimeSpan.FromMinutes 5.)
-</code></pre>
-
-<p>```</p>
-
+<div class="highlight"><pre><code class="fsharp"><span class="c1">// val getLock : string -&gt; LockResult</span>
+<span class="k">let</span> <span class="n">getLock</span> <span class="o">=</span>
+    <span class="nc">GetOrganisationLock</span> <span class="s2">&quot;myDbConnString&quot;</span> <span class="s2">&quot;OrgName&quot;</span> <span class="o">(</span><span class="nn">TimeSpan</span><span class="p">.</span><span class="nc">FromMinutes</span> <span class="mi">5</span><span class="o">.)</span>
+</code></pre></div>
 <p>We also have a set of helper functions for common operations we might want to
 carry out on locks, all of which take a higher order function as part of their
-arguments. Let&rsquo;s have a look at <code>AwaitLock</code> which will wait for a lock to
+arguments. Let&#39;s have a look at <code>AwaitLock</code> which will wait for a lock to
 become available for a specified length of time, rather then returning
 immediately with an <code>Unavailable</code> result:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="c1">// val AwaitLock : TimeSpan -&gt; (unit -&gt; LockResult) -&gt; LockResult</span>
+<span class="k">let</span> <span class="nc">AwaitLock</span> <span class="o">(</span><span class="n">timeOut</span> <span class="o">:</span> <span class="nc">TimeSpan</span><span class="o">)</span> <span class="n">getLock</span> <span class="o">=</span>
+    <span class="o">...</span>
 
-<p>``` fsharp
-// val AwaitLock : TimeSpan &ndash;> (unit &ndash;> LockResult) &ndash;> LockResult
-let AwaitLock (timeOut : TimeSpan) getLock =</p>
-
-<pre><code>...
-</code></pre>
-
-<p>// Using it using the helper above:
-let awaitMyLock identifier =</p>
-
-<pre><code>AwaitLock (TimeSpan.FromSeconds 2.) (getLock identifier)
-</code></pre>
-
-<p>```</p>
-
+<span class="c1">// Using it using the helper above:</span>
+<span class="k">let</span> <span class="n">awaitMyLock</span> <span class="n">identifier</span> <span class="o">=</span>
+    <span class="nc">AwaitLock</span> <span class="o">(</span><span class="nn">TimeSpan</span><span class="p">.</span><span class="nc">FromSeconds</span> <span class="mi">2</span><span class="o">.)</span> <span class="o">(</span><span class="n">getLock</span> <span class="n">identifier</span><span class="o">)</span>
+</code></pre></div>
 <p>If we then want (say) to wait up to 2 seconds for one of a list of possible
 locks to become available, we can then compose this function with the
 <code>OneOfLocks</code> function:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="c1">// val OneOfLocks : (&#39;a -&gt; LockResult) -&gt; seq&lt;&#39;a&gt; -&gt; LockResult</span>
+<span class="k">let</span> <span class="nc">OneOfLocks</span> <span class="n">getLock</span> <span class="n">lockIds</span> <span class="o">=</span>
+    <span class="o">...</span>
 
-<p>``` fsharp
-// val OneOfLocks : (&lsquo;a &ndash;> LockResult) &ndash;> seq&lt;'a> &ndash;> LockResult
-let OneOfLocks getLock lockIds =</p>
-
-<pre><code>...
-</code></pre>
-
-<p>// Using it using await helper:
-let pickLock () =</p>
-
-<pre><code>OneOfLocks awaitMyLock ["LockId1";"LockId2"] 
-</code></pre>
-
-<p>```</p>
-
-<p>I&rsquo;m sure the comments will disagree, but I&rsquo;m actually pretty happy with this as
-an F# interface to this library. It&rsquo;s not strictly pure, but that&rsquo;s an option in
+<span class="c1">// Using it using await helper:</span>
+<span class="k">let</span> <span class="n">pickLock</span> <span class="bp">()</span> <span class="o">=</span>
+    <span class="nc">OneOfLocks</span> <span class="n">awaitMyLock</span> <span class="o">[</span><span class="s2">&quot;LockId1&quot;</span><span class="o">;</span><span class="s2">&quot;LockId2&quot;</span><span class="o">]</span> 
+</code></pre></div>
+<p>I&#39;m sure the comments will disagree, but I&#39;m actually pretty happy with this as
+an F# interface to this library. It&#39;s not strictly pure, but that&#39;s an option in
 F#, and the combination of composable functions and careful choice of parameter
 order make for concise and readable code.</p>
 
-<p>So, we&rsquo;re done &ndash; right?</p>
+<p>So, we&#39;re done - right?</p>
 
 <p>Unfortunately not. This code would be truely horrible to use from C#, and we
-still use a lot of C# here &ndash; some of our (stranger?) developers even prefer
+still use a lot of C# here - some of our (stranger?) developers even prefer
 it. Why would it be so nasty?</p>
 
 <ul>
@@ -206,8 +165,7 @@ string everytime they want a lock</li>
 capabilities of the library unclear</li>
 </ul>
 
-
-<h2>API Take 2: the &ldquo;OO&rdquo; namespace</h2>
+<h2>API Take 2: the &quot;OO&quot; namespace</h2>
 
 <p>In thinking about the kind of API I would expect for a locking library in C#, a
 few things immediately sprang to mind:</p>
@@ -218,128 +176,106 @@ few things immediately sprang to mind:</p>
 <li>Function composition only for more unusual calling options</li>
 </ul>
 
-
 <p>Wrapping the functional API turned out to be reasonably simple. A couple of
 custom exception types and the <code>OOise</code> method later (I love that function
 name, even if I say so myself) we can easily wrap our functional API in
-something that makes sense in C# land &ndash; they either return an acquired,
+something that makes sense in C# land - they either return an acquired,
 <code>IDisposable</code> lock or throw.</p>
+<div class="highlight"><pre><code class="fsharp"><span class="c1">/// Exception thrown by ``LockProvider`` if none of the specified locks are available.</span>
+<span class="k">type</span> <span class="nc">LockUnavailableException</span> <span class="o">(</span><span class="n">message</span><span class="o">)</span> <span class="o">=</span>
+    <span class="k">inherit</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Exception</span><span class="o">(</span><span class="n">message</span><span class="o">)</span>
 
-<p><code>` fsharp
-/// Exception thrown by</code>LockProvider`` if none of the specified locks are available.
-type LockUnavailableException (message) =</p>
+<span class="c1">/// Exception thrown by ``LockProvider`` if a lock request errors on SQL Server.</span>
+<span class="c1">/// ``LockErrorCode`` is the SQL error response.</span>
+<span class="k">type</span> <span class="nc">LockRequestErrorException</span> <span class="o">(</span><span class="n">errorCode</span><span class="o">)</span> <span class="k">as</span> <span class="n">this</span> <span class="o">=</span>
+    <span class="k">inherit</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Exception</span><span class="o">(</span><span class="n">sprintf</span> <span class="s2">&quot;Error code: %d&quot;</span> <span class="n">errorCode</span><span class="o">)</span>
+    <span class="k">do</span>
+        <span class="n">this</span><span class="o">.</span><span class="nn">Data</span><span class="p">.</span><span class="nc">Add</span><span class="o">(</span><span class="n">box</span> <span class="s2">&quot;ErrorCode&quot;</span><span class="o">,</span> <span class="n">box</span> <span class="n">errorCode</span><span class="o">)</span>
+    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">LockErrorCode</span>
+        <span class="k">with</span> <span class="n">get</span> <span class="bp">()</span> <span class="o">=</span>
+            <span class="n">x</span><span class="o">.</span><span class="nn">Data</span><span class="p">.</span><span class="err">[&quot;</span><span class="nc">ErrorCode</span><span class="s2">&quot;] |&gt; unbox&lt;int&gt;</span>
 
-<pre><code>inherit System.Exception(message)
-</code></pre>
-
-<p>/// Exception thrown by <code>LockProvider</code> if a lock request errors on SQL Server.
-/// <code>LockErrorCode</code> is the SQL error response.
-type LockRequestErrorException (errorCode) as this =</p>
-
-<pre><code>inherit System.Exception(sprintf "Error code: %d" errorCode)
-do
-    this.Data.Add(box "ErrorCode", box errorCode)
-member x.LockErrorCode
-    with get () =
-        x.Data.["ErrorCode"] |&gt; unbox&lt;int&gt;
-</code></pre>
-
-<p>let private OOise lockId getLock =</p>
-
-<pre><code>match getLock lockId with
-| Locked l -&gt; l
-| Unavailable -&gt; raise &lt;| LockUnavailableException(sprintf "Lock %s was unavailable." lockId)
-| Error i -&gt; raise &lt;| LockRequestErrorException i
-</code></pre>
-
-<p>```</p>
-
-<p>Then, a simple <code>LockProvider</code> class allows for all the normal patterns we&rsquo;ve
+<span class="s2">let private OOise lockId getLock =</span>
+<span class="s2">    match getLock lockId with</span>
+<span class="s2">    | Locked l -&gt; l</span>
+<span class="s2">    | Unavailable -&gt; raise &lt;| LockUnavailableException(sprintf &quot;</span><span class="nc">Lock</span> <span class="o">%</span><span class="n">s</span> <span class="n">was</span> <span class="n">unavailable</span><span class="o">.</span><span class="s2">&quot; lockId)</span>
+<span class="s2">    | Error i -&gt; raise &lt;| LockRequestErrorException i</span>
+</code></pre></div>
+<p>Then, a simple <code>LockProvider</code> class allows for all the normal patterns we&#39;ve
 come to know (and in some cases love) such as dependency injection:</p>
-
-<p>``` fsharp
-type LockProvider (connString : string) =</p>
-
-<pre><code>member x.GlobalLock (lockId, maxDuration) =
-    GetGlobalLock connString maxDuration |&gt; OOise lockId
-member x.OrganisationLock (lockId, organisation, maxDuration) =
-    // Rest of the implementations snipped
-    ...
-member x.EnvironmentLock (lockId, organisation, environment, maxDuration) =
-    ...
-member x.AwaitGlobalLock (lockId, maxDuration, timeOut) =
-    ...
-member x.AwaitOrganisationLock (lockId, organisation, maxDuration, timeOut) =
-    ...
-member x.AwaitEnvironmentLock (lockId, organisation, environment, maxDuration, timeOut) =
-    ...
-/// Build a ``System.Func`` that returns a lock based on lockId and provide a list of lockIds.
-/// If any of the locks are available, it will pick one of the available locks at random.
-member x.OneOf&lt;'t&gt; (getLock : System.Func&lt;'t, Lock&gt;, lockIds) =
-    ...
-/// Build a ``System.Func`` that returns a lock based on lockId and provide a list of lockIds.
-/// If any of the locks are available, it will pick one of the available locks at random.
-/// If none are available it will wait until one is, or ``timeOut`` has passed.
-member x.AwaitOneOf&lt;'t&gt; (getLock : System.Func&lt;'t, Lock&gt;, lockIds, timeOut) =
-    ...
-</code></pre>
-
-<p>```</p>
-
-<p>As you can see, by the time we get to the <code>OneOf</code> members, we&rsquo;re pretty much
+<div class="highlight"><pre><code class="fsharp"><span class="k">type</span> <span class="nc">LockProvider</span> <span class="o">(</span><span class="n">connString</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span>
+    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">GlobalLock</span> <span class="o">(</span><span class="n">lockId</span><span class="o">,</span> <span class="n">maxDuration</span><span class="o">)</span> <span class="o">=</span>
+        <span class="nc">GetGlobalLock</span> <span class="n">connString</span> <span class="n">maxDuration</span> <span class="o">|&gt;</span> <span class="nc">OOise</span> <span class="n">lockId</span>
+    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">OrganisationLock</span> <span class="o">(</span><span class="n">lockId</span><span class="o">,</span> <span class="n">organisation</span><span class="o">,</span> <span class="n">maxDuration</span><span class="o">)</span> <span class="o">=</span>
+        <span class="c1">// Rest of the implementations snipped</span>
+        <span class="o">...</span>
+    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">EnvironmentLock</span> <span class="o">(</span><span class="n">lockId</span><span class="o">,</span> <span class="n">organisation</span><span class="o">,</span> <span class="n">environment</span><span class="o">,</span> <span class="n">maxDuration</span><span class="o">)</span> <span class="o">=</span>
+        <span class="o">...</span>
+    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">AwaitGlobalLock</span> <span class="o">(</span><span class="n">lockId</span><span class="o">,</span> <span class="n">maxDuration</span><span class="o">,</span> <span class="n">timeOut</span><span class="o">)</span> <span class="o">=</span>
+        <span class="o">...</span>
+    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">AwaitOrganisationLock</span> <span class="o">(</span><span class="n">lockId</span><span class="o">,</span> <span class="n">organisation</span><span class="o">,</span> <span class="n">maxDuration</span><span class="o">,</span> <span class="n">timeOut</span><span class="o">)</span> <span class="o">=</span>
+        <span class="o">...</span>
+    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">AwaitEnvironmentLock</span> <span class="o">(</span><span class="n">lockId</span><span class="o">,</span> <span class="n">organisation</span><span class="o">,</span> <span class="n">environment</span><span class="o">,</span> <span class="n">maxDuration</span><span class="o">,</span> <span class="n">timeOut</span><span class="o">)</span> <span class="o">=</span>
+        <span class="o">...</span>
+    <span class="c1">/// Build a ``System.Func`` that returns a lock based on lockId and provide a list of lockIds.</span>
+    <span class="c1">/// If any of the locks are available, it will pick one of the available locks at random.</span>
+    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">OneOf</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">t</span><span class="o">&gt;</span> <span class="o">(</span><span class="n">getLock</span> <span class="o">:</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Func</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">t</span><span class="o">,</span> <span class="nc">Lock</span><span class="o">&gt;,</span> <span class="n">lockIds</span><span class="o">)</span> <span class="o">=</span>
+        <span class="o">...</span>
+    <span class="c1">/// Build a ``System.Func`` that returns a lock based on lockId and provide a list of lockIds.</span>
+    <span class="c1">/// If any of the locks are available, it will pick one of the available locks at random.</span>
+    <span class="c1">/// If none are available it will wait until one is, or ``timeOut`` has passed.</span>
+    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">AwaitOneOf</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">t</span><span class="o">&gt;</span> <span class="o">(</span><span class="n">getLock</span> <span class="o">:</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Func</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">t</span><span class="o">,</span> <span class="nc">Lock</span><span class="o">&gt;,</span> <span class="n">lockIds</span><span class="o">,</span> <span class="n">timeOut</span><span class="o">)</span> <span class="o">=</span>
+        <span class="o">...</span>
+</code></pre></div>
+<p>As you can see, by the time we get to the <code>OneOf</code> members, we&#39;re pretty much
 forced into taking higher order functions to avoid a combinatorial explosion of
-members (not that that always seems to deter OO API designers&hellip;). Other than
-that, I think we&rsquo;re left with an API which will immediately make sense to a C#
+members (not that that always seems to deter OO API designers...). Other than
+that, I think we&#39;re left with an API which will immediately make sense to a C#
 developer: you can new up a <code>LockProvider</code>, you have a specified list of
 exception types to expect, and you can easily intellisense your way around all
 of the available options.</p>
 
 <p>Our C# consuming code ends up looking a bit like this:</p>
+<div class="highlight"><pre><code class="csharp"><span class="k">using</span> <span class="nn">System</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">Sproc.Lock.OO</span><span class="p">;</span>
 
-<p>``` csharp
-using System;
-using Sproc.Lock.OO;</p>
 
-<p>namespace MyApp
-{</p>
-
-<pre><code>class Thing
-{
-    static void DoLockRequiringWork()
-    {
-        var provider = new LockProvider("sql connection string");
-        try
-        {
-            using (var lock2 = provider.GlobalLock("MyAppLock", TimeSpan.FromMinutes(5.0)))
-            {
-                // If I get here, I have a lock!
-                // Doing stuff!
-            } // Lock released when Disposed
-        }
-        catch (LockUnavailableException)
-        {
-            // Could not get the lock
-            throw;
-        }
-        catch (LockRequestErrorException)
-        {
-            // Getting the lock threw an error
-            throw;
-        }
-    }
-}
-</code></pre>
-
-<p>}
-```</p>
-
+<span class="k">namespace</span> <span class="nn">MyApp</span>
+<span class="p">{</span>
+    <span class="k">class</span> <span class="nc">Thing</span>
+    <span class="p">{</span>
+        <span class="k">static</span> <span class="k">void</span> <span class="nf">DoLockRequiringWork</span><span class="p">()</span>
+        <span class="p">{</span>
+            <span class="kt">var</span> <span class="n">provider</span> <span class="p">=</span> <span class="k">new</span> <span class="n">LockProvider</span><span class="p">(</span><span class="s">&quot;sql connection string&quot;</span><span class="p">);</span>
+            <span class="k">try</span>
+            <span class="p">{</span>
+                <span class="k">using</span> <span class="p">(</span><span class="kt">var</span> <span class="n">lock2</span> <span class="p">=</span> <span class="n">provider</span><span class="p">.</span><span class="n">GlobalLock</span><span class="p">(</span><span class="s">&quot;MyAppLock&quot;</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromMinutes</span><span class="p">(</span><span class="m">5.0</span><span class="p">)))</span>
+                <span class="p">{</span>
+                    <span class="c1">// If I get here, I have a lock!</span>
+                    <span class="c1">// Doing stuff!</span>
+                <span class="p">}</span> <span class="c1">// Lock released when Disposed</span>
+            <span class="p">}</span>
+            <span class="k">catch</span> <span class="p">(</span><span class="n">LockUnavailableException</span><span class="p">)</span>
+            <span class="p">{</span>
+                <span class="c1">// Could not get the lock</span>
+                <span class="k">throw</span><span class="p">;</span>
+            <span class="p">}</span>
+            <span class="k">catch</span> <span class="p">(</span><span class="n">LockRequestErrorException</span><span class="p">)</span>
+            <span class="p">{</span>
+                <span class="c1">// Getting the lock threw an error</span>
+                <span class="k">throw</span><span class="p">;</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
 <p>Note the very different parameter order, placing the parameters that change most
 frequently at the beginning of the list as you would normally expect in C#. This
 makes a surprisingly large difference to how easy the code is to consume.</p>
 
 <p>Again: quite nice, if I do say so myself.</p>
 
-<p>So there you have it &ndash; want to play nicely the whole .net ecosystem? Be
+<p>So there you have it - want to play nicely the whole .net ecosystem? Be
 kind to your consumers, and build them an ecumenical API!</p>
 ]]></content>
   </entry>
@@ -349,312 +285,270 @@ kind to your consumers, and build them an ecumenical API!</p>
     <link href="http://blog.mavnn.co.uk/property-checking-start-challenge/"/>
     <updated>2014-06-25T12:25:17+01:00</updated>
     <id>http://blog.mavnn.co.uk/property-checking-start-challenge</id>
-    <content type="html"><![CDATA[<p>Almost a year ago now, I wrote up a <a href="/fscheck-breaking-your-code-in-new-and-exciting-ways/">blog post</a> on using <a href="https://github.com/fsharp/FsCheck">FsCheck</a>. I still rate it as an excellent tool, but unfortunately we don&rsquo;t manage to use it that much. The reasons for this basically boil down to the fact that a) we tend to forget it exists and b) a good deal of our code is written in C# or VB.net, and the original API is not very friendly from those languages.</p>
+    <content type="html"><![CDATA[<p>Almost a year ago now, I wrote up a <a href="/fscheck-breaking-your-code-in-new-and-exciting-ways/">blog post</a> on using <a href="https://github.com/fsharp/FsCheck">FsCheck</a>. I still rate it as an excellent tool, but unfortunately we don&#39;t manage to use it that much. The reasons for this basically boil down to the fact that a) we tend to forget it exists and b) a good deal of our code is written in C# or VB.net, and the original API is not very friendly from those languages.</p>
 
-<p>So as part of the <a href="http://15below.com/">15below</a> developer education sessions we&rsquo;re going to try an exercise to see if we can bring a bit more property based testing into our code base!</p>
+<p>So as part of the <a href="http://15below.com/">15below</a> developer education sessions we&#39;re going to try an exercise to see if we can bring a bit more property based testing into our code base!</p>
 
 <!-- more -->
 
+<h2>Never trust the user...</h2>
 
-<h2>Never trust the user&hellip;</h2>
+<p>One of the things we do quite a lot of as a company is sending either automated voice calls or SMS messages. The phone number we&#39;re trying to contact is often free text provided by the customer, while the voice/SMS companies tend to be very keen on phone numbers that are in (something at least similar to) the <a href="http://en.wikipedia.org/wiki/E.164">international E.164</a> phone number format.</p>
 
-<p>One of the things we do quite a lot of as a company is sending either automated voice calls or SMS messages. The phone number we&rsquo;re trying to contact is often free text provided by the customer, while the voice/SMS companies tend to be very keen on phone numbers that are in (something at least similar to) the <a href="http://en.wikipedia.org/wiki/E.164">international E.164</a> phone number format.</p>
+<p>Unfortunately, users don&#39;t tend to very good at sticking to standards in free text fields - so it some point your code needs to make the call about whether you&#39;re convinced the phone number you have is valid or not...</p>
 
-<p>Unfortunately, users don&rsquo;t tend to very good at sticking to standards in free text fields &ndash; so it some point your code needs to make the call about whether you&rsquo;re convinced the phone number you have is valid or not&hellip;</p>
+<p>For the exercise, I&#39;ve created idiomatic stubs of a <code>PhoneNumber</code> class in both F# and C# with methods for creating them that check if the input string is valid. The C# version uses <code>PhoneNumber.TryParse</code>:</p>
+<div class="highlight"><pre><code class="csharp"><span class="k">using</span> <span class="nn">System</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">System.Linq</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">System.Text.RegularExpressions</span><span class="p">;</span>
 
-<p>For the exercise, I&rsquo;ve created idiomatic stubs of a <code>PhoneNumber</code> class in both F# and C# with methods for creating them that check if the input string is valid. The C# version uses <code>PhoneNumber.TryParse</code>:</p>
+<span class="k">namespace</span> <span class="nn">CSharp.FsCheck</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="k">class</span> <span class="nc">PhoneNumber</span>
+    <span class="p">{</span>
+        <span class="k">public</span> <span class="kt">int</span> <span class="n">CountryCode</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">private</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+        <span class="k">public</span> <span class="kt">int</span> <span class="n">IdentificationCode</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">private</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+        <span class="k">public</span> <span class="kt">int</span> <span class="n">SubscriberNumber</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">private</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
 
-<p>```csharp
-using System;
-using System.Linq;
-using System.Text.RegularExpressions;</p>
+        <span class="k">private</span> <span class="nf">PhoneNumber</span><span class="p">()</span> <span class="p">{</span> <span class="p">}</span>
 
-<p>namespace CSharp.FsCheck
-{</p>
+        <span class="k">private</span> <span class="nf">PhoneNumber</span><span class="p">(</span><span class="kt">int</span> <span class="n">countryCode</span><span class="p">,</span> <span class="kt">int</span> <span class="n">identificationCode</span><span class="p">,</span> <span class="kt">int</span> <span class="n">subscriberNumber</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="n">CountryCode</span> <span class="p">=</span> <span class="n">countryCode</span><span class="p">;</span>
+            <span class="n">IdentificationCode</span> <span class="p">=</span> <span class="n">identificationCode</span><span class="p">;</span>
+            <span class="n">SubscriberNumber</span> <span class="p">=</span> <span class="n">subscriberNumber</span><span class="p">;</span>
+        <span class="p">}</span>
 
-<pre><code>public class PhoneNumber
-{
-    public int CountryCode { get; private set; }
-    public int IdentificationCode { get; private set; }
-    public int SubscriberNumber { get; private set; }
-
-    private PhoneNumber() { }
-
-    private PhoneNumber(int countryCode, int identificationCode, int subscriberNumber)
-    {
-        CountryCode = countryCode;
-        IdentificationCode = identificationCode;
-        SubscriberNumber = subscriberNumber;
-    }
-
-    public static bool TryParse(string number, out PhoneNumber ph)
-    {
-        var reg = new Regex(@"\+(?&lt;cc&gt;\d+) (?&lt;ic&gt;\d+) (?&lt;sn&gt;\d+)");
-        if (!reg.IsMatch(number))
-        {
-            ph = null;
-            return false;
-        }
-        var match = reg.Match(number);
-        var countryCode = int.Parse(match.Groups["cc"].Value);
-        var identificationCode = int.Parse(match.Groups["ic"].Value);
-        var subscriberNumber = int.Parse(match.Groups["sn"].Value);
-        ph = new PhoneNumber(countryCode, identificationCode, subscriberNumber);
-        return true;
-    }
-}
-</code></pre>
-
-<p>}
-```</p>
-
+        <span class="k">public</span> <span class="k">static</span> <span class="kt">bool</span> <span class="nf">TryParse</span><span class="p">(</span><span class="kt">string</span> <span class="n">number</span><span class="p">,</span> <span class="k">out</span> <span class="n">PhoneNumber</span> <span class="n">ph</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="kt">var</span> <span class="n">reg</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Regex</span><span class="p">(</span><span class="s">@&quot;\+(?&lt;cc&gt;\d+) (?&lt;ic&gt;\d+) (?&lt;sn&gt;\d+)&quot;</span><span class="p">);</span>
+            <span class="k">if</span> <span class="p">(!</span><span class="n">reg</span><span class="p">.</span><span class="n">IsMatch</span><span class="p">(</span><span class="n">number</span><span class="p">))</span>
+            <span class="p">{</span>
+                <span class="n">ph</span> <span class="p">=</span> <span class="k">null</span><span class="p">;</span>
+                <span class="k">return</span> <span class="k">false</span><span class="p">;</span>
+            <span class="p">}</span>
+            <span class="kt">var</span> <span class="n">match</span> <span class="p">=</span> <span class="n">reg</span><span class="p">.</span><span class="n">Match</span><span class="p">(</span><span class="n">number</span><span class="p">);</span>
+            <span class="kt">var</span> <span class="n">countryCode</span> <span class="p">=</span> <span class="kt">int</span><span class="p">.</span><span class="n">Parse</span><span class="p">(</span><span class="n">match</span><span class="p">.</span><span class="n">Groups</span><span class="p">[</span><span class="s">&quot;cc&quot;</span><span class="p">].</span><span class="n">Value</span><span class="p">);</span>
+            <span class="kt">var</span> <span class="n">identificationCode</span> <span class="p">=</span> <span class="kt">int</span><span class="p">.</span><span class="n">Parse</span><span class="p">(</span><span class="n">match</span><span class="p">.</span><span class="n">Groups</span><span class="p">[</span><span class="s">&quot;ic&quot;</span><span class="p">].</span><span class="n">Value</span><span class="p">);</span>
+            <span class="kt">var</span> <span class="n">subscriberNumber</span> <span class="p">=</span> <span class="kt">int</span><span class="p">.</span><span class="n">Parse</span><span class="p">(</span><span class="n">match</span><span class="p">.</span><span class="n">Groups</span><span class="p">[</span><span class="s">&quot;sn&quot;</span><span class="p">].</span><span class="n">Value</span><span class="p">);</span>
+            <span class="n">ph</span> <span class="p">=</span> <span class="k">new</span> <span class="n">PhoneNumber</span><span class="p">(</span><span class="n">countryCode</span><span class="p">,</span> <span class="n">identificationCode</span><span class="p">,</span> <span class="n">subscriberNumber</span><span class="p">);</span>
+            <span class="k">return</span> <span class="k">true</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
 <p>Whilst the F# version uses a discriminated union:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">module</span> <span class="nn">FSharp</span><span class="p">.</span><span class="nn">FsCheck</span><span class="p">.</span><span class="nc">PhoneNumber</span>
 
-<p>```fsharp
-module FSharp.FsCheck.PhoneNumber</p>
+<span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Text</span><span class="p">.</span><span class="nc">RegularExpressions</span>
 
-<p>open System.Text.RegularExpressions</p>
+<span class="k">type</span> <span class="nc">PossibleNumber</span> <span class="o">=</span> 
+    <span class="o">{</span> <span class="nc">CountryCode</span> <span class="o">:</span> <span class="kt">int</span>
+      <span class="nc">IdentificationCode</span> <span class="o">:</span> <span class="kt">int</span>
+      <span class="nc">SubscriberNumber</span> <span class="o">:</span> <span class="kt">int</span> <span class="o">}</span>
 
-<p>type PossibleNumber =</p>
+<span class="k">type</span> <span class="nc">PhoneNumber</span> <span class="o">=</span>
+    <span class="o">|</span> <span class="nc">ValidPhoneNumber</span> <span class="k">of</span> <span class="nc">PossibleNumber</span>
+    <span class="o">|</span> <span class="nc">InvalidPhoneNumber</span> <span class="k">of</span> <span class="kt">string</span>
 
-<pre><code>{ CountryCode : int
-  IdentificationCode : int
-  SubscriberNumber : int }
-</code></pre>
-
-<p>type PhoneNumber =</p>
-
-<pre><code>| ValidPhoneNumber of PossibleNumber
-| InvalidPhoneNumber of string
-</code></pre>
-
-<p>// Shadow the name so that no one else
-// can create &ldquo;ValidPhoneNumber&rdquo;
-let ValidPhoneNumber input =</p>
-
-<pre><code>let reg = Regex(@"\+(?&lt;cc&gt;\d+) (?&lt;ic&gt;\d+) (?&lt;sn&gt;\d+)")
-match reg.IsMatch(input) with
-| true -&gt;
-    let groups = reg.Match(input).Groups
-    ValidPhoneNumber {
-        CountryCode = groups.["cc"].Value |&gt; int
-        IdentificationCode = groups.["ic"].Value |&gt; int
-        SubscriberNumber = groups.["sn"].Value |&gt; int
-    }
-| false -&gt;
-    InvalidPhoneNumber "No good"
-</code></pre>
-
-<p>```</p>
-
+<span class="c1">// Shadow the name so that no one else</span>
+<span class="c1">// can create &quot;ValidPhoneNumber&quot;</span>
+<span class="k">let</span> <span class="nc">ValidPhoneNumber</span> <span class="n">input</span> <span class="o">=</span>
+    <span class="k">let</span> <span class="n">reg</span> <span class="o">=</span> <span class="nc">Regex</span><span class="o">(@</span><span class="s2">&quot;</span><span class="err">\</span><span class="s2">+(?&lt;cc&gt;</span><span class="err">\</span><span class="s2">d+) (?&lt;ic&gt;</span><span class="err">\</span><span class="s2">d+) (?&lt;sn&gt;</span><span class="err">\</span><span class="s2">d+)&quot;</span><span class="o">)</span>
+    <span class="k">match</span> <span class="n">reg</span><span class="o">.</span><span class="nc">IsMatch</span><span class="o">(</span><span class="n">input</span><span class="o">)</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="bp">true</span> <span class="o">-&gt;</span>
+        <span class="k">let</span> <span class="n">groups</span> <span class="o">=</span> <span class="n">reg</span><span class="o">.</span><span class="nc">Match</span><span class="o">(</span><span class="n">input</span><span class="o">).</span><span class="nc">Groups</span>
+        <span class="nc">ValidPhoneNumber</span> <span class="o">{</span>
+            <span class="nc">CountryCode</span> <span class="o">=</span> <span class="n">groups</span><span class="o">.[</span><span class="s2">&quot;cc&quot;</span><span class="o">].</span><span class="nc">Value</span> <span class="o">|&gt;</span> <span class="kt">int</span>
+            <span class="nc">IdentificationCode</span> <span class="o">=</span> <span class="n">groups</span><span class="o">.[</span><span class="s2">&quot;ic&quot;</span><span class="o">].</span><span class="nc">Value</span> <span class="o">|&gt;</span> <span class="kt">int</span>
+            <span class="nc">SubscriberNumber</span> <span class="o">=</span> <span class="n">groups</span><span class="o">.[</span><span class="s2">&quot;sn&quot;</span><span class="o">].</span><span class="nc">Value</span> <span class="o">|&gt;</span> <span class="kt">int</span>
+        <span class="o">}</span>
+    <span class="o">|</span> <span class="bp">false</span> <span class="o">-&gt;</span>
+        <span class="nc">InvalidPhoneNumber</span> <span class="s2">&quot;No good&quot;</span>
+</code></pre></div>
 <p>The challenge will be to use property checking to take the stub to a class that fulfils the following properties:</p>
 
 <ul>
 <li>Country code between 1 and 3 digits</li>
 <li>Identification code 4 or less digits (may be missing)</li>
-<li>Subscription number between 1 and (15 &ndash; country code &ndash; identification code) digits</li>
+<li>Subscription number between 1 and (15 - country code - identification code) digits</li>
 <li>Less than 15 total digits</li>
 </ul>
 
+<p>These all come straight from the specification - we&#39;re going to ignore country groups for now.</p>
 
-<p>These all come straight from the specification &ndash; we&rsquo;re going to ignore country groups for now.</p>
-
-<p>Each of the two projects also includes a PropertyChecks file that contains the skeleton of an NUnit based FsCheck test suite. We only have an hour for our DevEd sessions, so the project includes a reasonable amount to get you going. Each one has a &ldquo;sanity check&rdquo; test with a known good phone number, and property based checks for the length of the country code and whether all valid numbers are recognised as valid. To make the second property test work, they also both include a custom
+<p>Each of the two projects also includes a PropertyChecks file that contains the skeleton of an NUnit based FsCheck test suite. We only have an hour for our DevEd sessions, so the project includes a reasonable amount to get you going. Each one has a &quot;sanity check&quot; test with a known good phone number, and property based checks for the length of the country code and whether all valid numbers are recognised as valid. To make the second property test work, they also both include a custom
 generator for valid phone numbers.</p>
 
 <p>The C# version ended up looking like this:</p>
+<div class="highlight"><pre><code class="csharp"><span class="k">using</span> <span class="nn">System</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">System.Collections.Generic</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">System.Linq</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">System.Text</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">System.Threading.Tasks</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">NUnit.Framework</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">FsCheck.Fluent</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">FsCheck</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">Microsoft.FSharp.Collections</span><span class="p">;</span>
 
-<p>```csharp
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using NUnit.Framework;
-using FsCheck.Fluent;
-using FsCheck;
-using Microsoft.FSharp.Collections;</p>
-
-<p>namespace CSharp.FsCheck
-{</p>
-
-<pre><code>[TestFixture]
-public class ManualChecks
-{
-    [Test]
-    public void SanityCheck()
-    {
-        PhoneNumber ph;
-        PhoneNumber.TryParse("+44 123 456789", out ph);
-        Assert.AreEqual(ph.CountryCode, 44);
-        Assert.AreEqual(ph.IdentificationCode, 123);
-        Assert.AreEqual(ph.SubscriberNumber, 456789);
-    }
-}
+<span class="k">namespace</span> <span class="nn">CSharp.FsCheck</span>
+<span class="p">{</span>
+<span class="na">    [TestFixture]</span>
+    <span class="k">public</span> <span class="k">class</span> <span class="nc">ManualChecks</span>
+    <span class="p">{</span>
+<span class="na">        [Test]</span>
+        <span class="k">public</span> <span class="k">void</span> <span class="nf">SanityCheck</span><span class="p">()</span>
+        <span class="p">{</span>
+            <span class="n">PhoneNumber</span> <span class="n">ph</span><span class="p">;</span>
+            <span class="n">PhoneNumber</span><span class="p">.</span><span class="n">TryParse</span><span class="p">(</span><span class="s">&quot;+44 123 456789&quot;</span><span class="p">,</span> <span class="k">out</span> <span class="n">ph</span><span class="p">);</span>
+            <span class="n">Assert</span><span class="p">.</span><span class="n">AreEqual</span><span class="p">(</span><span class="n">ph</span><span class="p">.</span><span class="n">CountryCode</span><span class="p">,</span> <span class="m">44</span><span class="p">);</span>
+            <span class="n">Assert</span><span class="p">.</span><span class="n">AreEqual</span><span class="p">(</span><span class="n">ph</span><span class="p">.</span><span class="n">IdentificationCode</span><span class="p">,</span> <span class="m">123</span><span class="p">);</span>
+            <span class="n">Assert</span><span class="p">.</span><span class="n">AreEqual</span><span class="p">(</span><span class="n">ph</span><span class="p">.</span><span class="n">SubscriberNumber</span><span class="p">,</span> <span class="m">456789</span><span class="p">);</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
 
 
-[TestFixture]
-public class PropertyChecks
-{
-    public class GeneratedValidNumber {
-        public int Country { get; private set; }
-        public int? Identification { get; private set; }
-        public int Subscriber { get; private set; }
-        public string InputString { get; private set; }
+<span class="na">    [TestFixture]</span>
+    <span class="k">public</span> <span class="k">class</span> <span class="nc">PropertyChecks</span>
+    <span class="p">{</span>
+        <span class="k">public</span> <span class="k">class</span> <span class="nc">GeneratedValidNumber</span> <span class="p">{</span>
+            <span class="k">public</span> <span class="kt">int</span> <span class="n">Country</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">private</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+            <span class="k">public</span> <span class="kt">int?</span> <span class="n">Identification</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">private</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+            <span class="k">public</span> <span class="kt">int</span> <span class="n">Subscriber</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">private</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+            <span class="k">public</span> <span class="kt">string</span> <span class="n">InputString</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">private</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
 
-        public GeneratedValidNumber(int country, int? identification, int subscriber)
-        {
-            Country = country;
-            Identification = identification;
-            Subscriber = subscriber;
-            var idString =
-                identification.HasValue ? " " + identification.ToString() : "";
-            InputString = "+" + country.ToString() + idString + " " + subscriber.ToString();
-        }
+            <span class="k">public</span> <span class="nf">GeneratedValidNumber</span><span class="p">(</span><span class="kt">int</span> <span class="n">country</span><span class="p">,</span> <span class="kt">int?</span> <span class="n">identification</span><span class="p">,</span> <span class="kt">int</span> <span class="n">subscriber</span><span class="p">)</span>
+            <span class="p">{</span>
+                <span class="n">Country</span> <span class="p">=</span> <span class="n">country</span><span class="p">;</span>
+                <span class="n">Identification</span> <span class="p">=</span> <span class="n">identification</span><span class="p">;</span>
+                <span class="n">Subscriber</span> <span class="p">=</span> <span class="n">subscriber</span><span class="p">;</span>
+                <span class="kt">var</span> <span class="n">idString</span> <span class="p">=</span>
+                    <span class="n">identification</span><span class="p">.</span><span class="n">HasValue</span> <span class="p">?</span> <span class="s">&quot; &quot;</span> <span class="p">+</span> <span class="n">identification</span><span class="p">.</span><span class="n">ToString</span><span class="p">()</span> <span class="p">:</span> <span class="s">&quot;&quot;</span><span class="p">;</span>
+                <span class="n">InputString</span> <span class="p">=</span> <span class="s">&quot;+&quot;</span> <span class="p">+</span> <span class="n">country</span><span class="p">.</span><span class="n">ToString</span><span class="p">()</span> <span class="p">+</span> <span class="n">idString</span> <span class="p">+</span> <span class="s">&quot; &quot;</span> <span class="p">+</span> <span class="n">subscriber</span><span class="p">.</span><span class="n">ToString</span><span class="p">();</span>
+            <span class="p">}</span>
 
-        public override string ToString()
-        {
-            return "&lt;" + InputString + "&gt;";
-        }
-    }
+            <span class="k">public</span> <span class="k">override</span> <span class="kt">string</span> <span class="nf">ToString</span><span class="p">()</span>
+            <span class="p">{</span>
+                <span class="k">return</span> <span class="s">&quot;&lt;&quot;</span> <span class="p">+</span> <span class="n">InputString</span> <span class="p">+</span> <span class="s">&quot;&gt;&quot;</span><span class="p">;</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
 
-    public Gen&lt;GeneratedValidNumber&gt; ValidPhoneNumberGenerator()
-    {
-        var nullableGen =
-            from i in Any.IntBetween(1, 9999)
-            select new Nullable&lt;int&gt;(i);
-        var numberGen =
-            from country in Any.IntBetween(1, 999)
-            from identification in Any.GeneratorIn&lt;int?&gt;(nullableGen, Any.Value&lt;int?&gt;(null))
-            from subscriber in Any.IntBetween(1, 99999999)
-            select new GeneratedValidNumber(country, identification, subscriber);
-        return numberGen;
-    }
+        <span class="k">public</span> <span class="n">Gen</span><span class="p">&lt;</span><span class="n">GeneratedValidNumber</span><span class="p">&gt;</span> <span class="n">ValidPhoneNumberGenerator</span><span class="p">()</span>
+        <span class="p">{</span>
+            <span class="kt">var</span> <span class="n">nullableGen</span> <span class="p">=</span>
+                <span class="k">from</span> <span class="n">i</span> <span class="k">in</span> <span class="n">Any</span><span class="p">.</span><span class="n">IntBetween</span><span class="p">(</span><span class="m">1</span><span class="p">,</span> <span class="m">9999</span><span class="p">)</span>
+                <span class="k">select</span> <span class="k">new</span> <span class="n">Nullable</span><span class="p">&lt;</span><span class="kt">int</span><span class="p">&gt;(</span><span class="n">i</span><span class="p">);</span>
+            <span class="kt">var</span> <span class="n">numberGen</span> <span class="p">=</span>
+                <span class="k">from</span> <span class="n">country</span> <span class="k">in</span> <span class="n">Any</span><span class="p">.</span><span class="n">IntBetween</span><span class="p">(</span><span class="m">1</span><span class="p">,</span> <span class="m">999</span><span class="p">)</span>
+                <span class="k">from</span> <span class="n">identification</span> <span class="k">in</span> <span class="n">Any</span><span class="p">.</span><span class="n">GeneratorIn</span><span class="p">&lt;</span><span class="kt">int?</span><span class="p">&gt;(</span><span class="n">nullableGen</span><span class="p">,</span> <span class="n">Any</span><span class="p">.</span><span class="n">Value</span><span class="p">&lt;</span><span class="kt">int?</span><span class="p">&gt;(</span><span class="k">null</span><span class="p">))</span>
+                <span class="k">from</span> <span class="n">subscriber</span> <span class="k">in</span> <span class="n">Any</span><span class="p">.</span><span class="n">IntBetween</span><span class="p">(</span><span class="m">1</span><span class="p">,</span> <span class="m">99999999</span><span class="p">)</span>
+                <span class="k">select</span> <span class="k">new</span> <span class="nf">GeneratedValidNumber</span><span class="p">(</span><span class="n">country</span><span class="p">,</span> <span class="n">identification</span><span class="p">,</span> <span class="n">subscriber</span><span class="p">);</span>
+            <span class="k">return</span> <span class="n">numberGen</span><span class="p">;</span>
+        <span class="p">}</span>
 
 
-    [Test]
-    public void CountryCodeLessThan4digits()
-    {
-        Spec.ForAny(
-            (DontSize&lt;uint&gt; country) =&gt;
-            {
-                var cc = country.Item;
-                PhoneNumber ph;
-                var ec = PhoneNumber.TryParse("+" + cc.ToString() + " 1234 123456", out ph);
-                return ph.CountryCode &lt; 1000;
-            })
-            .QuickCheckThrowOnFailure();
-    }
+<span class="na">        [Test]</span>
+        <span class="k">public</span> <span class="k">void</span> <span class="nf">CountryCodeLessThan4digits</span><span class="p">()</span>
+        <span class="p">{</span>
+            <span class="n">Spec</span><span class="p">.</span><span class="n">ForAny</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">DontSize</span><span class="p">&lt;</span><span class="kt">uint</span><span class="p">&gt;</span> <span class="n">country</span><span class="p">)</span> <span class="p">=&gt;</span>
+                <span class="p">{</span>
+                    <span class="kt">var</span> <span class="n">cc</span> <span class="p">=</span> <span class="n">country</span><span class="p">.</span><span class="n">Item</span><span class="p">;</span>
+                    <span class="n">PhoneNumber</span> <span class="n">ph</span><span class="p">;</span>
+                    <span class="kt">var</span> <span class="n">ec</span> <span class="p">=</span> <span class="n">PhoneNumber</span><span class="p">.</span><span class="n">TryParse</span><span class="p">(</span><span class="s">&quot;+&quot;</span> <span class="p">+</span> <span class="n">cc</span><span class="p">.</span><span class="n">ToString</span><span class="p">()</span> <span class="p">+</span> <span class="s">&quot; 1234 123456&quot;</span><span class="p">,</span> <span class="k">out</span> <span class="n">ph</span><span class="p">);</span>
+                    <span class="k">return</span> <span class="n">ph</span><span class="p">.</span><span class="n">CountryCode</span> <span class="p">&lt;</span> <span class="m">1000</span><span class="p">;</span>
+                <span class="p">})</span>
+                <span class="p">.</span><span class="n">QuickCheckThrowOnFailure</span><span class="p">();</span>
+        <span class="p">}</span>
 
-    [Test]
-    public void ValidNumbersAreRecognized()
-    {
-        Spec.For(ValidPhoneNumberGenerator(),
-            (GeneratedValidNumber n) =&gt; {
-                PhoneNumber ph;
-                return PhoneNumber.TryParse(n.InputString, out ph);
-            })
-            .QuickCheckThrowOnFailure();
-    }
-}
-</code></pre>
-
-<p>}
-```</p>
-
+<span class="na">        [Test]</span>
+        <span class="k">public</span> <span class="k">void</span> <span class="nf">ValidNumbersAreRecognized</span><span class="p">()</span>
+        <span class="p">{</span>
+            <span class="n">Spec</span><span class="p">.</span><span class="n">For</span><span class="p">(</span><span class="n">ValidPhoneNumberGenerator</span><span class="p">(),</span>
+                <span class="p">(</span><span class="n">GeneratedValidNumber</span> <span class="n">n</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="p">{</span>
+                    <span class="n">PhoneNumber</span> <span class="n">ph</span><span class="p">;</span>
+                    <span class="k">return</span> <span class="n">PhoneNumber</span><span class="p">.</span><span class="n">TryParse</span><span class="p">(</span><span class="n">n</span><span class="p">.</span><span class="n">InputString</span><span class="p">,</span> <span class="k">out</span> <span class="n">ph</span><span class="p">);</span>
+                <span class="p">})</span>
+                <span class="p">.</span><span class="n">QuickCheckThrowOnFailure</span><span class="p">();</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
 <p>while the F# version looks like this:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">module</span> <span class="nn">FSharp</span><span class="p">.</span><span class="nn">FsCheck</span><span class="p">.</span><span class="nc">PropertyChecks</span>
 
-<p>```fsharp
-module FSharp.FsCheck.PropertyChecks</p>
+<span class="k">open</span> <span class="nc">FsCheck</span>
+<span class="k">open</span> <span class="nn">NUnit</span><span class="p">.</span><span class="nc">Framework</span>
+<span class="k">open</span> <span class="nc">PhoneNumber</span>
 
-<p>open FsCheck
-open NUnit.Framework
-open PhoneNumber</p>
+<span class="k">type</span> <span class="nc">GeneratedValidNumber</span> <span class="o">=</span> 
+    <span class="o">{</span> <span class="nc">Country</span> <span class="o">:</span> <span class="kt">int</span>
+      <span class="nc">Identifier</span> <span class="o">:</span> <span class="kt">int</span> <span class="n">option</span>
+      <span class="nc">Subscriber</span> <span class="o">:</span> <span class="kt">int</span>
+      <span class="nc">InputString</span> <span class="o">:</span> <span class="kt">string</span> <span class="o">}</span>
 
-<p>type GeneratedValidNumber =</p>
+<span class="k">let</span> <span class="n">validNumberGen</span> <span class="o">=</span> 
+    <span class="n">gen</span> <span class="o">{</span> 
+        <span class="k">let</span><span class="o">!</span> <span class="n">c</span> <span class="o">=</span> <span class="nn">Gen</span><span class="p">.</span><span class="n">choose</span> <span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="mi">999</span><span class="o">)</span>
+        <span class="k">let</span><span class="o">!</span> <span class="n">i</span> <span class="o">=</span> <span class="nn">Gen</span><span class="p">.</span><span class="n">oneof</span> <span class="o">[</span> <span class="n">gen</span> <span class="o">{</span> <span class="k">let</span><span class="o">!</span> <span class="n">i</span> <span class="o">=</span> <span class="nn">Gen</span><span class="p">.</span><span class="n">choose</span> <span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="mi">9999</span><span class="o">)</span>
+                                   <span class="k">return</span> <span class="o">(</span><span class="nc">Some</span> <span class="n">i</span><span class="o">)</span> <span class="o">}</span>
+                             <span class="n">gen</span> <span class="o">{</span> <span class="k">return</span> <span class="nc">None</span> <span class="o">}</span> <span class="o">]</span>
+        <span class="k">let</span> <span class="n">maxSubLength</span> <span class="o">=</span> 
+            <span class="kt">float</span> <span class="o">&lt;|</span> <span class="mi">15</span> <span class="o">-</span> <span class="o">(</span><span class="n">c</span><span class="o">.</span><span class="nc">ToString</span><span class="bp">()</span><span class="o">.</span><span class="nc">Length</span><span class="o">)</span> <span class="o">-</span> <span class="o">(</span><span class="k">match</span> <span class="n">i</span> <span class="k">with</span>
+                                                   <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="mi">0</span>
+                                                   <span class="o">|</span> <span class="nc">Some</span> <span class="n">x</span> <span class="o">-&gt;</span> <span class="n">x</span><span class="o">.</span><span class="nc">ToString</span><span class="bp">()</span><span class="o">.</span><span class="nc">Length</span><span class="o">)</span>
+        <span class="k">let</span><span class="o">!</span> <span class="n">s</span> <span class="o">=</span> <span class="nn">Gen</span><span class="p">.</span><span class="n">choose</span> <span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="o">(</span><span class="kt">int</span> <span class="o">&lt;|</span> <span class="mi">10</span><span class="o">.</span> <span class="o">**</span> <span class="n">maxSubLength</span><span class="o">)</span> <span class="o">-</span> <span class="mi">1</span><span class="o">)</span>
+        <span class="k">return</span> <span class="o">{</span> <span class="nc">Country</span> <span class="o">=</span> <span class="n">c</span>
+                 <span class="nc">Identifier</span> <span class="o">=</span> <span class="n">i</span>
+                 <span class="nc">Subscriber</span> <span class="o">=</span> <span class="n">s</span>
+                 <span class="nc">InputString</span> <span class="o">=</span> 
+                     <span class="n">sprintf</span> <span class="s2">&quot;+%d%s %d&quot;</span> <span class="n">c</span> <span class="o">(</span><span class="k">match</span> <span class="n">i</span> <span class="k">with</span>
+                                           <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="s2">&quot;&quot;</span>
+                                           <span class="o">|</span> <span class="nc">Some</span> <span class="n">x</span> <span class="o">-&gt;</span> <span class="n">sprintf</span> <span class="s2">&quot; %d&quot;</span> <span class="n">x</span><span class="o">)</span> <span class="n">s</span> <span class="o">}</span>
+    <span class="o">}</span>
 
-<pre><code>{ Country : int
-  Identifier : int option
-  Subscriber : int
-  InputString : string }
-</code></pre>
+<span class="k">type</span> <span class="nc">PhoneNumberGenerators</span> <span class="o">=</span>
+    <span class="k">static</span> <span class="k">member</span> <span class="nc">Valid</span><span class="bp">()</span> <span class="o">=</span>
+        <span class="o">{</span> <span class="k">new</span> <span class="nc">Arbitrary</span><span class="o">&lt;</span><span class="nc">GeneratedValidNumber</span><span class="o">&gt;</span><span class="bp">()</span> <span class="k">with</span>
+            <span class="k">override</span> <span class="n">x</span><span class="o">.</span><span class="nc">Generator</span> <span class="o">=</span> <span class="n">validNumberGen</span> <span class="o">}</span>
 
-<p>let validNumberGen =</p>
+<span class="o">[&lt;</span><span class="nc">Test</span><span class="o">&gt;]</span>
+<span class="k">let</span> <span class="o">``</span><span class="nc">Sanity</span> <span class="n">check</span><span class="o">``</span><span class="bp">()</span> <span class="o">=</span> 
+    <span class="k">match</span> <span class="nc">ValidPhoneNumber</span> <span class="s2">&quot;+44 1234 123456&quot;</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="nc">ValidPhoneNumber</span> <span class="n">n</span> <span class="o">-&gt;</span> 
+        <span class="nn">Assert</span><span class="p">.</span><span class="nc">AreEqual</span><span class="o">(</span><span class="n">n</span><span class="o">.</span><span class="nc">CountryCode</span><span class="o">,</span> <span class="mi">44</span><span class="o">)</span>
+        <span class="nn">Assert</span><span class="p">.</span><span class="nc">AreEqual</span><span class="o">(</span><span class="n">n</span><span class="o">.</span><span class="nc">IdentificationCode</span><span class="o">,</span> <span class="mi">1234</span><span class="o">)</span>
+        <span class="nn">Assert</span><span class="p">.</span><span class="nc">AreEqual</span><span class="o">(</span><span class="n">n</span><span class="o">.</span><span class="nc">SubscriberNumber</span><span class="o">,</span> <span class="mi">123456</span><span class="o">)</span>
+    <span class="o">|</span> <span class="nc">InvalidPhoneNumber</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="nn">Assert</span><span class="p">.</span><span class="nc">Fail</span><span class="bp">()</span>
 
-<pre><code>gen { 
-    let! c = Gen.choose (1, 999)
-    let! i = Gen.oneof [ gen { let! i = Gen.choose (1, 9999)
-                               return (Some i) }
-                         gen { return None } ]
-    let maxSubLength = 
-        float &lt;| 15 - (c.ToString().Length) - (match i with
-                                               | None -&gt; 0
-                                               | Some x -&gt; x.ToString().Length)
-    let! s = Gen.choose (1, (int &lt;| 10. ** maxSubLength) - 1)
-    return { Country = c
-             Identifier = i
-             Subscriber = s
-             InputString = 
-                 sprintf "+%d%s %d" c (match i with
-                                       | None -&gt; ""
-                                       | Some x -&gt; sprintf " %d" x) s }
-}
-</code></pre>
+<span class="o">[&lt;</span><span class="nc">Test</span><span class="o">&gt;]</span>
+<span class="k">let</span> <span class="o">``</span><span class="nc">Insanity</span> <span class="n">check</span><span class="o">``</span><span class="bp">()</span> <span class="o">=</span> 
+    <span class="k">match</span> <span class="nc">ValidPhoneNumber</span> <span class="s2">&quot;I&#39;m not a phone number&quot;</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="nc">ValidPhoneNumber</span> <span class="n">n</span> <span class="o">-&gt;</span> <span class="nn">Assert</span><span class="p">.</span><span class="nc">Fail</span><span class="bp">()</span>
+    <span class="o">|</span> <span class="nc">InvalidPhoneNumber</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">()</span>
 
-<p>type PhoneNumberGenerators =</p>
+<span class="o">[&lt;</span><span class="nc">Test</span><span class="o">&gt;]</span>
+<span class="k">let</span> <span class="o">``</span><span class="nc">Country</span> <span class="n">code</span> <span class="n">less</span> <span class="n">than</span> <span class="mi">4</span> <span class="n">digits</span><span class="o">``</span><span class="bp">()</span> <span class="o">=</span> 
+    <span class="k">let</span> <span class="n">genNumber</span> <span class="o">(</span><span class="nc">DontSize</span><span class="o">(</span><span class="n">cc</span> <span class="o">:</span> <span class="kt">uint32</span><span class="o">))</span> <span class="o">=</span> 
+        <span class="k">match</span> <span class="nc">ValidPhoneNumber</span><span class="o">(</span><span class="s2">&quot;+&quot;</span> <span class="o">+</span> <span class="n">cc</span><span class="o">.</span><span class="nc">ToString</span><span class="bp">()</span> <span class="o">+</span> <span class="s2">&quot; 1234 123456&quot;</span><span class="o">)</span> <span class="k">with</span>
+        <span class="o">|</span> <span class="nc">ValidPhoneNumber</span> <span class="n">n</span> <span class="o">-&gt;</span> <span class="nn">Assert</span><span class="p">.</span><span class="nc">IsTrue</span><span class="o">(</span><span class="n">n</span><span class="o">.</span><span class="nn">CountryCode</span><span class="p">.</span><span class="nc">ToString</span><span class="bp">()</span><span class="o">.</span><span class="nc">Length</span> <span class="o">&lt;</span> <span class="mi">4</span><span class="o">)</span>
+        <span class="o">|</span> <span class="nc">InvalidPhoneNumber</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+    <span class="nn">Check</span><span class="p">.</span><span class="nc">QuickThrowOnFailure</span> <span class="n">genNumber</span>
 
-<pre><code>static member Valid() =
-    { new Arbitrary&lt;GeneratedValidNumber&gt;() with
-        override x.Generator = validNumberGen }
-</code></pre>
-
-<p>[<Test>]
-let <code>Sanity check</code>() =</p>
-
-<pre><code>match ValidPhoneNumber "+44 1234 123456" with
-| ValidPhoneNumber n -&gt; 
-    Assert.AreEqual(n.CountryCode, 44)
-    Assert.AreEqual(n.IdentificationCode, 1234)
-    Assert.AreEqual(n.SubscriberNumber, 123456)
-| InvalidPhoneNumber _ -&gt; Assert.Fail()
-</code></pre>
-
-<p>[<Test>]
-let <code>Insanity check</code>() =</p>
-
-<pre><code>match ValidPhoneNumber "I'm not a phone number" with
-| ValidPhoneNumber n -&gt; Assert.Fail()
-| InvalidPhoneNumber _ -&gt; ()
-</code></pre>
-
-<p>[<Test>]
-let <code>Country code less than 4 digits</code>() =</p>
-
-<pre><code>let genNumber (DontSize(cc : uint32)) = 
-    match ValidPhoneNumber("+" + cc.ToString() + " 1234 123456") with
-    | ValidPhoneNumber n -&gt; Assert.IsTrue(n.CountryCode.ToString().Length &lt; 4)
-    | InvalidPhoneNumber _ -&gt; ()
-Check.QuickThrowOnFailure genNumber
-</code></pre>
-
-<p>[<Test>]
-let <code>Valid numbers are counted as valid</code> () =</p>
-
-<pre><code>Arb.register&lt;PhoneNumberGenerators&gt; () |&gt; ignore
-Check.VerboseThrowOnFailure (
-    fun (v:GeneratedValidNumber) -&gt;
-        match ValidPhoneNumber v.InputString with
-        | ValidPhoneNumber _ -&gt; true
-        | InvalidPhoneNumber _ -&gt; false)
-</code></pre>
-
-<p>```</p>
-
-<p>These run fine as NUnit tests &ndash; apart from the fact that in true TDD style, they fail.</p>
+<span class="o">[&lt;</span><span class="nc">Test</span><span class="o">&gt;]</span>
+<span class="k">let</span> <span class="o">``</span><span class="nc">Valid</span> <span class="n">numbers</span> <span class="n">are</span> <span class="n">counted</span> <span class="k">as</span> <span class="n">valid</span><span class="o">``</span> <span class="bp">()</span> <span class="o">=</span>
+    <span class="nn">Arb</span><span class="p">.</span><span class="n">register</span><span class="o">&lt;</span><span class="nc">PhoneNumberGenerators</span><span class="o">&gt;</span> <span class="bp">()</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
+    <span class="nn">Check</span><span class="p">.</span><span class="nc">VerboseThrowOnFailure</span> <span class="o">(</span>
+        <span class="k">fun</span> <span class="o">(</span><span class="n">v</span><span class="o">:</span><span class="nc">GeneratedValidNumber</span><span class="o">)</span> <span class="o">-&gt;</span>
+            <span class="k">match</span> <span class="nc">ValidPhoneNumber</span> <span class="n">v</span><span class="o">.</span><span class="nc">InputString</span> <span class="k">with</span>
+            <span class="o">|</span> <span class="nc">ValidPhoneNumber</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">true</span>
+            <span class="o">|</span> <span class="nc">InvalidPhoneNumber</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">false</span><span class="o">)</span>
+</code></pre></div>
+<p>These run fine as NUnit tests - apart from the fact that in true TDD style, they fail.</p>
 
 <h2>The challenge!</h2>
 
-<p>So, the challenge (which is open to people outside 15below as well). Basically, fork the <a href="https://github.com/mavnn/DevEd.PropertyChecks">git repository</a> and then check out locally. This contains everything, including both projects and the binaries of all their dependencies to avoid any NuGet issues. Within 15below, we&rsquo;ll be working in pairs &ndash; otherwise when you&rsquo;re sitting at your own computer with &ldquo;real work&rdquo; to do, it&rsquo;s very hard to actually take the hour out on the exercise.</p>
+<p>So, the challenge (which is open to people outside 15below as well). Basically, fork the <a href="https://github.com/mavnn/DevEd.PropertyChecks">git repository</a> and then check out locally. This contains everything, including both projects and the binaries of all their dependencies to avoid any NuGet issues. Within 15below, we&#39;ll be working in pairs - otherwise when you&#39;re sitting at your own computer with &quot;real work&quot; to do, it&#39;s very hard to actually take the hour out on the exercise.</p>
 
 <p>In the order of your choice:</p>
 
@@ -663,11 +557,10 @@ Check.VerboseThrowOnFailure (
 <li>Update the PhoneNumber class to pass all of the tests</li>
 <li><em>Extra credit</em>: Add a generator for local numbers from a known country (i.e. the UK) and property test your conversion method</li>
 <li><em>Extra credit 2</em>: complete any of all of the above in both F# and C#</li>
-<li><em>Completely carried away:</em> pick a real piece of production code and add a property test to it&hellip;</li>
+<li><em>Completely carried away:</em> pick a real piece of production code and add a property test to it...</li>
 </ol>
 
-
-<p>Once you&rsquo;ve got as far as you&rsquo;re going to, commit your changes and push back up to GitHub, then send a pull request with progress back to the parent repository. I won&rsquo;t merge these, but the different implementations of both the phone number class and property tests will form the basis of the DevEd session the week after, possibly with votes for the most elegant/robust solutions. If you&rsquo;re not a member of staff here at 15below, I&rsquo;ll try and update your pull request with any
+<p>Once you&#39;ve got as far as you&#39;re going to, commit your changes and push back up to GitHub, then send a pull request with progress back to the parent repository. I won&#39;t merge these, but the different implementations of both the phone number class and property tests will form the basis of the DevEd session the week after, possibly with votes for the most elegant/robust solutions. If you&#39;re not a member of staff here at 15below, I&#39;ll try and update your pull request with any
 feedback from our discussions!</p>
 ]]></content>
   </entry>

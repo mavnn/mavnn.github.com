@@ -107,18 +107,17 @@ ga('send', 'pageview');
 
 <div class="entry-content"><p><em>This post follows on directly from my previous post <a href="http://blog.mavnn.co.uk/type-providers-from-the-ground-up/">Type Providers from the Ground Up</a>. I highly recommend that you read that first, and check out the relevant example code from GitHub.</em></p>
 
-<p><em>It&rsquo;s also a bit epic&hellip; grab yourself a coffee before you start.</em></p>
+<p><em>It&#39;s also a bit epic&#8230; grab yourself a coffee before you start.</em></p>
 
-<p>So we have a working type provider now. Unfortunately, we&rsquo;re missing out on at least two major features that your new type provider will almost certainly want to make use of.</p>
+<p>So we have a working type provider now. Unfortunately, we&#39;re missing out on at least two major features that your new type provider will almost certainly want to make use of.</p>
 
-<p>The first is that in our example, we&rsquo;re reading the metadata that defines our types from a fixed file location. In almost every real life case, you will want to be able to parametrize your provider to specify where this instance is getting it&rsquo;s metadata from.</p>
+<p>The first is that in our example, we&#39;re reading the metadata that defines our types from a fixed file location. In almost every real life case, you will want to be able to parametrize your provider to specify where this instance is getting it&#39;s metadata from.</p>
 
 <p>The second is that in many cases getting the metadata will be slow, and the number of types available to generate may be very large. In these situations, you really want to be able to only generate the types that are required as they are requested, especially because this will reduce the size of the final compiled output. This is particularly important for type providers that read from large network based data sources like the Freebase provider.</p>
 
-<p>We&rsquo;ll take the second first, because it&rsquo;s easy &ndash; and we like easy&hellip;</p>
+<p>We&#39;ll take the second first, because it&#39;s easy - and we like easy&#8230;</p>
 
 <!-- more -->
-
 
 <h2>Generating types on demand</h2>
 
@@ -126,7 +125,7 @@ ga('send', 'pageview');
 
 <p>So, does all this power come with great cost and complexity? Not really, no.</p>
 
-<p>Let&rsquo;s take the our node creation function, with some bits snipped out:</p>
+<p>Let&#39;s take the our node creation function, with some bits snipped out:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -183,7 +182,6 @@ ga('send', 'pageview');
 </span><span class='line'>
 </span><span class='line'>    <span class="n">nodeType</span>
 </span></code></pre></td></tr></table></div></figure>
-
 
 <p>To make the ports deferred, we simply change the <code>AddMembers</code> call at the end to <code>AddMembersDelayed</code> and wrap the creation of the array in a function that takes <code>unit</code>.</p>
 
@@ -249,14 +247,13 @@ ga('send', 'pageview');
 </span><span class='line'>    <span class="n">nodeType</span>
 </span></code></pre></td></tr></table></div></figure>
 
+<p>Now the input and output ports of a node will only be generated the first time that the compiler needs them available. If you don&#39;t use a particular node in your program, then the compiler will never generate it&#39;s ports, and they will not be including in your final build output.</p>
 
-<p>Now the input and output ports of a node will only be generated the first time that the compiler needs them available. If you don&rsquo;t use a particular node in your program, then the compiler will never generate it&rsquo;s ports, and they will not be including in your final build output.</p>
-
-<p>Of course, in this case we&rsquo;re pre-loading all of our metadata anyway, but hopefully this gives you an idea.</p>
+<p>Of course, in this case we&#39;re pre-loading all of our metadata anyway, but hopefully this gives you an idea.</p>
 
 <h2>Parametrizing the Data Source</h2>
 
-<p>Currently, we&rsquo;re reading the json that&rsquo;s generating our types like this:</p>
+<p>Currently, we&#39;re reading the json that&#39;s generating our types like this:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -266,17 +263,15 @@ ga('send', 'pageview');
 </span><span class='line'>                    <span class="o">|&gt;</span> <span class="nn">Map</span><span class="p">.</span><span class="n">ofSeq</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
 <p>Lovely.</p>
 
-<p>Now, you&rsquo;ll probably of noticed from playing with other type providers that they allow you to do funky things like:</p>
+<p>Now, you&#39;ll probably of noticed from playing with other type providers that they allow you to do funky things like:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 </pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="n">myThing</span> <span class="o">=</span> <span class="nc">FancyProvider</span><span class="o">&lt;</span><span class="s2">&quot;configStringThing&quot;</span><span class="o">&gt;</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-<p>This is actually one of the things that kept me going for longest in writing my first type provider, and I have to admit I&rsquo;m still not fully certain why it&rsquo;s done this way.</p>
+<p>This is actually one of the things that kept me going for longest in writing my first type provider, and I have to admit I&#39;m still not fully certain why it&#39;s done this way.</p>
 
 <p>At the moment, if we strip out all of the type creation logic, our type provider looks like this:</p>
 
@@ -318,19 +313,17 @@ ga('send', 'pageview');
 </span><span class='line'>        <span class="n">this</span><span class="o">.</span><span class="nc">AddNamespace</span><span class="o">(</span><span class="n">ns</span><span class="o">,</span> <span class="n">createTypes</span><span class="bp">()</span><span class="o">)</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
 <p>As you can see, we add the types to the namespace during the initialization of the MavnnProvider type.</p>
 
-<p>This is no good if we want to add parameters &ndash; after all, we don&rsquo;t know what they are yet. And the same provider might be used several times with different parameters. Also, when we create our provided type (<code>let nodeType = ...</code>) we&rsquo;re putting into a fixed space in the assemblies namespace. Again, this is no good if we want to be able to use more than one of our provider with different parameters.</p>
+<p>This is no good if we want to add parameters - after all, we don&#39;t know what they are yet. And the same provider might be used several times with different parameters. Also, when we create our provided type (<code>let nodeType = ...</code>) we&#39;re putting into a fixed space in the assemblies namespace. Again, this is no good if we want to be able to use more than one of our provider with different parameters.</p>
 
-<p>To get around these issues, we create a &ldquo;parent&rdquo; provided type within the type provider which will host an isolated namespace for each parametrized provider instance:</p>
+<p>To get around these issues, we create a &quot;parent&quot; provided type within the type provider which will host an isolated namespace for each parametrized provider instance:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 </pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">mavnnProvider</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="s2">&quot;MavnnProvider&quot;</span><span class="o">,</span> <span class="nc">Some</span><span class="o">(</span><span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;))</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-<p>Then we define some &lsquo;static parameters&rsquo; and call the <code>DefineStaticParameters</code> method on the parent provided type, still within the construction of the type provider:</p>
+<p>Then we define some &#39;static parameters&#39; and call the <code>DefineStaticParameters</code> method on the parent provided type, still within the construction of the type provider:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -346,8 +339,7 @@ ga('send', 'pageview');
 </span><span class='line'>    <span class="o">)</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-<p>&hellip; and then we amend the base TypeProvider type so that the only type it adds to the namespace is the <code>mavnnProvider</code> type:</p>
+<p>&#8230; and then we amend the base TypeProvider type so that the only type it adds to the namespace is the <code>mavnnProvider</code> type:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -355,10 +347,9 @@ ga('send', 'pageview');
 </span><span class='line'><span class="k">do</span> <span class="n">this</span><span class="o">.</span><span class="nc">AddNamespace</span><span class="o">(</span><span class="n">ns</span><span class="o">,</span> <span class="o">[</span><span class="n">mavnnProvider</span><span class="o">])</span>
 </span></code></pre></td></tr></table></div></figure>
 
+<p>At this point, we&#39;re creating an independent environment for each instance of the type provider. Unfortunately we need to make several changes to the type creation logic to make this work.</p>
 
-<p>At this point, we&rsquo;re creating an independent environment for each instance of the type provider. Unfortunately we need to make several changes to the type creation logic to make this work.</p>
-
-<p>Firstly, we loaded quite a few things globally in the original version &ndash; things like the node list now need to happen within the context of <code>DefineStaticParameters</code>. You&rsquo;ll also notice that <code>DefineStaticParameters</code> gets given a <code>typeName</code> as one of the parameters on the callback. This is a compiler generated type name for this instance of the which is passed in when a parameterised provider is defined, and the callback method needs to return a provided type with that name.</p>
+<p>Firstly, we loaded quite a few things globally in the original version - things like the node list now need to happen within the context of <code>DefineStaticParameters</code>. You&#39;ll also notice that <code>DefineStaticParameters</code> gets given a <code>typeName</code> as one of the parameters on the callback. This is a compiler generated type name for this instance of the which is passed in when a parameterised provider is defined, and the callback method needs to return a provided type with that name.</p>
 
 <p>So, for example:</p>
 
@@ -380,10 +371,9 @@ ga('send', 'pageview');
 </span><span class='line'><span class="k">type</span> <span class="n">thisOne</span> <span class="o">=</span> <span class="nc">MavnnProvider</span><span class="o">&lt;</span><span class="s2">&quot;c:</span><span class="err">\</span><span class="s2">Temp</span><span class="err">\</span><span class="s2">Graph.json&quot;</span><span class="o">&gt;</span>
 </span></code></pre></td></tr></table></div></figure>
 
+<p>Will pass in <code>&quot;Script.thisOne&quot; [| box &quot;c:\Temp\Graph.json&quot; |]</code> to the callback method, and expect to get back a provided type. So the first thing we&#39;ll do in the callback is create the new type which we will then add all of our nodes to.</p>
 
-<p>Will pass in <code>"Script.thisOne" [| box "c:\Temp\Graph.json" |]</code> to the callback method, and expect to get back a provided type. So the first thing we&rsquo;ll do in the callback is create the new type which we will then add all of our nodes to.</p>
-
-<p>Keeping all of the amendments separate in your head just gets harder and harder at this point, so let&rsquo;s just few the final annotated method and get an overview of the final result. It&rsquo;s long, but hopefully worth it!</p>
+<p>Keeping all of the amendments separate in your head just gets harder and harder at this point, so let&#39;s just few the final annotated method and get an overview of the final result. It&#39;s long, but hopefully worth it!</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -599,30 +589,28 @@ ga('send', 'pageview');
 </span><span class='line'>    <span class="n">provider</span><span class="o">)</span>
 </span></code></pre></td></tr></table></div></figure>
 
+<p>Let&#39;s just check this all still works&#8230;</p>
 
-<p>Let&rsquo;s just check this all still works&hellip;</p>
+<p><img src="/images/tp-oh-no.png" alt="Losing!"></p>
 
-<p><img src="/images/tp-oh-no.png" alt="Losing!" /></p>
+<p>Ah. No. No, it doesn&#39;t.</p>
 
-<p>Ah. No. No, it doesn&rsquo;t.</p>
+<p>This is where type provider development can get a bit more frustrating. The compiler allows the code above to compile - it&#39;s completely valid F# that looks like it should do the right thing. But now, our quotations are doing something different; and evaluating them at runtime fails.</p>
 
-<p>This is where type provider development can get a bit more frustrating. The compiler allows the code above to compile &ndash; it&rsquo;s completely valid F# that looks like it should do the right thing. But now, our quotations are doing something different; and evaluating them at runtime fails.</p>
-
-<p>Let&rsquo;s take a look at the constructor that&rsquo;s throwing the error:</p>
+<p>Let&#39;s take a look at the constructor that&#39;s throwing the error:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 </pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="nc">InvokeCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="o">[</span><span class="n">name</span><span class="o">;</span><span class="n">unique</span><span class="o">;</span><span class="n">config</span><span class="o">]</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="nn">NodeInstance</span><span class="p">.</span><span class="n">create</span> <span class="o">(</span><span class="nc">GetNode</span> <span class="n">id</span><span class="o">)</span> <span class="o">(%%</span><span class="n">name</span><span class="o">:</span><span class="kt">string</span><span class="o">)</span> <span class="o">(%%</span><span class="n">unique</span><span class="o">:</span><span class="nc">Guid</span><span class="o">)</span> <span class="o">(%%</span><span class="n">config</span><span class="o">:</span><span class="kt">string</span><span class="o">)</span> <span class="o">@@&gt;)</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-<p>Previously, <code>GetNode</code> was referring to a public method in the type provider assembly. But if you look above now, it&rsquo;s actually a private method with in the type provider class that we are closing over. But our generated type is in the assembly that&rsquo;s being created, not in the type provider assembly so <em>it can&rsquo;t access this method</em>. Even if it was in the same assembly, this method is actually private to the class, so we&rsquo;d still be stuck. Bearing that in mind, let&rsquo;s try a
+<p>Previously, <code>GetNode</code> was referring to a public method in the type provider assembly. But if you look above now, it&#39;s actually a private method with in the type provider class that we are closing over. But our generated type is in the assembly that&#39;s being created, not in the type provider assembly so <em>it can&#39;t access this method</em>. Even if it was in the same assembly, this method is actually private to the class, so we&#39;d still be stuck. Bearing that in mind, let&#39;s try a
 rewrite to see if we can get all of our quotations into better shape.</p>
 
 <p>What are our options? Well, we can either capture all private state in types that the quotation evaluator knows about (<code>string</code>, mostly!). Or we can make sure that any methods called in the quotations are public.</p>
 
-<p>The first gives us a cleaner interface for the outside world (the <code>GetNode</code> method should never really have been public in the first place), so let&rsquo;s give it a try.</p>
+<p>The first gives us a cleaner interface for the outside world (the <code>GetNode</code> method should never really have been public in the first place), so let&#39;s give it a try.</p>
 
-<p>In our first version of the type provider, we were using the <code>GetNode</code> method to avoid having to embed the <code>Node</code> in the constructor directly. But how would we go about putting the node in directly? We need something that creates an <code>Expr&lt;Node&gt;</code>; but <code>Node</code> isn&rsquo;t a completely trivial type &ndash; it&rsquo;s members (<code>Id</code> and <code>Ports</code>) are made of more complex types themselves. Let&rsquo;s start with a simpler challenge, and see if we can make an <code>Expr&lt;Id&gt;</code>.</p>
+<p>In our first version of the type provider, we were using the <code>GetNode</code> method to avoid having to embed the <code>Node</code> in the constructor directly. But how would we go about putting the node in directly? We need something that creates an <code>Expr&lt;Node&gt;</code>; but <code>Node</code> isn&#39;t a completely trivial type - it&#39;s members (<code>Id</code> and <code>Ports</code>) are made of more complex types themselves. Let&#39;s start with a simpler challenge, and see if we can make an <code>Expr&lt;Id&gt;</code>.</p>
 
 <p>We already know that:</p>
 
@@ -630,8 +618,7 @@ rewrite to see if we can get all of our quotations into better shape.</p>
 </pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">embeddedId</span> <span class="o">(</span><span class="n">identifier</span> <span class="o">:</span> <span class="nc">Id</span><span class="o">)</span> <span class="o">=</span> <span class="o">&lt;@</span> <span class="n">identifier</span> <span class="o">@&gt;</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-<p>isn&rsquo;t going to work. The expression evaluator won&rsquo;t know what to do with the <code>Id</code> type. But <code>Id</code>&rsquo;s constructor is a public method, as is the <code>Guid</code> constructor. Let&rsquo;s try it:</p>
+<p>isn&#39;t going to work. The expression evaluator won&#39;t know what to do with the <code>Id</code> type. But <code>Id</code>&#39;s constructor is a public method, as is the <code>Guid</code> constructor. Let&#39;s try it:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -642,7 +629,6 @@ rewrite to see if we can get all of our quotations into better shape.</p>
 </span><span class='line'>    <span class="k">let</span> <span class="n">name</span> <span class="o">=</span> <span class="n">id</span><span class="o">.</span><span class="nc">Name</span>
 </span><span class='line'>    <span class="o">&lt;@</span> <span class="nc">Id</span><span class="o">(</span><span class="nc">UniqueId</span> <span class="o">=</span> <span class="nc">Guid</span><span class="o">(</span><span class="n">guid</span><span class="o">),</span> <span class="nc">Name</span> <span class="o">=</span> <span class="n">name</span><span class="o">)</span> <span class="o">@&gt;</span>
 </span></code></pre></td></tr></table></div></figure>
-
 
 <p>Cool. It works, and even has the right signature. Looks like we might be getting somewhere. The <code>Port</code> type is nearly as straight forward:</p>
 
@@ -656,12 +642,11 @@ rewrite to see if we can get all of our quotations into better shape.</p>
 </span><span class='line'>    <span class="o">&lt;@</span> <span class="nc">Port</span><span class="o">(</span><span class="nc">Id</span> <span class="o">=</span> <span class="o">%</span><span class="n">idExpr</span><span class="o">,</span> <span class="nc">Type</span> <span class="o">=</span> <span class="k">type&#39;</span><span class="o">)</span> <span class="o">@&gt;</span>
 </span></code></pre></td></tr></table></div></figure>
 
+<p>We&#39;re using our embeddedId method to &#39;lift&#39; the port&#39;s <code>Id</code> into an expression, and then splicing that expression into a call to create a new port.</p>
 
-<p>We&rsquo;re using our embeddedId method to &lsquo;lift&rsquo; the port&rsquo;s <code>Id</code> into an expression, and then splicing that expression into a call to create a new port.</p>
+<p>We&#39;re on a roll! Just need to do the same for the <code>Node</code> type itself, with it&#39;s&#8230; <code>List</code> of <code>Port</code>s. Ah.</p>
 
-<p>We&rsquo;re on a roll! Just need to do the same for the <code>Node</code> type itself, with it&rsquo;s&hellip; <code>List</code> of <code>Port</code>s. Ah.</p>
-
-<p>There&rsquo;s probably a more elegant way of doing this, but given this is a functional first language, let&rsquo;s grab the first tool that springs to mind.</p>
+<p>There&#39;s probably a more elegant way of doing this, but given this is a functional first language, let&#39;s grab the first tool that springs to mind.</p>
 
 <p>Recursion.</p>
 
@@ -719,15 +704,13 @@ rewrite to see if we can get all of our quotations into better shape.</p>
 </span><span class='line'>    <span class="o">&lt;@</span> <span class="nc">Node</span><span class="o">(</span><span class="nc">Id</span> <span class="o">=</span> <span class="o">%</span><span class="n">idExpr</span><span class="o">,</span> <span class="nc">Ports</span> <span class="o">=</span> <span class="o">(%</span><span class="n">portsExpr</span> <span class="n">adder</span><span class="o">))</span> <span class="o">@&gt;</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-<p>So, from the top down. <code>portsExpr</code> creates a quotation that takes an <code>adder</code> quotation (<code>Expr&lt;List&lt;Port&gt;&gt; -&gt; unit</code>) and returns an <code>Expr&lt;List&lt;Port&gt;&gt;</code>. This is what we&rsquo;re going to use in our <code>Node</code> construction quotation; but first we need the <code>adder</code>; some kind of magic method that takes a List and adds each of the ports from the node that&rsquo;s being passed into <code>embeddedNode</code>. I&rsquo;ve built it as a recursive function; the &lsquo;zero&rsquo; state that&rsquo;s passed in looks like this:</p>
+<p>So, from the top down. <code>portsExpr</code> creates a quotation that takes an <code>adder</code> quotation (<code>Expr&lt;List&lt;Port&gt;&gt; -&gt; unit</code>) and returns an <code>Expr&lt;List&lt;Port&gt;&gt;</code>. This is what we&#39;re going to use in our <code>Node</code> construction quotation; but first we need the <code>adder</code>; some kind of magic method that takes a List and adds each of the ports from the node that&#39;s being passed into <code>embeddedNode</code>. I&#39;ve built it as a recursive function; the &#39;zero&#39; state that&#39;s passed in looks like this:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 </pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="o">&lt;@</span> <span class="k">fun</span> <span class="o">(</span><span class="n">ports</span> <span class="o">:</span> <span class="nn">Collections</span><span class="p">.</span><span class="nn">Generic</span><span class="p">.</span><span class="nc">List</span><span class="o">&lt;</span><span class="nc">Port</span><span class="o">&gt;)</span> <span class="o">-&gt;</span> <span class="bp">()</span> <span class="o">@&gt;</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-<p>This is what will happen if the port list on the input node is empty. If it&rsquo;s not empty, we repeated build up nested calls to:</p>
+<p>This is what will happen if the port list on the input node is empty. If it&#39;s not empty, we repeated build up nested calls to:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -736,7 +719,6 @@ rewrite to see if we can get all of our quotations into better shape.</p>
 </span><span class='line'>        <span class="o">(%</span><span class="n">expr</span><span class="o">)</span> <span class="n">ports</span>
 </span><span class='line'>        <span class="n">ports</span><span class="o">.</span><span class="nc">Add</span><span class="o">(%</span><span class="n">h</span><span class="o">)</span> <span class="o">@&gt;</span>
 </span></code></pre></td></tr></table></div></figure>
-
 
 <p>Where <code>h</code> is the next port from the list. By the end of the process we have a chain of anonymous functions, each in turn closing over the quotation of a port from the input. Finally, we can splice that into the expression that actually creates our node.</p>
 
@@ -764,14 +746,13 @@ rewrite to see if we can get all of our quotations into better shape.</p>
 </span><span class='line'>                    <span class="o">&lt;@@</span> <span class="nn">NodeInstance</span><span class="p">.</span><span class="n">create</span> <span class="o">(%</span><span class="n">nodeExpr</span><span class="o">)</span> <span class="o">(%%</span><span class="n">name</span><span class="o">:</span><span class="kt">string</span><span class="o">)</span> <span class="o">(%%</span><span class="n">unique</span><span class="o">:</span><span class="nc">Guid</span><span class="o">)</span> <span class="o">(%%</span><span class="n">config</span><span class="o">:</span><span class="kt">string</span><span class="o">)</span> <span class="o">@@&gt;)</span>
 </span></code></pre></td></tr></table></div></figure>
 
+<p>Can you see the difference? Now, rather than closing over the <code>GetNode</code> method, we&#39;re closing over the quotation of the node that it returns.</p>
 
-<p>Can you see the difference? Now, rather than closing over the <code>GetNode</code> method, we&rsquo;re closing over the quotation of the node that it returns.</p>
+<p>With a sense of deja vu, let&#39;s just check this all works&#8230;</p>
 
-<p>With a sense of deja vu, let&rsquo;s just check this all works&hellip;</p>
+<p><img src="/images/tp_quotations.png" alt="Winning!"></p>
 
-<p><img src="/images/tp_quotations.png" alt="Winning!" /></p>
-
-<p>And somewhat surprisingly &ndash; it does.</p>
+<p>And somewhat surprisingly - it does.</p>
 
 <p>If you want to see and play with the code, the version for this post can be found in <a href="https://github.com/mavnn/Mavnn.Blog.TypeProvider/tree/FirstFloor">the FirstFloor branch of the project on GitHub</a>.</p>
 
@@ -847,6 +828,10 @@ rewrite to see if we can get all of our quotations into better shape.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/advent-2016/">Advent 2016</a>
+      </li>
+    
+      <li class="post">
         <a href="/video-and-slides-for-from-the-ivory-tower/">Video and Slides for "From the Ivory Tower"</a>
       </li>
     
@@ -860,10 +845,6 @@ rewrite to see if we can get all of our quotations into better shape.</p>
     
       <li class="post">
         <a href="/type-providers-live-the-movie/">Type Providers Live - the Movie</a>
-      </li>
-    
-      <li class="post">
-        <a href="/emparsec-embedded-parser-library/">EmParsec Embedded Parser Library</a>
       </li>
     
   </ul>

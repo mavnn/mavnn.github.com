@@ -114,21 +114,20 @@ functionally friendly way.</p>
 
 <p>This is not one of those blog posts. This is about making sure that your
 colleagues who are consuming your shiny new code in an imperative language
-(generally C# in my case) don&rsquo;t threaten to defenestrate you.</p>
+(generally C# in my case) don&#39;t threaten to defenestrate you.</p>
 
-<p>At <a href="http://15below.com">15below</a> we&rsquo;ve recently had need in some of our services
+<p>At <a href="http://15below.com">15below</a> we&#39;ve recently had need in some of our services
 of taking a distributed lock between servers. There are many services available
-designed for doing this, but after some deliberation we decided that we didn&rsquo;t
+designed for doing this, but after some deliberation we decided that we didn&#39;t
 want to add a new piece of infrastructure purely for this one purpose. So
 <a href="http://15below.github.io/Sproc.Lock">Sproc.Lock</a> was born: SQL Server based
 distributed locking.</p>
 
-<p>In this post, I&rsquo;m not going to talk about the design of the service. What I&rsquo;m
+<p>In this post, I&#39;m not going to talk about the design of the service. What I&#39;m
 going to write about is how I engineered the API to be pleasent to use from both
 C# and F#, giving a idiomatic interface from both languages.</p>
 
 <!-- more -->
-
 
 <h2>The original interface (F#)</h2>
 
@@ -137,7 +136,7 @@ immediately familiar to an F# programmer. Our lock can be of 3 types (global,
 organisation or environment) and so we have a discriminated union (<code>Lock</code>)
 representing these three options.</p>
 
-<p>(I&rsquo;ve removed the implementations of the various bits to leave the shape of the
+<p>(I&#39;ve removed the implementations of the various bits to leave the shape of the
 code clear)</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
@@ -180,11 +179,10 @@ code clear)</p>
 </span><span class='line'>            <span class="n">lock</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-<p>The lock is <code>IDisposable</code> to take advantage of .net&rsquo;s most common resource
+<p>The lock is <code>IDisposable</code> to take advantage of .net&#39;s most common resource
 management idiom. You can release a lock by disposing it.</p>
 
-<p>Then, of course, when we try and acquire a lock we may or may not be able to &ndash;
+<p>Then, of course, when we try and acquire a lock we may or may not be able to -
 the whole point of locks is that you cannot obtain them if someone else has
 locked it already, after all.</p>
 
@@ -227,12 +225,11 @@ with (again) three potential cases:</p>
 </span><span class='line'>            <span class="n">x</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
 <p>Again, this is <code>IDisposable</code> so that you can just dispose of your overall
 <code>LockResult</code> object which makes a lot of the code cleaner.</p>
 
 <p>So: how do we get a <code>LockResult</code>? Well, we have a set of functions for getting
-locks. Let&rsquo;s have a look at the skeleton of one of them:</p>
+locks. Let&#39;s have a look at the skeleton of one of them:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -242,12 +239,11 @@ locks. Let&rsquo;s have a look at the skeleton of one of them:</p>
 </span><span class='line'>    <span class="o">...</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-<p>What&rsquo;s this doing? Well, it&rsquo;s going to (try and) create a lock scoped to a
+<p>What&#39;s this doing? Well, it&#39;s going to (try and) create a lock scoped to a
 particular database and organisation with a particular ID, returning a
-<code>LockResult</code>.</p>
+<code>LockResult</code>. </p>
 
-<p>From an API design point of view, what&rsquo;s interesting here is the order of the
+<p>From an API design point of view, what&#39;s interesting here is the order of the
 arguments. <a href="https://en.wikipedia.org/wiki/Currying">Currying</a> enables easy
 partial application, and here it is very likely that the application will want
 to take all locks from the same database (making the first parameter) and
@@ -264,10 +260,9 @@ partially applied helper function looking something like this:</p>
 </span><span class='line'>    <span class="nc">GetOrganisationLock</span> <span class="s2">&quot;myDbConnString&quot;</span> <span class="s2">&quot;OrgName&quot;</span> <span class="o">(</span><span class="nn">TimeSpan</span><span class="p">.</span><span class="nc">FromMinutes</span> <span class="mi">5</span><span class="o">.)</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
 <p>We also have a set of helper functions for common operations we might want to
 carry out on locks, all of which take a higher order function as part of their
-arguments. Let&rsquo;s have a look at <code>AwaitLock</code> which will wait for a lock to
+arguments. Let&#39;s have a look at <code>AwaitLock</code> which will wait for a lock to
 become available for a specified length of time, rather then returning
 immediately with an <code>Unavailable</code> result:</p>
 
@@ -286,7 +281,6 @@ immediately with an <code>Unavailable</code> result:</p>
 </span><span class='line'><span class="k">let</span> <span class="n">awaitMyLock</span> <span class="n">identifier</span> <span class="o">=</span>
 </span><span class='line'>    <span class="nc">AwaitLock</span> <span class="o">(</span><span class="nn">TimeSpan</span><span class="p">.</span><span class="nc">FromSeconds</span> <span class="mi">2</span><span class="o">.)</span> <span class="o">(</span><span class="n">getLock</span> <span class="n">identifier</span><span class="o">)</span>
 </span></code></pre></td></tr></table></div></figure>
-
 
 <p>If we then want (say) to wait up to 2 seconds for one of a list of possible
 locks to become available, we can then compose this function with the
@@ -308,16 +302,15 @@ locks to become available, we can then compose this function with the
 </span><span class='line'>    <span class="nc">OneOfLocks</span> <span class="n">awaitMyLock</span> <span class="o">[</span><span class="s2">&quot;LockId1&quot;</span><span class="o">;</span><span class="s2">&quot;LockId2&quot;</span><span class="o">]</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-<p>I&rsquo;m sure the comments will disagree, but I&rsquo;m actually pretty happy with this as
-an F# interface to this library. It&rsquo;s not strictly pure, but that&rsquo;s an option in
+<p>I&#39;m sure the comments will disagree, but I&#39;m actually pretty happy with this as
+an F# interface to this library. It&#39;s not strictly pure, but that&#39;s an option in
 F#, and the combination of composable functions and careful choice of parameter
 order make for concise and readable code.</p>
 
-<p>So, we&rsquo;re done &ndash; right?</p>
+<p>So, we&#39;re done - right?</p>
 
 <p>Unfortunately not. This code would be truely horrible to use from C#, and we
-still use a lot of C# here &ndash; some of our (stranger?) developers even prefer
+still use a lot of C# here - some of our (stranger?) developers even prefer
 it. Why would it be so nasty?</p>
 
 <ul>
@@ -328,8 +321,7 @@ string everytime they want a lock</li>
 capabilities of the library unclear</li>
 </ul>
 
-
-<h2>API Take 2: the &ldquo;OO&rdquo; namespace</h2>
+<h2>API Take 2: the &quot;OO&quot; namespace</h2>
 
 <p>In thinking about the kind of API I would expect for a locking library in C#, a
 few things immediately sprang to mind:</p>
@@ -340,11 +332,10 @@ few things immediately sprang to mind:</p>
 <li>Function composition only for more unusual calling options</li>
 </ul>
 
-
 <p>Wrapping the functional API turned out to be reasonably simple. A couple of
 custom exception types and the <code>OOise</code> method later (I love that function
 name, even if I say so myself) we can easily wrap our functional API in
-something that makes sense in C# land &ndash; they either return an acquired,
+something that makes sense in C# land - they either return an acquired,
 <code>IDisposable</code> lock or throw.</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
@@ -387,8 +378,7 @@ something that makes sense in C# land &ndash; they either return an acquired,
 </span><span class='line'><span class="s2">    | Error i -&gt; raise &lt;| LockRequestErrorException i</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-<p>Then, a simple <code>LockProvider</code> class allows for all the normal patterns we&rsquo;ve
+<p>Then, a simple <code>LockProvider</code> class allows for all the normal patterns we&#39;ve
 come to know (and in some cases love) such as dependency injection:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
@@ -439,11 +429,10 @@ come to know (and in some cases love) such as dependency injection:</p>
 </span><span class='line'>        <span class="o">...</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-<p>As you can see, by the time we get to the <code>OneOf</code> members, we&rsquo;re pretty much
+<p>As you can see, by the time we get to the <code>OneOf</code> members, we&#39;re pretty much
 forced into taking higher order functions to avoid a combinatorial explosion of
-members (not that that always seems to deter OO API designers&hellip;). Other than
-that, I think we&rsquo;re left with an API which will immediately make sense to a C#
+members (not that that always seems to deter OO API designers&#8230;). Other than
+that, I think we&#39;re left with an API which will immediately make sense to a C#
 developer: you can new up a <code>LockProvider</code>, you have a specified list of
 exception types to expect, and you can easily intellisense your way around all
 of the available options.</p>
@@ -516,14 +505,13 @@ of the available options.</p>
 </span><span class='line'><span class="p">}</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
 <p>Note the very different parameter order, placing the parameters that change most
 frequently at the beginning of the list as you would normally expect in C#. This
 makes a surprisingly large difference to how easy the code is to consume.</p>
 
 <p>Again: quite nice, if I do say so myself.</p>
 
-<p>So there you have it &ndash; want to play nicely the whole .net ecosystem? Be
+<p>So there you have it - want to play nicely the whole .net ecosystem? Be
 kind to your consumers, and build them an ecumenical API!</p>
 </div>
 
@@ -596,6 +584,10 @@ kind to your consumers, and build them an ecumenical API!</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/advent-2016/">Advent 2016</a>
+      </li>
+    
+      <li class="post">
         <a href="/video-and-slides-for-from-the-ivory-tower/">Video and Slides for "From the Ivory Tower"</a>
       </li>
     
@@ -609,10 +601,6 @@ kind to your consumers, and build them an ecumenical API!</p>
     
       <li class="post">
         <a href="/type-providers-live-the-movie/">Type Providers Live - the Movie</a>
-      </li>
-    
-      <li class="post">
-        <a href="/emparsec-embedded-parser-library/">EmParsec Embedded Parser Library</a>
       </li>
     
   </ul>

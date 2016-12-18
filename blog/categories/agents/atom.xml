@@ -4,7 +4,7 @@
   <title><![CDATA[Category: agents | Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/blog/categories/agents/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2016-04-15T22:35:51+01:00</updated>
+  <updated>2016-12-18T01:25:28+00:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -18,450 +18,365 @@
     <link href="http://blog.mavnn.co.uk/angels-from-the-realms-of-glory/"/>
     <updated>2015-12-19T12:00:00+00:00</updated>
     <id>http://blog.mavnn.co.uk/angels-from-the-realms-of-glory</id>
-    <content type="html"><![CDATA[<blockquote><p>An angel of the Lord appeared to them, and the glory of the Lord shone around them, and they were terrified. <ref><a href="https://www.biblegateway.com/passage/?search=luke+2:9&version=NIV" title="Luke 2:9">Luke 2:9</a></ref></p></blockquote>
+    <content type="html"><![CDATA[<blockquote>
+<p>An angel of the Lord appeared to them, and the glory of the Lord shone around them, and they were terrified. <ref><a href="https://www.biblegateway.com/passage/?search=luke+2:9&version=NIV" title="Luke 2:9">Luke 2:9</a></ref></p>
+</blockquote>
 
-<p>It&rsquo;s that time of year again, where the F# community get together to source a collection of weird, wonderful and occasionally useful blog posts on life, the universe and sometimes Christmas.</p>
+<p>It&#39;s that time of year again, where the F# community get together to source a collection of weird, wonderful and occasionally useful blog posts on life, the universe and sometimes Christmas.</p>
 
 <p>As mentioned in last years post, I like to go back to the source when it comes to advent posts, so lets dive back into the book of Luke (and learn about agent based programming as we go).</p>
 
 <!-- more -->
 
-
 <h3>The plan</h3>
 
-<p>We&rsquo;re going to simulate the angelic choir as they sing for the shepherds, although with a
-couple of minor limitations. One is I don&rsquo;t feel like dealing with cross platform audio issues
-(and don&rsquo;t think I could do the voices justice anyway&hellip;) and the other is that I can&rsquo;t draw
+<p>We&#39;re going to simulate the angelic choir as they sing for the shepherds, although with a
+couple of minor limitations. One is I don&#39;t feel like dealing with cross platform audio issues
+(and don&#39;t think I could do the voices justice anyway...) and the other is that I can&#39;t draw
 for toffee.</p>
 
-<p>So we&rsquo;re going to simulate a view of the angels from a long way away out of earshot.</p>
+<p>So we&#39;re going to simulate a view of the angels from a long way away out of earshot.</p>
 
 <p>The final result should end up looking something like this (your results may vary depending
-on console colour scheme, but I&rsquo;d suggest dark background for the best effect!):</p>
+on console colour scheme, but I&#39;d suggest dark background for the best effect!):</p>
 
 <p><img src="http://blog.mavnn.co.uk/images/angels1.gif"/></p>
 
 <h3>Step 1: atomic writes to the console</h3>
 
-<p>If you&rsquo;ve tried to use the <code>System.Console</code> namespace in .net, you&rsquo;ll have discovered a few
+<p>If you&#39;ve tried to use the <code>System.Console</code> namespace in .net, you&#39;ll have discovered a few
 things about it. The biggest problem we want to deal with, is that writing a character in colour
 to the console is not atomic.</p>
 
 <p>You have to:</p>
-
-<p><code>fsharp
-// Set the cursor to the position you want to write
-Console.SetCursorPosition(x, y)
-// Change the foreground colour to the colour you want
-Console.ForegroundColor &lt;- c
-// Write the character
-Console.Write (string m)
-</code></p>
-
+<div class="highlight"><pre><code class="fsharp"><span class="c1">// Set the cursor to the position you want to write</span>
+<span class="nn">Console</span><span class="p">.</span><span class="nc">SetCursorPosition</span><span class="o">(</span><span class="n">x</span><span class="o">,</span> <span class="n">y</span><span class="o">)</span>
+<span class="c1">// Change the foreground colour to the colour you want</span>
+<span class="nn">Console</span><span class="p">.</span><span class="nc">ForegroundColor</span> <span class="o">&lt;-</span> <span class="n">c</span>
+<span class="c1">// Write the character</span>
+<span class="nn">Console</span><span class="p">.</span><span class="nc">Write</span> <span class="o">(</span><span class="kt">string</span> <span class="n">m</span><span class="o">)</span>
+</code></pre></div>
 <p>In async code, different threads doing this at the same time will mix these operations up,
-as there&rsquo;s no way to know what an other thread is doing with the cursor while you try and
+as there&#39;s no way to know what an other thread is doing with the cursor while you try and
 set up your own write.</p>
 
-<p>For this we&rsquo;re going to set up our first agent: the console agent. It will be responsible
+<p>For this we&#39;re going to set up our first agent: the console agent. It will be responsible
 for all writes to the screen in our program.</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="o">(|</span><span class="nc">ConsoleColour</span><span class="o">|)</span> <span class="n">i</span> <span class="o">=</span>
+  <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="k">then</span>
+    <span class="nn">ConsoleColor</span><span class="p">.</span><span class="nc">Black</span>
+  <span class="k">elif</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">15</span> <span class="k">then</span>
+    <span class="nn">ConsoleColor</span><span class="p">.</span><span class="nc">White</span>
+  <span class="k">else</span>
+    <span class="n">enum</span> <span class="n">i</span>
 
-<p>``` fsharp
-let (|ConsoleColour|) i =
-  if i &lt;= 0 then</p>
+<span class="k">let</span> <span class="n">console</span> <span class="o">=</span>
+  <span class="nn">MailboxProcessor</span><span class="p">.</span><span class="nc">Start</span><span class="o">(</span>
+    <span class="k">fun</span> <span class="n">agent</span> <span class="o">-&gt;</span>
+      <span class="k">let</span> <span class="k">rec</span> <span class="n">inner</span> <span class="bp">()</span> <span class="o">=</span>
+        <span class="n">async</span> <span class="o">{</span>
+          <span class="k">let</span><span class="o">!</span> <span class="o">(</span><span class="n">x</span><span class="o">,</span> <span class="n">y</span><span class="o">,</span> <span class="nc">ConsoleColour</span> <span class="n">c</span><span class="o">,</span> <span class="n">m</span> <span class="o">:</span> <span class="kt">char</span><span class="o">)</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="nc">Receive</span><span class="bp">()</span>
+          <span class="nn">Console</span><span class="p">.</span><span class="nc">SetCursorPosition</span><span class="o">(</span><span class="n">x</span><span class="o">,</span> <span class="n">y</span><span class="o">)</span>
+          <span class="nn">Console</span><span class="p">.</span><span class="nc">ForegroundColor</span> <span class="o">&lt;-</span> <span class="n">c</span>
+          <span class="nn">Console</span><span class="p">.</span><span class="nc">Write</span> <span class="o">(</span><span class="kt">string</span> <span class="n">m</span><span class="o">)</span>
+          <span class="k">return</span><span class="o">!</span> <span class="n">inner</span> <span class="bp">()</span> <span class="o">}</span>
+      <span class="n">inner</span> <span class="bp">()</span><span class="o">)</span>
 
-<pre><code>ConsoleColor.Black
-</code></pre>
-
-<p>  elif i >= 15 then</p>
-
-<pre><code>ConsoleColor.White
-</code></pre>
-
-<p>  else</p>
-
-<pre><code>enum i
-</code></pre>
-
-<p>let console =
-  MailboxProcessor.Start(</p>
-
-<pre><code>fun agent -&gt;
-  let rec inner () =
-    async {
-      let! (x, y, ConsoleColour c, m : char) = agent.Receive()
-      Console.SetCursorPosition(x, y)
-      Console.ForegroundColor &lt;- c
-      Console.Write (string m)
-      return! inner () }
-  inner ())
-</code></pre>
-
-<p>console.Error.Add(fun e &ndash;> printfn &ldquo;%A&rdquo; e.Message)
-```</p>
-
-<p>The <code>(|ConsoleColour|)</code> construct is what&rsquo;s called an active pattern. With it, we can pattern
+<span class="n">console</span><span class="o">.</span><span class="nn">Error</span><span class="p">.</span><span class="nc">Add</span><span class="o">(</span><span class="k">fun</span> <span class="n">e</span> <span class="o">-&gt;</span> <span class="n">printfn</span> <span class="s2">&quot;%A&quot;</span> <span class="n">e</span><span class="o">.</span><span class="nc">Message</span><span class="o">)</span>
+</code></pre></div>
+<p>The <code>(|ConsoleColour|)</code> construct is what&#39;s called an active pattern. With it, we can pattern
 match on any integer and be guaranteed to get a valid ConsoleColor enum out. It also spells
-&ldquo;colour&rdquo; correctly :D.</p>
+&quot;colour&quot; correctly :D.</p>
 
 <p>Then we start a <code>MailboxProcessor</code> (the default name for an agent in F#). This agent listens
 for messages which consist of: an x coordinate, a y coordinate, an int for colour and a character
 to write. The overall agent is implemented as an async block and so will not block a thread while
-waiting for messages &ndash; but it will guarantee that it will not start processing the next message
+waiting for messages - but it will guarantee that it will not start processing the next message
 until the current one is finished.</p>
 
 <p>Hey presto! We can now safely write to the console from any thread simply by calling <code>console.Post.</code></p>
 
-<p>We&rsquo;ll try it out by creating some random stationary angels.</p>
+<p>We&#39;ll try it out by creating some random stationary angels.</p>
 
-<p>First, we&rsquo;ll initialize some infinite sequences of random numbers:</p>
+<p>First, we&#39;ll initialize some infinite sequences of random numbers:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="n">seedx</span><span class="o">,</span> <span class="n">seedy</span><span class="o">,</span> <span class="n">seedc</span> <span class="o">=</span> <span class="mi">100</span><span class="o">,</span> <span class="mi">150</span><span class="o">,</span> <span class="mi">200</span>
 
-<p>``` fsharp
-let seedx, seedy, seedc = 100, 150, 200</p>
+<span class="k">let</span> <span class="n">randX</span> <span class="o">=</span> <span class="nc">Random</span><span class="o">(</span><span class="n">seedx</span><span class="o">)</span>
+<span class="k">let</span> <span class="n">randY</span> <span class="o">=</span> <span class="nc">Random</span><span class="o">(</span><span class="n">seedy</span><span class="o">)</span>
+<span class="k">let</span> <span class="n">randC</span> <span class="o">=</span> <span class="nc">Random</span><span class="o">(</span><span class="n">seedc</span><span class="o">)</span>
 
-<p>let randX = Random(seedx)
-let randY = Random(seedy)
-let randC = Random(seedc)</p>
+<span class="k">let</span> <span class="n">randSeq</span> <span class="o">(</span><span class="n">rand</span> <span class="o">:</span> <span class="nc">Random</span><span class="o">)</span> <span class="n">min&#39;</span> <span class="n">max&#39;</span> <span class="o">=</span>
+  <span class="nn">Seq</span><span class="p">.</span><span class="n">unfold</span> <span class="o">(</span><span class="k">fun</span> <span class="bp">()</span> <span class="o">-&gt;</span> <span class="nc">Some</span><span class="o">(</span><span class="n">rand</span><span class="o">.</span><span class="nc">Next</span><span class="o">(</span><span class="n">min&#39;</span><span class="o">,</span> <span class="n">max&#39;</span><span class="o">),</span> <span class="bp">()</span><span class="o">))</span> <span class="bp">()</span>
 
-<p>let randSeq (rand : Random) min' max' =
-  Seq.unfold (fun () &ndash;> Some(rand.Next(min', max'), ())) ()</p>
-
-<p>let xSeq = randSeq randX xZero (width + xZero &ndash; 1)
-let ySeq = randSeq randY yZero (height + yZero &ndash; 1)
-let cSeq = randSeq randC 0 15
-```</p>
-
-<p>Then we&rsquo;ll wrap the write in an async method, and draw our angels across the screen concurrently;
+<span class="k">let</span> <span class="n">xSeq</span> <span class="o">=</span> <span class="n">randSeq</span> <span class="n">randX</span> <span class="n">xZero</span> <span class="o">(</span><span class="n">width</span> <span class="o">+</span> <span class="n">xZero</span> <span class="o">-</span> <span class="mi">1</span><span class="o">)</span>
+<span class="k">let</span> <span class="n">ySeq</span> <span class="o">=</span> <span class="n">randSeq</span> <span class="n">randY</span> <span class="n">yZero</span> <span class="o">(</span><span class="n">height</span> <span class="o">+</span> <span class="n">yZero</span> <span class="o">-</span> <span class="mi">1</span><span class="o">)</span>
+<span class="k">let</span> <span class="n">cSeq</span> <span class="o">=</span> <span class="n">randSeq</span> <span class="n">randC</span> <span class="mi">0</span> <span class="mi">15</span>
+</code></pre></div>
+<p>Then we&#39;ll wrap the write in an async method, and draw our angels across the screen concurrently;
 each angel will wait 50 milliseconds per unit across the x axis to give a nice staggered appearance.</p>
 
 <p>You can find a full listing in <a href="https://github.com/mavnn/advent2015/blob/master/advent1.fsx">advent1.fsx</a>. Running it should give you something like this:</p>
 
 <p><img src="http://blog.mavnn.co.uk/images/angels2.gif"/></p>
 
-<blockquote><p>But the angel said to them, “Do not be afraid. I bring you good news that will cause great joy for all the people. Today in the town of David a Savior has been born to you; he is the Messiah, the Lord. This will be a sign to you: You will find a baby wrapped in cloths and lying in a manger.” <ref><a href="https://www.biblegateway.com/passage/?search=luke+2:10-12&version=NIV" title="Luke 2:10-12">Luke 2:10-12</a></ref></p></blockquote>
+<blockquote>
+<p>But the angel said to them, “Do not be afraid. I bring you good news that will cause great joy for all the people. Today in the town of David a Savior has been born to you; he is the Messiah, the Lord. This will be a sign to you: You will find a baby wrapped in cloths and lying in a manger.” <ref><a href="https://www.biblegateway.com/passage/?search=luke+2:10-12&version=NIV" title="Luke 2:10-12">Luke 2:10-12</a></ref></p>
+</blockquote>
 
 <h2>Step 2: Add event loop</h2>
 
-<p>Onwards! Time to make our angels move. Following on with the theme, we&rsquo;re going to make an agent
-responsible for ticking off each &lsquo;loop&rsquo; of events.</p>
+<p>Onwards! Time to make our angels move. Following on with the theme, we&#39;re going to make an agent
+responsible for ticking off each &#39;loop&#39; of events.</p>
 
-<p>We&rsquo;ll add some safety to our console agent to make sure that writes outside the console don&rsquo;t
+<p>We&#39;ll add some safety to our console agent to make sure that writes outside the console don&#39;t
 cause us issues:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="n">width</span>  <span class="o">=</span> <span class="nn">Console</span><span class="p">.</span><span class="nc">WindowWidth</span>
+<span class="k">let</span> <span class="n">height</span> <span class="o">=</span> <span class="nn">Console</span><span class="p">.</span><span class="nc">WindowHeight</span>
 
-<p>``` fsharp
-let width  = Console.WindowWidth
-let height = Console.WindowHeight</p>
+<span class="k">let</span> <span class="n">xZero</span>  <span class="o">=</span> <span class="nn">Console</span><span class="p">.</span><span class="nc">WindowLeft</span>
+<span class="k">let</span> <span class="n">yZero</span>  <span class="o">=</span> <span class="nn">Console</span><span class="p">.</span><span class="nc">WindowTop</span>
 
-<p>let xZero  = Console.WindowLeft
-let yZero  = Console.WindowTop</p>
+<span class="k">let</span> <span class="o">(|</span><span class="nc">ConsoleColour</span><span class="o">|)</span> <span class="n">i</span> <span class="o">=</span>
+  <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="k">then</span>
+    <span class="nn">ConsoleColor</span><span class="p">.</span><span class="nc">Black</span>
+  <span class="k">elif</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">15</span> <span class="k">then</span>
+    <span class="nn">ConsoleColor</span><span class="p">.</span><span class="nc">White</span>
+  <span class="k">else</span>
+    <span class="n">enum</span> <span class="n">i</span>
 
-<p>let (|ConsoleColour|) i =
-  if i &lt;= 0 then</p>
+<span class="k">let</span> <span class="o">(|</span><span class="nc">X</span><span class="o">|)</span> <span class="n">x</span> <span class="o">=</span>
+  <span class="k">if</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="n">xZero</span> <span class="k">then</span>
+    <span class="n">xZero</span>
+  <span class="k">elif</span> <span class="n">x</span> <span class="o">&gt;=</span> <span class="n">width</span> <span class="k">then</span>
+    <span class="n">width</span> <span class="o">-</span> <span class="mi">1</span>
+  <span class="k">else</span>
+    <span class="n">x</span>
 
-<pre><code>ConsoleColor.Black
-</code></pre>
+<span class="k">let</span> <span class="o">(|</span><span class="nc">Y</span><span class="o">|)</span> <span class="n">y</span> <span class="o">=</span>
+  <span class="k">if</span> <span class="n">y</span> <span class="o">&lt;</span> <span class="n">yZero</span> <span class="k">then</span>
+    <span class="n">yZero</span>
+  <span class="k">elif</span> <span class="n">y</span> <span class="o">&gt;=</span> <span class="n">height</span> <span class="k">then</span>
+    <span class="n">height</span> <span class="o">-</span> <span class="mi">1</span>
+  <span class="k">else</span>
+    <span class="n">y</span>
 
-<p>  elif i >= 15 then</p>
+<span class="k">let</span> <span class="n">console</span> <span class="o">=</span>
+  <span class="nn">MailboxProcessor</span><span class="p">.</span><span class="nc">Start</span><span class="o">(</span>
+    <span class="k">fun</span> <span class="n">agent</span> <span class="o">-&gt;</span>
+      <span class="k">let</span> <span class="k">rec</span> <span class="n">inner</span> <span class="bp">()</span> <span class="o">=</span>
+        <span class="n">async</span> <span class="o">{</span>
+          <span class="k">let</span><span class="o">!</span> <span class="o">(</span><span class="nc">X</span> <span class="n">x</span><span class="o">,</span> <span class="nc">Y</span> <span class="n">y</span><span class="o">,</span> <span class="nc">ConsoleColour</span> <span class="n">c</span><span class="o">,</span> <span class="n">m</span> <span class="o">:</span> <span class="kt">char</span><span class="o">)</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="nc">Receive</span><span class="bp">()</span>
+          <span class="nn">Console</span><span class="p">.</span><span class="nc">SetCursorPosition</span><span class="o">(</span><span class="n">x</span><span class="o">,</span> <span class="n">y</span><span class="o">)</span>
+          <span class="nn">Console</span><span class="p">.</span><span class="nc">ForegroundColor</span> <span class="o">&lt;-</span> <span class="n">c</span>
+          <span class="nn">Console</span><span class="p">.</span><span class="nc">Write</span> <span class="o">(</span><span class="kt">string</span> <span class="n">m</span><span class="o">)</span>
+          <span class="k">return</span><span class="o">!</span> <span class="n">inner</span> <span class="bp">()</span> <span class="o">}</span>
+      <span class="n">inner</span> <span class="bp">()</span><span class="o">)</span>
 
-<pre><code>ConsoleColor.White
-</code></pre>
-
-<p>  else</p>
-
-<pre><code>enum i
-</code></pre>
-
-<p>let (|X|) x =
-  if x &lt; xZero then</p>
-
-<pre><code>xZero
-</code></pre>
-
-<p>  elif x >= width then</p>
-
-<pre><code>width - 1
-</code></pre>
-
-<p>  else</p>
-
-<pre><code>x
-</code></pre>
-
-<p>let (|Y|) y =
-  if y &lt; yZero then</p>
-
-<pre><code>yZero
-</code></pre>
-
-<p>  elif y >= height then</p>
-
-<pre><code>height - 1
-</code></pre>
-
-<p>  else</p>
-
-<pre><code>y
-</code></pre>
-
-<p>let console =
-  MailboxProcessor.Start(</p>
-
-<pre><code>fun agent -&gt;
-  let rec inner () =
-    async {
-      let! (X x, Y y, ConsoleColour c, m : char) = agent.Receive()
-      Console.SetCursorPosition(x, y)
-      Console.ForegroundColor &lt;- c
-      Console.Write (string m)
-      return! inner () }
-  inner ())
-</code></pre>
-
-<p>console.Error.Add(fun e &ndash;> printfn &ldquo;%A&rdquo; e.Message)
-```</p>
-
+<span class="n">console</span><span class="o">.</span><span class="nn">Error</span><span class="p">.</span><span class="nc">Add</span><span class="o">(</span><span class="k">fun</span> <span class="n">e</span> <span class="o">-&gt;</span> <span class="n">printfn</span> <span class="s2">&quot;%A&quot;</span> <span class="n">e</span><span class="o">.</span><span class="nc">Message</span><span class="o">)</span>
+</code></pre></div>
 <p>Notice the use of the X and Y active patterns to enforce our domain constraints on the underlying
 .net type.</p>
 
-<p>We&rsquo;ll also have some types for keeping track of an angels position and velocity.</p>
+<p>We&#39;ll also have some types for keeping track of an angels position and velocity.</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">type</span> <span class="nc">Vector2</span> <span class="o">=</span>
+  <span class="o">{</span> <span class="n">x</span> <span class="o">:</span> <span class="kt">float</span><span class="o">;</span> <span class="n">y</span> <span class="o">:</span> <span class="kt">float</span> <span class="o">}</span>
+  <span class="k">static</span> <span class="k">member</span> <span class="o">(+)</span> <span class="o">({</span> <span class="n">x</span> <span class="o">=</span> <span class="n">x1</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="n">y1</span> <span class="o">},</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="n">x2</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="n">y2</span> <span class="o">})</span> <span class="o">=</span>
+    <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="n">x1</span> <span class="o">+</span> <span class="n">x2</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="n">y1</span> <span class="o">+</span> <span class="n">y2</span> <span class="o">}</span>
+  <span class="k">static</span> <span class="k">member</span> <span class="o">(-)</span> <span class="o">({</span> <span class="n">x</span> <span class="o">=</span> <span class="n">x1</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="n">y1</span> <span class="o">},</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="n">x2</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="n">y2</span> <span class="o">})</span> <span class="o">=</span>
+    <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="n">x1</span> <span class="o">-</span> <span class="n">x2</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="n">y1</span> <span class="o">-</span> <span class="n">y2</span> <span class="o">}</span>
+  <span class="k">static</span> <span class="k">member</span> <span class="nc">Abs</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="n">x1</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="n">y1</span> <span class="o">}</span> <span class="o">=</span>
+    <span class="n">x1</span> <span class="o">*</span> <span class="n">x1</span> <span class="o">+</span> <span class="n">y1</span> <span class="o">*</span> <span class="n">y1</span>
+    <span class="o">|&gt;</span> <span class="n">sqrt</span>
 
-<p>``` fsharp
-type Vector2 =
-  { x : float; y : float }
-  static member (+) ({ x = x1; y = y1 }, { x = x2; y = y2 }) =</p>
-
-<pre><code>{ x = x1 + x2; y = y1 + y2 }
-</code></pre>
-
-<p>  static member (&ndash;) ({ x = x1; y = y1 }, { x = x2; y = y2 }) =</p>
-
-<pre><code>{ x = x1 - x2; y = y1 - y2 }
-</code></pre>
-
-<p>  static member Abs { x = x1; y = y1 } =</p>
-
-<pre><code>x1 * x1 + y1 * y1
-|&gt; sqrt
-</code></pre>
-
-<p>type AngelInfo =
-  { Position : Vector2</p>
-
-<pre><code>Velocity : Vector2 }
-</code></pre>
-
-<p>```</p>
-
-<p>Here we&rsquo;ve defined + and &ndash; on a two element vector, and a helper function to calculate the vectors
+<span class="k">type</span> <span class="nc">AngelInfo</span> <span class="o">=</span>
+  <span class="o">{</span> <span class="nc">Position</span> <span class="o">:</span> <span class="nc">Vector2</span>
+    <span class="nc">Velocity</span> <span class="o">:</span> <span class="nc">Vector2</span> <span class="o">}</span>
+</code></pre></div>
+<p>Here we&#39;ve defined + and - on a two element vector, and a helper function to calculate the vectors
 magnitude.</p>
 
-<p>Now we&rsquo;re ready to set up our event loop agent. I&rsquo;m going to call mine <code>ping</code>.</p>
+<p>Now we&#39;re ready to set up our event loop agent. I&#39;m going to call mine <code>ping</code>.</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">type</span> <span class="nc">AngelMessage</span> <span class="o">=</span>
+  <span class="o">|</span> <span class="nc">Init</span> <span class="k">of</span> <span class="nc">AsyncReplyChannel</span><span class="o">&lt;</span><span class="nc">AngelInfo</span><span class="o">&gt;</span>
+  <span class="o">|</span> <span class="nc">Next</span> <span class="k">of</span> <span class="nc">AngelInfo</span> <span class="kt">list</span> <span class="o">*</span> <span class="nc">AsyncReplyChannel</span><span class="o">&lt;</span><span class="nc">AngelInfo</span><span class="o">&gt;</span>
 
-<p>``` fsharp
-type AngelMessage =
-  | Init of AsyncReplyChannel<AngelInfo>
-  | Next of AngelInfo list * AsyncReplyChannel<AngelInfo></p>
+<span class="k">let</span> <span class="n">ping</span> <span class="o">=</span>
+  <span class="nn">MailboxProcessor</span><span class="p">.</span><span class="nc">Start</span><span class="o">(</span>
+    <span class="k">fun</span> <span class="n">agent</span> <span class="o">-&gt;</span>
+      <span class="k">let</span> <span class="k">rec</span> <span class="n">inner</span> <span class="o">(</span><span class="n">angels</span> <span class="o">:</span> <span class="nc">MailboxProcessor</span><span class="o">&lt;</span><span class="nc">AngelMessage</span><span class="o">&gt;</span> <span class="kt">list</span><span class="o">)</span> <span class="n">infos</span> <span class="o">=</span>
+        <span class="n">async</span> <span class="o">{</span>
+          <span class="c1">// Ask the angels where they will be next</span>
+          <span class="k">let</span><span class="o">!</span> <span class="n">newInfos</span> <span class="o">=</span>
+            <span class="n">angels</span>
+            <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">angel</span> <span class="o">-&gt;</span> <span class="n">angel</span><span class="o">.</span><span class="nc">PostAndAsyncReply</span> <span class="o">(</span><span class="k">fun</span> <span class="n">r</span> <span class="o">-&gt;</span> <span class="nc">Next</span><span class="o">(</span><span class="n">infos</span><span class="o">,</span> <span class="n">r</span><span class="o">)))</span>
+            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Parallel</span>
 
-<p>let ping =
-  MailboxProcessor.Start(</p>
+          <span class="k">let</span> <span class="n">newInfos</span> <span class="o">=</span> <span class="n">newInfos</span> <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">ofArray</span>
 
-<pre><code>fun agent -&gt;
-  let rec inner (angels : MailboxProcessor&lt;AngelMessage&gt; list) infos =
-    async {
-      // Ask the angels where they will be next
-      let! newInfos =
-        angels
-        |&gt; List.map (fun angel -&gt; angel.PostAndAsyncReply (fun r -&gt; Next(infos, r)))
-        |&gt; Async.Parallel
+          <span class="c1">// Erase old locations</span>
+          <span class="k">do</span><span class="o">!</span>
+            <span class="n">infos</span>
+            <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="o">{</span> <span class="nc">Position</span> <span class="o">=</span> <span class="n">p</span> <span class="o">}</span> <span class="o">-&gt;</span> <span class="n">p</span><span class="o">)</span>
+            <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">p</span> <span class="o">-&gt;</span> <span class="n">setAsync</span> <span class="o">(</span><span class="kt">int</span> <span class="n">p</span><span class="o">.</span><span class="n">x</span><span class="o">)</span> <span class="o">(</span><span class="kt">int</span> <span class="n">p</span><span class="o">.</span><span class="n">y</span><span class="o">)</span> <span class="mi">0</span> <span class="sc">&#39; &#39;</span><span class="o">)</span>
+            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Parallel</span>
+            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Ignore</span>
 
-      let newInfos = newInfos |&gt; List.ofArray
+          <span class="c1">// Draw new locations</span>
+          <span class="k">do</span><span class="o">!</span>
+            <span class="n">newInfos</span>
+            <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="o">{</span> <span class="nc">Position</span> <span class="o">=</span> <span class="n">p</span> <span class="o">}</span> <span class="o">-&gt;</span> <span class="n">p</span><span class="o">)</span>
+            <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">p</span> <span class="o">-&gt;</span> <span class="n">setAsync</span> <span class="o">(</span><span class="kt">int</span> <span class="n">p</span><span class="o">.</span><span class="n">x</span><span class="o">)</span> <span class="o">(</span><span class="kt">int</span> <span class="n">p</span><span class="o">.</span><span class="n">y</span><span class="o">)</span> <span class="mi">15</span> <span class="sc">&#39;*&#39;</span><span class="o">)</span>
+            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Parallel</span>
+            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Ignore</span>
 
-      // Erase old locations
-      do!
-        infos
-        |&gt; List.map (fun { Position = p } -&gt; p)
-        |&gt; List.map (fun p -&gt; setAsync (int p.x) (int p.y) 0 ' ')
-        |&gt; Async.Parallel
-        |&gt; Async.Ignore
+          <span class="k">do</span><span class="o">!</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Sleep</span> <span class="mi">100</span>
+          <span class="k">return</span><span class="o">!</span> <span class="n">inner</span> <span class="n">angels</span> <span class="n">newInfos</span>
+        <span class="o">}</span>
+      <span class="k">let</span> <span class="n">init</span> <span class="bp">()</span> <span class="o">=</span>
+        <span class="n">async</span> <span class="o">{</span>
+          <span class="c1">// Wait for angels to be passed in</span>
+          <span class="k">let</span><span class="o">!</span> <span class="o">(</span><span class="n">msg</span> <span class="o">:</span> <span class="nc">MailboxProcessor</span><span class="o">&lt;</span><span class="nc">AngelMessage</span><span class="o">&gt;</span> <span class="kt">list</span><span class="o">)</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="nc">Receive</span><span class="bp">()</span>
 
-      // Draw new locations
-      do!
-        newInfos
-        |&gt; List.map (fun { Position = p } -&gt; p)
-        |&gt; List.map (fun p -&gt; setAsync (int p.x) (int p.y) 15 '*')
-        |&gt; Async.Parallel
-        |&gt; Async.Ignore
+          <span class="k">let</span><span class="o">!</span> <span class="n">infos</span> <span class="o">=</span>
+            <span class="n">msg</span>
+            <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">angel</span> <span class="o">-&gt;</span> <span class="n">angel</span><span class="o">.</span><span class="nc">PostAndAsyncReply</span> <span class="nc">Init</span><span class="o">)</span>
+            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Parallel</span>
 
-      do! Async.Sleep 100
-      return! inner angels newInfos
-    }
-  let init () =
-    async {
-      // Wait for angels to be passed in
-      let! (msg : MailboxProcessor&lt;AngelMessage&gt; list) = agent.Receive()
-
-      let! infos =
-        msg
-        |&gt; List.map (fun angel -&gt; angel.PostAndAsyncReply Init)
-        |&gt; Async.Parallel
-
-      return! inner msg (infos |&gt; List.ofArray)
-    }
-  init ()
-)
-</code></pre>
-
-<p>```</p>
-
-<p>This agent is a bit more chunky. If you look down to the end of the body, you&rsquo;ll see it starts
+          <span class="k">return</span><span class="o">!</span> <span class="n">inner</span> <span class="n">msg</span> <span class="o">(</span><span class="n">infos</span> <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">ofArray</span><span class="o">)</span>
+        <span class="o">}</span>
+      <span class="n">init</span> <span class="bp">()</span>
+    <span class="o">)</span>
+</code></pre></div>
+<p>This agent is a bit more chunky. If you look down to the end of the body, you&#39;ll see it starts
 by calling <code>init</code>. This method is responsible for waiting for the initial list of angels that
 will populate our night sky. The angels themselves will be agents that listen for the AngelMessage
 type.</p>
 
-<p><code>init</code> sends an <code>Init</code> message to each angel, asking it for it&rsquo;s initial position and velocity.
+<p><code>init</code> sends an <code>Init</code> message to each angel, asking it for it&#39;s initial position and velocity.
 The message consists solely of a reply channel which the angel will use to pass back the information.</p>
 
 <p>Once all the angels have reported in, we pass control to the recursive inner loop. On each round
-through, the <code>ping</code> agent asks every angel where it&rsquo;s moving to. It then writes spaces to every square on the console that held an angel last
+through, the <code>ping</code> agent asks every angel where it&#39;s moving to. It then writes spaces to every square on the console that held an angel last
 tick, and finally draws the new positions of every angel.</p>
 
-<p>And most of our infrastructure is in place! Let&rsquo;s test it with a collection of angels that will
+<p>And most of our infrastructure is in place! Let&#39;s test it with a collection of angels that will
 start with a random position and velocity and move in a straight line for a while.</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="n">xSeq</span>  <span class="o">=</span> <span class="n">randSeq</span> <span class="n">randX</span> <span class="n">xZero</span> <span class="o">(</span><span class="n">width</span> <span class="o">+</span> <span class="n">xZero</span> <span class="o">-</span> <span class="mi">1</span><span class="o">)</span>
+<span class="k">let</span> <span class="n">ySeq</span>  <span class="o">=</span> <span class="n">randSeq</span> <span class="n">randY</span> <span class="n">yZero</span> <span class="o">(</span><span class="n">height</span> <span class="o">+</span> <span class="n">yZero</span> <span class="o">-</span> <span class="mi">1</span><span class="o">)</span>
+<span class="k">let</span> <span class="n">vxSeq</span> <span class="o">=</span> <span class="n">randSeq</span> <span class="n">randX</span> <span class="o">-</span><span class="mi">5</span> <span class="mi">5</span>
+<span class="k">let</span> <span class="n">vySeq</span> <span class="o">=</span> <span class="n">randSeq</span> <span class="n">randY</span> <span class="o">-</span><span class="mi">5</span> <span class="mi">5</span>
 
-<p>``` fsharp
-let xSeq  = randSeq randX xZero (width + xZero &ndash; 1)
-let ySeq  = randSeq randY yZero (height + yZero &ndash; 1)
-let vxSeq = randSeq randX -5 5
-let vySeq = randSeq randY -5 5</p>
+<span class="k">let</span> <span class="n">createAngel</span> <span class="n">logic</span> <span class="n">angelInfo</span> <span class="o">=</span>
+  <span class="nn">MailboxProcessor</span><span class="p">.</span><span class="nc">Start</span><span class="o">(</span>
+    <span class="k">fun</span> <span class="n">agent</span> <span class="o">-&gt;</span>
+      <span class="k">let</span> <span class="k">rec</span> <span class="n">inner</span> <span class="n">currentInfo</span> <span class="o">=</span>
+        <span class="n">async</span> <span class="o">{</span>
+          <span class="k">let</span><span class="o">!</span> <span class="n">msg</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="nc">Receive</span><span class="bp">()</span>
+          <span class="k">return</span><span class="o">!</span>
+            <span class="k">match</span> <span class="n">msg</span> <span class="k">with</span>
+            <span class="o">|</span> <span class="nc">Init</span> <span class="n">r</span> <span class="o">-&gt;</span>
+              <span class="n">r</span><span class="o">.</span><span class="nc">Reply</span> <span class="n">currentInfo</span>
+              <span class="n">inner</span> <span class="n">currentInfo</span>
+            <span class="o">|</span> <span class="nc">Next</span> <span class="o">(</span><span class="n">infos</span><span class="o">,</span> <span class="n">r</span><span class="o">)</span> <span class="o">-&gt;</span>
+              <span class="k">let</span> <span class="n">newInfo</span> <span class="o">=</span> <span class="n">logic</span> <span class="n">currentInfo</span> <span class="n">infos</span>
+              <span class="n">r</span><span class="o">.</span><span class="nc">Reply</span> <span class="n">newInfo</span>
+              <span class="n">inner</span> <span class="n">newInfo</span>
+        <span class="o">}</span>
+      <span class="n">inner</span> <span class="n">angelInfo</span><span class="o">)</span>
 
-<p>let createAngel logic angelInfo =
-  MailboxProcessor.Start(</p>
+<span class="k">let</span> <span class="n">angels</span> <span class="o">=</span>
+  <span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="o">(</span><span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">xSeq</span> <span class="n">ySeq</span><span class="o">)</span> <span class="o">(</span><span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">vxSeq</span> <span class="n">vySeq</span><span class="o">)</span>
+  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">take</span> <span class="mi">10</span>
+  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span>
+      <span class="o">(</span><span class="k">fun</span> <span class="o">((</span><span class="n">px</span><span class="o">,</span> <span class="n">py</span><span class="o">),</span> <span class="o">(</span><span class="n">vx</span><span class="o">,</span> <span class="n">vy</span><span class="o">))</span> <span class="o">-&gt;</span>
+        <span class="o">{</span> <span class="nc">Position</span> <span class="o">=</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="kt">float</span> <span class="n">px</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="kt">float</span> <span class="n">py</span> <span class="o">};</span> <span class="nc">Velocity</span> <span class="o">=</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="kt">float</span> <span class="n">vx</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="kt">float</span> <span class="n">py</span> <span class="o">}})</span>
+  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="n">createAngel</span> <span class="o">(</span><span class="k">fun</span> <span class="n">c</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="o">{</span> <span class="n">c</span> <span class="k">with</span> <span class="nc">Position</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="nc">Position</span> <span class="o">+</span> <span class="n">c</span><span class="o">.</span><span class="nc">Velocity</span> <span class="o">}))</span>
+  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">toList</span>
 
-<pre><code>fun agent -&gt;
-  let rec inner currentInfo =
-    async {
-      let! msg = agent.Receive()
-      return!
-        match msg with
-        | Init r -&gt;
-          r.Reply currentInfo
-          inner currentInfo
-        | Next (infos, r) -&gt;
-          let newInfo = logic currentInfo infos
-          r.Reply newInfo
-          inner newInfo
-    }
-  inner angelInfo)
-</code></pre>
+<span class="c1">// Start the whole thing off</span>
+<span class="n">ping</span><span class="o">.</span><span class="nc">Post</span> <span class="n">angels</span>
 
-<p>let angels =
-  Seq.zip (Seq.zip xSeq ySeq) (Seq.zip vxSeq vySeq)
-  |> Seq.take 10
-  |> Seq.map</p>
+<span class="nn">Console</span><span class="p">.</span><span class="nc">ReadLine</span><span class="bp">()</span>
 
-<pre><code>  (fun ((px, py), (vx, vy)) -&gt;
-    { Position = { x = float px; y = float py }; Velocity = { x = float vx; y = float py }})
-</code></pre>
-
-<p>  |> Seq.map (createAngel (fun c _ &ndash;> { c with Position = c.Position + c.Velocity }))
-  |> Seq.toList</p>
-
-<p>// Start the whole thing off
-ping.Post angels</p>
-
-<p>Console.ReadLine()</p>
-
-<p>Console.ForegroundColor &lt;&ndash; ConsoleColor.White
-Console.CursorVisible &lt;&ndash; true
-```</p>
-
-<p>Each of our angels knows how to report its initial state, and how to apply a function called <code>logic</code> to it&rsquo;s previous state to generate the new position. For testing, the <code>logic</code> we&rsquo;re passing in is just to add its velocity to it&rsquo;s current position each time its asked.</p>
+<span class="nn">Console</span><span class="p">.</span><span class="nc">ForegroundColor</span> <span class="o">&lt;-</span> <span class="nn">ConsoleColor</span><span class="p">.</span><span class="nc">White</span>
+<span class="nn">Console</span><span class="p">.</span><span class="nc">CursorVisible</span> <span class="o">&lt;-</span> <span class="bp">true</span>
+</code></pre></div>
+<p>Each of our angels knows how to report its initial state, and how to apply a function called <code>logic</code> to it&#39;s previous state to generate the new position. For testing, the <code>logic</code> we&#39;re passing in is just to add its velocity to it&#39;s current position each time its asked.</p>
 
 <p>Full listing is in <a href="https://github.com/mavnn/advent2015/blob/master/advent2.fsx">advent2.fsx</a>, and running it should give us something like this:</p>
 
 <p><img src="http://blog.mavnn.co.uk/images/angels3.gif"/></p>
 
-<blockquote><p>Suddenly a great company of the heavenly host appeared with the angel, praising God and saying,</p>
+<blockquote>
+<p>Suddenly a great company of the heavenly host appeared with the angel, praising God and saying,</p>
 
 <p>“Glory to God in the highest heaven,
-   and on earth peace to those on whom his favor rests.” <ref><a href="https://www.biblegateway.com/passage/?search=luke+2:13-14&version=NIV" title="Luke 2:13-14">Luke 2:13-14</a></ref></p></blockquote>
+   and on earth peace to those on whom his favor rests.” <ref><a href="https://www.biblegateway.com/passage/?search=luke+2:13-14&version=NIV" title="Luke 2:13-14">Luke 2:13-14</a></ref></p>
+</blockquote>
 
 <h3>Adding some dancing</h3>
 
-<p>But! Angels in straight lines doesn&rsquo;t sound much fun. We&rsquo;ll make our angels a bit more interesting
+<p>But! Angels in straight lines doesn&#39;t sound much fun. We&#39;ll make our angels a bit more interesting
 by implementing a simple <a href="https://en.wikipedia.org/wiki/Boids">boid</a> variant.</p>
 
-<p>First we&rsquo;ll add the ability to specify a colour as part of our angel info (check the full listing for details). We&rsquo;ll also expand the vectors to implement multiplication, division and a magnitude limit.</p>
+<p>First we&#39;ll add the ability to specify a colour as part of our angel info (check the full listing for details). We&#39;ll also expand the vectors to implement multiplication, division and a magnitude limit.</p>
 
 <p>Then we can add a <code>logic</code> module:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">module</span> <span class="nc">Logic</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="k">private</span> <span class="n">surrounding</span> <span class="n">radius</span> <span class="o">(</span><span class="n">us</span> <span class="o">:</span> <span class="nc">AngelInfo</span><span class="o">)</span> <span class="o">(</span><span class="n">others</span> <span class="o">:</span> <span class="nc">AngelInfo</span> <span class="kt">list</span><span class="o">)</span> <span class="o">=</span>
+    <span class="n">others</span>
+    <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">filter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">a</span> <span class="o">-&gt;</span> <span class="nn">Vector2</span><span class="p">.</span><span class="n">abs</span> <span class="o">(</span><span class="n">a</span><span class="o">.</span><span class="nc">Position</span> <span class="o">-</span> <span class="n">us</span><span class="o">.</span><span class="nc">Position</span><span class="o">)</span> <span class="o">&lt;</span> <span class="n">radius</span><span class="o">)</span>
 
-<p>``` fsharp
-module Logic =
-  let private surrounding radius (us : AngelInfo) (others : AngelInfo list) =</p>
+  <span class="k">let</span> <span class="k">private</span> <span class="n">desiredVel</span> <span class="n">angels</span> <span class="o">=</span>
+    <span class="n">angels</span>
+    <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">fold</span>
+        <span class="o">(</span><span class="k">fun</span> <span class="o">(</span><span class="n">v</span><span class="o">,</span> <span class="n">i</span><span class="o">)</span> <span class="n">angel</span> <span class="o">-&gt;</span>
+          <span class="o">(</span><span class="n">angel</span><span class="o">.</span><span class="nc">Velocity</span> <span class="o">+</span> <span class="n">v</span><span class="o">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="o">))</span> <span class="o">({</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.;</span> <span class="n">y</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.},</span> <span class="mi">0</span><span class="o">)</span>
+    <span class="o">|&gt;</span> <span class="k">fun</span> <span class="o">(</span><span class="n">v</span><span class="o">,</span> <span class="n">i</span><span class="o">)</span> <span class="o">-&gt;</span>
+        <span class="k">match</span> <span class="n">i</span> <span class="k">with</span>
+        <span class="o">|</span> <span class="mi">0</span> <span class="o">-&gt;</span>
+          <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.;</span> <span class="n">y</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.</span> <span class="o">}</span>
+        <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
+          <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">x</span> <span class="o">/</span> <span class="kt">float</span> <span class="n">i</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">y</span> <span class="o">/</span> <span class="kt">float</span> <span class="n">i</span> <span class="o">}</span>
 
-<pre><code>others
-|&gt; List.filter (fun a -&gt; Vector2.abs (a.Position - us.Position) &lt; radius)
-</code></pre>
+  <span class="k">let</span> <span class="k">private</span> <span class="n">avoid</span> <span class="n">this</span> <span class="n">angels</span> <span class="o">=</span>
+    <span class="k">let</span> <span class="n">dodge</span> <span class="n">v</span> <span class="o">=</span>
+      <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">1</span><span class="o">.</span> <span class="o">/</span> <span class="n">v</span><span class="o">.</span><span class="n">x</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span><span class="o">.</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="mi">1</span><span class="o">.</span> <span class="o">/</span> <span class="n">v</span><span class="o">.</span><span class="n">y</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span><span class="o">.</span> <span class="o">}</span> <span class="o">*</span> <span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">length</span> <span class="n">angels</span> <span class="o">|&gt;</span> <span class="kt">float</span><span class="o">)</span>
+    <span class="k">match</span> <span class="n">angels</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="bp">[]</span> <span class="o">|</span> <span class="o">[_]</span> <span class="o">-&gt;</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.;</span> <span class="n">y</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.</span> <span class="o">}</span>
+    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
+      <span class="n">angels</span>
+      <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">angel</span> <span class="o">-&gt;</span> <span class="n">angel</span><span class="o">.</span><span class="nc">Position</span> <span class="o">-</span> <span class="n">this</span><span class="o">.</span><span class="nc">Position</span><span class="o">)</span>
+      <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">reduce</span> <span class="o">(+)</span>
+      <span class="o">|&gt;</span> <span class="n">dodge</span>
 
-<p>  let private desiredVel angels =</p>
+  <span class="k">let</span> <span class="n">boid</span> <span class="n">midpoint</span> <span class="n">friendRadius</span> <span class="n">dodgeRadius</span> <span class="n">maxAcc</span> <span class="n">maxVel</span> <span class="n">this</span> <span class="n">angels</span> <span class="o">=</span>
+    <span class="k">let</span> <span class="n">groupVel</span> <span class="o">=</span>
+      <span class="n">surrounding</span> <span class="n">friendRadius</span> <span class="n">this</span> <span class="n">angels</span>
+      <span class="o">|&gt;</span> <span class="n">desiredVel</span>
+      <span class="o">|&gt;</span> <span class="nn">Vector2</span><span class="p">.</span><span class="n">limit</span> <span class="n">maxVel</span>
+    <span class="k">let</span> <span class="n">avoidCollision</span> <span class="o">=</span>
+      <span class="n">surrounding</span> <span class="n">dodgeRadius</span> <span class="n">this</span> <span class="n">angels</span>
+      <span class="o">|&gt;</span> <span class="n">avoid</span> <span class="n">this</span>
+      <span class="o">|&gt;</span> <span class="nn">Vector2</span><span class="p">.</span><span class="n">limit</span> <span class="n">maxVel</span>
+    <span class="k">let</span> <span class="n">towardsMiddle</span> <span class="o">=</span>
+      <span class="n">midpoint</span> <span class="o">-</span> <span class="n">this</span><span class="o">.</span><span class="nc">Position</span>
+      <span class="o">|&gt;</span> <span class="nn">Vector2</span><span class="p">.</span><span class="n">limit</span> <span class="n">maxVel</span>
+    <span class="k">let</span> <span class="n">acceleration</span> <span class="o">=</span>
+      <span class="o">(</span><span class="n">groupVel</span> <span class="o">*</span> <span class="mi">0</span><span class="o">.</span><span class="mi">5</span> <span class="o">+</span> <span class="n">avoidCollision</span> <span class="o">*</span> <span class="mi">2</span><span class="o">.</span> <span class="o">+</span> <span class="n">towardsMiddle</span><span class="o">)</span>
+      <span class="o">/</span> <span class="mi">3</span><span class="o">.</span>
+    <span class="o">{</span> <span class="n">this</span> <span class="k">with</span> <span class="nc">Position</span> <span class="o">=</span> <span class="n">this</span><span class="o">.</span><span class="nc">Position</span> <span class="o">+</span> <span class="n">this</span><span class="o">.</span><span class="nc">Velocity</span>
+                <span class="nc">Velocity</span> <span class="o">=</span> <span class="o">(</span><span class="n">this</span><span class="o">.</span><span class="nc">Velocity</span> <span class="o">+</span> <span class="n">acceleration</span><span class="o">)</span> <span class="o">|&gt;</span> <span class="nn">Vector2</span><span class="p">.</span><span class="n">limit</span> <span class="n">maxVel</span> <span class="o">}</span>
 
-<pre><code>angels
-|&gt; List.fold
-    (fun (v, i) angel -&gt;
-      (angel.Velocity + v, i + 1)) ({ x = 0.; y = 0.}, 0)
-|&gt; fun (v, i) -&gt;
-    match i with
-    | 0 -&gt;
-      { x = 0.; y = 0. }
-    | _ -&gt;
-      { x = v.x / float i; y = v.y / float i }
-</code></pre>
-
-<p>  let private avoid this angels =</p>
-
-<pre><code>let dodge v =
-  { x = 1. / v.x * -1.
-    y = 1. / v.y * -1. } * (List.length angels |&gt; float)
-match angels with
-| [] | [_] -&gt; { x = 0.; y = 0. }
-| _ -&gt;
-  angels
-  |&gt; List.map (fun angel -&gt; angel.Position - this.Position)
-  |&gt; List.reduce (+)
-  |&gt; dodge
-</code></pre>
-
-<p>  let boid midpoint friendRadius dodgeRadius maxAcc maxVel this angels =</p>
-
-<pre><code>let groupVel =
-  surrounding friendRadius this angels
-  |&gt; desiredVel
-  |&gt; Vector2.limit maxVel
-let avoidCollision =
-  surrounding dodgeRadius this angels
-  |&gt; avoid this
-  |&gt; Vector2.limit maxVel
-let towardsMiddle =
-  midpoint - this.Position
-  |&gt; Vector2.limit maxVel
-let acceleration =
-  (groupVel * 0.5 + avoidCollision * 2. + towardsMiddle)
-  / 3.
-{ this with Position = this.Position + this.Velocity
-            Velocity = (this.Velocity + acceleration) |&gt; Vector2.limit maxVel }
-</code></pre>
-
-<p>  let stationary this _ =</p>
-
-<pre><code>{ this with Velocity = { x = 0.; y = 0. } }
-</code></pre>
-
-<p>```</p>
-
-<p>Nothing super exciting here individually &ndash; we have methods for discovering other angels nearby
+  <span class="k">let</span> <span class="n">stationary</span> <span class="n">this</span> <span class="o">_</span> <span class="o">=</span>
+    <span class="o">{</span> <span class="n">this</span> <span class="k">with</span> <span class="nc">Velocity</span> <span class="o">=</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.;</span> <span class="n">y</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.</span> <span class="o">}</span> <span class="o">}</span>
+</code></pre></div>
+<p>Nothing super exciting here individually - we have methods for discovering other angels nearby
 (<code>surrounding</code>), the average velocity of a group of angels (<code>desiredVel</code>) and a rough guess
 at not running into a group of nearby angels (<code>avoid</code>). All could probably be improved!</p>
 
-<p>Putting it all together, the <code>boid</code> method calculates the acceleration the angel would &ldquo;like&rdquo; to
+<p>Putting it all together, the <code>boid</code> method calculates the acceleration the angel would &quot;like&quot; to
 have to follow all if its rules fully, and then limits that by a specified maximum acceleration.
 I played with the weighting of the rules a bit to get something that looked kind of nice, and also
 decided to make my life easier by aiming cohesion towards the middle of the screen rather than the
@@ -469,43 +384,34 @@ middle of the flock.</p>
 
 <p>Generating our angels is now just a case of partially applying boid with the parameters of our
 choice:</p>
-
-<p>``` fsharp
-let angels =
-  Seq.zip3 (Seq.zip xSeq ySeq) (Seq.zip vxSeq vySeq) cSeq
-  |> Seq.take 40
-  |> Seq.map</p>
-
-<pre><code>  (fun ((px, py), (vx, vy), c) -&gt;
-   { Position = { x = float px; y = float py }
-     Velocity = { x = float vx; y = float vy }
-     Colour   = c })
-</code></pre>
-
-<p>  |> Seq.map (createAngel (Logic.boid midpoint 10. 1. 0.3 1.))
-  |> Seq.append</p>
-
-<pre><code>  [(createAngel
-     Logic.stationary { Position = midpoint
-                        Velocity = { x = 0.; y = 0. }
-                        Colour   = 15 })]
-</code></pre>
-
-<p>  |> Seq.toList
-```</p>
-
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="n">angels</span> <span class="o">=</span>
+  <span class="nn">Seq</span><span class="p">.</span><span class="n">zip3</span> <span class="o">(</span><span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">xSeq</span> <span class="n">ySeq</span><span class="o">)</span> <span class="o">(</span><span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">vxSeq</span> <span class="n">vySeq</span><span class="o">)</span> <span class="n">cSeq</span>
+  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">take</span> <span class="mi">40</span>
+  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span>
+      <span class="o">(</span><span class="k">fun</span> <span class="o">((</span><span class="n">px</span><span class="o">,</span> <span class="n">py</span><span class="o">),</span> <span class="o">(</span><span class="n">vx</span><span class="o">,</span> <span class="n">vy</span><span class="o">),</span> <span class="n">c</span><span class="o">)</span> <span class="o">-&gt;</span>
+       <span class="o">{</span> <span class="nc">Position</span> <span class="o">=</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="kt">float</span> <span class="n">px</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="kt">float</span> <span class="n">py</span> <span class="o">}</span>
+         <span class="nc">Velocity</span> <span class="o">=</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="kt">float</span> <span class="n">vx</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="kt">float</span> <span class="n">vy</span> <span class="o">}</span>
+         <span class="nc">Colour</span>   <span class="o">=</span> <span class="n">c</span> <span class="o">})</span>
+  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="n">createAngel</span> <span class="o">(</span><span class="nn">Logic</span><span class="p">.</span><span class="n">boid</span> <span class="n">midpoint</span> <span class="mi">10</span><span class="o">.</span> <span class="mi">1</span><span class="o">.</span> <span class="mi">0</span><span class="o">.</span><span class="mi">3</span> <span class="mi">1</span><span class="o">.))</span>
+  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">append</span>
+      <span class="o">[(</span><span class="n">createAngel</span>
+         <span class="nn">Logic</span><span class="p">.</span><span class="n">stationary</span> <span class="o">{</span> <span class="nc">Position</span> <span class="o">=</span> <span class="n">midpoint</span>
+                            <span class="nc">Velocity</span> <span class="o">=</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.;</span> <span class="n">y</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.</span> <span class="o">}</span>
+                            <span class="nc">Colour</span>   <span class="o">=</span> <span class="mi">15</span> <span class="o">})]</span>
+  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">toList</span>
+</code></pre></div>
 <p>The ones in listing <a href="https://github.com/mavnn/advent2015/blob/master/advent3.fsx">advent3.fsx</a> give something reasonably nice, looking like:</p>
 
 <p><img src="http://blog.mavnn.co.uk/images/angels4.gif"/></p>
 
-<p>One word of warning: there&rsquo;s a bug in the avoidance which I haven&rsquo;t had a chance to track down,
-so if you add too many angels they&rsquo;ll all push each other into the top left corner. Oops.</p>
+<p>One word of warning: there&#39;s a bug in the avoidance which I haven&#39;t had a chance to track down,
+so if you add too many angels they&#39;ll all push each other into the top left corner. Oops.</p>
 
-<p>And that&rsquo;s all for now. I hope you enjoyed this brief dive into agent based programming,
+<p>And that&#39;s all for now. I hope you enjoyed this brief dive into agent based programming,
 and how we can use agents to separate responsibility and protect against unwanted race conditions.</p>
 
 <p>As you can see, this framework allows easy modification of angel logic, and in fact allows for
-every angel to have its own implementation without much added complexity &ndash; as long as it replies to
+every angel to have its own implementation without much added complexity - as long as it replies to
 the same messages.</p>
 
 <p>Happy Christmas, and God bless.</p>

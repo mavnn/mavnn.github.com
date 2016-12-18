@@ -9,7 +9,7 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="This is a &ldquo;just because you can&rdquo; post, although frankly bizarrely I have a genuine use case for this. Let the mind melting commence! &hellip;">
+  <meta name="description" content="This is a &quot;just because you can&quot; post, although frankly bizarrely I have a genuine use case for this. Let the mind melting commence! &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -105,20 +105,17 @@ ga('send', 'pageview');
   </header>
 
 
-<div class="entry-content"><p>This is a &ldquo;just because you can&rdquo; post, although frankly bizarrely I have a genuine use case for this.</p>
+<div class="entry-content"><p>This is a &quot;just because you can&quot; post, although frankly bizarrely I have a genuine use case for this.</p>
 
 <p>Let the mind melting commence!</p>
 
 <p>Computational expressions in F# provide nice sugared syntax for monadic data structures such as <code>seq</code> and <code>async</code>; but the specific expressions are not built in language features. You can <a href="http://fsharpforfunandprofit.com/series/computation-expressions.html">build your own</a>.</p>
 
-<p>Which is fun and all, but you know what&rsquo;s even more fun? Well, it turns out that there&rsquo;s no requirements for computational expressions to be actual monads. Even more fun than that is that the bind operation (used when you invoke <code>let!</code> syntax) is a member on a class &ndash; and it is valid both for it to be an extension method, and for it to be overloaded. You can even add custom operators to computational expressions using the extension method trick.</p>
+<p>Which is fun and all, but you know what&#39;s even more fun? Well, it turns out that there&#39;s no requirements for computational expressions to be actual monads. Even more fun than that is that the bind operation (used when you invoke <code>let!</code> syntax) is a member on a class - and it is valid both for it to be an extension method, and for it to be overloaded. You can even add custom operators to computational expressions using the extension method trick.</p>
 
-<p>Which means you can do some very interesting things indeed to existing computational expressions. Let&rsquo;s try it out!</p>
+<p>Which means you can do some very interesting things indeed to existing computational expressions. Let&#39;s try it out!</p>
 
 <!-- more -->
-
-
-
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -204,12 +201,11 @@ ga('send', 'pageview');
 </span><span class='line'><span class="c1">// &quot;A prefix here:  170&quot;</span>
 </span></code></pre></td></tr></table></div></figure>
 
+<p>This is a full code example that compiles, runs and builds. Oh yes, and it&#39;s an example of a bind based custom operator in case you&#39;ve been looking for one.</p>
 
-<p>This is a full code example that compiles, runs and builds. Oh yes, and it&rsquo;s an example of a bind based custom operator in case you&rsquo;ve been looking for one.</p>
+<p>As you can see we can now <code>let!</code> both <code>MyThing</code> and <code>Async</code> results and both will be handled correctly - and we can also add logging statements using the custom operator which will get placed correctly into the async workflow. For even more fun and profit, the log custom operator has access to all currently bound values (which it logs in our example).</p>
 
-<p>As you can see we can now <code>let!</code> both <code>MyThing</code> and <code>Async</code> results and both will be handled correctly &ndash; and we can also add logging statements using the custom operator which will get placed correctly into the async workflow. For even more fun and profit, the log custom operator has access to all currently bound values (which it logs in our example).</p>
-
-<p>In case the custom operator is making you scratch your head, the way this one works is that a tuple of the currently bound values in the CE is passed into the operator as the first argument wrapped using the <code>Return</code> method of the CE (in this case, that means we get an Async&lt;&lsquo;a> where &#8216;a is a tuple). The <code>ProjectionParameter</code> is a function from the currently bound values to the expression that follows the custom operator. In my case, that&rsquo;s always a static string, but of course it could be an expression which used some of the already bound values. Once you&rsquo;ve done whatever you&rsquo;re doing within the custom operator, it&rsquo;s important that you pass back the bound values you received &ndash; again, wrapped in a type that the CE knows how to bind as it will use bind to include this code into the overall expression result. As a word of warning, the explanation above is only true for custom operators where <code>MaintainsVariableSpaceUsingBind</code> is set to true. If it is set to false, the CE must support yield and the expansion mechanism is quite different.</p>
+<p>In case the custom operator is making you scratch your head, the way this one works is that a tuple of the currently bound values in the CE is passed into the operator as the first argument wrapped using the <code>Return</code> method of the CE (in this case, that means we get an Async&lt;&#39;a&gt; where &#39;a is a tuple). The <code>ProjectionParameter</code> is a function from the currently bound values to the expression that follows the custom operator. In my case, that&#39;s always a static string, but of course it could be an expression which used some of the already bound values. Once you&#39;ve done whatever you&#39;re doing within the custom operator, it&#39;s important that you pass back the bound values you received - again, wrapped in a type that the CE knows how to bind as it will use bind to include this code into the overall expression result. As a word of warning, the explanation above is only true for custom operators where <code>MaintainsVariableSpaceUsingBind</code> is set to true. If it is set to false, the CE must support yield and the expansion mechanism is quite different.</p>
 
 <p>I see all kinds of useful ways of bending the F# language here, and making libraries easier to use from within the built in CEs. Have fun, and remember to use these powers for good!</p>
 </div>
@@ -283,6 +279,10 @@ ga('send', 'pageview');
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/advent-2016/">Advent 2016</a>
+      </li>
+    
+      <li class="post">
         <a href="/video-and-slides-for-from-the-ivory-tower/">Video and Slides for "From the Ivory Tower"</a>
       </li>
     
@@ -296,10 +296,6 @@ ga('send', 'pageview');
     
       <li class="post">
         <a href="/type-providers-live-the-movie/">Type Providers Live - the Movie</a>
-      </li>
-    
-      <li class="post">
-        <a href="/emparsec-embedded-parser-library/">EmParsec Embedded Parser Library</a>
       </li>
     
   </ul>

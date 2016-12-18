@@ -9,7 +9,7 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="In last week&rsquo;s Developer Education session at 15below we had a look at immutable and persistent data structures, and why you&rsquo;d want to &hellip;">
+  <meta name="description" content="The Reactive Extensions project is &quot;a library for composing asynchronous and event-based programs using observable sequences and LINQ-style &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -85,6 +85,49 @@ ga('send', 'pageview');
       
   <header>
     
+      <h1 class="entry-title"><a href="/exploring-reactive-extensions/">Exploring Reactive Extensions</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-02-09T13:01:36+00:00" pubdate data-updated="true">Feb 9<span>th</span>, 2015</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>The <a href="http://rx.codeplex.com/">Reactive Extensions</a> project is &quot;a library for composing asynchronous and event-based programs using observable sequences and LINQ-style query operators&quot;. That doesn&#39;t immediately give most people an intuitive grasp of exactly what it is - but it&#39;s a useful addition to the toolset so we put together a practical for people to experiment with.</p>
+
+<p>At it&#39;s simplest, RX (as it&#39;s called&#8230; the Nuget package you&#39;re looking for is <a href="https://www.nuget.org/packages/Rx-Main">Rx-Main</a>, obviously!) allows you to create an <code>IObservable</code> object which you can then&#8230; erm&#8230; observe.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/exploring-reactive-extensions/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
       <h1 class="entry-title"><a href="/persistent-data-structures/">Persistent Data Structures</a></h1>
     
     
@@ -108,15 +151,17 @@ ga('send', 'pageview');
   </header>
 
 
-  <div class="entry-content"><p>In last week&rsquo;s <a href="/keeping-up-with-the-latest-hammer/">Developer Education session</a> at <a href="http://15below.com">15below</a> we had a look at immutable and persistent data structures, and why you&rsquo;d want to use them.</p>
+  <div class="entry-content"><p>In last week&#39;s <a href="/keeping-up-with-the-latest-hammer/">Developer Education session</a> at <a href="http://15below.com">15below</a> we had a look at immutable and persistent data structures, and why you&#39;d want to use them.</p>
 
-<blockquote><p>TL;DR version: are you writing performance critical, real time code? Do you have less memory available than a low end smart phone? No?</p>
+<blockquote>
+<p>TL;DR version: are you writing performance critical, real time code? Do you have less memory available than a low end smart phone? No?</p>
 
-<p>Use immutable data types everywhere you can.</p></blockquote>
+<p>Use immutable data types everywhere you can.</p>
+</blockquote>
 
-<p>The session was inspired by <a href="https://twitter.com/ScottWlaschin">Scott Wlaschin</a>&rsquo;s excellent <a href="http://fsharpforfunandprofit.com/posts/is-your-language-unreasonable/">is your programming language unreasonable?</a> post. If you haven&rsquo;t read it yet, go and do so &ndash; it&rsquo;s much better than the rest of this post, and you can always come back here later if you remember.</p>
+<p>The session was inspired by <a href="https://twitter.com/ScottWlaschin">Scott Wlaschin</a>&#39;s excellent <a href="http://fsharpforfunandprofit.com/posts/is-your-language-unreasonable/">is your programming language unreasonable?</a> post. If you haven&#39;t read it yet, go and do so - it&#39;s much better than the rest of this post, and you can always come back here later if you remember.</p>
 
-<p>One of the points that Scott raises is that code written with mutable data structures (ones that you can change after they&rsquo;ve been created) is very hard to reason about. In the very literal sense of working out the reason why things happen.</p>
+<p>One of the points that Scott raises is that code written with mutable data structures (ones that you can change after they&#39;ve been created) is very hard to reason about. In the very literal sense of working out the reason why things happen.</p>
 
 </div>
   
@@ -157,78 +202,79 @@ ga('send', 'pageview');
   </header>
 
 
-  <div class="entry-content"><p>Although <a href="/keeping-up-with-the-latest-hammer/">programming is young</a> and we often don&rsquo;t know much about the &ldquo;best&rdquo; way to do things, we&rsquo;re not totally shooting in the dark.</p>
+  <div class="entry-content"><p>Although <a href="/keeping-up-with-the-latest-hammer/">programming is young</a> and we often don&#39;t know much about the &quot;best&quot; way to do things, we&#39;re not totally shooting in the dark.</p>
 
-<p>Every so often, you come up against problems that people have investigated in detail, and given programming&rsquo;s mathematical roots this even leads on occasion to a proof about a certain type of system. It would be impossible to keep up with all of the research; but there are a few places where it&rsquo;s very helpful to know about general results.</p>
+<p>Every so often, you come up against problems that people have investigated in detail, and given programming&#39;s mathematical roots this even leads on occasion to a proof about a certain type of system. It would be impossible to keep up with all of the research; but there are a few places where it&#39;s very helpful to know about general results.</p>
 
-<p>I&rsquo;m going to claim here that it makes a big difference to how you handle feature requests both as a developer, and as a business, when you&rsquo;re asked to produce systems which are actually impossible.</p>
+<p>I&#39;m going to claim here that it makes a big difference to how you handle feature requests both as a developer, and as a business, when you&#39;re asked to produce systems which are actually impossible.</p>
 
-<p>Let&rsquo;s take the one that comes up most often in my experience&hellip; Consistency in distributed systems.</p>
+<p>Let&#39;s take the one that comes up most often in my experience&#8230; Consistency in distributed systems.</p>
 
-<p>So &ndash; this comes up the moment that somebody (customer, internal stakeholder, whatever) declares that having just a single service running on a single server is just not reliable enough. At some point, something will go wrong &ndash; and when it does, the service is a SPOF (single point of failure) and your processes which use it stop.</p>
+<p>So - this comes up the moment that somebody (customer, internal stakeholder, whatever) declares that having just a single service running on a single server is just not reliable enough. At some point, something will go wrong - and when it does, the service is a SPOF (single point of failure) and your processes which use it stop.</p>
 
-<blockquote><p>Unacceptable!</p>
+<blockquote>
+<p>Unacceptable!</p>
 
-<p><cite>Every product owner, ever</cite></p></blockquote>
+<p><cite>Every product owner, ever</cite></p>
+</blockquote>
 
-<p>&ldquo;We must have a cluster!&rdquo; the service developer is told. &ldquo;Load balancing!&rdquo;</p>
+<p>&quot;We must have a cluster!&quot; the service developer is told. &quot;Load balancing!&quot;</p>
 
-<p>&ldquo;Hmmmm.&rdquo; says the developer to themselves. &ldquo;Distributed computing. That can get a little tricky. Let&rsquo;s see if I can nail down the actual requirements a bit more.&rdquo;</p>
+<p>&quot;Hmmmm.&quot; says the developer to themselves. &quot;Distributed computing. That can get a little tricky. Let&#39;s see if I can nail down the actual requirements a bit more.&quot;</p>
 
 <p>The Q&amp;A session goes something a bit like this:</p>
 
 <ul>
-<li>Dev: So&hellip; Let&rsquo;s start easy and assume two nodes for now. How important is it that <strong>every</strong> write is replicated to both nodes before it&rsquo;s readable?</li>
+<li>Dev: So&#8230; Let&#39;s start easy and assume two nodes for now. How important is it that <strong>every</strong> write is replicated to both nodes before it&#39;s readable?</li>
 <li>PO: Critical!</li>
-<li>Dev: And&hellip; How important is it that the system stays available when one node is down?</li>
+<li>Dev: And&#8230; How important is it that the system stays available when one node is down?</li>
 <li>PO: Critical!</li>
-<li>Dev <em>pausing</em>: Ah&hellip; We won&rsquo;t be able to replicate writes at that point &ndash; the second node is down.</li>
-<li>PO: Oh. Right, makes sense &ndash; read availability is critical though.</li>
-<li>Dev: It would make life easier if writes can only be made to one of the two nodes &ndash; let&rsquo;s call it master. That OK?</li>
-<li>PO <em>thinks for while</em>: OK. It&rsquo;s not ideal, but we&rsquo;ve got a deadline. Go for it.</li>
-<li>Dev: How about consistency &ndash; if Bob writes to the first node, and then immediately reads from the second, is it okay if he gets slightly out of date data?</li>
+<li>Dev <em>pausing</em>: Ah&#8230; We won&#39;t be able to replicate writes at that point - the second node is down.</li>
+<li>PO: Oh. Right, makes sense - read availability is critical though.</li>
+<li>Dev: It would make life easier if writes can only be made to one of the two nodes - let&#39;s call it master. That OK?</li>
+<li>PO <em>thinks for while</em>: OK. It&#39;s not ideal, but we&#39;ve got a deadline. Go for it.</li>
+<li>Dev: How about consistency - if Bob writes to the first node, and then immediately reads from the second, is it okay if he gets slightly out of date data?</li>
 <li>PO: Absolutely not.</li>
 <li>Dev: OK. Give me a moment.</li>
-<li>PO: Just a moment &ndash; one last thing! This has to be super user friendly to use. So make sure it&rsquo;s completely transparent to the client consumer that they&rsquo;re talking to a cluster.</li>
-<li>Dev: &hellip;right.</li>
+<li>PO: Just a moment - one last thing! This has to be super user friendly to use. So make sure it&#39;s completely transparent to the client consumer that they&#39;re talking to a cluster.</li>
+<li>Dev: &#8230;right.</li>
 </ul>
 
+<p>Little known to our PO, their requirements are at this point strictly impossible. The impossibility here is a particular edge case; what happens if the &quot;master&quot; node receives a write, sends it to the &quot;slave&quot; to replicate, but then <strong>never gets a response</strong>. What does it do? Return an error to the client? Well - no. If the slave comes back up, and the replication had been successful before the slave became unavailable, then we&#39;d have an inconsistent history between slave and master.</p>
 
-<p>Little known to our PO, their requirements are at this point strictly impossible. The impossibility here is a particular edge case; what happens if the &ldquo;master&rdquo; node receives a write, sends it to the &ldquo;slave&rdquo; to replicate, but then <strong>never gets a response</strong>. What does it do? Return an error to the client? Well &ndash; no. If the slave comes back up, and the replication had been successful before the slave became unavailable, then we&rsquo;d have an inconsistent history between slave and master.</p>
+<p>Does it return a success? Well - no. In that case, we&#39;re violating our restriction that every write is replicated before it&#39;s considered available to read.</p>
 
-<p>Does it return a success? Well &ndash; no. In that case, we&rsquo;re violating our restriction that every write is replicated before it&rsquo;s considered available to read.</p>
+<p>So it has to return something else - a &quot;pending&quot;, &quot;this write will probably be replicated some day&quot; response. But that violates the restriction that it shouldn&#39;t add any complexity to the consumer. We now have a corner case that the server can&#39;t handle, so it has to be passed back to the client.</p>
 
-<p>So it has to return something else &ndash; a &ldquo;pending&rdquo;, &ldquo;this write will probably be replicated some day&rdquo; response. But that violates the restriction that it shouldn&rsquo;t add any complexity to the consumer. We now have a corner case that the server can&rsquo;t handle, so it has to be passed back to the client.</p>
+<p>After this first write, we do have a little bit more flexibility - we can stop accepting new writes until we&#39;ve heard from the slave that it&#39;s back up and available and just throw an error. But we&#39;re still left with that first, awkward write to deal with. (Perceptive readers will also realise that this set up actually leaves us less reliable for writes than a single node solution - proofs left as an exercise to the reader).</p>
 
-<p>After this first write, we do have a little bit more flexibility &ndash; we can stop accepting new writes until we&rsquo;ve heard from the slave that it&rsquo;s back up and available and just throw an error. But we&rsquo;re still left with that first, awkward write to deal with. (Perceptive readers will also realise that this set up actually leaves us less reliable for writes than a single node solution &ndash; proofs left as an exercise to the reader).</p>
+<p>In reality, this impossibility is a subset of the more widely know CAP theorem: a distributed system cannot be always &quot;Consistent&quot; and always &quot;Available&quot; and still behave predictably under network &quot;Partitions&quot;. The three terms in CAP have pretty specific meanings - check out a nice introduction at <a href="http://codahale.com/you-cant-sacrifice-partition-tolerance/">You Can&#39;t Sacrifice Partition Tolerance</a>.</p>
 
-<p>In reality, this impossibility is a subset of the more widely know CAP theorem: a distributed system cannot be always &ldquo;Consistent&rdquo; and always &ldquo;Available&rdquo; and still behave predictably under network &ldquo;Partitions&rdquo;. The three terms in CAP have pretty specific meanings &ndash; check out a nice introduction at <a href="http://codahale.com/you-cant-sacrifice-partition-tolerance/">You Can&rsquo;t Sacrifice Partition Tolerance</a>.</p>
+<p>This is the point where reality diverges, Sliding Doors style, depending on what the developer does next. The branches are numerous, but let&#39;s have a look at some of the most common. As an aside, I&#39;ve fallen into pretty much all of these categories at different points.</p>
 
-<p>This is the point where reality diverges, Sliding Doors style, depending on what the developer does next. The branches are numerous, but let&rsquo;s have a look at some of the most common. As an aside, I&rsquo;ve fallen into pretty much all of these categories at different points.</p>
+<h3>Option 1: The developer doesn&#39;t know this is impossible either</h3>
 
-<h3>Option 1: The developer doesn&rsquo;t know this is impossible either</h3>
+<p>At this point, we end up with a response that goes something along the lines of: &quot;Well - I can do you a temporary solution where we return a pending result in situation x. Bit of a pain; put it on the technical debt register, and we&#39;ll sort it out when we have a bit more time.&quot;</p>
 
-<p>At this point, we end up with a response that goes something along the lines of: &ldquo;Well &ndash; I can do you a temporary solution where we return a pending result in situation x. Bit of a pain; put it on the technical debt register, and we&rsquo;ll sort it out when we have a bit more time.&rdquo;</p>
-
-<p>Or: &ldquo;I can&rsquo;t think of a completely fool proof solution right now; how about in situation x we return a failure for now. It&rsquo;ll be a bit confusing when a user gets told the write failed, and then it shows up later &ndash; but we&rsquo;ll get it sorted before the final release.&rdquo;</p>
+<p>Or: &quot;I can&#39;t think of a completely fool proof solution right now; how about in situation x we return a failure for now. It&#39;ll be a bit confusing when a user gets told the write failed, and then it shows up later - but we&#39;ll get it sorted before the final release.&quot;</p>
 
 <p>Neither of these solutions are wrong, as such: but the building of impossible expectations will inevitably sour the relationship between product owner and developer, and can cause serious business issues if an external customer has been promised impossible results. There may even be direct financial penalty clauses involved.</p>
 
-<h3>Option 2: The developer knows it&rsquo;s impossible, and thinks the product owner does too</h3>
+<h3>Option 2: The developer knows it&#39;s impossible, and thinks the product owner does too</h3>
 
-<p>Here the developer <strong>says</strong> &ldquo;Well, I can return a pending result&hellip;&rdquo; and the PO adds mentally &ldquo;&hellip;which is a OK stop gap measure, I&rsquo;ll schedule some time to clean it up later.&rdquo;</p>
+<p>Here the developer <strong>says</strong> &quot;Well, I can return a pending result&#8230;&quot; and the PO adds mentally &quot;&#8230;which is a OK stop gap measure, I&#39;ll schedule some time to clean it up later.&quot;</p>
 
-<p>This leads to pretty much the same outcomes as &ldquo;Option 1&rdquo;, except the developer gets an unhealthy injection of smug self-righteousness for knowing that he never promised the impossible. In general, this is not helpful.</p>
+<p>This leads to pretty much the same outcomes as &quot;Option 1&quot;, except the developer gets an unhealthy injection of smug self-righteousness for knowing that he never promised the impossible. In general, this is not helpful.</p>
 
-<h3>Option 3: The developer knows it&rsquo;s impossible, tries to explain&hellip; And fails</h3>
+<h3>Option 3: The developer knows it&#39;s impossible, tries to explain&#8230; And fails</h3>
 
-<p>This is very similar in outcome to Options 1 &amp; 2. Just more frustrating to the developer, especially if the product owner then claims the developer is &ldquo;negative&rdquo; or &ldquo;incompetent&rdquo;.</p>
+<p>This is very similar in outcome to Options 1 &amp; 2. Just more frustrating to the developer, especially if the product owner then claims the developer is &quot;negative&quot; or &quot;incompetent&quot;.</p>
 
-<h3>Option 4: The developer knows it&rsquo;s impossible and explains to the product owner how and why</h3>
+<h3>Option 4: The developer knows it&#39;s impossible and explains to the product owner how and why</h3>
 
-<p>This is hard on two levels. On the first: the proof of why something can&rsquo;t be done might be genuinely difficult to understand.  On the second: it can be hard to work out if you&rsquo;ve avoided Option 3, or if people are just nodding and smiling.</p>
+<p>This is hard on two levels. On the first: the proof of why something can&#39;t be done might be genuinely difficult to understand.  On the second: it can be hard to work out if you&#39;ve avoided Option 3, or if people are just nodding and smiling.</p>
 
-<p>We nearly hit one of these scenarios this week; fortunately our QA department spotted the mismatch in expectations (yay QA!). Where things got a bit strange is that it was raised as Option 3: &ldquo;hey! Can we put a bit more effort in, and make this nicer to use?&rdquo; At the QAT phase this much easier to deal with though &ndash; you don&rsquo;t have angry customers, commercial agreements and these other bits hanging over your heads (well &ndash; not if you&rsquo;re writing an internal service anyway).</p>
+<p>We nearly hit one of these scenarios this week; fortunately our QA department spotted the mismatch in expectations (yay QA!). Where things got a bit strange is that it was raised as Option 3: &quot;hey! Can we put a bit more effort in, and make this nicer to use?&quot; At the QAT phase this much easier to deal with though - you don&#39;t have angry customers, commercial agreements and these other bits hanging over your heads (well - not if you&#39;re writing an internal service anyway).</p>
 
 <h2>What can we take away from all of this?</h2>
 
@@ -237,21 +283,19 @@ ga('send', 'pageview');
 <h3>Developers</h3>
 
 <ol>
-<li>As a developer, you must know the basics of the domain you&rsquo;re working in. Keep on learning, folks.</li>
-<li>You must be able to communicate as a developer. A lot of developers are introverts, myself included. This is not an excuse. Introvert means that you can&rsquo;t recharge around other people, not that you can&rsquo;t talk to them.</li>
-<li>You cannot remove your developers from your customer communications, or completely separate commercial proposals and technical evaluation. You must have technical input into your business process, because sometimes its isn&rsquo;t a question of how much time you spend, how well you design or how skilled a developer you assign to the problem: it might just be impossible.</li>
+<li>As a developer, you must know the basics of the domain you&#39;re working in. Keep on learning, folks.</li>
+<li>You must be able to communicate as a developer. A lot of developers are introverts, myself included. This is not an excuse. Introvert means that you can&#39;t recharge around other people, not that you can&#39;t talk to them.</li>
+<li>You cannot remove your developers from your customer communications, or completely separate commercial proposals and technical evaluation. You must have technical input into your business process, because sometimes its isn&#39;t a question of how much time you spend, how well you design or how skilled a developer you assign to the problem: it might just be impossible.</li>
 </ol>
 
-
-<h3>&ldquo;Product Owners&rdquo; (whatever your actual job title is)</h3>
+<h3>&quot;Product Owners&quot; (whatever your actual job title is)</h3>
 
 <ol>
 <li>Listen to your developers, and pay attention to the wording. If they say something is impossible (not hard, not delayed) check you understand why.</li>
-<li>Be careful how you define the business problem to your developers. You may end up specifying a problem that is unsolvable if you end up layering up too many technical restrictions &ndash; while your developer may be able to suggest something that meets the business criteria without falling foul of technical (or more importantly mathematical) limitations to what is possible.</li>
-<li>If you place a technical requirement (&ldquo;it must be clustered &ndash; no single points of failure!&rdquo;) make sure you understand the technical trade offs that you are imposing. This may take a long time. Alternatively, and preferably, rephrase your requirement to be your actual business requirement (&ldquo;We promised 98% uptime &ndash; what&rsquo;s your design to make sure it happens?&rdquo;).</li>
-<li>You must be able and willing to say &ldquo;no&rdquo; to a customer when they ask for something impossible. You can offer alternatives, work arounds &ndash; but don&rsquo;t promise the impossible. It will come back, and it will hurt you.</li>
+<li>Be careful how you define the business problem to your developers. You may end up specifying a problem that is unsolvable if you end up layering up too many technical restrictions - while your developer may be able to suggest something that meets the business criteria without falling foul of technical (or more importantly mathematical) limitations to what is possible.</li>
+<li>If you place a technical requirement (&quot;it must be clustered - no single points of failure!&quot;) make sure you understand the technical trade offs that you are imposing. This may take a long time. Alternatively, and preferably, rephrase your requirement to be your actual business requirement (&quot;We promised 98% uptime - what&#39;s your design to make sure it happens?&quot;).</li>
+<li>You must be able and willing to say &quot;no&quot; to a customer when they ask for something impossible. You can offer alternatives, work arounds - but don&#39;t promise the impossible. It will come back, and it will hurt you.</li>
 </ol>
-
 </div>
   
   
@@ -289,14 +333,14 @@ ga('send', 'pageview');
 
   <div class="entry-content"><h2>Making Sure Your Developers Keep Developing</h2>
 
-<p>Software development is a strange profession, mostly because it&rsquo;s so young and because the tools are changing so fast. I&rsquo;ve not been an established enough craftsman in any other trade to know whether other professions are moving as quickly these days, but at least in my imagination once a carpenter learns to use a hammer, it doesn&rsquo;t get discontinued after 2 years and the hammer taken off the market. Or a new hammer released that hammers nails ten times as fast, but has a different
+<p>Software development is a strange profession, mostly because it&#39;s so young and because the tools are changing so fast. I&#39;ve not been an established enough craftsman in any other trade to know whether other professions are moving as quickly these days, but at least in my imagination once a carpenter learns to use a hammer, it doesn&#39;t get discontinued after 2 years and the hammer taken off the market. Or a new hammer released that hammers nails ten times as fast, but has a different
 shaped handle and you have to hammer sideways instead of down.</p>
 
-<p>We don&rsquo;t even seem to be able to decide whether it&rsquo;s a craft or a science. You can earn Computer Science degrees &ndash; but then well known software professionals choose titles like <a href="https://twitter.com/unclebobmartin">Software Craftsman</a>.</p>
+<p>We don&#39;t even seem to be able to decide whether it&#39;s a craft or a science. You can earn Computer Science degrees - but then well known software professionals choose titles like <a href="https://twitter.com/unclebobmartin">Software Craftsman</a>.</p>
 
-<p>Despite all of our claims of best practice and shared knowledge, it largely boils down to: developers don&rsquo;t know what they&rsquo;re doing yet. We&rsquo;re a new profession, and we&rsquo;re still learning &ndash; not just as individuals, but as a profession.</p>
+<p>Despite all of our claims of best practice and shared knowledge, it largely boils down to: developers don&#39;t know what they&#39;re doing yet. We&#39;re a new profession, and we&#39;re still learning - not just as individuals, but as a profession.</p>
 
-<p>This means that both as an individual developers, and as software houses &ndash; if we stop learning, we sink. The competitive advantage of keeping up with what&rsquo;s happening in the industry so outweighs the cost of doing the research that it would be foolish not to. Because while we might not yet know the <em>right</em> way to do things, we&rsquo;re still definitely finding <em>better</em> ways to do things.</p>
+<p>This means that both as an individual developers, and as software houses - if we stop learning, we sink. The competitive advantage of keeping up with what&#39;s happening in the industry so outweighs the cost of doing the research that it would be foolish not to. Because while we might not yet know the <em>right</em> way to do things, we&#39;re still definitely finding <em>better</em> ways to do things.</p>
 
 <p>So: how do we do keep up to date, as <a href="/keeping-up-with-the-latest-hammer/#individuals">individuals</a> and as <a href="/keeping-up-with-the-latest-hammer/#companies">companies</a>?</p>
 
@@ -339,25 +383,26 @@ shaped handle and you have to hammer sideways instead of down.</p>
   </header>
 
 
-  <div class="entry-content"><blockquote><p>This post is part of the <a href="https://sergeytihon.wordpress.com/tag/fsadvent/">F# Advent Calendar</a> 2014, which is stuffed full of other interesting posts. Go have a read!</p></blockquote>
+  <div class="entry-content"><blockquote>
+<p>This post is part of the <a href="https://sergeytihon.wordpress.com/tag/fsadvent/">F# Advent Calendar</a> 2014, which is stuffed full of other interesting posts. Go have a read!</p>
+</blockquote>
 
 <p>Note: This post is epic in length. If you just want to see the final resulting script of much silliness, skip straight to <a href="#conclusion">the conclusion</a>!</p>
 
 <p>Note 2: If you just want to see an example of a sane generated type provider, <a href="https://github.com/mavnn/FPDays.TypeProvider/">the code from my FPDays tutorial</a> is a much better bet.</p>
 
-<p>Note 3: There is a lot of code below. If you&rsquo;re viewing this on a desktop, I suggest collapsing the sidebar to the right otherwise you&rsquo;ll have a lot of horizontal scroll bars. If you&rsquo;re on a mobile device, you might want to bookmark for later.</p>
+<p>Note 3: There is a lot of code below. If you&#39;re viewing this on a desktop, I suggest collapsing the sidebar to the right otherwise you&#39;ll have a lot of horizontal scroll bars. If you&#39;re on a mobile device, you might want to bookmark for later.</p>
 
-<p>So&hellip; I&rsquo;ve been playing with generated (not erased) type providers for a bit, and meaning to write something up about them. Most of the documentation out there is for erased type providers, and to be honest they have a lot of advantages in terms of performance.</p>
+<p>So&#8230; I&#39;ve been playing with generated (not erased) type providers for a bit, and meaning to write something up about them. Most of the documentation out there is for erased type providers, and to be honest they have a lot of advantages in terms of performance.</p>
 
 <p>But they also have two fundamental limitations:</p>
 
 <ul>
-<li>You can&rsquo;t used erased F# types in any other .net language</li>
-<li>You can&rsquo;t use reflection on erased types (even in F#)</li>
+<li>You can&#39;t used erased F# types in any other .net language</li>
+<li>You can&#39;t use reflection on erased types (even in F#)</li>
 </ul>
 
-
-<p>So let&rsquo;s see if we can have a play with generated types, and then &ndash; given this is Christmas, and all &ndash; let&rsquo;s see if we can build Jesus&#8217; family tree in the .net type system. After all, if you&rsquo;re going to use inheritance to model something, how about modelling inheritance?</p>
+<p>So let&#39;s see if we can have a play with generated types, and then - given this is Christmas, and all - let&#39;s see if we can build Jesus&#39; family tree in the .net type system. After all, if you&#39;re going to use inheritance to model something, how about modelling inheritance?</p>
 
 </div>
   
@@ -398,15 +443,17 @@ shaped handle and you have to hammer sideways instead of down.</p>
   </header>
 
 
-  <div class="entry-content"><blockquote><p>This is part 2 in my quotations series, following on from <a href="/tap/">Tap, Tap, Tapping on the Door</a>.</p></blockquote>
+  <div class="entry-content"><blockquote>
+<p>This is part 2 in my quotations series, following on from <a href="/tap/">Tap, Tap, Tapping on the Door</a>.</p>
+</blockquote>
 
-<p>As promised in the first part of this series, here we&rsquo;re going to take a look at manipulating quotations. I mean, we&rsquo;ve got this <a href="http://en.wikipedia.org/wiki/Abstract_syntax_tree">AST</a> &ndash; now what are we going to do with it?</p>
+<p>As promised in the first part of this series, here we&#39;re going to take a look at manipulating quotations. I mean, we&#39;ve got this <a href="http://en.wikipedia.org/wiki/Abstract_syntax_tree">AST</a> - now what are we going to do with it?</p>
 
-<p>Let&rsquo;s start with something fairly straightforward; <a href="http://en.wikipedia.org/wiki/Boolean_algebra">boolean algebra</a>.</p>
+<p>Let&#39;s start with something fairly straightforward; <a href="http://en.wikipedia.org/wiki/Boolean_algebra">boolean algebra</a>.</p>
 
-<p>First, let&rsquo;s get a look at how some boolean expressions are represented in quotations.</p>
+<p>First, let&#39;s get a look at how some boolean expressions are represented in quotations.</p>
 
-<p>Firing up F# Interactive, we&rsquo;ll feed a few in and see what happens:</p>
+<p>Firing up F# Interactive, we&#39;ll feed a few in and see what happens:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -422,10 +469,9 @@ shaped handle and you have to hammer sideways instead of down.</p>
 </span><span class='line'><span class="c">         Type = System.Boolean;} *)</span>
 </span></code></pre></td></tr></table></div></figure>
 
+<p>Hmm. That&#39;s&#8230; not as nice as we might want. The custom attributes are being added by F# interactive for debugging purposes, but hopefully the general shape is clear: our expression consists of a single value of <code>true</code>.</p>
 
-<p>Hmm. That&rsquo;s&hellip; not as nice as we might want. The custom attributes are being added by F# interactive for debugging purposes, but hopefully the general shape is clear: our expression consists of a single value of <code>true</code>.</p>
-
-<p>I&rsquo;ll cut out the custom attributes from now on to make reading things a bit easier.</p>
+<p>I&#39;ll cut out the custom attributes from now on to make reading things a bit easier.</p>
 
 <p>Next!</p>
 
@@ -468,11 +514,11 @@ shaped handle and you have to hammer sideways instead of down.</p>
   </header>
 
 
-  <div class="entry-content"><p>Welcome to a new category of posts for my blog. It&rsquo;s the &ldquo;Rule the World&rdquo; category, where I spout opinions on a subject with gay abandon, even if I can&rsquo;t actually offer that much beyond anecdotal evidence to back the opinion up.</p>
+  <div class="entry-content"><p>Welcome to a new category of posts for my blog. It&#39;s the &quot;Rule the World&quot; category, where I spout opinions on a subject with gay abandon, even if I can&#39;t actually offer that much beyond anecdotal evidence to back the opinion up.</p>
 
 <p>On this occasion I even feel justified as someone has actively asked my opinion about something.</p>
 
-<p>Well, that was foolish now, wasn&rsquo;t it?</p>
+<p>Well, that was foolish now, wasn&#39;t it?</p>
 
 </div>
   
@@ -513,9 +559,9 @@ shaped handle and you have to hammer sideways instead of down.</p>
   </header>
 
 
-  <div class="entry-content"><p>Almost a year ago now, I wrote up a <a href="/fscheck-breaking-your-code-in-new-and-exciting-ways/">blog post</a> on using <a href="https://github.com/fsharp/FsCheck">FsCheck</a>. I still rate it as an excellent tool, but unfortunately we don&rsquo;t manage to use it that much. The reasons for this basically boil down to the fact that a) we tend to forget it exists and b) a good deal of our code is written in C# or VB.net, and the original API is not very friendly from those languages.</p>
+  <div class="entry-content"><p>Almost a year ago now, I wrote up a <a href="/fscheck-breaking-your-code-in-new-and-exciting-ways/">blog post</a> on using <a href="https://github.com/fsharp/FsCheck">FsCheck</a>. I still rate it as an excellent tool, but unfortunately we don&#39;t manage to use it that much. The reasons for this basically boil down to the fact that a) we tend to forget it exists and b) a good deal of our code is written in C# or VB.net, and the original API is not very friendly from those languages.</p>
 
-<p>So as part of the <a href="http://15below.com/">15below</a> developer education sessions we&rsquo;re going to try an exercise to see if we can bring a bit more property based testing into our code base!</p>
+<p>So as part of the <a href="http://15below.com/">15below</a> developer education sessions we&#39;re going to try an exercise to see if we can bring a bit more property based testing into our code base!</p>
 
 </div>
   
@@ -558,11 +604,11 @@ shaped handle and you have to hammer sideways instead of down.</p>
 
   <div class="entry-content"><p>In my investigations into <a href="/blog/categories/typeprovider/">type providers</a>, I started digging into a feature of F# called quotations. These blur the boundary between code and data; a representation of an expression tree that you can then evaluate or manipulate.</p>
 
-<p>Why is this useful? Well; it&rsquo;s used in a number of places in various F# libraries. As mentioned above, type providers use them as a mechanism for providing the invocation code for the types that are being provided. The compiler can then take that expression tree and turn in into clr code.</p>
+<p>Why is this useful? Well; it&#39;s used in a number of places in various F# libraries. As mentioned above, type providers use them as a mechanism for providing the invocation code for the types that are being provided. The compiler can then take that expression tree and turn in into clr code.</p>
 
 <p>They can also be useful as a way of defining code within your F# that can then be translated into other programming languages. The linq to sql implementation does this (turning your linq into SQL, fairly obviously!) while the FunScript project compiles your F# quotations into JavaScript.</p>
 
-<p>So; linked features, often used in concert: quotations allow you to generate expressions at runtime, manipulate them at run time and evaluate them at run time &ndash; where evaluation covers everything from running the code on the clr to outputting it as a different language.</p>
+<p>So; linked features, often used in concert: quotations allow you to generate expressions at runtime, manipulate them at run time and evaluate them at run time - where evaluation covers everything from running the code on the clr to outputting it as a different language.</p>
 
 </div>
   
@@ -620,51 +666,6 @@ shaped handle and you have to hammer sideways instead of down.</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/type-safe-printf-via-type-providers/">Type Safe Printf via Type Providers</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-05-06T15:33:15+01:00" pubdate data-updated="true">May 6<span>th</span>, 2014</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><a href="http://twitter.com/puffnfresh">Brian McKenna</a> posted an interesting <a href="http://www.youtube.com/watch?v=fVBck2Zngjo">video</a> and <a href="https://gist.github.com/puffnfresh/11202637">gist</a> on implementing a type safe printf in Idris with dependent types.</p>
-
-<p>This led me down a nice little rabbit hole wondering if something similar could be achieved with an F# type provider.</p>
-
-<p>With a <a href="http://stackoverflow.com/questions/23375469/how-can-i-build-an-arbitary-curried-function-in-an-f-type-provider">bit of help from Tomas</a> the final solution turned out to be surprisingly nice, although not quite so clean as the Idris original.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/type-safe-printf-via-type-providers/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/4/">&larr; Older</a>
@@ -682,6 +683,10 @@ shaped handle and you have to hammer sideways instead of down.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/advent-2016/">Advent 2016</a>
+      </li>
+    
+      <li class="post">
         <a href="/video-and-slides-for-from-the-ivory-tower/">Video and Slides for &#8220;From the Ivory Tower&#8221;</a>
       </li>
     
@@ -695,10 +700,6 @@ shaped handle and you have to hammer sideways instead of down.</p>
     
       <li class="post">
         <a href="/type-providers-live-the-movie/">Type Providers Live - the Movie</a>
-      </li>
-    
-      <li class="post">
-        <a href="/emparsec-embedded-parser-library/">EmParsec Embedded Parser Library</a>
       </li>
     
   </ul>

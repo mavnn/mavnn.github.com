@@ -113,9 +113,6 @@ ga('send', 'pageview');
 
 <!-- more -->
 
-
-
-
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
 <span class='line-number'>3</span>
@@ -180,16 +177,15 @@ ga('send', 'pageview');
 </span><span class='line'>    <span class="k">abstract</span> <span class="o">``</span><span class="nc">Transform</span><span class="o">!``</span> <span class="o">:</span> <span class="kt">string</span> <span class="o">-&gt;</span> <span class="nc">ITransforming</span>
 </span></code></pre></td></tr></table></div></figure>
 
+<p>For anyone who&#39;s worked with SOLID OO code before, this should be looking fairly familiar, and it should be obvious how you could build a class that accepted implementations of these interfaces in it&#39;s constructor and then carried the state of the robot (location, hits remaining, etc) around as mutable fields.</p>
 
-<p>For anyone who&rsquo;s worked with SOLID OO code before, this should be looking fairly familiar, and it should be obvious how you could build a class that accepted implementations of these interfaces in it&rsquo;s constructor and then carried the state of the robot (location, hits remaining, etc) around as mutable fields.</p>
+<p>But&#8230; this is a turn based game, and we&#39;ve decided that we want to use a <a href="http://en.wikipedia.org/wiki/Minimax">minimax</a> approach to choosing moves for the computer player. Minimax is effectively a tree search, which means that implementing it looks like it would be a prime moment for a bit of concurrency. Each branch of the tree can be calculated independently, after all.</p>
 
-<p>But&hellip; this is a turn based game, and we&rsquo;ve decided that we want to use a <a href="http://en.wikipedia.org/wiki/Minimax">minimax</a> approach to choosing moves for the computer player. Minimax is effectively a tree search, which means that implementing it looks like it would be a prime moment for a bit of concurrency. Each branch of the tree can be calculated independently, after all.</p>
+<p>Unfortunately&#8230; our SOLID OO approach is not looking very thread safe. Functional programming revolves around the idea that code is <a href="http://en.wikipedia.org/wiki/Referential_transparency_%28computer_science%29">referentially transparent</a> and that data types are <a href="http://en.wikipedia.org/wiki/Immutable_object">immutable</a>. These two properties immediately lead to thread safe code.</p>
 
-<p>Unfortunately&hellip; our SOLID OO approach is not looking very thread safe. Functional programming revolves around the idea that code is <a href="http://en.wikipedia.org/wiki/Referential_transparency_%28computer_science%29">referentially transparent</a> and that data types are <a href="http://en.wikipedia.org/wiki/Immutable_object">immutable</a>. These two properties immediately lead to thread safe code.</p>
+<p>So the rest of the session was spent trying out how different parts of the API code be modelled in a more functional way - splitting out state into separate immutable value objects, using functions in the place of single method interfaces and playing with discriminated unions (not strictly functional programming related, but they do seem to crop up regularly in functional style languages).</p>
 
-<p>So the rest of the session was spent trying out how different parts of the API code be modelled in a more functional way &ndash; splitting out state into separate immutable value objects, using functions in the place of single method interfaces and playing with discriminated unions (not strictly functional programming related, but they do seem to crop up regularly in functional style languages).</p>
-
-<p>The end results, raw from the discussion, are below. A bit of a mix of the &ldquo;interface&rdquo; and experiments in how you would use it. I think it came out quite nicely, showing how all of the SOLID principles (apart from maybe &ldquo;L&rdquo;!) fall out naturally in nicely designed functional code just as they do in good OO code. In fact some of them, such as &ldquo;Interface Segregation&rdquo; and &ldquo;Single Responsibility&rdquo; are things you almost have to work to avoid &ndash; they both fall out naturally from passing around
+<p>The end results, raw from the discussion, are below. A bit of a mix of the &quot;interface&quot; and experiments in how you would use it. I think it came out quite nicely, showing how all of the SOLID principles (apart from maybe &quot;L&quot;!) fall out naturally in nicely designed functional code just as they do in good OO code. In fact some of them, such as &quot;Interface Segregation&quot; and &quot;Single Responsibility&quot; are things you almost have to work to avoid - they both fall out naturally from passing around
 pure functions to implement behaviour.</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
@@ -404,8 +400,7 @@ pure functions to implement behaviour.</p>
 </span><span class='line'>        <span class="n">trans</span> <span class="n">mtr</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-<p>Enjoy, and comments welcome &ndash; this was live coded in a group environment, so I&rsquo;m sure plenty of opportunities for nicer code were missed!</p>
+<p>Enjoy, and comments welcome - this was live coded in a group environment, so I&#39;m sure plenty of opportunities for nicer code were missed!</p>
 </div>
 
 
@@ -477,6 +472,10 @@ pure functions to implement behaviour.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/advent-2016/">Advent 2016</a>
+      </li>
+    
+      <li class="post">
         <a href="/video-and-slides-for-from-the-ivory-tower/">Video and Slides for "From the Ivory Tower"</a>
       </li>
     
@@ -490,10 +489,6 @@ pure functions to implement behaviour.</p>
     
       <li class="post">
         <a href="/type-providers-live-the-movie/">Type Providers Live - the Movie</a>
-      </li>
-    
-      <li class="post">
-        <a href="/emparsec-embedded-parser-library/">EmParsec Embedded Parser Library</a>
       </li>
     
   </ul>

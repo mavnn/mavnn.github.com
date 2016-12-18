@@ -9,7 +9,7 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="This post is part of the F# Advent Calendar 2014, which is stuffed full of other interesting posts. Go have a read! Note: This post is epic in length &hellip;">
+  <meta name="description" content="This post is part of the F# Advent Calendar 2014, which is stuffed full of other interesting posts. Go have a read! Note: This post is epic in &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -105,36 +105,37 @@ ga('send', 'pageview');
   </header>
 
 
-<div class="entry-content"><blockquote><p>This post is part of the <a href="https://sergeytihon.wordpress.com/tag/fsadvent/">F# Advent Calendar</a> 2014, which is stuffed full of other interesting posts. Go have a read!</p></blockquote>
+<div class="entry-content"><blockquote>
+<p>This post is part of the <a href="https://sergeytihon.wordpress.com/tag/fsadvent/">F# Advent Calendar</a> 2014, which is stuffed full of other interesting posts. Go have a read!</p>
+</blockquote>
 
 <p>Note: This post is epic in length. If you just want to see the final resulting script of much silliness, skip straight to <a href="#conclusion">the conclusion</a>!</p>
 
 <p>Note 2: If you just want to see an example of a sane generated type provider, <a href="https://github.com/mavnn/FPDays.TypeProvider/">the code from my FPDays tutorial</a> is a much better bet.</p>
 
-<p>Note 3: There is a lot of code below. If you&rsquo;re viewing this on a desktop, I suggest collapsing the sidebar to the right otherwise you&rsquo;ll have a lot of horizontal scroll bars. If you&rsquo;re on a mobile device, you might want to bookmark for later.</p>
+<p>Note 3: There is a lot of code below. If you&#39;re viewing this on a desktop, I suggest collapsing the sidebar to the right otherwise you&#39;ll have a lot of horizontal scroll bars. If you&#39;re on a mobile device, you might want to bookmark for later.</p>
 
-<p>So&hellip; I&rsquo;ve been playing with generated (not erased) type providers for a bit, and meaning to write something up about them. Most of the documentation out there is for erased type providers, and to be honest they have a lot of advantages in terms of performance.</p>
+<p>So&#8230; I&#39;ve been playing with generated (not erased) type providers for a bit, and meaning to write something up about them. Most of the documentation out there is for erased type providers, and to be honest they have a lot of advantages in terms of performance.</p>
 
 <p>But they also have two fundamental limitations:</p>
 
 <ul>
-<li>You can&rsquo;t used erased F# types in any other .net language</li>
-<li>You can&rsquo;t use reflection on erased types (even in F#)</li>
+<li>You can&#39;t used erased F# types in any other .net language</li>
+<li>You can&#39;t use reflection on erased types (even in F#)</li>
 </ul>
 
-
-<p>So let&rsquo;s see if we can have a play with generated types, and then &ndash; given this is Christmas, and all &ndash; let&rsquo;s see if we can build Jesus&#8217; family tree in the .net type system. After all, if you&rsquo;re going to use inheritance to model something, how about modelling inheritance?</p>
+<p>So let&#39;s see if we can have a play with generated types, and then - given this is Christmas, and all - let&#39;s see if we can build Jesus&#39; family tree in the .net type system. After all, if you&#39;re going to use inheritance to model something, how about modelling inheritance?</p>
 
 <!-- more -->
 
+<blockquote>
+<p>If you need a reminder of type provider basics, check out <a href="http://blog.mavnn.co.uk/type-providers-from-the-ground-up/">Type Providers from the Ground Up</a></p>
+</blockquote>
 
-<blockquote><p>If you need a reminder of type provider basics, check out <a href="http://blog.mavnn.co.uk/type-providers-from-the-ground-up/">Type Providers from the Ground Up</a></p></blockquote>
+<p>Let&#39;s start with a really basic example of a generative type provider. We&#39;ll just create a single type with a static property on it.</p>
 
-<p>Let&rsquo;s start with a really basic example of a generative type provider. We&rsquo;ll just create a single type with a static property on it.</p>
-
-<p>First, our input. We&rsquo;re going to grab <a href="https://www.biblegateway.com/passage/?search=matthew+1%3A2-16&amp;version=NIV">the genealogy of Jesus from Matthew</a> and then massage the content just enough that the first name on each line is a &ldquo;parent&rdquo;, and any other names on a line are&hellip; other people. We&rsquo;ll assume they&rsquo;re siblings, although actually not all of them are.</p>
-
-<pre><code>Abraham was the father of Isaac,
+<p>First, our input. We&#39;re going to grab <a href="https://www.biblegateway.com/passage/?search=matthew+1%3A2-16&amp;version=NIV">the genealogy of Jesus from Matthew</a> and then massage the content just enough that the first name on each line is a &quot;parent&quot;, and any other names on a line are&#8230; other people. We&#39;ll assume they&#39;re siblings, although actually not all of them are.</p>
+<div class="highlight"><pre><code class="text">Abraham was the father of Isaac,
 Isaac the father of Jacob,
 Jacob the father of Judah and his brothers,
 Judah the father of Perez and Zerah, whose mother was Tamar,
@@ -148,9 +149,8 @@ Eleazar the father of Matthan,
 Matthan the father of Jacob,
 Jacob the father of Joseph, the husband of Mary, 
 and Mary was the mother of Jesus who is called the Messiah.
-</code></pre>
-
-<p>For round one, we&rsquo;re just going to put this string into a type as a property.</p>
+</code></pre></div>
+<p>For round one, we&#39;re just going to put this string into a type as a property.</p>
 
 <p>Our type provider file looks a bit like this:</p>
 
@@ -270,10 +270,9 @@ and Mary was the mother of Jesus who is called the Messiah.
 </span><span class='line'><span class="k">do</span> <span class="bp">()</span>
 </span></code></pre></td></tr></table></div></figure>
 
+<p>What&#39;s with the <code>#if INTERACTIVE</code> bits? Well, that&#39;ll be the subject of another blog post soon; I&#39;m doing must of my type provider dev in Vim these days to avoid the Visual Studio restart cycle, so I thought I might as well skip the fsproj file completely.</p>
 
-<p>What&rsquo;s with the <code>#if INTERACTIVE</code> bits? Well, that&rsquo;ll be the subject of another blog post soon; I&rsquo;m doing must of my type provider dev in Vim these days to avoid the Visual Studio restart cycle, so I thought I might as well skip the fsproj file completely.</p>
-
-<p>In the actual provider itself, there&rsquo;s a few new things to note if you&rsquo;ve only previously done erased type provider development.</p>
+<p>In the actual provider itself, there&#39;s a few new things to note if you&#39;ve only previously done erased type provider development.</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -281,10 +280,9 @@ and Mary was the mother of Jesus who is called the Messiah.
 </span><span class='line'><span class="k">let</span> <span class="n">tempAsm</span> <span class="o">=</span> <span class="nc">ProvidedAssembly</span> <span class="n">tempAsmPath</span>
 </span></code></pre></td></tr></table></div></figure>
 
+<p>Generative type providers, unlike erased type providers, actually pass IL (.net byte code) to the compiler rather than just a quotation. To achieve that, we need to write the IL into an actual assembly that the compiler will then merge into the dll it&#39;s compiling.</p>
 
-<p>Generative type providers, unlike erased type providers, actually pass IL (.net byte code) to the compiler rather than just a quotation. To achieve that, we need to write the IL into an actual assembly that the compiler will then merge into the dll it&rsquo;s compiling.</p>
-
-<p>Let&rsquo;s try that again, slower. The compiler will be building a piece of code that uses your type provider into <code>Output.dll</code>. It will call into your type provider, which needs to write the IL of the type/codes it&rsquo;s generating to disk into <code>Temp.dll</code>. The compiler will then take the IL from <code>Temp.dll</code> and insert it into <code>Output.dll</code>. At this point, we have no further use for <code>Temp.dll</code>, hence why we&rsquo;re using <code>GetTempFileName</code> to get a file in the OS temporary file
+<p>Let&#39;s try that again, slower. The compiler will be building a piece of code that uses your type provider into <code>Output.dll</code>. It will call into your type provider, which needs to write the IL of the type/codes it&#39;s generating to disk into <code>Temp.dll</code>. The compiler will then take the IL from <code>Temp.dll</code> and insert it into <code>Output.dll</code>. At this point, we have no further use for <code>Temp.dll</code>, hence why we&#39;re using <code>GetTempFileName</code> to get a file in the OS temporary file
 folder.</p>
 
 <p>The <code>ProvidedTypes</code> API knows how to create these temporary dlls, so we wrap our filename in the <code>ProvidedAssembly</code> type.</p>
@@ -299,10 +297,9 @@ folder.</p>
 </span><span class='line'>    <span class="n">this</span><span class="o">.</span><span class="nc">AddNamespace</span><span class="o">(</span><span class="n">ns</span><span class="o">,</span> <span class="o">[</span><span class="n">t</span><span class="o">])</span>
 </span></code></pre></td></tr></table></div></figure>
 
+<p>We also need to specify which types need adding to the temporary assembly. Here we&#39;re specifying that the parameterized type (the one that takes a filename) should be added; on line 46 of the main code you&#39;ll see the type generated when a parameter is supplied being added. We also need to tell the type provider where the runtime dll is being created - fortunately, a helper method works this out for us when given the config item from the type provider constructor.</p>
 
-<p>We also need to specify which types need adding to the temporary assembly. Here we&rsquo;re specifying that the parameterized type (the one that takes a filename) should be added; on line 46 of the main code you&rsquo;ll see the type generated when a parameter is supplied being added. We also need to tell the type provider where the runtime dll is being created &ndash; fortunately, a helper method works this out for us when given the config item from the type provider constructor.</p>
-
-<p>It&rsquo;s important to note that nested types <em>should not</em> be added to the temporary assembly. That&rsquo;s handled by adding the root.</p>
+<p>It&#39;s important to note that nested types <em>should not</em> be added to the temporary assembly. That&#39;s handled by adding the root.</p>
 
 <p>So, if you compile this code down you can invoke it like this:</p>
 
@@ -332,10 +329,9 @@ folder.</p>
 </span><span class='line'><span class="n">printfn</span> <span class="s2">&quot;%s&quot;</span> <span class="nn">JesusGenerations</span><span class="p">.</span><span class="nc">Raw</span>
 </span></code></pre></td></tr></table></div></figure>
 
+<p>Excellent! A real, valid .net type. You can only invoke the type provider from F#, but the types generated are usable across the .net language universe - and reflection works fine.</p>
 
-<p>Excellent! A real, valid .net type. You can only invoke the type provider from F#, but the types generated are usable across the .net language universe &ndash; and reflection works fine.</p>
-
-<p>So&hellip; phase two. Let&rsquo;s see if we can parse something sane out of our plain text mess to turn into types. I&rsquo;m not going to go into this in detail, but because I wanted to avoid the complication of external dependencies I just wrote a very simple regex based parser for this.</p>
+<p>So&#8230; phase two. Let&#39;s see if we can parse something sane out of our plain text mess to turn into types. I&#39;m not going to go into this in detail, but because I wanted to avoid the complication of external dependencies I just wrote a very simple regex based parser for this.</p>
 
 <p>Behold! The <code>Parser.fs</code> file:</p>
 
@@ -429,12 +425,11 @@ folder.</p>
 </span><span class='line'><span class="s2">    |&gt; NamesToPerson</span>
 </span></code></pre></td></tr></table></div></figure>
 
+<p>Nb. Never, ever, ever build a parser like this for production code. Treat this as a &quot;how not to build a parser&quot; example, and go read something like <a href="http://trelford.com/blog/post/parser.aspx">Phil&#39;s excellent parsing posts</a> instead.</p>
 
-<p>Nb. Never, ever, ever build a parser like this for production code. Treat this as a &ldquo;how not to build a parser&rdquo; example, and go read something like <a href="http://trelford.com/blog/post/parser.aspx">Phil&rsquo;s excellent parsing posts</a> instead.</p>
+<p>So&#8230; what can we do this this?</p>
 
-<p>So&hellip; what can we do this this?</p>
-
-<p>Let&rsquo;s start be parsing our file, and seeing if we can build a nested set of types representing the family tree.</p>
+<p>Let&#39;s start be parsing our file, and seeing if we can build a nested set of types representing the family tree.</p>
 
 <p>Recursive type building! Go!</p>
 
@@ -596,10 +591,9 @@ folder.</p>
 </span><span class='line'><span class="k">do</span> <span class="bp">()</span>
 </span></code></pre></td></tr></table></div></figure>
 
+<p>It&#39;s not looking too bad&#8230; but we&#39;re also getting our first hint of trouble to come. The first time I tried to use this provider, I didn&#39;t have lines 46 and 55. It turns out that the default attributes of a <code>ProvidedTypeDefinition</code> set the <code>Sealed</code> attribute on the class that&#39;s generated. If you then try and build a type that inherits from it, you get an error when you try and consume the types from the provider.</p>
 
-<p>It&rsquo;s not looking too bad&hellip; but we&rsquo;re also getting our first hint of trouble to come. The first time I tried to use this provider, I didn&rsquo;t have lines 46 and 55. It turns out that the default attributes of a <code>ProvidedTypeDefinition</code> set the <code>Sealed</code> attribute on the class that&rsquo;s generated. If you then try and build a type that inherits from it, you get an error when you try and consume the types from the provider.</p>
-
-<p>But, hey? We&rsquo;ve worked around that, right? I&rsquo;m sure there&rsquo;s no reason it&rsquo;s set that way by default&hellip;</p>
+<p>But, hey? We&#39;ve worked around that, right? I&#39;m sure there&#39;s no reason it&#39;s set that way by default&#8230;</p>
 
 <p>And: we have types. Lots of types:</p>
 
@@ -629,7 +623,6 @@ folder.</p>
 </span><span class='line'><span class="c1">// ... there&#39;s more where that came from</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
 <p>We can even do things like this:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
@@ -638,14 +631,13 @@ folder.</p>
 </span><span class='line'>    <span class="bp">true</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-<p>Compile time family tree checking &ndash; pretty nifty. Except&hellip; when we try and call this function we realise we have a problem. None of these classes have constructors.</p>
+<p>Compile time family tree checking - pretty nifty. Except&#8230; when we try and call this function we realise we have a problem. None of these classes have constructors.</p>
 
 <p>Hmmm.</p>
 
-<p>Let&rsquo;s try and add one. Nothing fancy &ndash; just a default constructor.</p>
+<p>Let&#39;s try and add one. Nothing fancy - just a default constructor.</p>
 
-<p>We&rsquo;ll replace the <code>personToType</code> method with this:</p>
+<p>We&#39;ll replace the <code>personToType</code> method with this:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -681,16 +673,15 @@ folder.</p>
 </span><span class='line'>    <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="bp">()</span>
 </span></code></pre></td></tr></table></div></figure>
 
+<p>All looks good. In here you can see one of the first differences between erased and generated type. For a generated type, the first input arg to the constructor is the instance of the type to be initialized - and the return type of the constructor should be null.</p>
 
-<p>All looks good. In here you can see one of the first differences between erased and generated type. For a generated type, the first input arg to the constructor is the instance of the type to be initialized &ndash; and the return type of the constructor should be null.</p>
+<p>The only problem is that our type provider errors immediately on usage with an &quot;Argument cannot be null. Parameter name: obj&quot; error. Not immediately informative.</p>
 
-<p>The only problem is that our type provider errors immediately on usage with an &ldquo;Argument cannot be null. Parameter name: obj&rdquo; error. Not immediately informative.</p>
-
-<p>A quick check with a type provider providing a single type later, we can confirm that the constructor above is valid; sounds like we&rsquo;re having issues with the fact that we&rsquo;re inheriting from a provided type. Maybe they&rsquo;re sealed for a reason after all. Still; we&rsquo;re not to be deterred so easily!</p>
+<p>A quick check with a type provider providing a single type later, we can confirm that the constructor above is valid; sounds like we&#39;re having issues with the fact that we&#39;re inheriting from a provided type. Maybe they&#39;re sealed for a reason after all. Still; we&#39;re not to be deterred so easily!</p>
 
 <p><em>Cue dramatic music of choice!</em></p>
 
-<p>Taking an guess, we&rsquo;ll assume this might have something to do with the <code>JesusGenerations</code> type not having a constructor; we&rsquo;ll add one and try again and&hellip; no dice. Same error.</p>
+<p>Taking an guess, we&#39;ll assume this might have something to do with the <code>JesusGenerations</code> type not having a constructor; we&#39;ll add one and try again and&#8230; no dice. Same error.</p>
 
 <p>Which is round about the time I noticed that provided constructors also have a <code>BaseConstructorCall</code> property. Time for a slightly more invasive rewrite, leaving us an overall type provider that looks like this:</p>
 
@@ -892,21 +883,18 @@ folder.</p>
 </span><span class='line'><span class="k">do</span> <span class="bp">()</span>
 </span></code></pre></td></tr></table></div></figure>
 
+<p>It all builds, we can reference it&#8230; and then we get: </p>
+<div class="highlight"><pre><code class="text">The type provider &#39;AdventProvider+AdventProvider&#39; reported an error: User defined subclasses of System.Type are not yet supported
+</code></pre></div>
+<p>Hmm. Irritating. Especially as the error message is actually incorrect; we&#39;re not subclassing System.Type and we know that that was working correctly as the types were being generated correctly before we tried to add constructors to them. But it looks like we might have hit the limits of what the current type provider implementation allows.</p>
 
-<p>It all builds, we can reference it&hellip; and then we get:</p>
-
-<pre><code>The type provider 'AdventProvider+AdventProvider' reported an error: User defined subclasses of System.Type are not yet supported
-</code></pre>
-
-<p>Hmm. Irritating. Especially as the error message is actually incorrect; we&rsquo;re not subclassing System.Type and we know that that was working correctly as the types were being generated correctly before we tried to add constructors to them. But it looks like we might have hit the limits of what the current type provider implementation allows.</p>
-
-<p>But we&rsquo;re still not quite done yet; let&rsquo;s turn the insanity up a notch.</p>
+<p>But we&#39;re still not quite done yet; let&#39;s turn the insanity up a notch.</p>
 
 <p><em>Cue your choice of even more dramatic music or Benny Hill here</em></p>
 
-<p>As well as actual inheritance in .net, we have interfaces which can be used to model inheritance. Let&rsquo;s have a last throw of the dice, and see whether we can create generated interfaces to do compile time ancestry checking.</p>
+<p>As well as actual inheritance in .net, we have interfaces which can be used to model inheritance. Let&#39;s have a last throw of the dice, and see whether we can create generated interfaces to do compile time ancestry checking.</p>
 
-<p>Adding an <code>Interface</code> at every level turns out to be fairly easy, and it appears we can create generated interfaces &ndash; a useful trick to have up your sleeve. Let&rsquo;s have a look what that looks like:</p>
+<p>Adding an <code>Interface</code> at every level turns out to be fairly easy, and it appears we can create generated interfaces - a useful trick to have up your sleeve. Let&#39;s have a look what that looks like:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -1074,14 +1062,13 @@ folder.</p>
 </span><span class='line'><span class="k">do</span> <span class="bp">()</span>
 </span></code></pre></td></tr></table></div></figure>
 
+<p>Line 58 and 59 do all the work - normally an interface has no base type, and we need to reset the type attributes to make the interface look like an interface to the compiler. This all works well - but doesn&#39;t, of course, give us any inheritance. Lets see if we can use those &quot;fatherInterfaces&quot; I&#39;ve fed into the function to get us any closer.</p>
 
-<p>Line 58 and 59 do all the work &ndash; normally an interface has no base type, and we need to reset the type attributes to make the interface look like an interface to the compiler. This all works well &ndash; but doesn&rsquo;t, of course, give us any inheritance. Lets see if we can use those &ldquo;fatherInterfaces&rdquo; I&rsquo;ve fed into the function to get us any closer.</p>
+<p>A brief experiment with <code>IDisposable</code> shows us that if we change the base type of the interface to <code>Some typeof&lt;System.IDisposable&gt;</code>, that actually works. Again - useful type provider knowledge, but doesn&#39;t help us here. No dice on using the parent interface as the base type - we just start getting into more of the problems we were having above inheriting from other generated types.</p>
 
-<p>A brief experiment with <code>IDisposable</code> shows us that if we change the base type of the interface to <code>Some typeof&lt;System.IDisposable&gt;</code>, that actually works. Again &ndash; useful type provider knowledge, but doesn&rsquo;t help us here. No dice on using the parent interface as the base type &ndash; we just start getting into more of the problems we were having above inheriting from other generated types.</p>
+<p>So let&#39;s see what happens if instead we use implement interface instead of trying to inherit the interface; it seems about as reasonable as anything else we&#39;re tried so far&#8230;</p>
 
-<p>So let&rsquo;s see what happens if instead we use implement interface instead of trying to inherit the interface; it seems about as reasonable as anything else we&rsquo;re tried so far&hellip;</p>
-
-<p>We&rsquo;ll add this:</p>
+<p>We&#39;ll add this:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -1089,12 +1076,11 @@ folder.</p>
 </span><span class='line'><span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">iter</span> <span class="n">i</span><span class="o">.</span><span class="nc">AddInterfaceImplementation</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
 <p>after line 59 of the version above and see what happens.</p>
 
 <h2><a name="conclusion"></a> Conclusion</h2>
 
-<p>And suddenly&hellip; hey presto! We can do things like this:</p>
+<p>And suddenly&#8230; hey presto! We can do things like this:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -1214,20 +1200,19 @@ folder.</p>
 </span><span class='line'><span class="c">    descendentOfDavid ({ new JesusGenerations.Abraham.IIsaac }) *)</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
 <p>Which personally I think is pretty awesome.</p>
 
-<p>There is, unfortunately, only one problem. Whilst we now have compile time propositional logic&hellip; unfortunately our code fails at runtime with a type load error. Whilst the compiler is happy with the IL my random hacking has turned at, apparently the runtime is not.</p>
+<p>There is, unfortunately, only one problem. Whilst we now have compile time propositional logic&#8230; unfortunately our code fails at runtime with a type load error. Whilst the compiler is happy with the IL my random hacking has turned at, apparently the runtime is not.</p>
 
-<p>Maybe next year&hellip;</p>
+<p>Maybe next year&#8230;</p>
 
-<p>I hope you enjoyed this random journey down the rabbit hole of type providers; and if you&rsquo;re interested in looking into the genealogy a bit further <a href="http://christianity.about.com/od/biblefactsandlists/a/jesusgenealogy.htm">this article</a> gives a brief overview of a few things, like why we think Jesus has two different genealogies in the bible and how Jewish genealogies didn&rsquo;t always include every generation.</p>
+<p>I hope you enjoyed this random journey down the rabbit hole of type providers; and if you&#39;re interested in looking into the genealogy a bit further <a href="http://christianity.about.com/od/biblefactsandlists/a/jesusgenealogy.htm">this article</a> gives a brief overview of a few things, like why we think Jesus has two different genealogies in the bible and how Jewish genealogies didn&#39;t always include every generation.</p>
 
-<p>See you next time: and if anyone can get the inheritance to work properly, I&rsquo;ll owe you a beverage of (reasonable) choice!</p>
+<p>See you next time: and if anyone can get the inheritance to work properly, I&#39;ll owe you a beverage of (reasonable) choice!</p>
 
 <p>The code from this blog post can, as normal be found on github in the <a href="https://github.com/mavnn/Advent2014">Advent2014</a> repository.</p>
 
-<p>It&rsquo;s set up to be developed in Vim or Emacs without project files on a nix system, but it will probably play nicely with Visual Studio as well.</p>
+<p>It&#39;s set up to be developed in Vim or Emacs without project files on a nix system, but it will probably play nicely with Visual Studio as well.</p>
 </div>
 
 
@@ -1299,6 +1284,10 @@ folder.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/advent-2016/">Advent 2016</a>
+      </li>
+    
+      <li class="post">
         <a href="/video-and-slides-for-from-the-ivory-tower/">Video and Slides for "From the Ivory Tower"</a>
       </li>
     
@@ -1312,10 +1301,6 @@ folder.</p>
     
       <li class="post">
         <a href="/type-providers-live-the-movie/">Type Providers Live - the Movie</a>
-      </li>
-    
-      <li class="post">
-        <a href="/emparsec-embedded-parser-library/">EmParsec Embedded Parser Library</a>
       </li>
     
   </ul>

@@ -9,8 +9,8 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="Leaving the confines of your own process&rsquo;s safe little memory space is always a potentially painful moment
-when you&rsquo;re coding up an up. &hellip;">
+  <meta name="description" content="Leaving the confines of your own process&#39;s safe little memory space is always a potentially painful moment
+when you&#39;re coding up an up. &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -106,23 +106,22 @@ ga('send', 'pageview');
   </header>
 
 
-<div class="entry-content"><p>Leaving the confines of your own process&rsquo;s safe little memory space is always a potentially painful moment
-when you&rsquo;re coding up an up. Whether it&rsquo;s receiving data from the outside world, passing a message over
+<div class="entry-content"><p>Leaving the confines of your own process&#39;s safe little memory space is always a potentially painful moment
+when you&#39;re coding up an up. Whether it&#39;s receiving data from the outside world, passing a message over
 RabbitMQ to an other in house service, or writing an audit trail that needs to be accessible for the next
-20 years, there&rsquo;s a bunch of considerations that need to be taken into account when you hit the joys of
+20 years, there&#39;s a bunch of considerations that need to be taken into account when you hit the joys of
 serialization and deserialization.</p>
 
 <!-- more -->
 
-
 <h2>Mirror, mirror on the wall</h2>
 
-<p>First up on the list is whether or not to use reflection. For those of you who aren&rsquo;t aware, reflection
+<p>First up on the list is whether or not to use reflection. For those of you who aren&#39;t aware, reflection
 is a way of inspecting the properties of your .net code at runtime, and various serialization libraries
 take advantage of this to try and make your life easier.</p>
 
-<p>The best known example of this is <a href="http://www.newtonsoft.com/json">Json.NET</a> &ndash; which will take any .net
-object and try and create a Json representation of it &ndash; or vice versa.</p>
+<p>The best known example of this is <a href="http://www.newtonsoft.com/json">Json.NET</a> - which will take any .net
+object and try and create a Json representation of it - or vice versa.</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -152,39 +151,38 @@ object and try and create a Json representation of it &ndash; or vice versa.</p>
 </span><span class='line'><span class="c1">// }</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
 <p>This is a common technique, but it does have a few problems.</p>
 
 <h3>Versioning</h3>
 
-<p>The &ldquo;schema&rdquo; here is actually the underlying .net type that you are serializing &ndash; this can be great for
-quick to implement communications between .net services which can share a &ldquo;messages&rdquo; dll with the type in.</p>
+<p>The &quot;schema&quot; here is actually the underlying .net type that you are serializing - this can be great for
+quick to implement communications between .net services which can share a &quot;messages&quot; dll with the type in.</p>
 
 <p>Unfortunately, this also plays merry havoc in any scenario where your messages might persist
 between versions of your messaging dll. Saving these objects to a document store for example, or trying to run two versions of a service at once (required for seamless deployment)
 connected to a messaging bus.</p>
 
-<p>Because .net will only allow you to have one version of an assembly loaded at once, you can&rsquo;t
+<p>Because .net will only allow you to have one version of an assembly loaded at once, you can&#39;t
 easily build a way of deserializing the old format.</p>
 
 <h3>Uglyness</h3>
 
 <p>This might sound like a purely aesthetic consideration, and therefore beneath us
 technical types but the result of automatic serialization is often ugly and strange
-looking. And to be fair, it isn&rsquo;t normally a huge problem for as long as you&rsquo;re working
-in a .net to .net scenario. But if, for example, you&rsquo;re writing an API to be consumed
+looking. And to be fair, it isn&#39;t normally a huge problem for as long as you&#39;re working
+in a .net to .net scenario. But if, for example, you&#39;re writing an API to be consumed
 from JavaScript your UI developers (which is probably still you, right?) will curse your
-name forever more if you go this route. As well as this, as there&rsquo;s no schema, it&rsquo;s very
-hard to tell in any other language whether the object you&rsquo;ve created will make it through
+name forever more if you go this route. As well as this, as there&#39;s no schema, it&#39;s very
+hard to tell in any other language whether the object you&#39;ve created will make it through
 the deserialization process when it hits .net land again.</p>
 
 <h3>Runtime failure</h3>
 
-<p>That <code>JsonConvert.SerializeObject</code> method up there: it&rsquo;s generic. Which means it will
+<p>That <code>JsonConvert.SerializeObject</code> method up there: it&#39;s generic. Which means it will
 take any .net object you want to throw at it.</p>
 
 <p>Unfortunately, the number of .net objects it can actually serialize is quite a bit more
-restricted than &ldquo;any .net object you want to throw at it&rdquo;. And it has no way of telling
+restricted than &quot;any .net object you want to throw at it&quot;. And it has no way of telling
 you that until run time, when it will just throw an exception, which can be pretty painful.</p>
 
 <h3>When to use?</h3>
@@ -202,7 +200,6 @@ in any scenario where anything outside the .net ecosystem will need to access th
 <li>Message bus communications (only if you can guarantee the messages are transient)</li>
 </ul>
 
-
 <p>Avoid for:</p>
 
 <ul>
@@ -210,30 +207,29 @@ in any scenario where anything outside the .net ecosystem will need to access th
 <li>Defining APIs to be used from outside .net</li>
 </ul>
 
-
 <h3>Recommended implementation</h3>
 
 <p>If you are doing reflection based serialization in .net, you want to use
 <a href="https://nessos.github.io/FsPickler/">FsPickler</a>. It covers binary, json, bson and xml
 serialization in a single library, is faster than Json.NET and successfully serializes
-more types than Json.NET. What&rsquo;s not to like?</p>
+more types than Json.NET. What&#39;s not to like?</p>
 
 <h2>Attribute all the things!</h2>
 
 <p>As well as just trying to guess how to serialize things with reflection in .net,
 there is also the <a href="https://msdn.microsoft.com/en-us/library/system.serializableattribute%28v=vs.110%29.aspx">Serializable</a> attribute that allows you to then serialize to a variety
 of formats using the <code>System.Runtime.Serialization</code> name space. This a few advantages
-over the raw reflection technique in theory (you can mark specific fields not to be serialized, for example) but to be blunt if you&rsquo;re going to go to this amount of effort you may
+over the raw reflection technique in theory (you can mark specific fields not to be serialized, for example) but to be blunt if you&#39;re going to go to this amount of effort you may
 as well go for one of the safer options below.</p>
 
 <h3>When to use?</h3>
 
-<p>When you&rsquo;re using a Microsoft library that requires you to.</p>
+<p>When you&#39;re using a Microsoft library that requires you to.</p>
 
 <h2>Safety with (type) class</h2>
 
 <p>If you happen to be working in F#, then <a href="https://msdn.microsoft.com/en-us/library/dd233203.aspx">member constraints</a> allow you to try a more flexible and type safe way of expressing
-serialization &ndash; in exchange for a little more work.</p>
+serialization - in exchange for a little more work.</p>
 
 <p>As an example, the Chiron library allows you to do things like this:</p>
 
@@ -317,57 +313,56 @@ serialization &ndash; in exchange for a little more work.</p>
 </span><span class='line'><span class="c1">// Your json goes here</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-<p>A few interesting things to note here. Firstly, as you&rsquo;ve probably guessed, the magic
+<p>A few interesting things to note here. Firstly, as you&#39;ve probably guessed, the magic
 of telling Chiron how to serialize and deserialize things happens in the <code>ToJson</code> and
 <code>FromJson</code> methods. What might not be so obvious is that if these methods are not
 implemented with the correct signature, than <code>Json.serialize</code> will not compile when
 fed the erroneous object. Which does wonders for eliminating run time errors!</p>
 
-<p>Also, if you look carefully at the To and From methods you&rsquo;ll see that there&rsquo;s no need
+<p>Also, if you look carefully at the To and From methods you&#39;ll see that there&#39;s no need
 for the fields in the Json and the .net object to have the same name. In fact, you can
 apply what ever logic you want within them, allowing you to match a specific schema,
 allow for different versions of the serialized data to be deserialized or just generally
 make the serialized version prettier to use from other places.</p>
 
 <p>You do, of course, have to actually write the From and To methods, which is definitely
-more work. Having said that, it&rsquo;s not quite as bad as it sounds though: as you can see
-from the <code>OuterRecord</code> type with it&rsquo;s <code>InnerRecord</code> field, and can nest the To and
-From methods nicely &ndash; and the type system will check that your object is serializable
+more work. Having said that, it&#39;s not quite as bad as it sounds though: as you can see
+from the <code>OuterRecord</code> type with it&#39;s <code>InnerRecord</code> field, and can nest the To and
+From methods nicely - and the type system will check that your object is serializable
 all the way down. Nice.</p>
 
 <h3>When to use?</h3>
 
 <p>Any time when you might have to persist data between versions, or process data during
-the serialization/deserialization process &ndash; and you can specify your data types in F#.</p>
+the serialization/deserialization process - and you can specify your data types in F#.</p>
 
 <h3>Recommended implementation</h3>
 
 <p><a href="https://github.com/mausch/Fleece">Fleece</a> and <a href="https://github.com/xyncro/chiron/">Chiron</a>
 both implement these techniques. Fleece is a more established library that has been tested
 for longer, but I have had some performance issues with it in libraries with a lot of types
-that implement To and From methods. Chiron is a little bit&hellip; cutting edge in age, but
+that implement To and From methods. Chiron is a little bit&#8230; cutting edge in age, but
 has always been fast and reliable for me so far.</p>
 
 <p>We currently use Fleece in one of our projects, and have provided some support to improving
 the testing of Chiron as it looks like a hopeful alternative.</p>
 
 <p>Edit: Eirik points out in the comments that FsPickler (mentioned above) also has a mechanism
-for defining type safe (de)serialization <a href="http://nessos.github.io/FsPickler/tutorial.html#Picklers-and-Pickler-combinators">using Picklers</a>. I couldn&rsquo;t possibly guess where the library
-got it&rsquo;s name.</p>
+for defining type safe (de)serialization <a href="http://nessos.github.io/FsPickler/tutorial.html#Picklers-and-Pickler-combinators">using Picklers</a>. I couldn&#39;t possibly guess where the library
+got it&#39;s name.</p>
 
 <h2>All the rest</h2>
 
-<p>I&rsquo;m sure that there are other ways of tackling these problems &ndash; for example, for our
-customer facing &ldquo;business&rdquo; APIs we&rsquo;re moving to specifying our API using hand crafted
+<p>I&#39;m sure that there are other ways of tackling these problems - for example, for our
+customer facing &quot;business&quot; APIs we&#39;re moving to specifying our API using hand crafted
 XSD and WSDL files and then autogenerating code behind. This assumes, of course, you
 have some reason to be using SOAP. But if you do, it works an awful lot better than
-trying to autogenerate the schema from the code &ndash; a path that&rsquo;s lead me to worlds of
+trying to autogenerate the schema from the code - a path that&#39;s lead me to worlds of
 pain both as the consumer and producer of the schemas.</p>
 
-<p>But the routes above are the most common paths that I&rsquo;ve come across as a .net developer
-and I&rsquo;ve often discovered them being used in the &ldquo;wrong&rdquo; places. Retroactively having to
-version reflection based APIs is a particular pain point that I&rsquo;d recommend avoiding if
+<p>But the routes above are the most common paths that I&#39;ve come across as a .net developer
+and I&#39;ve often discovered them being used in the &quot;wrong&quot; places. Retroactively having to
+version reflection based APIs is a particular pain point that I&#39;d recommend avoiding if
 you possibly can!</p>
 </div>
 
@@ -440,6 +435,10 @@ you possibly can!</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/advent-2016/">Advent 2016</a>
+      </li>
+    
+      <li class="post">
         <a href="/video-and-slides-for-from-the-ivory-tower/">Video and Slides for "From the Ivory Tower"</a>
       </li>
     
@@ -453,10 +452,6 @@ you possibly can!</p>
     
       <li class="post">
         <a href="/type-providers-live-the-movie/">Type Providers Live - the Movie</a>
-      </li>
-    
-      <li class="post">
-        <a href="/emparsec-embedded-parser-library/">EmParsec Embedded Parser Library</a>
       </li>
     
   </ul>

@@ -9,7 +9,7 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="In last week&rsquo;s Developer Education session at 15below we had a look at immutable and persistent data structures, and why you&rsquo;d want to &hellip;">
+  <meta name="description" content="In last week&#39;s Developer Education session at 15below we had a look at immutable and persistent data structures, and why you&#39;d want to use &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -105,18 +105,19 @@ ga('send', 'pageview');
   </header>
 
 
-<div class="entry-content"><p>In last week&rsquo;s <a href="/keeping-up-with-the-latest-hammer/">Developer Education session</a> at <a href="http://15below.com">15below</a> we had a look at immutable and persistent data structures, and why you&rsquo;d want to use them.</p>
+<div class="entry-content"><p>In last week&#39;s <a href="/keeping-up-with-the-latest-hammer/">Developer Education session</a> at <a href="http://15below.com">15below</a> we had a look at immutable and persistent data structures, and why you&#39;d want to use them.</p>
 
-<blockquote><p>TL;DR version: are you writing performance critical, real time code? Do you have less memory available than a low end smart phone? No?</p>
+<blockquote>
+<p>TL;DR version: are you writing performance critical, real time code? Do you have less memory available than a low end smart phone? No?</p>
 
-<p>Use immutable data types everywhere you can.</p></blockquote>
+<p>Use immutable data types everywhere you can.</p>
+</blockquote>
 
-<p>The session was inspired by <a href="https://twitter.com/ScottWlaschin">Scott Wlaschin</a>&rsquo;s excellent <a href="http://fsharpforfunandprofit.com/posts/is-your-language-unreasonable/">is your programming language unreasonable?</a> post. If you haven&rsquo;t read it yet, go and do so &ndash; it&rsquo;s much better than the rest of this post, and you can always come back here later if you remember.</p>
+<p>The session was inspired by <a href="https://twitter.com/ScottWlaschin">Scott Wlaschin</a>&#39;s excellent <a href="http://fsharpforfunandprofit.com/posts/is-your-language-unreasonable/">is your programming language unreasonable?</a> post. If you haven&#39;t read it yet, go and do so - it&#39;s much better than the rest of this post, and you can always come back here later if you remember.</p>
 
-<p>One of the points that Scott raises is that code written with mutable data structures (ones that you can change after they&rsquo;ve been created) is very hard to reason about. In the very literal sense of working out the reason why things happen.</p>
+<p>One of the points that Scott raises is that code written with mutable data structures (ones that you can change after they&#39;ve been created) is very hard to reason about. In the very literal sense of working out the reason why things happen.</p>
 
 <!-- more -->
-
 
 <p>So we kicked off with a couple of examples of the dangers of mutability. Consider the following C# code.</p>
 
@@ -168,8 +169,7 @@ ga('send', 'pageview');
 </span><span class='line'><span class="p">}</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
-<p>Does it update Bob&rsquo;s record, or someone else&rsquo;s? Well &ndash; this is Scott&rsquo;s point. We&rsquo;ve passed the mutable <code>mercurial</code> object (here a <code>List</code>, but it could be anything mutable) into a function (<code>DoWork</code>), and now we don&rsquo;t know what will be done to it. Even if we check that it has the value we were expecting (line 6) there&rsquo;s no guarantee that it won&rsquo;t be changed under our nose. Which in fact, it is, because the rest of the code looks like this:</p>
+<p>Does it update Bob&#39;s record, or someone else&#39;s? Well - this is Scott&#39;s point. We&#39;ve passed the mutable <code>mercurial</code> object (here a <code>List</code>, but it could be anything mutable) into a function (<code>DoWork</code>), and now we don&#39;t know what will be done to it. Even if we check that it has the value we were expecting (line 6) there&#39;s no guarantee that it won&#39;t be changed under our nose. Which in fact, it is, because the rest of the code looks like this:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>
@@ -197,13 +197,12 @@ ga('send', 'pageview');
 </span><span class='line'><span class="p">}</span>
 </span></code></pre></td></tr></table></div></figure>
 
+<p>This example is clearly contrived - but these kinds of bugs crop up in code a lot, and it doesn&#39;t even need to be asynchronous for it to happen.</p>
 
-<p>This example is clearly contrived &ndash; but these kinds of bugs crop up in code a lot, and it doesn&rsquo;t even need to be asynchronous for it to happen.</p>
-
-<p>We then discussed equality, and the fact that it can be very hard to decide what equality means for a mutable object. Is a customer object the same as another customer object because they both have the same Id? Because they&rsquo;re both the same object in memory? Because they have the same value in all of their fields? What happens if one of the fields is changed? Overriding equality in .net <a href="http://visualstudiomagazine.com/articles/2011/02/01/equality-in-net.aspx">is not trivial</a>. Edit: found a
+<p>We then discussed equality, and the fact that it can be very hard to decide what equality means for a mutable object. Is a customer object the same as another customer object because they both have the same Id? Because they&#39;re both the same object in memory? Because they have the same value in all of their fields? What happens if one of the fields is changed? Overriding equality in .net <a href="http://visualstudiomagazine.com/articles/2011/02/01/equality-in-net.aspx">is not trivial</a>. Edit: found a
 better article on the subject of <a href="http://www.aaronstannard.com/overriding-equality-in-dotnet/">C# equality</a> by Aaron Stannard.</p>
 
-<p>Immutable objects cannot be changed, which means that they are nearly always defined as having value based equality. If all of the fields are equal, the object is equal &ndash; and it can&rsquo;t change, so you don&rsquo;t have to worry about it shifting under you. This is such a useful property (especially if you&rsquo;re loading data from another source that you want to run comparisons on) that we&rsquo;ve even had occasions here where we&rsquo;ve considered implementing our data types as <a href="https://msdn.microsoft.com/en-us/library/dd233184.aspx">F# records</a> even when writing C# services.</p>
+<p>Immutable objects cannot be changed, which means that they are nearly always defined as having value based equality. If all of the fields are equal, the object is equal - and it can&#39;t change, so you don&#39;t have to worry about it shifting under you. This is such a useful property (especially if you&#39;re loading data from another source that you want to run comparisons on) that we&#39;ve even had occasions here where we&#39;ve considered implementing our data types as <a href="https://msdn.microsoft.com/en-us/library/dd233184.aspx">F# records</a> even when writing C# services.</p>
 
 <p>For example, you can define an F# record like this:</p>
 
@@ -225,7 +224,6 @@ better article on the subject of <a href="http://www.aaronstannard.com/overridin
 </span><span class='line'>    <span class="o">}</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
 <p>And then use it from C# like this:</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
@@ -246,28 +244,27 @@ better article on the subject of <a href="http://www.aaronstannard.com/overridin
 </span><span class='line'><span class="p">}</span>
 </span></code></pre></td></tr></table></div></figure>
 
-
 <p>If all you need is an immutable collection, rather than an immutable
-object with nice value based properties then you don&rsquo;t even need to
+object with nice value based properties then you don&#39;t even need to
 leave the comfort of your C# window. Microsoft themselves have bought
 into the concept of immutable data structures sufficiently to release
 an <a href="https://msdn.microsoft.com/en-us/library/dn385366%28v=vs.110%29.aspx">Immutable Collections</a> library.</p>
 
 <h3>But what about the memory? Think of the RAM, the poor RAM!</h3>
 
-<p>We also discussed the downsides of immutable data types. There are two concerns which are raised most frequently. The first is performance &ndash; in .net, using immutable data structures and then doing a lot of transforms on the data will create a lot of objects. This can have a significant effect in very performance critical areas of your code. This is a valid concern where performance is paramount, and the normal way around this is to wrap a private mutable object (or raw array, for
+<p>We also discussed the downsides of immutable data types. There are two concerns which are raised most frequently. The first is performance - in .net, using immutable data structures and then doing a lot of transforms on the data will create a lot of objects. This can have a significant effect in very performance critical areas of your code. This is a valid concern where performance is paramount, and the normal way around this is to wrap a private mutable object (or raw array, for
 that matter) in a function that does all of your heavy manipulation. In that way you can take advantage of the speed of imperative coding techniques whilst keeping their scope small enough to reason about the effects.</p>
 
-<p>Of course, even if <strong>speed</strong> isn&rsquo;t of paramount importance &ndash; what about <strong>memory</strong>? After all, these allocations must be adding up on the memory side of things as well, no?</p>
+<p>Of course, even if <strong>speed</strong> isn&#39;t of paramount importance - what about <strong>memory</strong>? After all, these allocations must be adding up on the memory side of things as well, no?</p>
 
-<p>Well, not as much as you might think, for two reasons. One is that if your code is asynchronous, you&rsquo;re almost certainly taking copies of your mutable data structures all over the place anyway to guarantee thread safety. Well, either that or you&rsquo;re taking a lot of locks, and you&rsquo;re back into performance issues.</p>
+<p>Well, not as much as you might think, for two reasons. One is that if your code is asynchronous, you&#39;re almost certainly taking copies of your mutable data structures all over the place anyway to guarantee thread safety. Well, either that or you&#39;re taking a lot of locks, and you&#39;re back into performance issues.</p>
 
-<p>The second, and much more interesting, reason is that a very bright guy called Chris Okasaki realised back in 1996 (despite the recent surge of interest in functional programming, it&rsquo;s not new&hellip;) that you can take advantage of the fact that an object is immutable to avoid copying all of it when a new, similar object is required.</p>
+<p>The second, and much more interesting, reason is that a very bright guy called Chris Okasaki realised back in 1996 (despite the recent surge of interest in functional programming, it&#39;s not new&#8230;) that you can take advantage of the fact that an object is immutable to avoid copying all of it when a new, similar object is required.</p>
 
-<p>For example, if you add a new object to the end of an immutable list, the new list you get back doesn&rsquo;t need to be a complete copy &ndash; it can just be the single new item with a pointer back to the original list. To the person using the list, it appears to be a three item list and they are none the wiser. Because it&rsquo;s immutable, the first two values never change, so it&rsquo;s never a concern to you whether your list is a completely new one, or a &ldquo;pointer&rdquo; list. Okasaki called these data
-types &ldquo;persistent&rdquo; data types as they &ldquo;persist&rdquo; a previous version of themselves when &ldquo;modified&rdquo;. You can read more about them in a <a href="https://en.wikipedia.org/wiki/Persistent_data_structure">surprisingly complete wikipedia article</a>.</p>
+<p>For example, if you add a new object to the end of an immutable list, the new list you get back doesn&#39;t need to be a complete copy - it can just be the single new item with a pointer back to the original list. To the person using the list, it appears to be a three item list and they are none the wiser. Because it&#39;s immutable, the first two values never change, so it&#39;s never a concern to you whether your list is a completely new one, or a &quot;pointer&quot; list. Okasaki called these data
+types &quot;persistent&quot; data types as they &quot;persist&quot; a previous version of themselves when &quot;modified&quot;. You can read more about them in a <a href="https://en.wikipedia.org/wiki/Persistent_data_structure">surprisingly complete wikipedia article</a>.</p>
 
-<p>In .net land, both the F# immutable records and collections, and the <code>System.Collections.Immutable</code> library from Microsoft mentioned above are persistent data types. So unless you&rsquo;re extremely memory constrained, you should be good to go.</p>
+<p>In .net land, both the F# immutable records and collections, and the <code>System.Collections.Immutable</code> library from Microsoft mentioned above are persistent data types. So unless you&#39;re extremely memory constrained, you should be good to go.</p>
 
 <p>And there you have it. An introduction to immutable data types: officially approved for use almost everywhere by your local Technical Architect.</p>
 </div>
@@ -341,6 +338,10 @@ types &ldquo;persistent&rdquo; data types as they &ldquo;persist&rdquo; a previo
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/advent-2016/">Advent 2016</a>
+      </li>
+    
+      <li class="post">
         <a href="/video-and-slides-for-from-the-ivory-tower/">Video and Slides for "From the Ivory Tower"</a>
       </li>
     
@@ -354,10 +355,6 @@ types &ldquo;persistent&rdquo; data types as they &ldquo;persist&rdquo; a previo
     
       <li class="post">
         <a href="/type-providers-live-the-movie/">Type Providers Live - the Movie</a>
-      </li>
-    
-      <li class="post">
-        <a href="/emparsec-embedded-parser-library/">EmParsec Embedded Parser Library</a>
       </li>
     
   </ul>

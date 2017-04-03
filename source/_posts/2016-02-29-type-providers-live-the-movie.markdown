@@ -13,4 +13,4 @@ Fortunately I think enough was preserved to be useful, and (amazingly!) all of t
 
 If you'd like to try things out for yourself, there's a github repository at https://github.com/mavnn/CambridgeTypeProvider which contains 6 individual fsx files, one for each new feature added to the type provider.
 
-There's a bunch of other type provider information scattered around this blog, if you're interested just click [the "typeprovider" tag](http://blog.mavnn.co.uk/blog/categories/typeprovider/).
+There's a bunch of other type provider information scattered around this blog, if you're interested just click [the "typeprovider" tag](https//blog.mavnn.co.uk/blog/categories/typeprovider/).

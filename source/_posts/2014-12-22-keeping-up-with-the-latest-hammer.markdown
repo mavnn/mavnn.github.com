@@ -84,7 +84,7 @@ We use Microsoft's .net languages for development, so (for example) we run sessi
 
 3) Potential new tools and general programming knowledge
 
-[SOLID](http://en.wikipedia.org/wiki/SOLID_%28object-oriented_design%29) programming. Why you shouldn't do thread management by hand. [Property based testing](http://blog.mavnn.co.uk/property-checking-start-challenge/) (that link is a write up of an actual DevEd session, if you're interested). This is where we try and introduce people to ideas they should be aware of, introduce new tools and languages that we are considering using but aren't yet or try and teach people how to *think* about development rather than how to *do* development. We also
+[SOLID](http://en.wikipedia.org/wiki/SOLID_%28object-oriented_design%29) programming. Why you shouldn't do thread management by hand. [Property based testing](https//blog.mavnn.co.uk/property-checking-start-challenge/) (that link is a write up of an actual DevEd session, if you're interested). This is where we try and introduce people to ideas they should be aware of, introduce new tools and languages that we are considering using but aren't yet or try and teach people how to *think* about development rather than how to *do* development. We also
 tend to throw some fairly odd ball things into this category to keep people thinking, and to avoid people only knowing about things within "our expertise." For example, although we're a Windows .net programming house we've run sessions on using Emacs and Vim. Why? Because a lot of programmers use these tools, and get a great deal of value from them. Which means they probably have things to teach us if we care to learn. And yes - this blog post was written in Vim!
 
 The idea in this category is not normally that a person will come out of the session being able to use something straight away - but they should now be aware it exists, and know what to look up if they do need to use it.
@@ -130,7 +130,7 @@ If you are already doing something: awesome! Tell us about it in the comments. W
 
 Whenever I get asked about this whole process over a conference beer, the follow up is always: what subjects have you covered?
 
-In terms of what the output looks like, [this blog's achieves will give you a selection of DevEd write ups](http://blog.mavnn.co.uk/blog/categories/15below/).
+In terms of what the output looks like, [this blog's achieves will give you a selection of DevEd write ups](https//blog.mavnn.co.uk/blog/categories/15below/).
 
 More generally, here's a selection of session titles from the last few years (with purely internal communication subjects removed, obviously):
 

@@ -26,7 +26,7 @@ So let's see if we can have a play with generated types, and then - given this i
 <!-- more -->
 
 
-> If you need a reminder of type provider basics, check out [Type Providers from the Ground Up](http://blog.mavnn.co.uk/type-providers-from-the-ground-up/)
+> If you need a reminder of type provider basics, check out [Type Providers from the Ground Up](https//blog.mavnn.co.uk/type-providers-from-the-ground-up/)
 
 Let's start with a really basic example of a generative type provider. We'll just create a single type with a static property on it.
 

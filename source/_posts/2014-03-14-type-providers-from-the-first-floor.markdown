@@ -6,7 +6,7 @@ comments: true
 categories: [fsharp, programming, typeprovider]
 ---
 
-*This post follows on directly from my previous post [Type Providers from the Ground Up](http://blog.mavnn.co.uk/type-providers-from-the-ground-up/). I highly recommend that you read that first, and check out the relevant example code from GitHub.*
+*This post follows on directly from my previous post [Type Providers from the Ground Up](https//blog.mavnn.co.uk/type-providers-from-the-ground-up/). I highly recommend that you read that first, and check out the relevant example code from GitHub.*
 
 *It's also a bit epic... grab yourself a coffee before you start.*
 

@@ -13,4 +13,4 @@ quotations and type providers) have been used to solve real problems in the real
 
 Video here: https://skillsmatter.com/skillscasts/7735-fixing-real-life-problems-from-the-ivory-tower
 
-Slides here: http://blog.mavnn.co.uk/FromTheIvoryTower/
+Slides here: https//blog.mavnn.co.uk/FromTheIvoryTower/

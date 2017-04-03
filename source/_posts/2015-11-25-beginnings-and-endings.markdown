@@ -17,9 +17,9 @@ Thanks 15below for:
 * being an incredibly flexible, generous & family friendly employer
 * Lots and lots of learning from existing code, conversations, other people delivering internal training, [letting me invite external speakers](https://twitter.com/15below_travel/status/340475764677951488), and the rest
 * releasing some open source, even while in an "enterprise" market: [github](https://github.com/15below/)
-* letting me [coordinate the internal developer education](http://blog.mavnn.co.uk/keeping-up-with-the-latest-hammer/)
-* sponsoring a [bunch](http://blog.mavnn.co.uk/functional-programming-in-an-imperitive-world/) [of](http://blog.mavnn.co.uk/sdd-conf-2015/)
-[conference](http://blog.mavnn.co.uk/lambdacon-2015/) speaking (there's more!)
+* letting me [coordinate the internal developer education](https//blog.mavnn.co.uk/keeping-up-with-the-latest-hammer/)
+* sponsoring a [bunch](https//blog.mavnn.co.uk/functional-programming-in-an-imperitive-world/) [of](https//blog.mavnn.co.uk/sdd-conf-2015/)
+[conference](https//blog.mavnn.co.uk/lambdacon-2015/) speaking (there's more!)
 * trusting me to convert the build from msbuild to [FAKE](https://github.com/fsharp/FAKE) and kick start the journey to automated deployment (which was a slow and painful one in msbuild world...)
 * picking solid, generous people [as staff](https://www.facebook.com/15below/posts/829520247132711) - that's just one example from many, and the company often matches the giving of the staff
 

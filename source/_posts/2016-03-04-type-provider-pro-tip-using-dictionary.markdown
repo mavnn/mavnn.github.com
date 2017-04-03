@@ -5,7 +5,7 @@ date: 2016-03-05 15:38:45 +0000
 comments: true
 categories: [fsharp, programming, typeprovider, tpProTip]
 ---
-During the [Type Provider Live](http://blog.mavnn.co.uk/type-providers-live-the-movie/) recording, [Ryan](https://twitter.com/panesofglass) asked me about basing erased provided types on dictionary types, and then exposing nicely typed properties to access data stored within the dictionary.
+During the [Type Provider Live](https//blog.mavnn.co.uk/type-providers-live-the-movie/) recording, [Ryan](https://twitter.com/panesofglass) asked me about basing erased provided types on dictionary types, and then exposing nicely typed properties to access data stored within the dictionary.
 
 This will sound familiar to users of a number of dynamically typed languages as in many cases objects in these languages are just dictionaries under the hood.
 

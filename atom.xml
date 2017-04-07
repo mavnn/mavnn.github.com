@@ -4,7 +4,7 @@
   <title><![CDATA[Mavnn's blog]]></title>
   <link href="https://blog.mavnn.co.uk/atom.xml" rel="self"/>
   <link href="https://blog.mavnn.co.uk/"/>
-  <updated>2017-04-06T14:22:25+01:00</updated>
+  <updated>2017-04-07T13:39:36+01:00</updated>
   <id>https://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,19 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Slides for F# Exchange 2017]]></title>
+    <link href="https://blog.mavnn.co.uk/slides-for-f-number-exchange-2017/"/>
+    <updated>2017-04-07T13:37:13+01:00</updated>
+    <id>https://blog.mavnn.co.uk/slides-for-f-number-exchange-2017</id>
+    <content type="html"><![CDATA[<p>My &quot;slides&quot; from my talk at F# Exchange were actually just a set of .fsx scripts this year, enabling me to play a bit live during the presentation.</p>
+
+<p>If you&#39;re interested you can find them on my github account at https://github.com/mavnn/FSharpX2017</p>
+
+<p>Have fun!</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Level Up Your F# Skills]]></title>
@@ -4756,224 +4769,6 @@ available.</p>
 <h3>Conclusion</h3>
 
 <p>All in all, LambdaCon was a thoroughly enjoyable day: huge congratulations to <a href="http://www.coderstug.org/">Coders TUG</a> for all the hard work and effort and for all the sponsors that kept the conference at such an affordable price. I&#39;m very much hoping they&#39;ll do more.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Testing ProvidedType.fs by Example]]></title>
-    <link href="https://blog.mavnn.co.uk/testing-providedtype-dot-fs/"/>
-    <updated>2015-02-16T12:12:56+00:00</updated>
-    <id>https://blog.mavnn.co.uk/testing-providedtype-dot-fs</id>
-    <content type="html"><![CDATA[<p>The <a href="https://github.com/fsprojects/FSharp.TypeProviders.StarterPack">Type Provider Starter Pack</a> was designed with two purposes initially. Firstly, to be a canonical repository for the ProvidedTypes files which provide a source file based API for creating type providers. And secondly, to be a set of tutorials and examples for people wanting to dip their toes into building type providers for the first time.</p>
-
-<p>To be honest, it&#39;s not been doing a complete job of either:</p>
-
-<ul>
-<li>I think most people are using it as the source of ProvidedTypes.fs and .fsi now days, but it didn&#39;t provide any infrastructure or testing for progressing the library.</li>
-<li>The &quot;examples&quot; were limited to a link to my <a href="https://blog.mavnn.co.uk/type-providers-from-the-ground-up/">tutorial on building type providers</a></li>
-</ul>
-
-<p>Today, that&#39;s changed. And I need your help!</p>
-
-<h3>Testing ProvidedTypes</h3>
-
-<p>Once I started thinking about it, it became clear that the code needed for basic type provider examples, and the code needed to test ProvidedTypes.fs were basically identical.</p>
-
-<p>So I implemented a system for compiling and testing example .fsx scripts within the Starter Pack repository.</p>
-
-<p>Want to help out? As long as you have some basic git and F# knowledge, it&#39;s easy!</p>
-
-<!-- more -->
-
-<h4>Fork the repository and pull down a clone</h4>
-
-<h4>Add an example to the <code>/examples</code> directory</h4>
-
-<p>Structure the example as below and save it as an .fsx file:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="o">#</span><span class="k">if</span> <span class="nc">INTERACTIVE</span>
-</span><span class='line'><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;../src/ProvidedTypes.fsi&quot;</span>
-</span><span class='line'><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;../src/ProvidedTypes.fs&quot;</span>
-</span><span class='line'><span class="o">#</span><span class="n">endif</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">open</span> <span class="nn">ProviderImplementation</span><span class="p">.</span><span class="nc">ProvidedTypes</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nn">Core</span><span class="p">.</span><span class="nc">CompilerServices</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Reflection</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">[&lt;</span><span class="nc">TypeProvider</span><span class="o">&gt;]</span>
-</span><span class='line'><span class="k">type</span> <span class="nc">BasicProvider</span> <span class="o">(</span><span class="n">config</span> <span class="o">:</span> <span class="nc">TypeProviderConfig</span><span class="o">)</span> <span class="k">as</span> <span class="n">this</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">inherit</span> <span class="nc">TypeProviderForNamespaces</span> <span class="bp">()</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="k">let</span> <span class="n">ns</span> <span class="o">=</span> <span class="s2">&quot;StaticProperty.Provided&quot;</span>
-</span><span class='line'>    <span class="k">let</span> <span class="n">asm</span> <span class="o">=</span> <span class="nn">Assembly</span><span class="p">.</span><span class="nc">GetExecutingAssembly</span><span class="bp">()</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="k">let</span> <span class="n">createTypes</span> <span class="bp">()</span> <span class="o">=</span>
-</span><span class='line'>        <span class="k">let</span> <span class="n">myType</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="s2">&quot;MyType&quot;</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;)</span>
-</span><span class='line'>        <span class="k">let</span> <span class="n">myProp</span> <span class="o">=</span> <span class="nc">ProvidedProperty</span><span class="o">(</span><span class="s2">&quot;MyProperty&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;,</span> <span class="nc">IsStatic</span> <span class="o">=</span> <span class="bp">true</span><span class="o">,</span>
-</span><span class='line'>                                        <span class="nc">GetterCode</span> <span class="o">=</span> <span class="o">(</span><span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="s2">&quot;Hello world&quot;</span> <span class="o">@@&gt;))</span>
-</span><span class='line'>        <span class="n">myType</span><span class="o">.</span><span class="nc">AddMember</span><span class="o">(</span><span class="n">myProp</span><span class="o">)</span>
-</span><span class='line'>        <span class="o">[</span><span class="n">myType</span><span class="o">]</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="k">do</span>
-</span><span class='line'>        <span class="n">this</span><span class="o">.</span><span class="nc">AddNamespace</span><span class="o">(</span><span class="n">ns</span><span class="o">,</span> <span class="n">createTypes</span><span class="bp">()</span><span class="o">)</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">[&lt;</span><span class="n">assembly</span><span class="o">:</span><span class="nc">TypeProviderAssembly</span><span class="o">&gt;]</span>
-</span><span class='line'><span class="k">do</span> <span class="bp">()</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>The <code>#if INTERACTIVE</code> block at the top will allow you to write your example in Visual Studio, without us requiring a separate project for each example provider.</p>
-
-<h4>Add a set of tests in a .fsx script in the <code>/examples</code> directory</h4>
-
-<p>The test file for the example above looks like this, and again should be saved as an .fsx file:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="o">#</span><span class="k">if</span> <span class="nc">INTERACTIVE</span>
-</span><span class='line'><span class="o">#</span><span class="n">r</span> <span class="o">@</span><span class="s2">&quot;../packages/Nunit.Runners/tools/nunit.framework.dll&quot;</span>
-</span><span class='line'><span class="o">#</span><span class="n">r</span> <span class="o">@</span><span class="s2">&quot;../test/StaticProperty.dll&quot;</span>
-</span><span class='line'><span class="o">#</span><span class="n">endif</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">open</span> <span class="nn">NUnit</span><span class="p">.</span><span class="nc">Framework</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">StaticProperty</span><span class="p">.</span><span class="nc">Provided</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">[&lt;</span><span class="nc">Test</span><span class="o">&gt;]</span>
-</span><span class='line'><span class="k">let</span> <span class="o">``</span><span class="nc">Static</span> <span class="n">property</span> <span class="n">should</span> <span class="n">have</span> <span class="n">been</span> <span class="n">created</span><span class="o">``</span> <span class="bp">()</span> <span class="o">=</span>
-</span><span class='line'>    <span class="nn">Assert</span><span class="p">.</span><span class="nc">AreEqual</span><span class="o">(</span><span class="s2">&quot;Hello world&quot;</span><span class="o">,</span> <span class="nn">MyType</span><span class="p">.</span><span class="nc">MyProperty</span><span class="o">)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>Note the two #r references at the top. Remember what you choose to call the dll!</p>
-
-<h4>Hooking up the examples so they get built and tested</h4>
-
-<p>The main build file is where the magic happens - <a href="https://github.com/fsprojects/FSharp.TypeProviders.StarterPack/blob/master/build.fsx">build.fsx</a> in the root directory.</p>
-
-<p>Squirrelled away in there is a target called <code>Examples</code>. It&#39;s contents look like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">examples</span> <span class="o">=</span>
-</span><span class='line'>    <span class="o">[</span>
-</span><span class='line'>        <span class="o">{</span>
-</span><span class='line'>            <span class="nc">Name</span> <span class="o">=</span> <span class="s2">&quot;StaticProperty&quot;</span>
-</span><span class='line'>            <span class="nc">ProviderSourceFiles</span> <span class="o">=</span> <span class="o">[</span><span class="s2">&quot;StaticProperty.fsx&quot;</span><span class="o">]</span>
-</span><span class='line'>            <span class="nc">TestSourceFiles</span> <span class="o">=</span> <span class="o">[</span><span class="s2">&quot;StaticProperty.Tests.fsx&quot;</span><span class="o">]</span>
-</span><span class='line'>        <span class="o">}</span>
-</span><span class='line'>        <span class="o">{</span>
-</span><span class='line'>            <span class="nc">Name</span> <span class="o">=</span> <span class="s2">&quot;ErasedWithConstructor&quot;</span>
-</span><span class='line'>            <span class="nc">ProviderSourceFiles</span> <span class="o">=</span> <span class="o">[</span><span class="s2">&quot;ErasedWithConstructor.fsx&quot;</span><span class="o">]</span>
-</span><span class='line'>            <span class="nc">TestSourceFiles</span> <span class="o">=</span> <span class="o">[</span><span class="s2">&quot;ErasedWithConstructor.Tests.fsx&quot;</span><span class="o">]</span>
-</span><span class='line'>        <span class="o">}</span>
-</span><span class='line'>    <span class="o">]</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="n">testNunitDll</span> <span class="o">=</span> <span class="n">testDir</span> <span class="o">@@</span> <span class="s2">&quot;nunit.framework.dll&quot;</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">do</span>
-</span><span class='line'>    <span class="k">if</span> <span class="nn">File</span><span class="p">.</span><span class="nc">Exists</span> <span class="n">testNunitDll</span> <span class="k">then</span>
-</span><span class='line'>        <span class="nn">File</span><span class="p">.</span><span class="nc">Delete</span> <span class="n">testNunitDll</span>
-</span><span class='line'>    <span class="nn">File</span><span class="p">.</span><span class="nc">Copy</span> <span class="o">(</span><span class="n">nunitDir</span> <span class="o">@@</span> <span class="s2">&quot;nunit.framework.dll&quot;</span><span class="o">,</span> <span class="n">testNunitDll</span><span class="o">)</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="n">fromExampleDir</span> <span class="n">filenames</span> <span class="o">=</span>
-</span><span class='line'>    <span class="n">filenames</span>
-</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">filename</span> <span class="o">-&gt;</span> <span class="n">exampleDir</span> <span class="o">@@</span> <span class="n">filename</span><span class="o">)</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">examples</span>
-</span><span class='line'><span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">iter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">example</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="c1">// Compile type provider</span>
-</span><span class='line'>        <span class="k">let</span> <span class="n">output</span> <span class="o">=</span> <span class="n">testDir</span> <span class="o">@@</span> <span class="n">example</span><span class="o">.</span><span class="nc">Name</span> <span class="o">+</span> <span class="s2">&quot;.dll&quot;</span>
-</span><span class='line'>        <span class="k">let</span> <span class="n">setOpts</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">def</span> <span class="o">-&gt;</span> <span class="o">{</span> <span class="n">def</span> <span class="k">with</span> <span class="nc">Output</span> <span class="o">=</span> <span class="n">output</span><span class="o">;</span> <span class="nc">FscTarget</span> <span class="o">=</span> <span class="nn">FscTarget</span><span class="p">.</span><span class="nc">Library</span> <span class="o">}</span>
-</span><span class='line'>        <span class="nc">Fsc</span> <span class="n">setOpts</span> <span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">concat</span> <span class="o">[</span><span class="n">pt</span><span class="o">;</span><span class="n">fromExampleDir</span> <span class="n">example</span><span class="o">.</span><span class="nc">ProviderSourceFiles</span><span class="o">])</span>
-</span><span class='line'>
-</span><span class='line'>        <span class="c1">// Compile test dll</span>
-</span><span class='line'>        <span class="k">let</span> <span class="n">setTestOpts</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">def</span> <span class="o">-&gt;</span>
-</span><span class='line'>            <span class="o">{</span> <span class="n">def</span> <span class="k">with</span>
-</span><span class='line'>                <span class="nc">Output</span> <span class="o">=</span> <span class="n">testDir</span> <span class="o">@@</span> <span class="n">example</span><span class="o">.</span><span class="nc">Name</span> <span class="o">+</span> <span class="s2">&quot;.Tests.dll&quot;</span>
-</span><span class='line'>                <span class="nc">FscTarget</span> <span class="o">=</span> <span class="nn">FscTarget</span><span class="p">.</span><span class="nc">Library</span>
-</span><span class='line'>                <span class="nc">References</span> <span class="o">=</span> <span class="o">[</span><span class="n">output</span><span class="o">;</span><span class="n">nunitDir</span> <span class="o">@@</span> <span class="s2">&quot;nunit.framework.dll&quot;</span><span class="o">]</span> <span class="o">}</span>
-</span><span class='line'>        <span class="nc">Fsc</span> <span class="n">setTestOpts</span> <span class="o">(</span><span class="n">fromExampleDir</span> <span class="n">example</span><span class="o">.</span><span class="nc">TestSourceFiles</span><span class="o">)</span>
-</span><span class='line'>    <span class="o">)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>You will need to add your example to the <code>examples</code> list at the top of the target. <code>Name</code> is the name of the dll that will be produced for your type provider. <code>ProviderSourceFiles</code> is the fsx file with your type provider example code. And <code>TestSourceFiles</code> is the code of your tests.</p>
-
-<p>If you check further down, the call to the compiler to compile your provider will automatically prepend the ProvidedTypes files, so there&#39;s no need to list those. And the call to the compiler to run your tests will have references added for the provider you just built and <code>nunit.framework.dll</code>.</p>
-
-<p>So what are you waiting for? Get writing some examples!</p>
 ]]></content>
   </entry>
   

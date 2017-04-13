@@ -31,7 +31,7 @@ but at its core it will be build up through four major topics:
 
 4. Computational Expressions: build powerful abstractions and then expose them in an easy to use way
 
-We're aiming for a cost of £1,295.00 for the course with early bird (10% until the 15th May) and group discounts available (contact [us](mailto:us@mavnn.co.uk)). Due to the nature of the course, there will be a hard limit of 12 attendees. Register your interest soon to secure a ticket, and if there's a waiting list we'll consult you about
+We're aiming for a cost of £1,295.00 for the course with early bird (<strike>10</strike> 15% until the 15th May) and group discounts available (contact [us](mailto:us@mavnn.co.uk)). Due to the nature of the course, there will be a hard limit of 12 attendees. Register your interest soon to secure a ticket, and if there's a waiting list we'll consult you about
 additional dates.
 
 As always with @mavnn training courses, we're also willing to come and deliver this training on site and tailor it to your specific needs. Contact us at [us@mavnn.co.uk](mailto:us@mavnn.co.uk) to discuss requirements and quotes.
@@ -42,7 +42,7 @@ As always with @mavnn training courses, we're also willing to come and deliver t
 
 ## How do I book?
 
-For now, mail us at [us@mavnn.co.uk](mailto:us@mavnn.co.uk) and we'll sort you out.
+We're selling tickets via [eventbrite](https://www.eventbrite.co.uk/e/level-up-your-f-skills-tickets-33720450776).
 
 ## Prerequisites
 
@@ -65,4 +65,4 @@ a round of drinks for the evening of the first day.
 
 ## Where will it be
 
-[CodeNode](https://skillsmatter.com/locations/264-skills-matter-codenode), subject to confirmation.
+At the [Wellcome Collection](https://wellcomecollection.org/), right next to Euston Station.

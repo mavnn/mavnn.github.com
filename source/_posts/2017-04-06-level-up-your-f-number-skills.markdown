@@ -18,7 +18,8 @@ give you a leg up that curve, and protect you from a few cuts along the way.
 This course will be aimed at people who have spent some time coding in F#
 (possibly after taking a course like the "[Fast Track to F#](https://skillsmatter.com/courses/473-tomas-petricek-phil-trelford-fast-track-to-fsharp#overview)") and realise that their
 projects could benefit from a deeper understanding of F# special
-abilities. A lot of these techniques would be especially useful for library authors.
+abilities. These techniques are especially useful for writing generic,
+reusable code - whether that's core internal code or widely used libraries.
 
 It will be a small group, allowing for personalization and some flexibility in design,
 but at its core it will be build up through four major topics:
@@ -31,7 +32,7 @@ but at its core it will be build up through four major topics:
 
 4. Computational Expressions: build powerful abstractions and then expose them in an easy to use way
 
-We're aiming for a cost of £1,295.00 for the course with early bird (<strike>10</strike> 15% until the 15th May) and group discounts available (contact [us](mailto:us@mavnn.co.uk)). Due to the nature of the course, there will be a hard limit of 12 attendees. Register your interest soon to secure a ticket, and if there's a waiting list we'll consult you about
+We're aiming for a cost of £1,295.00 for the course with early bird (<strike>10</strike> 15% until the 15th May) and group discounts available (contact [us](mailto:us@mavnn.co.uk)). Due to the nature of the course, there will be a hard limit of 12 attendees. There's also a limited quantity of super-early bird tickets available if you're quick! Register your interest soon to secure a ticket, and if there's a waiting list we'll consult you about
 additional dates.
 
 As always with @mavnn training courses, we're also willing to come and deliver this training on site and tailor it to your specific needs. Contact us at [us@mavnn.co.uk](mailto:us@mavnn.co.uk) to discuss requirements and quotes.

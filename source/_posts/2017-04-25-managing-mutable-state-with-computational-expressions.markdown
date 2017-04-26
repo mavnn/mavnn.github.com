@@ -123,7 +123,7 @@ type ProvidedTypeBuilder () =
 ```
 
 So we have a bind... but it can only bind ``unit`` and no other type. All
-it knows how to deal with is composing two ``ProvidedTypeBuilder -> ProvidedTypeBuilder`` functions. ``Zero`` and ``Return`` make a some sense as well: both
+it knows how to deal with is composing two ``ProvidedTypeBuilder -> ProvidedTypeBuilder`` functions. ``Zero`` and ``Return`` make some sense as well: both
 can be meaningfully defined using the ``id`` function; just take the provided
 type definition and pass it on unchanged.
 
@@ -210,7 +210,7 @@ Obviously a lot more could be done at this point: we've barely scratched
 the provided types API, but we'll leave the blog post at this point.
 
 This blog post comes with many thanks to [Andrew Cherry](http://twitter.com/kolektiv) who took some pretty mad lunch time discussions and turned them into
-the very real and unable [Freya](https://docs.freya.io/en/latest/) (along with a bunch of collaborators). Freya makes use of this kind of
+the very real and usable [Freya](https://docs.freya.io/en/latest/) (along with a bunch of collaborators). Freya makes use of this kind of
 technique heavily.
 
 *Want to learn more about computational expressions, type providers and more?

@@ -1,0 +1,601 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Managing Mutable State With Computational Expressions - Mavnn's blog</title>
+  <meta name="author" content="mavnn">
+
+  
+  <meta name="description" content="Want to learn more about computational expressions, type providers and more?
+I&#39;m running a course in London on the 15th/16th June 2017 to Level &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+  <link rel="canonical" href="http://blog.mavnn.co.uk/managing-mutable-state-with-computational-expressions/">
+  <link href="/favicon.ico" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Mavnn's blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+<!-- Google Analytics -->
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-37561687-1', 'auto');
+ga('send', 'pageview');
+
+</script>
+<!-- End Google Analytics -->
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <a href="http://mavnn.co.uk"><img class="swirl-logo" src="/images/swirl.svg"/></a>
+  <h1><a href="/">Mavnn's blog</a></h1>
+  
+    <h2>Stuff from my brain</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:blog.mavnn.co.uk" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Managing Mutable State With Computational Expressions</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2017-04-25T23:55:29+01:00" pubdate data-updated="true">Apr 25<span>th</span>, 2017</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p><em>Want to learn more about computational expressions, type providers and more?
+I&#39;m running a course in London on the 15th/16th June 2017 to <a href="https://www.eventbrite.co.uk/e/level-up-your-f-skills-tickets-33720450776">Level Up Your F#</a> - come along and build more awesome!</em></p>
+
+<p>In mixed paradigm languages such as F# and Scala you frequently end up using
+mutable APIs in your &quot;nice&quot; pure functional code. It might be because you&#39;re using
+a 3rd party library, or it might be for performance reasons - but either way it&#39;s very
+easy to make mistakes with mutable constructs when you&#39;re in a functional mind space, especially if you want to compose operations on instances of a mutable type.</p>
+
+<p>Let&#39;s have a look at one way of handling this issue: custom operations on 
+computational expressions. We&#39;ll take the Provided Types API for building
+types within a type provider as an example of an API to
+use, and see what we can do to wrap it.</p>
+
+<!-- more -->
+
+<p>Firstly, let&#39;s give an example of the issue. Creating even a simple type
+within a type provider looks something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nc">System</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Reflection</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">FSharp</span><span class="p">.</span><span class="nn">Core</span><span class="p">.</span><span class="nc">CompilerServices</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">FSharp</span><span class="p">.</span><span class="nc">Quotations</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">ProviderImplementation</span><span class="p">.</span><span class="nc">ProvidedTypes</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="nc">TypeProvider</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">type</span> <span class="nc">CambridgeProvider</span><span class="bp">()</span> <span class="k">as</span> <span class="n">this</span> <span class="o">=</span>
+</span><span class='line'>  <span class="k">inherit</span> <span class="nc">TypeProviderForNamespaces</span><span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">let</span> <span class="n">ns</span> <span class="o">=</span> <span class="s2">&quot;Mavnn.Provided&quot;</span>
+</span><span class='line'>  <span class="k">let</span> <span class="n">asm</span> <span class="o">=</span> <span class="nn">Assembly</span><span class="p">.</span><span class="nc">GetExecutingAssembly</span><span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">let</span> <span class="n">myProp</span> <span class="o">=</span>
+</span><span class='line'>    <span class="nc">ProvidedProperty</span><span class="o">(</span>
+</span><span class='line'>      <span class="s2">&quot;StaticProperty&quot;</span><span class="o">,</span>
+</span><span class='line'>      <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;,</span>
+</span><span class='line'>      <span class="nc">IsStatic</span> <span class="o">=</span> <span class="bp">true</span><span class="o">,</span>
+</span><span class='line'>      <span class="nc">GetterCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="s2">&quot;Hello world&quot;</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">let</span> <span class="n">myType</span> <span class="o">=</span>
+</span><span class='line'>    <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="s2">&quot;StaticType&quot;</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;)</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">do</span>
+</span><span class='line'>    <span class="n">myType</span><span class="o">.</span><span class="nc">AddMember</span> <span class="n">myProp</span>
+</span><span class='line'>    <span class="n">this</span><span class="o">.</span><span class="nc">AddNamespace</span><span class="o">(</span><span class="n">ns</span><span class="o">,</span> <span class="o">[</span><span class="n">myType</span><span class="o">])</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="n">assembly</span><span class="o">:</span><span class="nc">TypeProviderAssembly</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">do</span><span class="bp">()</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>The main problem is right at the end on line 26: having
+created your property you need to then add it the the mutable <code>ProvidedTypeDefinition</code>. This is easy to forget on the one hand, and makes it hard too
+compose partial type definitions on the other.</p>
+
+<p>One way to handle this would be to create a function that takes a provided
+type definition and knows how to amend it with a provided property.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">addHelloWorld</span> <span class="o">(</span><span class="n">ptd</span> <span class="o">:</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">myProp</span> <span class="o">=</span>
+</span><span class='line'>        <span class="nc">ProvidedProperty</span><span class="o">(</span>
+</span><span class='line'>          <span class="s2">&quot;StaticProperty&quot;</span><span class="o">,</span>
+</span><span class='line'>          <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;,</span>
+</span><span class='line'>          <span class="nc">IsStatic</span> <span class="o">=</span> <span class="bp">true</span><span class="o">,</span>
+</span><span class='line'>          <span class="nc">GetterCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="s2">&quot;Hello world&quot;</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>    <span class="n">ptd</span><span class="o">.</span><span class="nc">AddMember</span> <span class="n">myProp</span>
+</span><span class='line'>    <span class="n">ptd</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Now if we have a lot of types that need, say, a &quot;hello world&quot; and &quot;goodbye world&quot; property added we can do something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">addCommon</span> <span class="n">ptd</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">ptd</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="n">addHelloWorld</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="n">addGoodbyeWorld</span> <span class="c1">// definition left as an exercise</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>So now you can pass in a <code>ProvidedTypeDefinition</code> and get out one with
+your two common properties added. But now the secret is that you want to
+pass around these builder functions as much as possible, and only actually
+pass in a instance of <code>ProvidedTypeDefinition</code> right at the end; up until
+you do, you have something composable and reusable. Once you&#39;ve created your
+instance, you&#39;re done.</p>
+
+<p>This sounds similar, but not quite like, continuation passing style programming
+as used in things like <code>async</code> under the hood. Which raises the interesting
+possibility that we might be able to <strike>ab</strike>use computational
+expressions to make our code a bit nicer. Let&#39;s give it a go!</p>
+
+<p>Computational expressions are built via a class with some strictly named
+member methods which the F# compiler then uses to translate the computational
+expression code into &quot;standard&quot; F#.</p>
+
+<p>The type the CE is going to operate on is going to be
+<code>ProvidedTypeDefinition -&gt; ProvidedTypeDefinition</code> (similar to the state
+monad for those of you who&#39;ve played with it). But it&#39;s going to be a little
+odd, as we have no monad and won&#39;t be following the monad laws, so there&#39;s
+really no meaningful bind operation. What would that look like?</p>
+
+<p>Something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">PTD</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span> <span class="o">-&gt;</span> <span class="nc">ProvidedTypeDefinition</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">ProvidedTypeBuilder</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">member</span> <span class="o">__.</span><span class="nc">Zero</span> <span class="bp">()</span> <span class="o">:</span> <span class="nc">PTD</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">id</span>
+</span><span class='line'>    <span class="k">member</span> <span class="o">__.</span><span class="nc">Return</span> <span class="o">_</span> <span class="o">:</span> <span class="nc">PTD</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">id</span>
+</span><span class='line'>    <span class="k">member</span> <span class="o">__.</span><span class="nc">Bind</span><span class="o">(</span><span class="n">m</span><span class="o">,</span> <span class="n">f</span> <span class="o">:</span> <span class="kt">unit</span> <span class="o">-&gt;</span> <span class="nc">PTD</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">fun</span> <span class="n">ptd</span> <span class="o">-&gt;</span> <span class="o">(</span><span class="n">f</span> <span class="bp">()</span><span class="o">)</span> <span class="o">(</span><span class="n">m</span> <span class="n">ptd</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Combine</span><span class="o">(</span><span class="n">m1</span> <span class="o">:</span> <span class="nc">PTD</span><span class="o">,</span> <span class="n">m2</span> <span class="o">:</span> <span class="nc">PTD</span><span class="o">)</span> <span class="o">:</span> <span class="nc">PTD</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">x</span><span class="o">.</span><span class="nc">Bind</span><span class="o">(</span><span class="n">m1</span><span class="o">,</span> <span class="k">fun</span> <span class="bp">()</span> <span class="o">-&gt;</span> <span class="n">m2</span><span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>So we have a bind&#8230; but it can only bind <code>unit</code> and no other type. All
+it knows how to deal with is composing two <code>ProvidedTypeBuilder -&gt; ProvidedTypeBuilder</code> functions. <code>Zero</code> and <code>Return</code> make a some sense as well: both
+can be meaningfully defined using the <code>id</code> function; just take the provided
+type definition and pass it on unchanged.</p>
+
+<p>Now we can write code like this!</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">typeBuilder</span> <span class="o">=</span> <span class="nc">ProvidedTypeBuilder</span> <span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">typeBuilder</span> <span class="o">{</span>
+</span><span class='line'>    <span class="bp">()</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Okay, so I admit we&#39;re not quite there yet. Time to dive into the fun bit;
+adding a custom operation to our builder.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">PTD</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span> <span class="o">-&gt;</span> <span class="nc">ProvidedTypeDefinition</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">ProvidedTypeBuilder</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">member</span> <span class="o">__.</span><span class="nc">Zero</span> <span class="bp">()</span> <span class="o">:</span> <span class="nc">PTD</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">id</span>
+</span><span class='line'>    <span class="k">member</span> <span class="o">__.</span><span class="nc">Return</span> <span class="o">_</span> <span class="o">:</span> <span class="nc">PTD</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">id</span>
+</span><span class='line'>    <span class="k">member</span> <span class="o">__.</span><span class="nc">Bind</span><span class="o">(</span><span class="n">m</span><span class="o">,</span> <span class="n">f</span> <span class="o">:</span> <span class="kt">unit</span> <span class="o">-&gt;</span> <span class="nc">PTD</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">fun</span> <span class="n">ptd</span> <span class="o">-&gt;</span> <span class="o">(</span><span class="n">f</span> <span class="bp">()</span><span class="o">)</span> <span class="o">(</span><span class="n">m</span> <span class="n">ptd</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Combine</span><span class="o">(</span><span class="n">m1</span> <span class="o">:</span> <span class="nc">PTD</span><span class="o">,</span> <span class="n">m2</span> <span class="o">:</span> <span class="nc">PTD</span><span class="o">)</span> <span class="o">:</span> <span class="nc">PTD</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">x</span><span class="o">.</span><span class="nc">Bind</span><span class="o">(</span><span class="n">m1</span><span class="o">,</span> <span class="k">fun</span> <span class="bp">()</span> <span class="o">-&gt;</span> <span class="n">m2</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="o">[&lt;</span><span class="nc">CustomOperation</span><span class="o">(</span><span class="s2">&quot;addMember&quot;</span><span class="o">,</span> <span class="nc">MaintainsVariableSpaceUsingBind</span> <span class="o">=</span> <span class="bp">true</span><span class="o">)&gt;]</span>
+</span><span class='line'>    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">AddMember</span><span class="o">(</span><span class="n">ptd</span><span class="o">,</span> <span class="k">member&#39;</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">func</span> <span class="o">=</span>
+</span><span class='line'>          <span class="k">fun</span> <span class="o">(</span><span class="n">instance</span> <span class="o">:</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">)</span> <span class="o">-&gt;</span>
+</span><span class='line'>              <span class="n">instance</span><span class="o">.</span><span class="nc">AddMember</span> <span class="k">member&#39;</span>
+</span><span class='line'>              <span class="n">instance</span>
+</span><span class='line'>        <span class="n">x</span><span class="o">.</span><span class="nc">Bind</span><span class="o">(</span><span class="n">ptd</span><span class="o">,</span> <span class="k">fun</span> <span class="bp">()</span> <span class="o">-&gt;</span> <span class="n">func</span><span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Now we&#39;re starting to get somewhere, with code that begins to look like
+this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">withHelloWorld</span> <span class="o">=</span>
+</span><span class='line'>  <span class="n">typeBuilder</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">addMember</span> <span class="o">(</span><span class="nc">ProvidedProperty</span><span class="o">(</span>
+</span><span class='line'>                  <span class="s2">&quot;StaticProperty&quot;</span><span class="o">,</span>
+</span><span class='line'>                  <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;,</span>
+</span><span class='line'>                  <span class="nc">IsStatic</span> <span class="o">=</span> <span class="bp">true</span><span class="o">,</span>
+</span><span class='line'>                  <span class="nc">GetterCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="s2">&quot;Hello world&quot;</span> <span class="o">@@&gt;))</span>
+</span><span class='line'>  <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p><code>withHelloWorld</code> has a type of <code>ProvidedTypeDefinition -&gt; ProvidedTypeDefinition</code> as you&#39;d expect. But there&#39;s still no easy way to compose these; let&#39;s
+add that next.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">ProvidedTypeBuilder</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>    <span class="c1">// ...snip...</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="o">[&lt;</span><span class="nc">CustomOperation</span><span class="o">(</span><span class="s2">&quot;including&quot;</span><span class="o">,</span> <span class="nc">MaintainsVariableSpaceUsingBind</span> <span class="o">=</span> <span class="bp">true</span><span class="o">)&gt;]</span>
+</span><span class='line'>    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Including</span><span class="o">(</span><span class="n">ptd</span><span class="o">,</span> <span class="n">builder</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">x</span><span class="o">.</span><span class="nc">Combine</span><span class="o">(</span><span class="n">ptd</span><span class="o">,</span> <span class="n">builder</span><span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>The <code>including</code> operation is just a wrapper around combine, but it allows us
+to do things like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">withHelloAndGoodbye</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">typeBuilder</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">including</span> <span class="n">withHelloWorld</span>
+</span><span class='line'>        <span class="n">addMember</span> <span class="o">(</span><span class="nc">ProvidedProperty</span><span class="o">(</span>
+</span><span class='line'>                    <span class="s2">&quot;Goodbye&quot;</span><span class="o">,</span>
+</span><span class='line'>                    <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;,</span>
+</span><span class='line'>                    <span class="nc">IsStatic</span> <span class="o">=</span> <span class="bp">true</span><span class="o">,</span>
+</span><span class='line'>                    <span class="nc">GetterCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="s2">&quot;Goodbye&quot;</span> <span class="o">@@&gt;))</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>And now the power of this technique begins to be shown, as we build
+blocks of composable code which can be included within each other.</p>
+
+<p>Obviously a lot more could be done at this point: we&#39;ve barely scratched
+the provided types API, but we&#39;ll leave the blog post at this point.</p>
+
+<p>This blog post comes with many thanks to <a href="http://twitter.com/kolektiv">Andrew Cherry</a> who took some pretty mad lunch time discussions and turned them into
+the very real and unable <a href="https://docs.freya.io/en/latest/">Freya</a> (along with a bunch of collaborators). Freya makes use of this kind of
+technique heavily.</p>
+
+<p><em>Want to learn more about computational expressions, type providers and more?
+I&#39;m running a course in London on the 15th/16th June 2017 to <a href="https://www.eventbrite.co.uk/e/level-up-your-f-skills-tickets-33720450776">Level Up Your F#</a> - come along and build more awesome!</em></p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">mavnn</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2017-04-25T23:55:29+01:00" pubdate data-updated="true">Apr 25<span>th</span>, 2017</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/fsharp/'>fsharp</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://blog.mavnn.co.uk/managing-mutable-state-with-computational-expressions/" data-via="mavnn" data-counturl="http://blog.mavnn.co.uk/managing-mutable-state-with-computational-expressions/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/return-to-the-ivory-tower-video/" title="Previous Post: Return to the Ivory Tower Video">&laquo; Return to the Ivory Tower Video</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/managing-mutable-state-with-computational-expressions/">Managing Mutable State With Computational Expressions</a>
+      </li>
+    
+      <li class="post">
+        <a href="/return-to-the-ivory-tower-video/">Return to the Ivory Tower Video</a>
+      </li>
+    
+      <li class="post">
+        <a href="/slides-for-f-number-exchange-2017/">Slides for F# Exchange 2017</a>
+      </li>
+    
+      <li class="post">
+        <a href="/level-up-your-f-number-skills/">Level Up Your F# Skills</a>
+      </li>
+    
+      <li class="post">
+        <a href="/returning-to-the-ivory-tower/">Returning to the Ivory Tower</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/mavnn">@mavnn</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'mavnn',
+            count: 3,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/+MichaelNewtonmavnn?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2017 - mavnn -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mavnn';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://blog.mavnn.co.uk/managing-mutable-state-with-computational-expressions/';
+        var disqus_url = 'http://blog.mavnn.co.uk/managing-mutable-state-with-computational-expressions/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

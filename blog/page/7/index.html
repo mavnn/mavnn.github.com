@@ -9,7 +9,7 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="Although you do get proud of some of the strangest things. I particularly like the Welsh dragon. What you can&#39;t see is that he&#39;s written the &hellip;">
+  <meta name="description" content="I found a new error, yesterday:    error FS0192: internal error: null: GetTRefType It showed up when I tried to run a .fsx script that referenced &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -79,6 +79,42 @@ ga('send', 'pageview');
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/strange-errors-from-the-f-compiler/index.html">Strange Errors From the F# Compiler</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-11-23T00:00:00+00:00" pubdate data-updated="true"></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content">I found a new error, yesterday:<p /><div>    <i class="" style="font-style: normal; background-color: rgb(245,245,245); font-family: Menlo,Bitstream Vera Sans Mono,Courier New,Courier,monospace; font-size: 12px; line-height: 16.78333282470703px; color: rgb(196,112,3);">error FS0192: internal error: null: GetTRefType</i></div> <p /><div>It showed up when I tried to run a .fsx script that referenced NuGet.Core 2.1.0, but only when the script was run on Windows Server 2008 R2. Windows 7 x64? No problems. Windows Server 2003/8 x86? No problems.<br /> </div><p /><div>2008 R2? Bam. Every time.</div><p /><div>A bit of trial of error discovered two things:</div><p /><div>The error went away if I referenced NuGet.Core 2.2.0 alpha 4<br /></div><p /><div>And the minimal error case is pretty minimal:</div><p /><div><script src="https://gist.github.com/4136322.js"></script></div><p /><div>Looking at the NuGet.Core source ( <a href="http://nuget.codeplex.com/SourceControl/changeset/view/5b6d7e16b19c#src%2fCore%2fSemanticVersion.cs">http://nuget.codeplex.com/SourceControl/changeset/view/5b6d7e16b19c#src%2fCore%2fSemanticVersion.cs</a> ) the only thing that might be a relevant change that I can see is a simplification of some custom GetHashCode logic.</div> <p /><div>Raising the interesting question of why there is custom GetHashCode logic in the first place, and how the heck did they get it to cause internal F# compiler errors anyway? And why did it only fail on that one specific version of Windows?</div> <p /><div>All very strange. Hopefully 2.2.0 will be a full release before we want to start using this technique for in our production code! </div>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -409,42 +445,6 @@ ga('send', 'pageview');
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/110784493/index.html">Untitled</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2012-03-13T00:00:00+00:00" pubdate data-updated="true"></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><img src="/images/IMG_20120313_113130.jpg" alt="Untitled" /><p></p><p>Good stuff for furniture building. And not as dramatic as the picture suggests! </p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/8/">&larr; Older</a>
@@ -462,6 +462,10 @@ ga('send', 'pageview');
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/managing-mutable-state-with-computational-expressions/">Managing Mutable State With Computational Expressions</a>
+      </li>
+    
+      <li class="post">
         <a href="/return-to-the-ivory-tower-video/">Return to the Ivory Tower Video</a>
       </li>
     
@@ -475,10 +479,6 @@ ga('send', 'pageview');
     
       <li class="post">
         <a href="/returning-to-the-ivory-tower/">Returning to the Ivory Tower</a>
-      </li>
-    
-      <li class="post">
-        <a href="/advent-2016/">Advent 2016</a>
       </li>
     
   </ul>

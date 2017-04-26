@@ -9,7 +9,8 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="This weekend I had the honour of speaking at LambdaCon. My own talk I&#39;ll be writing some separate posts on in the future, but I also wanted to &hellip;">
+  <meta name="description" content="One of the big sells of shared runtime functional languages such as F#, Scala
+and Clojure is that you can carrying on using the surrounding library &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -79,6 +80,66 @@ ga('send', 'pageview');
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/ecumenical-apis/">Ecumenical APIs</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-05-06T10:44:16+01:00" pubdate data-updated="true">May 6<span>th</span>, 2015</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>One of the big sells of shared runtime functional languages such as F#, Scala
+and Clojure is that you can carrying on using the surrounding library ecosystem
+and your existing code. The different paradigm occasionally causes a little
+pain, but there are plenty of blog posts about how to wrap OO interfaces in a
+functionally friendly way.</p>
+
+<p>This is not one of those blog posts. This is about making sure that your
+colleagues who are consuming your shiny new code in an imperative language
+(generally C# in my case) don&#39;t threaten to defenestrate you.</p>
+
+<p>At <a href="http://15below.com">15below</a> we&#39;ve recently had need in some of our services
+of taking a distributed lock between servers. There are many services available
+designed for doing this, but after some deliberation we decided that we didn&#39;t
+want to add a new piece of infrastructure purely for this one purpose. So
+<a href="http://15below.github.io/Sproc.Lock">Sproc.Lock</a> was born: SQL Server based
+distributed locking.</p>
+
+<p>In this post, I&#39;m not going to talk about the design of the service. What I&#39;m
+going to write about is how I engineered the API to be pleasent to use from both
+C# and F#, giving a idiomatic interface from both languages.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/ecumenical-apis/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -658,77 +719,6 @@ shaped handle and you have to hammer sideways instead of down.</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/cutting-quotations-down-to-size/">Cutting Quotations Down to Size</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-10-07T21:30:58+01:00" pubdate data-updated="true">Oct 7<span>th</span>, 2014</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><blockquote>
-<p>This is part 2 in my quotations series, following on from <a href="/tap/">Tap, Tap, Tapping on the Door</a>.</p>
-</blockquote>
-
-<p>As promised in the first part of this series, here we&#39;re going to take a look at manipulating quotations. I mean, we&#39;ve got this <a href="http://en.wikipedia.org/wiki/Abstract_syntax_tree">AST</a> - now what are we going to do with it?</p>
-
-<p>Let&#39;s start with something fairly straightforward; <a href="http://en.wikipedia.org/wiki/Boolean_algebra">boolean algebra</a>.</p>
-
-<p>First, let&#39;s get a look at how some boolean expressions are represented in quotations.</p>
-
-<p>Firing up F# Interactive, we&#39;ll feed a few in and see what happens:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="o">&lt;@@</span> <span class="bp">true</span> <span class="o">@@&gt;;;</span>
-</span><span class='line'><span class="c">(* val it : Expr =</span>
-</span><span class='line'><span class="c">      Value (true)</span>
-</span><span class='line'><span class="c">        {CustomAttributes = [NewTuple (Value (&quot;DebugRange&quot;),</span>
-</span><span class='line'><span class="c">              NewTuple (Value (&quot;stdin&quot;), Value (4), Value (4), Value (4), Value (8)))];</span>
-</span><span class='line'><span class="c">         Type = System.Boolean;} *)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>Hmm. That&#39;s&#8230; not as nice as we might want. The custom attributes are being added by F# interactive for debugging purposes, but hopefully the general shape is clear: our expression consists of a single value of <code>true</code>.</p>
-
-<p>I&#39;ll cut out the custom attributes from now on to make reading things a bit easier.</p>
-
-<p>Next!</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/cutting-quotations-down-to-size/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/4/">&larr; Older</a>
@@ -746,6 +736,10 @@ shaped handle and you have to hammer sideways instead of down.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/managing-mutable-state-with-computational-expressions/">Managing Mutable State With Computational Expressions</a>
+      </li>
+    
+      <li class="post">
         <a href="/return-to-the-ivory-tower-video/">Return to the Ivory Tower Video</a>
       </li>
     
@@ -759,10 +753,6 @@ shaped handle and you have to hammer sideways instead of down.</p>
     
       <li class="post">
         <a href="/returning-to-the-ivory-tower/">Returning to the Ivory Tower</a>
-      </li>
-    
-      <li class="post">
-        <a href="/advent-2016/">Advent 2016</a>
       </li>
     
   </ul>

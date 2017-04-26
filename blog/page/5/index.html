@@ -9,7 +9,7 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="This post is part of a series: part 2 follows on directly from this post. In the ground tradition of blog posts as both documentation and augmented &hellip;">
+  <meta name="description" content="Apparently I should be able to do inline F# code using one of the Octopress plugins, rather than having to use gists every where. Let&#39;s try it: 1 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -85,6 +85,54 @@ ga('send', 'pageview');
       
   <header>
     
+      <h1 class="entry-title"><a href="/pygments/">Pygments</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-01-03T12:23:00+00:00" pubdate data-updated="true">Jan 3<span>rd</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Apparently I should be able to do inline F# code using one of the Octopress plugins, rather than having to use gists every where.</p>
+
+<p>Let&#39;s try it:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">hello</span> <span class="o">=</span> <span class="s2">&quot;world&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Thanks <a href="https://twitter.com/ovatsus/status/411496863591067648">Gustavo</a></p>
+
+<p>Only issue is that having Python 3.x installed broke Octopress&#39; Pygments support. Which kept me going for a while&#8230;</p>
+
+<p>Given I&#39;m not currently doing any Python development, a uninstall and adding 2.7 to the path did the job.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
       <h1 class="entry-title"><a href="/type-providers-from-the-ground-up/">Type Providers From the Ground Up</a></h1>
     
     
@@ -108,7 +156,10 @@ ga('send', 'pageview');
   </header>
 
 
-  <div class="entry-content"><p><em>This post is part of a series: <a href="/type-providers-from-the-first-floor/">part 2</a> follows on directly from this post.</em></p>
+  <div class="entry-content"><p><em>Want to learn more about computational expressions, type providers and more?
+I&#39;m running a course in London on the 15th/16th June 2017 to <a href="https://www.eventbrite.co.uk/e/level-up-your-f-skills-tickets-33720450776">Level Up Your F#</a> - come along and build more awesome!</em></p>
+
+<p><em>This post is part of a series: <a href="/type-providers-from-the-first-floor/">part 2</a> follows on directly from this post.</em></p>
 
 <p>In the ground tradition of blog posts as both documentation and augmented memory, I&#39;ve just added our first <a href="http://blogs.msdn.com/b/dsyme/archive/2013/01/30/twelve-type-providers-in-pictures.aspx">Type Provider</a> to the code base. Time to write up the details before a) I forget them and b) anyone else needs to modify the code.</p>
 
@@ -1249,196 +1300,6 @@ let UpdateProj (projFile : string) =
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/throttling-the-level-of-concurrency-in-f/">Throttling the Level of Concurrency in F#</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-02-15T00:00:00+00:00" pubdate data-updated="true"></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Async.Parallel |&gt; Async.RunSynchronously is great for running a load of stuff in parallel in F#, as long as you don&#39;t mind them all running at the same time.</p>
-
-<p>Often, though, you want to map across a sequence and run functions on the elements in parallel, but with a limit to how many are being processed concurrently. Whether you&#39;re doing something CPU heavy and there&#39;s no point running more than the number of processors on the box, or whether you know that you&#39;ll swamp a remote server if you just dump all of your connections on it at once, this issue comes up surprisingly often.</p>
-
-<p>As a first stab, you might be tempted to do something like this (if you think like I do):</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="k">inline</span> <span class="n">doParallelWithThrottle</span> <span class="n">limit</span> <span class="n">f</span> <span class="n">items</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">use</span> <span class="n">sem</span> <span class="o">=</span> <span class="k">new</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Threading</span><span class="p">.</span><span class="nc">Semaphore</span><span class="o">(</span><span class="n">limit</span><span class="o">,</span> <span class="n">limit</span><span class="o">)</span>
-</span><span class='line'>    <span class="n">items</span>
-</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">element</span> <span class="o">-&gt;</span> <span class="n">async</span> <span class="o">{</span>
-</span><span class='line'>            <span class="n">sem</span><span class="o">.</span><span class="nc">WaitOne</span><span class="bp">()</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
-</span><span class='line'>            <span class="k">let</span> <span class="n">result</span> <span class="o">=</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">RunSynchronously</span> <span class="o">&lt;|</span> <span class="n">async</span> <span class="o">{</span> <span class="k">return</span> <span class="n">f</span> <span class="n">element</span> <span class="o">}</span>
-</span><span class='line'>            <span class="n">sem</span><span class="o">.</span><span class="nc">Release</span><span class="bp">()</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
-</span><span class='line'>            <span class="k">return</span> <span class="n">result</span>
-</span><span class='line'>        <span class="o">})</span>
-</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Parallel</span>
-</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">RunSynchronously</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>In a word: don&#39;t. The contention in the Semaphore make this enormously inefficient with even a few hundred tasks.</p>
-
-<p>In the end, the simplest  implementation I could come up with that didn&#39;t involve dragging in external dependencies was the following:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-<span class='line-number'>41</span>
-<span class='line-number'>42</span>
-<span class='line-number'>43</span>
-<span class='line-number'>44</span>
-<span class='line-number'>45</span>
-<span class='line-number'>46</span>
-<span class='line-number'>47</span>
-<span class='line-number'>48</span>
-<span class='line-number'>49</span>
-<span class='line-number'>50</span>
-<span class='line-number'>51</span>
-<span class='line-number'>52</span>
-<span class='line-number'>53</span>
-<span class='line-number'>54</span>
-<span class='line-number'>55</span>
-<span class='line-number'>56</span>
-<span class='line-number'>57</span>
-<span class='line-number'>58</span>
-<span class='line-number'>59</span>
-<span class='line-number'>60</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Collections</span><span class="p">.</span><span class="nc">Concurrent</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">type</span> <span class="nc">JobRequest</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="nc">T</span><span class="o">&gt;</span> <span class="o">=</span>
-</span><span class='line'>    <span class="o">{</span>
-</span><span class='line'>        <span class="nc">Id</span> <span class="o">:</span> <span class="kt">int</span>
-</span><span class='line'>        <span class="nc">WorkItem</span> <span class="o">:</span> <span class="k">&#39;</span><span class="nc">T</span>
-</span><span class='line'>    <span class="o">}</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">type</span> <span class="nc">WorkRequest</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="nc">T</span><span class="o">&gt;</span> <span class="o">=</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">Job</span> <span class="k">of</span> <span class="nc">JobRequest</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="nc">T</span><span class="o">&gt;</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">End</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="k">inline</span> <span class="n">doParallelWithThrottle</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">,</span> <span class="k">&#39;</span><span class="n">b</span><span class="o">&gt;</span> <span class="n">limit</span> <span class="n">f</span> <span class="n">items</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">let</span> <span class="n">itemArray</span> <span class="o">=</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">toArray</span> <span class="n">items</span>
-</span><span class='line'>    <span class="k">let</span> <span class="n">itemCount</span> <span class="o">=</span> <span class="nn">Array</span><span class="p">.</span><span class="n">length</span> <span class="n">itemArray</span>
-</span><span class='line'>    <span class="k">let</span> <span class="n">resultMap</span> <span class="o">=</span> <span class="nc">ConcurrentDictionary</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">,</span> <span class="k">&#39;</span><span class="n">b</span><span class="o">&gt;</span><span class="bp">()</span>
-</span><span class='line'>    <span class="k">use</span> <span class="n">block</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">BlockingCollection</span><span class="o">&lt;</span><span class="nc">WorkRequest</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;&gt;(</span><span class="mi">1</span><span class="o">)</span>
-</span><span class='line'>    <span class="k">use</span> <span class="n">completeBlock</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">BlockingCollection</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;(</span><span class="mi">1</span><span class="o">)</span>
-</span><span class='line'>    <span class="k">let</span> <span class="n">monitor</span> <span class="o">=</span>
-</span><span class='line'>        <span class="nn">MailboxProcessor</span><span class="p">.</span><span class="nc">Start</span><span class="o">(</span><span class="k">fun</span> <span class="n">inbox</span> <span class="o">-&gt;</span>
-</span><span class='line'>            <span class="k">let</span> <span class="k">rec</span> <span class="n">inner</span> <span class="n">complete</span> <span class="o">=</span>
-</span><span class='line'>                <span class="n">async</span> <span class="o">{</span>
-</span><span class='line'>                    <span class="k">do</span><span class="o">!</span> <span class="n">inbox</span><span class="o">.</span><span class="nc">Receive</span><span class="bp">()</span>
-</span><span class='line'>                    <span class="k">if</span> <span class="n">complete</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">=</span> <span class="n">limit</span> <span class="k">then</span>
-</span><span class='line'>                        <span class="n">completeBlock</span><span class="o">.</span><span class="nc">Add</span><span class="o">(</span><span class="bp">()</span><span class="o">)</span>
-</span><span class='line'>                        <span class="k">return</span> <span class="bp">()</span>
-</span><span class='line'>                    <span class="k">else</span>
-</span><span class='line'>                        <span class="k">return</span><span class="o">!</span> <span class="n">inner</span> <span class="o">&lt;|</span> <span class="n">complete</span> <span class="o">+</span> <span class="mi">1</span>
-</span><span class='line'>                <span class="o">}</span>
-</span><span class='line'>            <span class="n">inner</span> <span class="mi">0</span><span class="o">)</span>
-</span><span class='line'>    <span class="k">let</span> <span class="n">createAgent</span> <span class="bp">()</span> <span class="o">=</span>
-</span><span class='line'>        <span class="nn">MailboxProcessor</span><span class="p">.</span><span class="nc">Start</span><span class="o">(</span>
-</span><span class='line'>            <span class="k">fun</span> <span class="n">inbox</span> <span class="o">-&gt;</span>
-</span><span class='line'>                <span class="k">let</span> <span class="k">rec</span> <span class="n">inner</span> <span class="bp">()</span> <span class="o">=</span> <span class="n">async</span> <span class="o">{</span>
-</span><span class='line'>                        <span class="k">let</span><span class="o">!</span> <span class="n">request</span> <span class="o">=</span> <span class="n">async</span> <span class="o">{</span> <span class="k">return</span> <span class="n">block</span><span class="o">.</span><span class="nc">Take</span><span class="bp">()</span> <span class="o">}</span>
-</span><span class='line'>                        <span class="k">match</span> <span class="n">request</span> <span class="k">with</span>
-</span><span class='line'>                        <span class="o">|</span> <span class="nc">Job</span> <span class="n">job</span> <span class="o">-&gt;</span>
-</span><span class='line'>                            <span class="k">let</span><span class="o">!</span> <span class="n">result</span> <span class="o">=</span> <span class="n">async</span> <span class="o">{</span> <span class="k">return</span> <span class="n">f</span> <span class="o">(</span><span class="n">job</span><span class="o">.</span><span class="nc">WorkItem</span><span class="o">)</span> <span class="o">}</span>
-</span><span class='line'>                            <span class="n">resultMap</span><span class="o">.</span><span class="nc">AddOrUpdate</span><span class="o">(</span><span class="n">job</span><span class="o">.</span><span class="nc">Id</span><span class="o">,</span> <span class="n">result</span><span class="o">,</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">result</span><span class="o">)</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
-</span><span class='line'>                            <span class="k">return</span><span class="o">!</span> <span class="n">inner</span> <span class="bp">()</span>
-</span><span class='line'>                        <span class="o">|</span> <span class="nc">End</span>  <span class="o">-&gt;</span>
-</span><span class='line'>                            <span class="n">monitor</span><span class="o">.</span><span class="nc">Post</span> <span class="bp">()</span>
-</span><span class='line'>                            <span class="k">return</span> <span class="bp">()</span>
-</span><span class='line'>                    <span class="o">}</span>
-</span><span class='line'>                <span class="n">inner</span> <span class="bp">()</span>
-</span><span class='line'>        <span class="o">)</span>
-</span><span class='line'>    <span class="k">let</span> <span class="n">agents</span> <span class="o">=</span>
-</span><span class='line'>        <span class="o">[|</span> <span class="k">for</span> <span class="n">i</span> <span class="k">in</span> <span class="mi">1</span><span class="o">..</span><span class="n">limit</span> <span class="o">-&gt;</span> <span class="n">createAgent</span><span class="bp">()</span> <span class="o">|]</span>
-</span><span class='line'>    <span class="n">itemArray</span>
-</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Array</span><span class="p">.</span><span class="n">mapi</span> <span class="o">(</span><span class="k">fun</span> <span class="n">i</span> <span class="n">item</span> <span class="o">-&gt;</span> <span class="nc">Job</span> <span class="o">{</span> <span class="nc">Id</span> <span class="o">=</span> <span class="n">i</span><span class="o">;</span> <span class="nc">WorkItem</span> <span class="o">=</span> <span class="n">item</span> <span class="o">})</span>
-</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Array</span><span class="p">.</span><span class="n">iter</span> <span class="o">(</span><span class="n">block</span><span class="o">.</span><span class="nc">Add</span><span class="o">)</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="o">[</span><span class="mi">1</span><span class="o">..</span><span class="n">limit</span><span class="o">]</span>
-</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">iter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">x</span> <span class="o">-&gt;</span> <span class="n">block</span><span class="o">.</span><span class="nc">Add</span><span class="o">(</span><span class="nc">End</span><span class="o">))</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">completeBlock</span><span class="o">.</span><span class="nc">Take</span><span class="bp">()</span>
-</span><span class='line'>    <span class="k">let</span> <span class="n">results</span> <span class="o">=</span> <span class="nn">Array</span><span class="p">.</span><span class="n">zeroCreate</span> <span class="n">itemCount</span>
-</span><span class='line'>    <span class="n">resultMap</span>
-</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">iter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">kv</span> <span class="o">-&gt;</span> <span class="n">results</span><span class="o">.[</span><span class="n">kv</span><span class="o">.</span><span class="nc">Key</span><span class="o">]</span> <span class="o">&lt;-</span> <span class="n">kv</span><span class="o">.</span><span class="nc">Value</span><span class="o">)</span>
-</span><span class='line'>    <span class="n">results</span>
-</span></code></pre></td></tr></table></div></figure>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/6/">&larr; Older</a>
@@ -1456,6 +1317,10 @@ let UpdateProj (projFile : string) =
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/managing-mutable-state-with-computational-expressions/">Managing Mutable State With Computational Expressions</a>
+      </li>
+    
+      <li class="post">
         <a href="/return-to-the-ivory-tower-video/">Return to the Ivory Tower Video</a>
       </li>
     
@@ -1469,10 +1334,6 @@ let UpdateProj (projFile : string) =
     
       <li class="post">
         <a href="/returning-to-the-ivory-tower/">Returning to the Ivory Tower</a>
-      </li>
-    
-      <li class="post">
-        <a href="/advent-2016/">Advent 2016</a>
       </li>
     
   </ul>

@@ -4,7 +4,7 @@
   <title><![CDATA[Mavnn's blog]]></title>
   <link href="http://blog.mavnn.co.uk/atom.xml" rel="self"/>
   <link href="http://blog.mavnn.co.uk/"/>
-  <updated>2017-04-20T14:22:21+01:00</updated>
+  <updated>2017-04-26T08:19:45+01:00</updated>
   <id>http://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,314 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Managing Mutable State With Computational Expressions]]></title>
+    <link href="http://blog.mavnn.co.uk/managing-mutable-state-with-computational-expressions/"/>
+    <updated>2017-04-25T23:55:29+01:00</updated>
+    <id>http://blog.mavnn.co.uk/managing-mutable-state-with-computational-expressions</id>
+    <content type="html"><![CDATA[<p><em>Want to learn more about computational expressions, type providers and more?
+I&#39;m running a course in London on the 15th/16th June 2017 to <a href="https://www.eventbrite.co.uk/e/level-up-your-f-skills-tickets-33720450776">Level Up Your F#</a> - come along and build more awesome!</em></p>
+
+<p>In mixed paradigm languages such as F# and Scala you frequently end up using
+mutable APIs in your &quot;nice&quot; pure functional code. It might be because you&#39;re using
+a 3rd party library, or it might be for performance reasons - but either way it&#39;s very
+easy to make mistakes with mutable constructs when you&#39;re in a functional mind space, especially if you want to compose operations on instances of a mutable type.</p>
+
+<p>Let&#39;s have a look at one way of handling this issue: custom operations on 
+computational expressions. We&#39;ll take the Provided Types API for building
+types within a type provider as an example of an API to
+use, and see what we can do to wrap it.</p>
+
+<!-- more -->
+
+<p>Firstly, let&#39;s give an example of the issue. Creating even a simple type
+within a type provider looks something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nc">System</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Reflection</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">FSharp</span><span class="p">.</span><span class="nn">Core</span><span class="p">.</span><span class="nc">CompilerServices</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">FSharp</span><span class="p">.</span><span class="nc">Quotations</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">ProviderImplementation</span><span class="p">.</span><span class="nc">ProvidedTypes</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="nc">TypeProvider</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">type</span> <span class="nc">CambridgeProvider</span><span class="bp">()</span> <span class="k">as</span> <span class="n">this</span> <span class="o">=</span>
+</span><span class='line'>  <span class="k">inherit</span> <span class="nc">TypeProviderForNamespaces</span><span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">let</span> <span class="n">ns</span> <span class="o">=</span> <span class="s2">&quot;Mavnn.Provided&quot;</span>
+</span><span class='line'>  <span class="k">let</span> <span class="n">asm</span> <span class="o">=</span> <span class="nn">Assembly</span><span class="p">.</span><span class="nc">GetExecutingAssembly</span><span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">let</span> <span class="n">myProp</span> <span class="o">=</span>
+</span><span class='line'>    <span class="nc">ProvidedProperty</span><span class="o">(</span>
+</span><span class='line'>      <span class="s2">&quot;StaticProperty&quot;</span><span class="o">,</span>
+</span><span class='line'>      <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;,</span>
+</span><span class='line'>      <span class="nc">IsStatic</span> <span class="o">=</span> <span class="bp">true</span><span class="o">,</span>
+</span><span class='line'>      <span class="nc">GetterCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="s2">&quot;Hello world&quot;</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">let</span> <span class="n">myType</span> <span class="o">=</span>
+</span><span class='line'>    <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="s2">&quot;StaticType&quot;</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;)</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">do</span>
+</span><span class='line'>    <span class="n">myType</span><span class="o">.</span><span class="nc">AddMember</span> <span class="n">myProp</span>
+</span><span class='line'>    <span class="n">this</span><span class="o">.</span><span class="nc">AddNamespace</span><span class="o">(</span><span class="n">ns</span><span class="o">,</span> <span class="o">[</span><span class="n">myType</span><span class="o">])</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="n">assembly</span><span class="o">:</span><span class="nc">TypeProviderAssembly</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">do</span><span class="bp">()</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>The main problem is right at the end on line 26: having
+created your property you need to then add it the the mutable <code>ProvidedTypeDefinition</code>. This is easy to forget on the one hand, and makes it hard too
+compose partial type definitions on the other.</p>
+
+<p>One way to handle this would be to create a function that takes a provided
+type definition and knows how to amend it with a provided property.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">addHelloWorld</span> <span class="o">(</span><span class="n">ptd</span> <span class="o">:</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">myProp</span> <span class="o">=</span>
+</span><span class='line'>        <span class="nc">ProvidedProperty</span><span class="o">(</span>
+</span><span class='line'>          <span class="s2">&quot;StaticProperty&quot;</span><span class="o">,</span>
+</span><span class='line'>          <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;,</span>
+</span><span class='line'>          <span class="nc">IsStatic</span> <span class="o">=</span> <span class="bp">true</span><span class="o">,</span>
+</span><span class='line'>          <span class="nc">GetterCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="s2">&quot;Hello world&quot;</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>    <span class="n">ptd</span><span class="o">.</span><span class="nc">AddMember</span> <span class="n">myProp</span>
+</span><span class='line'>    <span class="n">ptd</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Now if we have a lot of types that need, say, a &quot;hello world&quot; and &quot;goodbye world&quot; property added we can do something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">addCommon</span> <span class="n">ptd</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">ptd</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="n">addHelloWorld</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="n">addGoodbyeWorld</span> <span class="c1">// definition left as an exercise</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>So now you can pass in a <code>ProvidedTypeDefinition</code> and get out one with
+your two common properties added. But now the secret is that you want to
+pass around these builder functions as much as possible, and only actually
+pass in a instance of <code>ProvidedTypeDefinition</code> right at the end; up until
+you do, you have something composable and reusable. Once you&#39;ve created your
+instance, you&#39;re done.</p>
+
+<p>This sounds similar, but not quite like, continuation passing style programming
+as used in things like <code>async</code> under the hood. Which raises the interesting
+possibility that we might be able to <strike>ab</strike>use computational
+expressions to make our code a bit nicer. Let&#39;s give it a go!</p>
+
+<p>Computational expressions are built via a class with some strictly named
+member methods which the F# compiler then uses to translate the computational
+expression code into &quot;standard&quot; F#.</p>
+
+<p>The type the CE is going to operate on is going to be
+<code>ProvidedTypeDefinition -&gt; ProvidedTypeDefinition</code> (similar to the state
+monad for those of you who&#39;ve played with it). But it&#39;s going to be a little
+odd, as we have no monad and won&#39;t be following the monad laws, so there&#39;s
+really no meaningful bind operation. What would that look like?</p>
+
+<p>Something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">PTD</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span> <span class="o">-&gt;</span> <span class="nc">ProvidedTypeDefinition</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">ProvidedTypeBuilder</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">member</span> <span class="o">__.</span><span class="nc">Zero</span> <span class="bp">()</span> <span class="o">:</span> <span class="nc">PTD</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">id</span>
+</span><span class='line'>    <span class="k">member</span> <span class="o">__.</span><span class="nc">Return</span> <span class="o">_</span> <span class="o">:</span> <span class="nc">PTD</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">id</span>
+</span><span class='line'>    <span class="k">member</span> <span class="o">__.</span><span class="nc">Bind</span><span class="o">(</span><span class="n">m</span><span class="o">,</span> <span class="n">f</span> <span class="o">:</span> <span class="kt">unit</span> <span class="o">-&gt;</span> <span class="nc">PTD</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">fun</span> <span class="n">ptd</span> <span class="o">-&gt;</span> <span class="o">(</span><span class="n">f</span> <span class="bp">()</span><span class="o">)</span> <span class="o">(</span><span class="n">m</span> <span class="n">ptd</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Combine</span><span class="o">(</span><span class="n">m1</span> <span class="o">:</span> <span class="nc">PTD</span><span class="o">,</span> <span class="n">m2</span> <span class="o">:</span> <span class="nc">PTD</span><span class="o">)</span> <span class="o">:</span> <span class="nc">PTD</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">x</span><span class="o">.</span><span class="nc">Bind</span><span class="o">(</span><span class="n">m1</span><span class="o">,</span> <span class="k">fun</span> <span class="bp">()</span> <span class="o">-&gt;</span> <span class="n">m2</span><span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>So we have a bind&#8230; but it can only bind <code>unit</code> and no other type. All
+it knows how to deal with is composing two <code>ProvidedTypeBuilder -&gt; ProvidedTypeBuilder</code> functions. <code>Zero</code> and <code>Return</code> make a some sense as well: both
+can be meaningfully defined using the <code>id</code> function; just take the provided
+type definition and pass it on unchanged.</p>
+
+<p>Now we can write code like this!</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">typeBuilder</span> <span class="o">=</span> <span class="nc">ProvidedTypeBuilder</span> <span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">typeBuilder</span> <span class="o">{</span>
+</span><span class='line'>    <span class="bp">()</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Okay, so I admit we&#39;re not quite there yet. Time to dive into the fun bit;
+adding a custom operation to our builder.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">PTD</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span> <span class="o">-&gt;</span> <span class="nc">ProvidedTypeDefinition</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">ProvidedTypeBuilder</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">member</span> <span class="o">__.</span><span class="nc">Zero</span> <span class="bp">()</span> <span class="o">:</span> <span class="nc">PTD</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">id</span>
+</span><span class='line'>    <span class="k">member</span> <span class="o">__.</span><span class="nc">Return</span> <span class="o">_</span> <span class="o">:</span> <span class="nc">PTD</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">id</span>
+</span><span class='line'>    <span class="k">member</span> <span class="o">__.</span><span class="nc">Bind</span><span class="o">(</span><span class="n">m</span><span class="o">,</span> <span class="n">f</span> <span class="o">:</span> <span class="kt">unit</span> <span class="o">-&gt;</span> <span class="nc">PTD</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">fun</span> <span class="n">ptd</span> <span class="o">-&gt;</span> <span class="o">(</span><span class="n">f</span> <span class="bp">()</span><span class="o">)</span> <span class="o">(</span><span class="n">m</span> <span class="n">ptd</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Combine</span><span class="o">(</span><span class="n">m1</span> <span class="o">:</span> <span class="nc">PTD</span><span class="o">,</span> <span class="n">m2</span> <span class="o">:</span> <span class="nc">PTD</span><span class="o">)</span> <span class="o">:</span> <span class="nc">PTD</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">x</span><span class="o">.</span><span class="nc">Bind</span><span class="o">(</span><span class="n">m1</span><span class="o">,</span> <span class="k">fun</span> <span class="bp">()</span> <span class="o">-&gt;</span> <span class="n">m2</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="o">[&lt;</span><span class="nc">CustomOperation</span><span class="o">(</span><span class="s2">&quot;addMember&quot;</span><span class="o">,</span> <span class="nc">MaintainsVariableSpaceUsingBind</span> <span class="o">=</span> <span class="bp">true</span><span class="o">)&gt;]</span>
+</span><span class='line'>    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">AddMember</span><span class="o">(</span><span class="n">ptd</span><span class="o">,</span> <span class="k">member&#39;</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">func</span> <span class="o">=</span>
+</span><span class='line'>          <span class="k">fun</span> <span class="o">(</span><span class="n">instance</span> <span class="o">:</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">)</span> <span class="o">-&gt;</span>
+</span><span class='line'>              <span class="n">instance</span><span class="o">.</span><span class="nc">AddMember</span> <span class="k">member&#39;</span>
+</span><span class='line'>              <span class="n">instance</span>
+</span><span class='line'>        <span class="n">x</span><span class="o">.</span><span class="nc">Bind</span><span class="o">(</span><span class="n">ptd</span><span class="o">,</span> <span class="k">fun</span> <span class="bp">()</span> <span class="o">-&gt;</span> <span class="n">func</span><span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Now we&#39;re starting to get somewhere, with code that begins to look like
+this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">withHelloWorld</span> <span class="o">=</span>
+</span><span class='line'>  <span class="n">typeBuilder</span> <span class="o">{</span>
+</span><span class='line'>      <span class="n">addMember</span> <span class="o">(</span><span class="nc">ProvidedProperty</span><span class="o">(</span>
+</span><span class='line'>                  <span class="s2">&quot;StaticProperty&quot;</span><span class="o">,</span>
+</span><span class='line'>                  <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;,</span>
+</span><span class='line'>                  <span class="nc">IsStatic</span> <span class="o">=</span> <span class="bp">true</span><span class="o">,</span>
+</span><span class='line'>                  <span class="nc">GetterCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="s2">&quot;Hello world&quot;</span> <span class="o">@@&gt;))</span>
+</span><span class='line'>  <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p><code>withHelloWorld</code> has a type of <code>ProvidedTypeDefinition -&gt; ProvidedTypeDefinition</code> as you&#39;d expect. But there&#39;s still no easy way to compose these; let&#39;s
+add that next.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">ProvidedTypeBuilder</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>    <span class="c1">// ...snip...</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="o">[&lt;</span><span class="nc">CustomOperation</span><span class="o">(</span><span class="s2">&quot;including&quot;</span><span class="o">,</span> <span class="nc">MaintainsVariableSpaceUsingBind</span> <span class="o">=</span> <span class="bp">true</span><span class="o">)&gt;]</span>
+</span><span class='line'>    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Including</span><span class="o">(</span><span class="n">ptd</span><span class="o">,</span> <span class="n">builder</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">x</span><span class="o">.</span><span class="nc">Combine</span><span class="o">(</span><span class="n">ptd</span><span class="o">,</span> <span class="n">builder</span><span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>The <code>including</code> operation is just a wrapper around combine, but it allows us
+to do things like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">withHelloAndGoodbye</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">typeBuilder</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">including</span> <span class="n">withHelloWorld</span>
+</span><span class='line'>        <span class="n">addMember</span> <span class="o">(</span><span class="nc">ProvidedProperty</span><span class="o">(</span>
+</span><span class='line'>                    <span class="s2">&quot;Goodbye&quot;</span><span class="o">,</span>
+</span><span class='line'>                    <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;,</span>
+</span><span class='line'>                    <span class="nc">IsStatic</span> <span class="o">=</span> <span class="bp">true</span><span class="o">,</span>
+</span><span class='line'>                    <span class="nc">GetterCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="s2">&quot;Goodbye&quot;</span> <span class="o">@@&gt;))</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>And now the power of this technique begins to be shown, as we build
+blocks of composable code which can be included within each other.</p>
+
+<p>Obviously a lot more could be done at this point: we&#39;ve barely scratched
+the provided types API, but we&#39;ll leave the blog post at this point.</p>
+
+<p>This blog post comes with many thanks to <a href="http://twitter.com/kolektiv">Andrew Cherry</a> who took some pretty mad lunch time discussions and turned them into
+the very real and unable <a href="https://docs.freya.io/en/latest/">Freya</a> (along with a bunch of collaborators). Freya makes use of this kind of
+technique heavily.</p>
+
+<p><em>Want to learn more about computational expressions, type providers and more?
+I&#39;m running a course in London on the 15th/16th June 2017 to <a href="https://www.eventbrite.co.uk/e/level-up-your-f-skills-tickets-33720450776">Level Up Your F#</a> - come along and build more awesome!</em></p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Return to the Ivory Tower Video]]></title>
@@ -4286,421 +4594,6 @@ representation you can rip off whole sale! Who knows?</p>
 <p>Post your work up somewhere it can be seen on the internet and ping me a link,
 and we&#39;ll go over the submissions and write up a commentary over the next week
 or two.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Ecumenical APIs]]></title>
-    <link href="http://blog.mavnn.co.uk/ecumenical-apis/"/>
-    <updated>2015-05-06T10:44:16+01:00</updated>
-    <id>http://blog.mavnn.co.uk/ecumenical-apis</id>
-    <content type="html"><![CDATA[<p>One of the big sells of shared runtime functional languages such as F#, Scala
-and Clojure is that you can carrying on using the surrounding library ecosystem
-and your existing code. The different paradigm occasionally causes a little
-pain, but there are plenty of blog posts about how to wrap OO interfaces in a
-functionally friendly way.</p>
-
-<p>This is not one of those blog posts. This is about making sure that your
-colleagues who are consuming your shiny new code in an imperative language
-(generally C# in my case) don&#39;t threaten to defenestrate you.</p>
-
-<p>At <a href="http://15below.com">15below</a> we&#39;ve recently had need in some of our services
-of taking a distributed lock between servers. There are many services available
-designed for doing this, but after some deliberation we decided that we didn&#39;t
-want to add a new piece of infrastructure purely for this one purpose. So
-<a href="http://15below.github.io/Sproc.Lock">Sproc.Lock</a> was born: SQL Server based
-distributed locking.</p>
-
-<p>In this post, I&#39;m not going to talk about the design of the service. What I&#39;m
-going to write about is how I engineered the API to be pleasent to use from both
-C# and F#, giving a idiomatic interface from both languages.</p>
-
-<!-- more -->
-
-<h2>The original interface (F#)</h2>
-
-<p>The F# interface was written first, and follows a pattern that will feel
-immediately familiar to an F# programmer. Our lock can be of 3 types (global,
-organisation or environment) and so we have a discriminated union (<code>Lock</code>)
-representing these three options.</p>
-
-<p>(I&#39;ve removed the implementations of the various bits to leave the shape of the
-code clear)</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="c1">/// Type representing a Lock that has definitely been acquired. Locks are</span>
-</span><span class='line'><span class="c1">/// IDisposable; disposing the lock will ensure it is released.</span>
-</span><span class='line'><span class="k">type</span> <span class="nc">Lock</span> <span class="o">=</span>
-</span><span class='line'>     <span class="c1">/// A lock that applies globally across the lock server</span>
-</span><span class='line'>     <span class="o">|</span> <span class="nc">Global</span> <span class="k">of</span> <span class="o">...</span>
-</span><span class='line'>     <span class="c1">/// A lock scoped to a specific organisation</span>
-</span><span class='line'>     <span class="o">|</span> <span class="nc">Organisation</span> <span class="k">of</span> <span class="o">...</span>
-</span><span class='line'>     <span class="c1">/// A lock scoped to a particular environment belonging to a particular organisation</span>
-</span><span class='line'>     <span class="o">|</span> <span class="nc">Environment</span> <span class="k">of</span> <span class="o">...</span>
-</span><span class='line'>     <span class="c1">/// The LockId acquired. Useful in combination when getting one of a list of locks to determine which was free.</span>
-</span><span class='line'>     <span class="k">member</span> <span class="n">lock</span><span class="o">.</span><span class="nc">LockId</span> <span class="o">=</span>
-</span><span class='line'>         <span class="o">...</span>
-</span><span class='line'>     <span class="c1">/// Disposing releases the lock</span>
-</span><span class='line'>     <span class="k">member</span> <span class="n">lock</span><span class="o">.</span><span class="nc">Dispose</span> <span class="bp">()</span> <span class="o">=</span>
-</span><span class='line'>         <span class="o">...</span>
-</span><span class='line'>     <span class="k">interface</span> <span class="nc">IDisposable</span> <span class="k">with</span>
-</span><span class='line'>         <span class="c1">/// Disposing releases the lock</span>
-</span><span class='line'>         <span class="k">member</span> <span class="n">lock</span><span class="o">.</span><span class="nc">Dispose</span> <span class="bp">()</span> <span class="o">=</span>
-</span><span class='line'>            <span class="n">lock</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>The lock is <code>IDisposable</code> to take advantage of .net&#39;s most common resource
-management idiom. You can release a lock by disposing it.</p>
-
-<p>Then, of course, when we try and acquire a lock we may or may not be able to -
-the whole point of locks is that you cannot obtain them if someone else has
-locked it already, after all.</p>
-
-<p>So we have a second discriminated union (<code>LockResult</code>) wrapping the first,
-with (again) three potential cases:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="c1">/// A type representing the possible results of attempting to acquire a lock.</span>
-</span><span class='line'><span class="k">type</span> <span class="nc">LockResult</span> <span class="o">=</span>
-</span><span class='line'>     <span class="c1">/// A lock was successfully acquired</span>
-</span><span class='line'>     <span class="o">|</span> <span class="nc">Locked</span> <span class="k">of</span> <span class="nc">Lock</span>
-</span><span class='line'>     <span class="c1">/// No lock was available</span>
-</span><span class='line'>     <span class="o">|</span> <span class="nc">Unavailable</span>
-</span><span class='line'>     <span class="c1">/// The attempt to acquire a lock caused an error in SQL Server</span>
-</span><span class='line'>     <span class="o">|</span> <span class="nc">Error</span> <span class="k">of</span> <span class="kt">int</span>
-</span><span class='line'>     <span class="c1">/// Disposing a lock result disposes the lock if it was acquired, and has no effect otherwise</span>
-</span><span class='line'>     <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Dispose</span> <span class="bp">()</span> <span class="o">=</span>
-</span><span class='line'>        <span class="k">match</span> <span class="n">x</span> <span class="k">with</span>
-</span><span class='line'>        <span class="o">|</span> <span class="nc">Locked</span> <span class="n">l</span> <span class="o">-&gt;</span> <span class="n">l</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
-</span><span class='line'>        <span class="o">|</span> <span class="nc">Unavailable</span> <span class="o">-&gt;</span> <span class="bp">()</span>
-</span><span class='line'>        <span class="o">|</span> <span class="nc">Error</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">()</span>
-</span><span class='line'>     <span class="k">interface</span> <span class="nc">IDisposable</span> <span class="k">with</span>
-</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Dispose</span> <span class="bp">()</span> <span class="o">=</span>
-</span><span class='line'>            <span class="n">x</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>Again, this is <code>IDisposable</code> so that you can just dispose of your overall
-<code>LockResult</code> object which makes a lot of the code cleaner.</p>
-
-<p>So: how do we get a <code>LockResult</code>? Well, we have a set of functions for getting
-locks. Let&#39;s have a look at the skeleton of one of them:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="c1">// val GetOrganisationLock : string -&gt; string -&gt; TimeSpan -&gt; string -&gt; LockResult</span>
-</span><span class='line'><span class="k">let</span> <span class="nc">GetOrganisationLock</span> <span class="n">connString</span> <span class="n">organisation</span> <span class="o">(</span><span class="n">maxDuration</span> <span class="o">:</span> <span class="nc">TimeSpan</span><span class="o">)</span> <span class="n">lockIdentifier</span> <span class="o">=</span>
-</span><span class='line'>    <span class="o">...</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>What&#39;s this doing? Well, it&#39;s going to (try and) create a lock scoped to a
-particular database and organisation with a particular ID, returning a
-<code>LockResult</code>. </p>
-
-<p>From an API design point of view, what&#39;s interesting here is the order of the
-arguments. <a href="https://en.wikipedia.org/wiki/Currying">Currying</a> enables easy
-partial application, and here it is very likely that the application will want
-to take all locks from the same database (making the first parameter) and
-reasonably likely that it will always want them scoped to the same organisation
-(second parameter). This is a common pattern in languages that allow for easy
-currying, and invariably a consumer of this library in F# will end up with a
-partially applied helper function looking something like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="c1">// val getLock : string -&gt; LockResult</span>
-</span><span class='line'><span class="k">let</span> <span class="n">getLock</span> <span class="o">=</span>
-</span><span class='line'>    <span class="nc">GetOrganisationLock</span> <span class="s2">&quot;myDbConnString&quot;</span> <span class="s2">&quot;OrgName&quot;</span> <span class="o">(</span><span class="nn">TimeSpan</span><span class="p">.</span><span class="nc">FromMinutes</span> <span class="mi">5</span><span class="o">.)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>We also have a set of helper functions for common operations we might want to
-carry out on locks, all of which take a higher order function as part of their
-arguments. Let&#39;s have a look at <code>AwaitLock</code> which will wait for a lock to
-become available for a specified length of time, rather then returning
-immediately with an <code>Unavailable</code> result:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="c1">// val AwaitLock : TimeSpan -&gt; (unit -&gt; LockResult) -&gt; LockResult</span>
-</span><span class='line'><span class="k">let</span> <span class="nc">AwaitLock</span> <span class="o">(</span><span class="n">timeOut</span> <span class="o">:</span> <span class="nc">TimeSpan</span><span class="o">)</span> <span class="n">getLock</span> <span class="o">=</span>
-</span><span class='line'>    <span class="o">...</span>
-</span><span class='line'>
-</span><span class='line'><span class="c1">// Using it using the helper above:</span>
-</span><span class='line'><span class="k">let</span> <span class="n">awaitMyLock</span> <span class="n">identifier</span> <span class="o">=</span>
-</span><span class='line'>    <span class="nc">AwaitLock</span> <span class="o">(</span><span class="nn">TimeSpan</span><span class="p">.</span><span class="nc">FromSeconds</span> <span class="mi">2</span><span class="o">.)</span> <span class="o">(</span><span class="n">getLock</span> <span class="n">identifier</span><span class="o">)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>If we then want (say) to wait up to 2 seconds for one of a list of possible
-locks to become available, we can then compose this function with the
-<code>OneOfLocks</code> function:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="c1">// val OneOfLocks : (&#39;a -&gt; LockResult) -&gt; seq&lt;&#39;a&gt; -&gt; LockResult</span>
-</span><span class='line'><span class="k">let</span> <span class="nc">OneOfLocks</span> <span class="n">getLock</span> <span class="n">lockIds</span> <span class="o">=</span>
-</span><span class='line'>    <span class="o">...</span>
-</span><span class='line'>
-</span><span class='line'><span class="c1">// Using it using await helper:</span>
-</span><span class='line'><span class="k">let</span> <span class="n">pickLock</span> <span class="bp">()</span> <span class="o">=</span>
-</span><span class='line'>    <span class="nc">OneOfLocks</span> <span class="n">awaitMyLock</span> <span class="o">[</span><span class="s2">&quot;LockId1&quot;</span><span class="o">;</span><span class="s2">&quot;LockId2&quot;</span><span class="o">]</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>I&#39;m sure the comments will disagree, but I&#39;m actually pretty happy with this as
-an F# interface to this library. It&#39;s not strictly pure, but that&#39;s an option in
-F#, and the combination of composable functions and careful choice of parameter
-order make for concise and readable code.</p>
-
-<p>So, we&#39;re done - right?</p>
-
-<p>Unfortunately not. This code would be truely horrible to use from C#, and we
-still use a lot of C# here - some of our (stranger?) developers even prefer
-it. Why would it be so nasty?</p>
-
-<ul>
-<li>Consuming discriminated unions from C# is verbose to the point of unusable</li>
-<li>Partial application is a pain in C#, and no one wants to repeat the connection
-string everytime they want a lock</li>
-<li>Function composition is possible in C# but is not idiomatic and may make the
-capabilities of the library unclear</li>
-</ul>
-
-<h2>API Take 2: the &quot;OO&quot; namespace</h2>
-
-<p>In thinking about the kind of API I would expect for a locking library in C#, a
-few things immediately sprang to mind:</p>
-
-<ul>
-<li>I would expect some kind of configurable provider object or factory</li>
-<li>Out of flow returns are normally signalled by exceptions</li>
-<li>Function composition only for more unusual calling options</li>
-</ul>
-
-<p>Wrapping the functional API turned out to be reasonably simple. A couple of
-custom exception types and the <code>OOise</code> method later (I love that function
-name, even if I say so myself) we can easily wrap our functional API in
-something that makes sense in C# land - they either return an acquired,
-<code>IDisposable</code> lock or throw.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="c1">/// Exception thrown by ``LockProvider`` if none of the specified locks are available.</span>
-</span><span class='line'><span class="k">type</span> <span class="nc">LockUnavailableException</span> <span class="o">(</span><span class="n">message</span><span class="o">)</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">inherit</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Exception</span><span class="o">(</span><span class="n">message</span><span class="o">)</span>
-</span><span class='line'>
-</span><span class='line'><span class="c1">/// Exception thrown by ``LockProvider`` if a lock request errors on SQL Server.</span>
-</span><span class='line'><span class="c1">/// ``LockErrorCode`` is the SQL error response.</span>
-</span><span class='line'><span class="k">type</span> <span class="nc">LockRequestErrorException</span> <span class="o">(</span><span class="n">errorCode</span><span class="o">)</span> <span class="k">as</span> <span class="n">this</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">inherit</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Exception</span><span class="o">(</span><span class="n">sprintf</span> <span class="s2">&quot;Error code: %d&quot;</span> <span class="n">errorCode</span><span class="o">)</span>
-</span><span class='line'>    <span class="k">do</span>
-</span><span class='line'>        <span class="n">this</span><span class="o">.</span><span class="nn">Data</span><span class="p">.</span><span class="nc">Add</span><span class="o">(</span><span class="n">box</span> <span class="s2">&quot;ErrorCode&quot;</span><span class="o">,</span> <span class="n">box</span> <span class="n">errorCode</span><span class="o">)</span>
-</span><span class='line'>    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">LockErrorCode</span>
-</span><span class='line'>        <span class="k">with</span> <span class="n">get</span> <span class="bp">()</span> <span class="o">=</span>
-</span><span class='line'>            <span class="n">x</span><span class="o">.</span><span class="nn">Data</span><span class="p">.</span><span class="err">[&quot;</span><span class="nc">ErrorCode</span><span class="s2">&quot;] |&gt; unbox&lt;int&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="s2">let private OOise lockId getLock =</span>
-</span><span class='line'><span class="s2">    match getLock lockId with</span>
-</span><span class='line'><span class="s2">    | Locked l -&gt; l</span>
-</span><span class='line'><span class="s2">    | Unavailable -&gt; raise &lt;| LockUnavailableException(sprintf &quot;</span><span class="nc">Lock</span> <span class="o">%</span><span class="n">s</span> <span class="n">was</span> <span class="n">unavailable</span><span class="o">.</span><span class="s2">&quot; lockId)</span>
-</span><span class='line'><span class="s2">    | Error i -&gt; raise &lt;| LockRequestErrorException i</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>Then, a simple <code>LockProvider</code> class allows for all the normal patterns we&#39;ve
-come to know (and in some cases love) such as dependency injection:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">LockProvider</span> <span class="o">(</span><span class="n">connString</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">GlobalLock</span> <span class="o">(</span><span class="n">lockId</span><span class="o">,</span> <span class="n">maxDuration</span><span class="o">)</span> <span class="o">=</span>
-</span><span class='line'>        <span class="nc">GetGlobalLock</span> <span class="n">connString</span> <span class="n">maxDuration</span> <span class="o">|&gt;</span> <span class="nc">OOise</span> <span class="n">lockId</span>
-</span><span class='line'>    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">OrganisationLock</span> <span class="o">(</span><span class="n">lockId</span><span class="o">,</span> <span class="n">organisation</span><span class="o">,</span> <span class="n">maxDuration</span><span class="o">)</span> <span class="o">=</span>
-</span><span class='line'>        <span class="c1">// Rest of the implementations snipped</span>
-</span><span class='line'>        <span class="o">...</span>
-</span><span class='line'>    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">EnvironmentLock</span> <span class="o">(</span><span class="n">lockId</span><span class="o">,</span> <span class="n">organisation</span><span class="o">,</span> <span class="n">environment</span><span class="o">,</span> <span class="n">maxDuration</span><span class="o">)</span> <span class="o">=</span>
-</span><span class='line'>        <span class="o">...</span>
-</span><span class='line'>    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">AwaitGlobalLock</span> <span class="o">(</span><span class="n">lockId</span><span class="o">,</span> <span class="n">maxDuration</span><span class="o">,</span> <span class="n">timeOut</span><span class="o">)</span> <span class="o">=</span>
-</span><span class='line'>        <span class="o">...</span>
-</span><span class='line'>    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">AwaitOrganisationLock</span> <span class="o">(</span><span class="n">lockId</span><span class="o">,</span> <span class="n">organisation</span><span class="o">,</span> <span class="n">maxDuration</span><span class="o">,</span> <span class="n">timeOut</span><span class="o">)</span> <span class="o">=</span>
-</span><span class='line'>        <span class="o">...</span>
-</span><span class='line'>    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">AwaitEnvironmentLock</span> <span class="o">(</span><span class="n">lockId</span><span class="o">,</span> <span class="n">organisation</span><span class="o">,</span> <span class="n">environment</span><span class="o">,</span> <span class="n">maxDuration</span><span class="o">,</span> <span class="n">timeOut</span><span class="o">)</span> <span class="o">=</span>
-</span><span class='line'>        <span class="o">...</span>
-</span><span class='line'>    <span class="c1">/// Build a ``System.Func`` that returns a lock based on lockId and provide a list of lockIds.</span>
-</span><span class='line'>    <span class="c1">/// If any of the locks are available, it will pick one of the available locks at random.</span>
-</span><span class='line'>    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">OneOf</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">t</span><span class="o">&gt;</span> <span class="o">(</span><span class="n">getLock</span> <span class="o">:</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Func</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">t</span><span class="o">,</span> <span class="nc">Lock</span><span class="o">&gt;,</span> <span class="n">lockIds</span><span class="o">)</span> <span class="o">=</span>
-</span><span class='line'>        <span class="o">...</span>
-</span><span class='line'>    <span class="c1">/// Build a ``System.Func`` that returns a lock based on lockId and provide a list of lockIds.</span>
-</span><span class='line'>    <span class="c1">/// If any of the locks are available, it will pick one of the available locks at random.</span>
-</span><span class='line'>    <span class="c1">/// If none are available it will wait until one is, or ``timeOut`` has passed.</span>
-</span><span class='line'>    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">AwaitOneOf</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">t</span><span class="o">&gt;</span> <span class="o">(</span><span class="n">getLock</span> <span class="o">:</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Func</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">t</span><span class="o">,</span> <span class="nc">Lock</span><span class="o">&gt;,</span> <span class="n">lockIds</span><span class="o">,</span> <span class="n">timeOut</span><span class="o">)</span> <span class="o">=</span>
-</span><span class='line'>        <span class="o">...</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>As you can see, by the time we get to the <code>OneOf</code> members, we&#39;re pretty much
-forced into taking higher order functions to avoid a combinatorial explosion of
-members (not that that always seems to deter OO API designers&#8230;). Other than
-that, I think we&#39;re left with an API which will immediately make sense to a C#
-developer: you can new up a <code>LockProvider</code>, you have a specified list of
-exception types to expect, and you can easily intellisense your way around all
-of the available options.</p>
-
-<p>Our C# consuming code ends up looking a bit like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-</pre></td><td class='code'><pre><code class='csharp'><span class='line'><span class="k">using</span> <span class="nn">System</span><span class="p">;</span>
-</span><span class='line'><span class="k">using</span> <span class="nn">Sproc.Lock.OO</span><span class="p">;</span>
-</span><span class='line'>
-</span><span class='line'>
-</span><span class='line'><span class="k">namespace</span> <span class="nn">MyApp</span>
-</span><span class='line'><span class="p">{</span>
-</span><span class='line'>    <span class="k">class</span> <span class="nc">Thing</span>
-</span><span class='line'>    <span class="p">{</span>
-</span><span class='line'>        <span class="k">static</span> <span class="k">void</span> <span class="nf">DoLockRequiringWork</span><span class="p">()</span>
-</span><span class='line'>        <span class="p">{</span>
-</span><span class='line'>            <span class="kt">var</span> <span class="n">provider</span> <span class="p">=</span> <span class="k">new</span> <span class="n">LockProvider</span><span class="p">(</span><span class="s">&quot;sql connection string&quot;</span><span class="p">);</span>
-</span><span class='line'>            <span class="k">try</span>
-</span><span class='line'>            <span class="p">{</span>
-</span><span class='line'>                <span class="k">using</span> <span class="p">(</span><span class="kt">var</span> <span class="n">lock2</span> <span class="p">=</span> <span class="n">provider</span><span class="p">.</span><span class="n">GlobalLock</span><span class="p">(</span><span class="s">&quot;MyAppLock&quot;</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromMinutes</span><span class="p">(</span><span class="m">5.0</span><span class="p">)))</span>
-</span><span class='line'>                <span class="p">{</span>
-</span><span class='line'>                    <span class="c1">// If I get here, I have a lock!</span>
-</span><span class='line'>                    <span class="c1">// Doing stuff!</span>
-</span><span class='line'>                <span class="p">}</span> <span class="c1">// Lock released when Disposed</span>
-</span><span class='line'>            <span class="p">}</span>
-</span><span class='line'>            <span class="k">catch</span> <span class="p">(</span><span class="n">LockUnavailableException</span><span class="p">)</span>
-</span><span class='line'>            <span class="p">{</span>
-</span><span class='line'>                <span class="c1">// Could not get the lock</span>
-</span><span class='line'>                <span class="k">throw</span><span class="p">;</span>
-</span><span class='line'>            <span class="p">}</span>
-</span><span class='line'>            <span class="k">catch</span> <span class="p">(</span><span class="n">LockRequestErrorException</span><span class="p">)</span>
-</span><span class='line'>            <span class="p">{</span>
-</span><span class='line'>                <span class="c1">// Getting the lock threw an error</span>
-</span><span class='line'>                <span class="k">throw</span><span class="p">;</span>
-</span><span class='line'>            <span class="p">}</span>
-</span><span class='line'>        <span class="p">}</span>
-</span><span class='line'>    <span class="p">}</span>
-</span><span class='line'><span class="p">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>Note the very different parameter order, placing the parameters that change most
-frequently at the beginning of the list as you would normally expect in C#. This
-makes a surprisingly large difference to how easy the code is to consume.</p>
-
-<p>Again: quite nice, if I do say so myself.</p>
-
-<p>So there you have it - want to play nicely the whole .net ecosystem? Be
-kind to your consumers, and build them an ecumenical API!</p>
 ]]></content>
   </entry>
   

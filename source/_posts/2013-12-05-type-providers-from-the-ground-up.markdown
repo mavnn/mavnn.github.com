@@ -5,6 +5,10 @@ date: 2013-12-05 11:28
 comments: true
 categories: [fsharp, programming, typeprovider]
 ---
+
+*Want to learn more about computational expressions, type providers and more?
+I'm running a course in London on the 15th/16th June 2017 to [Level Up Your F#](https://www.eventbrite.co.uk/e/level-up-your-f-skills-tickets-33720450776) - come along and build more awesome!*
+
 *This post is part of a series: [part 2](/type-providers-from-the-first-floor/) follows on directly from this post.*
 
 In the ground tradition of blog posts as both documentation and augmented memory, I've just added our first [Type Provider](http://blogs.msdn.com/b/dsyme/archive/2013/01/30/twelve-type-providers-in-pictures.aspx) to the code base. Time to write up the details before a) I forget them and b) anyone else needs to modify the code.

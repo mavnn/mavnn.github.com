@@ -43,7 +43,11 @@ As always with @mavnn training courses, we're also willing to come and deliver t
 
 ## How do I book?
 
-We're selling tickets via [eventbrite](https://www.eventbrite.co.uk/e/level-up-your-f-skills-tickets-33720450776).
+You can book right here! :)
+
+<div style="width:100%; text-align:left;"><iframe src="//eventbrite.co.uk/tickets-external?eid=33720450776&ref=etckt" frameborder="0" height="478" width="100%" vspace="0" hspace="0" marginheight="5" marginwidth="5" scrolling="auto" allowtransparency="true"></iframe><div style="font-family:Helvetica, Arial; font-size:12px; padding:10px 0 5px; margin:2px; width:100%; text-align:left;" ><a class="powered-by-eb" style="color: #ADB0B6; text-decoration: none;" target="_blank" href="http://www.eventbrite.co.uk/">Powered by Eventbrite</a></div></div>
+
+If your ad/privacy blocker doesn't like the embedded widget, you can also book direct on [eventbrite](https://www.eventbrite.co.uk/e/level-up-your-f-skills-tickets-33720450776).
 
 ## Prerequisites
 

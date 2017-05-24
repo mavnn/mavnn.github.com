@@ -9,7 +9,7 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="This is part 2 in my quotations series, following on from Tap, Tap, Tapping on the Door. As promised in the first part of this series, here we&#39; &hellip;">
+  <meta name="description" content="This post is part of the F# Advent Calendar 2014, which is stuffed full of other interesting posts. Go have a read! Note: This post is epic in &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -79,6 +79,66 @@ ga('send', 'pageview');
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/modelling-inheritance-with-inheritance/">Modelling Inheritance With Inheritance</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-12-18T12:01:41+00:00" pubdate data-updated="true">Dec 18<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><blockquote>
+<p>This post is part of the <a href="https://sergeytihon.wordpress.com/tag/fsadvent/">F# Advent Calendar</a> 2014, which is stuffed full of other interesting posts. Go have a read!</p>
+</blockquote>
+
+<p>Note: This post is epic in length. If you just want to see the final resulting script of much silliness, skip straight to <a href="#conclusion">the conclusion</a>!</p>
+
+<p>Note 2: If you just want to see an example of a sane generated type provider, <a href="https://github.com/mavnn/FPDays.TypeProvider/">the code from my FPDays tutorial</a> is a much better bet.</p>
+
+<p>Note 3: There is a lot of code below. If you&#39;re viewing this on a desktop, I suggest collapsing the sidebar to the right otherwise you&#39;ll have a lot of horizontal scroll bars. If you&#39;re on a mobile device, you might want to bookmark for later.</p>
+
+<p>So&#8230; I&#39;ve been playing with generated (not erased) type providers for a bit, and meaning to write something up about them. Most of the documentation out there is for erased type providers, and to be honest they have a lot of advantages in terms of performance.</p>
+
+<p>But they also have two fundamental limitations:</p>
+
+<ul>
+<li>You can&#39;t used erased F# types in any other .net language</li>
+<li>You can&#39;t use reflection on erased types (even in F#)</li>
+</ul>
+
+<p>So let&#39;s see if we can have a play with generated types, and then - given this is Christmas, and all - let&#39;s see if we can build Jesus&#39; family tree in the .net type system. After all, if you&#39;re going to use inheritance to model something, how about modelling inheritance?</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/modelling-inheritance-with-inheritance/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -699,60 +759,6 @@ ga('send', 'pageview');
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/type-provider-protip/">Type Provider ProTip</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-01-10T12:15:15+00:00" pubdate data-updated="true">Jan 10<span>th</span>, 2014</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>While type providers are incredibly powerful, the ProvidedTypes api for creating them is sometimes a bit rough around the edges. And not always as functional as you might hope.</p>
-
-<p>At some point I&#39;d like to do something about that, but for the moment I&#39;m just going to collect a few helpful tips and hints (mostly for own reference).</p>
-
-<p>Tip one is in the case where you have XmlDocs to add to ProvidedTypes, ProvidedMethods and ProvidedProperties; in our case we have an optional description field in our metadata and the boiler plate was getting tiresome.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="k">inline</span> <span class="n">addDoc</span> <span class="o">(</span><span class="n">desc</span> <span class="o">:</span> <span class="nc">Descriptor</span><span class="o">)</span> <span class="n">def</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">match</span> <span class="n">desc</span><span class="o">.</span><span class="nc">Description</span> <span class="k">with</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">Some</span> <span class="n">d</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="o">(^</span><span class="nc">T</span> <span class="o">:</span> <span class="o">(</span><span class="k">member</span> <span class="nc">AddXmlDoc</span> <span class="o">:</span> <span class="kt">string</span> <span class="o">-&gt;</span> <span class="kt">unit</span><span class="o">)</span> <span class="o">(</span><span class="n">def</span><span class="o">,</span> <span class="n">d</span><span class="o">))</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="bp">()</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>This function takes a <code>Descriptor</code> with a <code>string option</code> Description field and any <code>def</code> with an AddXmlDoc member with the noted signature - and adds description as the xml doc if it exists.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/5/">&larr; Older</a>
@@ -770,6 +776,10 @@ ga('send', 'pageview');
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/deliberate-poster-fighting-imposter-syndrome/">Deliberate Poster: Fighting Imposter Syndrome</a>
+      </li>
+    
+      <li class="post">
         <a href="/managing-mutable-state-with-computational-expressions/">Managing Mutable State With Computational Expressions</a>
       </li>
     
@@ -783,10 +793,6 @@ ga('send', 'pageview');
     
       <li class="post">
         <a href="/level-up-your-f-number-skills/">Level Up Your F# Skills</a>
-      </li>
-    
-      <li class="post">
-        <a href="/returning-to-the-ivory-tower/">Returning to the Ivory Tower</a>
       </li>
     
   </ul>

@@ -37,5 +37,3 @@ And you know the bonus extra of this technique? It fights [Dunning-Kruger](https
 
 I'll just be leaving this post lying around here so that my wife can post me a link to it next time I'm in the imposter blues.
 
-*Want to learn more about computational expressions, type providers and more?
-I'm running a course in London on the 15th/16th June 2017 to [Level Up Your F#](https://www.eventbrite.co.uk/e/level-up-your-f-skills-tickets-33720450776) - come along and build more awesome!*

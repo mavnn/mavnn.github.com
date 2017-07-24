@@ -6,9 +6,6 @@ comments: true
 categories: ["fsharp"]
 ---
 
-*Want to learn more about computational expressions, type providers and more?
-I'm running a course in London on the 15th/16th June 2017 to [Level Up Your F#](https://www.eventbrite.co.uk/e/level-up-your-f-skills-tickets-33720450776) - come along and build more awesome!*
-
 In mixed paradigm languages such as F# and Scala you frequently end up using
 mutable APIs in your "nice" pure functional code. It might be because you're using
 a 3rd party library, or it might be for performance reasons - but either way it's very
@@ -213,5 +210,3 @@ This blog post comes with many thanks to [Andrew Cherry](http://twitter.com/kole
 the very real and usable [Freya](https://docs.freya.io/en/latest/) (along with a bunch of collaborators). Freya makes use of this kind of
 technique heavily.
 
-*Want to learn more about computational expressions, type providers and more?
-I'm running a course in London on the 15th/16th June 2017 to [Level Up Your F#](https://www.eventbrite.co.uk/e/level-up-your-f-skills-tickets-33720450776) - come along and build more awesome!*

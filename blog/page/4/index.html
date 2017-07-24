@@ -9,7 +9,7 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="Almost a year ago now, I wrote up a blog post on using FsCheck. I still rate it as an excellent tool, but unfortunately we don&#39;t manage to use it &hellip;">
+  <meta name="description" content="This post is part of the F# Advent Calendar 2014, which is stuffed full of other interesting posts. Go have a read! Note: This post is epic in &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -18,7 +18,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
 
-  <link rel="canonical" href="https://blog.mavnn.co.uk/blog/page/4/index.html">
+  <link rel="canonical" href="http://blog.mavnn.co.uk/blog/page/4/index.html">
   <link href="/favicon.ico" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="Mavnn's blog" type="application/atom+xml">
@@ -79,6 +79,182 @@ ga('send', 'pageview');
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/modelling-inheritance-with-inheritance/">Modelling Inheritance With Inheritance</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-12-18T12:01:41+00:00" pubdate data-updated="true">Dec 18<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><blockquote>
+<p>This post is part of the <a href="https://sergeytihon.wordpress.com/tag/fsadvent/">F# Advent Calendar</a> 2014, which is stuffed full of other interesting posts. Go have a read!</p>
+</blockquote>
+
+<p>Note: This post is epic in length. If you just want to see the final resulting script of much silliness, skip straight to <a href="#conclusion">the conclusion</a>!</p>
+
+<p>Note 2: If you just want to see an example of a sane generated type provider, <a href="https://github.com/mavnn/FPDays.TypeProvider/">the code from my FPDays tutorial</a> is a much better bet.</p>
+
+<p>Note 3: There is a lot of code below. If you&#39;re viewing this on a desktop, I suggest collapsing the sidebar to the right otherwise you&#39;ll have a lot of horizontal scroll bars. If you&#39;re on a mobile device, you might want to bookmark for later.</p>
+
+<p>So&#8230; I&#39;ve been playing with generated (not erased) type providers for a bit, and meaning to write something up about them. Most of the documentation out there is for erased type providers, and to be honest they have a lot of advantages in terms of performance.</p>
+
+<p>But they also have two fundamental limitations:</p>
+
+<ul>
+<li>You can&#39;t used erased F# types in any other .net language</li>
+<li>You can&#39;t use reflection on erased types (even in F#)</li>
+</ul>
+
+<p>So let&#39;s see if we can have a play with generated types, and then - given this is Christmas, and all - let&#39;s see if we can build Jesus&#39; family tree in the .net type system. After all, if you&#39;re going to use inheritance to model something, how about modelling inheritance?</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/modelling-inheritance-with-inheritance/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/cutting-quotations-down-to-size/">Cutting Quotations Down to Size</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-10-07T21:30:58+01:00" pubdate data-updated="true">Oct 7<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><blockquote>
+<p>This is part 2 in my quotations series, following on from <a href="/tap/">Tap, Tap, Tapping on the Door</a>.</p>
+</blockquote>
+
+<p>As promised in the first part of this series, here we&#39;re going to take a look at manipulating quotations. I mean, we&#39;ve got this <a href="http://en.wikipedia.org/wiki/Abstract_syntax_tree">AST</a> - now what are we going to do with it?</p>
+
+<p>Let&#39;s start with something fairly straightforward; <a href="http://en.wikipedia.org/wiki/Boolean_algebra">boolean algebra</a>.</p>
+
+<p>First, let&#39;s get a look at how some boolean expressions are represented in quotations.</p>
+
+<p>Firing up F# Interactive, we&#39;ll feed a few in and see what happens:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="o">&lt;@@</span> <span class="bp">true</span> <span class="o">@@&gt;;;</span>
+</span><span class='line'><span class="c">(* val it : Expr =</span>
+</span><span class='line'><span class="c">      Value (true)</span>
+</span><span class='line'><span class="c">        {CustomAttributes = [NewTuple (Value (&quot;DebugRange&quot;),</span>
+</span><span class='line'><span class="c">              NewTuple (Value (&quot;stdin&quot;), Value (4), Value (4), Value (4), Value (8)))];</span>
+</span><span class='line'><span class="c">         Type = System.Boolean;} *)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Hmm. That&#39;s&#8230; not as nice as we might want. The custom attributes are being added by F# interactive for debugging purposes, but hopefully the general shape is clear: our expression consists of a single value of <code>true</code>.</p>
+
+<p>I&#39;ll cut out the custom attributes from now on to make reading things a bit easier.</p>
+
+<p>Next!</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/cutting-quotations-down-to-size/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/remote-working/">If I Ruled the World&#8230; Remote Working</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-07-15T20:43:06+01:00" pubdate data-updated="true">Jul 15<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Welcome to a new category of posts for my blog. It&#39;s the &quot;Rule the World&quot; category, where I spout opinions on a subject with gay abandon, even if I can&#39;t actually offer that much beyond anecdotal evidence to back the opinion up.</p>
+
+<p>On this occasion I even feel justified as someone has actively asked my opinion about something.</p>
+
+<p>Well, that was foolish now, wasn&#39;t it?</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/remote-working/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -583,191 +759,6 @@ ga('send', 'pageview');
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/type-provider-protip/">Type Provider ProTip</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-01-10T12:15:15+00:00" pubdate data-updated="true">Jan 10<span>th</span>, 2014</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>While type providers are incredibly powerful, the ProvidedTypes api for creating them is sometimes a bit rough around the edges. And not always as functional as you might hope.</p>
-
-<p>At some point I&#39;d like to do something about that, but for the moment I&#39;m just going to collect a few helpful tips and hints (mostly for own reference).</p>
-
-<p>Tip one is in the case where you have XmlDocs to add to ProvidedTypes, ProvidedMethods and ProvidedProperties; in our case we have an optional description field in our metadata and the boiler plate was getting tiresome.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="k">inline</span> <span class="n">addDoc</span> <span class="o">(</span><span class="n">desc</span> <span class="o">:</span> <span class="nc">Descriptor</span><span class="o">)</span> <span class="n">def</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">match</span> <span class="n">desc</span><span class="o">.</span><span class="nc">Description</span> <span class="k">with</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">Some</span> <span class="n">d</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="o">(^</span><span class="nc">T</span> <span class="o">:</span> <span class="o">(</span><span class="k">member</span> <span class="nc">AddXmlDoc</span> <span class="o">:</span> <span class="kt">string</span> <span class="o">-&gt;</span> <span class="kt">unit</span><span class="o">)</span> <span class="o">(</span><span class="n">def</span><span class="o">,</span> <span class="n">d</span><span class="o">))</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="bp">()</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>This function takes a <code>Descriptor</code> with a <code>string option</code> Description field and any <code>def</code> with an AddXmlDoc member with the noted signature - and adds description as the xml doc if it exists.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/pygments/">Pygments</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-01-03T12:23:00+00:00" pubdate data-updated="true">Jan 3<span>rd</span>, 2014</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Apparently I should be able to do inline F# code using one of the Octopress plugins, rather than having to use gists every where.</p>
-
-<p>Let&#39;s try it:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">hello</span> <span class="o">=</span> <span class="s2">&quot;world&quot;</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>Thanks <a href="https://twitter.com/ovatsus/status/411496863591067648">Gustavo</a></p>
-
-<p>Only issue is that having Python 3.x installed broke Octopress&#39; Pygments support. Which kept me going for a while&#8230;</p>
-
-<p>Given I&#39;m not currently doing any Python development, a uninstall and adding 2.7 to the path did the job.</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/type-providers-from-the-ground-up/">Type Providers From the Ground Up</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-12-05T11:28:00+00:00" pubdate data-updated="true">Dec 5<span>th</span>, 2013</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><em>This post is part of a series: <a href="/type-providers-from-the-first-floor/">part 2</a> follows on directly from this post.</em></p>
-
-<p>In the ground tradition of blog posts as both documentation and augmented memory, I&#39;ve just added our first <a href="http://blogs.msdn.com/b/dsyme/archive/2013/01/30/twelve-type-providers-in-pictures.aspx">Type Provider</a> to the code base. Time to write up the details before a) I forget them and b) anyone else needs to modify the code.</p>
-
-<p>So, first things first. Before we get to the actual problem space at hand, let&#39;s try and provide a type. Any type&#8230;</p>
-
-<p>1) Create yourself a new Visual Studio F# library project (2012 or up should work).</p>
-
-<p>2a) Install the <a href="https://www.nuget.org/packages/FSharp.TypeProviders.StarterPack/">F# TypeProvider Starter Pack</a> or</p>
-
-<p>2b) add <a href="https://raw.github.com/fsharp/FSharp.Data/master/src/CommonProviderImplementation/ProvidedTypes.fs">ProvidedTypes.fs</a> and <a href="https://raw.github.com/fsharp/FSharp.Data/master/src/CommonProviderImplementation/ProvidedTypes.fsi">ProvidedTypes.fsi</a> to the project as the first couple of files.</p>
-
-<p>In either case, make sure that the .fsi file appears before the .fs file in your project listing, and that both appear before any type provider code - you will probably have to manually re-order them.</p>
-
-<p>These are provided as code files rather than as compiled dlls due to complications with security and AppDomains when referencing dlls in the type provider assembly. For now just add them in - you really don&#39;t want to be re-creating the code in there by hand.</p>
-
-<p>3) Replace the contents of Library1.fs with something like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nn">Mavnn</span><span class="p">.</span><span class="nn">Blog</span><span class="p">.</span><span class="nc">TypeProvider</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">open</span> <span class="nn">ProviderImplementation</span><span class="p">.</span><span class="nc">ProvidedTypes</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nn">Core</span><span class="p">.</span><span class="nc">CompilerServices</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">[&lt;</span><span class="nc">TypeProvider</span><span class="o">&gt;]</span>
-</span><span class='line'><span class="k">type</span> <span class="nc">MavnnProvider</span> <span class="o">(</span><span class="n">config</span> <span class="o">:</span> <span class="nc">TypeProviderConfig</span><span class="o">)</span> <span class="k">as</span> <span class="n">this</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">inherit</span> <span class="nc">TypeProviderForNamespaces</span> <span class="bp">()</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">[&lt;</span><span class="n">assembly</span><span class="o">:</span><span class="nc">TypeProviderAssembly</span><span class="o">&gt;]</span>
-</span><span class='line'><span class="k">do</span> <span class="bp">()</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>So, that&#39;s great and it builds. We have a type provider class and an assembly that knows it&#39;s a type providing assembly. Unfortunately, it doesn&#39;t actually provide any types yet. Let&#39;s try it.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/type-providers-from-the-ground-up/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/5/">&larr; Older</a>
@@ -785,23 +776,23 @@ ga('send', 'pageview');
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/deliberate-poster-fighting-imposter-syndrome/">Deliberate Poster: Fighting Imposter Syndrome</a>
+      </li>
+    
+      <li class="post">
+        <a href="/managing-mutable-state-with-computational-expressions/">Managing Mutable State With Computational Expressions</a>
+      </li>
+    
+      <li class="post">
+        <a href="/return-to-the-ivory-tower-video/">Return to the Ivory Tower Video</a>
+      </li>
+    
+      <li class="post">
         <a href="/slides-for-f-number-exchange-2017/">Slides for F# Exchange 2017</a>
       </li>
     
       <li class="post">
         <a href="/level-up-your-f-number-skills/">Level Up Your F# Skills</a>
-      </li>
-    
-      <li class="post">
-        <a href="/returning-to-the-ivory-tower/">Returning to the Ivory Tower</a>
-      </li>
-    
-      <li class="post">
-        <a href="/advent-2016/">Advent 2016</a>
-      </li>
-    
-      <li class="post">
-        <a href="/video-and-slides-for-from-the-ivory-tower/">Video and Slides for &#8220;From the Ivory Tower&#8221;</a>
       </li>
     
   </ul>

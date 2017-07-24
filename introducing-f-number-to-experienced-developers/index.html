@@ -1,0 +1,1531 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Introducing F# to Experienced Developers - Mavnn's blog</title>
+  <meta name="author" content="mavnn">
+
+  
+  <meta name="description" content="So, as a follow up to this post I&#39;m in the final stages of preparing a presentation for this Friday introducing an audience of (mostly) fairly &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+  <link rel="canonical" href="http://blog.mavnn.co.uk/introducing-f-number-to-experienced-developers/">
+  <link href="/favicon.ico" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Mavnn's blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+<!-- Google Analytics -->
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-37561687-1', 'auto');
+ga('send', 'pageview');
+
+</script>
+<!-- End Google Analytics -->
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <a href="http://mavnn.co.uk"><img class="swirl-logo" src="/images/swirl.svg"/></a>
+  <h1><a href="/">Mavnn's blog</a></h1>
+  
+    <h2>Stuff from my brain</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:blog.mavnn.co.uk" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Introducing F# to Experienced Developers</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-10-14T12:30:00+01:00" pubdate data-updated="true">Oct 14<span>th</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>So, as a follow up to <a href="https//blog.mavnn.co.uk/teaching-f-number-to-c-number-devs/">this post</a> I&#39;m in the final stages of preparing a presentation for this Friday introducing an audience of (mostly) fairly experienced developers to F# and F# syntax. The main reason for this is to get a number of people up to speed enough on reading F# that they can have a better experience at <a href="http://skillsmatter.com/event/scala/progressive-f-tutorials-2013">the Progressive F# Tutorials</a> at the end of the month. So the aim here isn&#39;t to get people fully autonomous and writing code <em>right now</em>, but to allow them to read the bulk of the example code in the tutorials and follow what&#39;s going on.</p>
+
+<p>The general approach I&#39;ve gone for is to set up a Git repository that has a series of tagged snap shots I can check out as I work through the concepts I&#39;m planning to cover. This will enable me to actually demonstrate and run pieces of code, answer questions and make live modifications and then always jump back to a known starting point for the next section of the talk. Given the people involved have all done some .net development and I don&#39;t need to cover things like Visual Studio usage and projects, all of the code is contained in a single Program.fs file in a console app. I&#39;ve included the snapshot of the file from each tagged commit below, with a brief overview of what I&#39;m planning to introduce before skipping to the next snapshot.</p>
+
+<p>With a full screen Visual Studio editing session, I should be able to make the code large enough to be visible and reasonably rapidly guide people to the areas where the code has changed.</p>
+
+<p>A combination of the excellent <a href="http://papercut.codeplex.com/">PaperCut</a> project and a local &#39;http request to email&#39; service pretending to be an SMS sender, we should be able to see messages being generated by the code as we go along.</p>
+
+<p>After the session, I&#39;m planning to mention <a href="https://github.com/ChrisMarinos/FSharpKoans">Chris Marinos&#39; koans</a> and <a href="http://www.tryfsharp.org/">Try F#</a> (especially given that Rachel Reese is <a href="http://skillsmatter.com/podcast/scala/try-f-from-zero-to-data-science">running a session</a> at the tutorials for those who are going).</p>
+
+<p>Please note that these are up here for comment and suggestions at this point - I&#39;ll be pushing up the actual Git repository and a screencast (I hope) after the event. The code is designed to be a prop for the talk rather than an independent resource - for that I&#39;d always point people to the koans/Try F# first.</p>
+
+<p>So, show me the codez:</p>
+
+<!--more-->
+
+<h2>Tag &#39;1&#39;</h2>
+
+<p>Nothing too exciting here :). This is just a place holder while giving the introduction, although I will also point out the lack of required boiler plate compared to C#.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="c1">// Let&#39;s send an email!</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<h2>Tag &#39;2&#39;</h2>
+
+<p>Introduce the <code>open</code> keyword, <code>let</code> for value assignment, and give people a feel that they&#39;re not completely leaving their nice safe .net world behind.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="c1">// Let&#39;s send an email!</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Net</span><span class="p">.</span><span class="nc">Mail</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// We only use the &#39;new&#39; keyword here because SmtpClient is disposable</span>
+</span><span class='line'><span class="k">let</span> <span class="n">smtpClient</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">SmtpClient</span><span class="o">(</span><span class="s2">&quot;smtp.local&quot;</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// And given it&#39;s disposable, we should really dispose of it...</span>
+</span><span class='line'><span class="n">smtpClient</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<h2>Tag &#39;3&#39;</h2>
+
+<p>Talk about functions, show parameter application, introduce the pipe operator.</p>
+
+<p>Some discussion about type inference will probably happen here.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Net</span><span class="p">.</span><span class="nc">Mail</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">smtpClient</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">SmtpClient</span><span class="o">(</span><span class="s2">&quot;smtp.local&quot;</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// This is a function</span>
+</span><span class='line'><span class="k">let</span> <span class="n">sendMessage</span> <span class="n">client</span> <span class="n">message</span> <span class="o">=</span>
+</span><span class='line'>    <span class="c1">// We&#39;d better do something here to actually</span>
+</span><span class='line'>    <span class="c1">// send a message...</span>
+</span><span class='line'>    <span class="n">printfn</span> <span class="s2">&quot;I haven&#39;t sent a mail message!&quot;</span>
+</span><span class='line'>    <span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">sendMessage</span> <span class="n">smtpClient</span> <span class="s2">&quot;My message&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">smtpClient</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// And we&#39;ll add this so we can see the output</span>
+</span><span class='line'><span class="c1">// before it disappears</span>
+</span><span class='line'><span class="nn">System</span><span class="p">.</span><span class="nn">Console</span><span class="p">.</span><span class="nc">ReadLine</span><span class="bp">()</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
+</span><span class='line'><span class="c1">// This line would be the same as writing:</span>
+</span><span class='line'><span class="c1">//</span>
+</span><span class='line'><span class="c1">// ignore (System.Console.Readline())</span>
+</span><span class='line'><span class="c1">//</span>
+</span><span class='line'><span class="c1">// but you have to admit that this is a bit </span>
+</span><span class='line'><span class="c1">// more readable</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<h2>Tag &#39;4&#39;</h2>
+
+<p>Introduce the <code>use</code> keyword, show property assignment with <code>&lt;-</code>.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Net</span><span class="p">.</span><span class="nc">Mail</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">smtpClient</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">SmtpClient</span><span class="o">(</span><span class="s2">&quot;smtp.local&quot;</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">sendMessage</span> <span class="n">client</span> <span class="n">message</span> <span class="o">=</span>
+</span><span class='line'>    <span class="c">(* Because we used &#39;use&#39; this will get</span>
+</span><span class='line'><span class="c">    disposed at the end of the declaring</span>
+</span><span class='line'><span class="c">    scope *)</span>
+</span><span class='line'>    <span class="k">use</span> <span class="n">mailMessage</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">MailMessage</span><span class="o">(</span><span class="s2">&quot;me@example.com&quot;</span><span class="o">,</span> <span class="s2">&quot;you@example.com&quot;</span><span class="o">)</span>
+</span><span class='line'>    <span class="c">(* This is have you assign a parameter *)</span>
+</span><span class='line'>    <span class="n">mailMessage</span><span class="o">.</span><span class="nc">Subject</span> <span class="o">&lt;-</span> <span class="s2">&quot;Message subject&quot;</span>
+</span><span class='line'>    <span class="n">mailMessage</span><span class="o">.</span><span class="nc">Body</span> <span class="o">&lt;-</span> <span class="n">message</span>
+</span><span class='line'>    <span class="n">smtpClient</span><span class="o">.</span><span class="nc">Send</span> <span class="n">mailMessage</span>
+</span><span class='line'>    <span class="n">printfn</span> <span class="s2">&quot;I&#39;ve sent a mail message!&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">sendMessage</span> <span class="n">smtpClient</span> <span class="s2">&quot;My message&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">smtpClient</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
+</span><span class='line'><span class="nn">System</span><span class="p">.</span><span class="nn">Console</span><span class="p">.</span><span class="nc">ReadLine</span><span class="bp">()</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<h2>Tag &#39;5&#39;</h2>
+
+<p>List syntax and introduce the <code>Seq</code> module. Example of currying.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Net</span><span class="p">.</span><span class="nc">Mail</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">smtpClient</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">SmtpClient</span><span class="o">(</span><span class="s2">&quot;smtp.local&quot;</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">sendMessage</span> <span class="n">client</span> <span class="n">message</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">use</span> <span class="n">mailMessage</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">MailMessage</span><span class="o">(</span><span class="s2">&quot;me@example.com&quot;</span><span class="o">,</span> <span class="s2">&quot;you@example.com&quot;</span><span class="o">)</span>
+</span><span class='line'>    <span class="n">mailMessage</span><span class="o">.</span><span class="nc">Subject</span> <span class="o">&lt;-</span> <span class="s2">&quot;Message subject&quot;</span>
+</span><span class='line'>    <span class="n">mailMessage</span><span class="o">.</span><span class="nc">Body</span> <span class="o">&lt;-</span> <span class="n">message</span>
+</span><span class='line'>    <span class="n">smtpClient</span><span class="o">.</span><span class="nc">Send</span> <span class="n">mailMessage</span>
+</span><span class='line'>    <span class="n">printfn</span> <span class="s2">&quot;I&#39;ve sent a mail message!&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="c">(* But really, what you want computers for</span>
+</span><span class='line'><span class="c">is doing the same thing lots of times... *)</span>
+</span><span class='line'><span class="k">let</span> <span class="n">myMessages</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">[</span>
+</span><span class='line'>        <span class="s2">&quot;My first message&quot;</span>
+</span><span class='line'>        <span class="s2">&quot;My second message&quot;</span>
+</span><span class='line'>        <span class="s2">&quot;My third and final message&quot;</span>
+</span><span class='line'>    <span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">myMessages</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">iter</span> <span class="o">(</span><span class="n">sendMessage</span> <span class="n">smtpClient</span><span class="o">)</span>
+</span><span class='line'><span class="c">(* Let&#39;s have some vindaloo with that map *)</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">smtpClient</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
+</span><span class='line'><span class="nn">System</span><span class="p">.</span><span class="nn">Console</span><span class="p">.</span><span class="nc">ReadLine</span><span class="bp">()</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<h2>Tag &#39;6&#39;</h2>
+
+<p>An async workflow. Turns out that <code>SmtpClient</code> is not as clean for that as you would hope - it&#39;s async send methods don&#39;t appear to be thread safe (wait, what?) and even the relatively recent looking <code>SendMailAsync</code> method returns a <code>Task</code> rather than a <code>Task&lt;&#39;T&gt;</code>. Having said that, it shows that even in less than ideal circumstances, you can leverage the <code>async</code> stuff even when interfacing with older .net code from other languages.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Net</span><span class="p">.</span><span class="nc">Mail</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'><span class="c">(* But really, what you want computers for</span>
+</span><span class='line'><span class="c">is doing the same thing lots of times... </span>
+</span><span class='line'><span class="c">at the same time! *)</span>
+</span><span class='line'><span class="k">let</span> <span class="n">sendMessage</span> <span class="n">message</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">async</span> <span class="o">{</span>
+</span><span class='line'>        <span class="c1">// Move the client inside because...</span>
+</span><span class='line'>        <span class="c1">// have _you_ checked if it&#39;s thread safe?</span>
+</span><span class='line'>        <span class="k">use</span> <span class="n">smtpClient</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">SmtpClient</span><span class="o">(</span><span class="s2">&quot;smtp.local&quot;</span><span class="o">)</span>
+</span><span class='line'>        <span class="k">use</span> <span class="n">mailMessage</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">MailMessage</span><span class="o">(</span><span class="s2">&quot;me@example.com&quot;</span><span class="o">,</span> <span class="s2">&quot;you@example.com&quot;</span><span class="o">)</span>
+</span><span class='line'>        <span class="n">mailMessage</span><span class="o">.</span><span class="nc">Subject</span> <span class="o">&lt;-</span> <span class="s2">&quot;Message subject&quot;</span>
+</span><span class='line'>        <span class="n">mailMessage</span><span class="o">.</span><span class="nc">Body</span> <span class="o">&lt;-</span> <span class="n">message</span>
+</span><span class='line'>        <span class="k">do</span><span class="o">!</span>
+</span><span class='line'>            <span class="n">smtpClient</span><span class="o">.</span><span class="nc">SendMailAsync</span><span class="o">(</span><span class="n">mailMessage</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">AwaitIAsyncResult</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Ignore</span>
+</span><span class='line'>        <span class="n">printfn</span> <span class="s2">&quot;I&#39;ve sent a mail message!&quot;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">myMessages</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">[</span>
+</span><span class='line'>        <span class="s2">&quot;My first message&quot;</span>
+</span><span class='line'>        <span class="s2">&quot;My second message&quot;</span>
+</span><span class='line'>        <span class="s2">&quot;My third and final message&quot;</span>
+</span><span class='line'>    <span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">myMessages</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="n">sendMessage</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Parallel</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">RunSynchronously</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">printfn</span> <span class="s2">&quot;Finished all sends!&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nn">System</span><span class="p">.</span><span class="nn">Console</span><span class="p">.</span><span class="nc">ReadLine</span><span class="bp">()</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<h2>Tag &#39;7&#39;</h2>
+
+<p>Tuples! Showing both construction and deconstruction syntax. Also discuss that this is how we pass multiple parameters to methods on classes.</p>
+
+<p>In the live coding for this one, I&#39;ll make sure to demonstrate adding and removing brackets in different places.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Net</span><span class="p">.</span><span class="nc">Mail</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">sendMessage</span> <span class="n">messageDetails</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">async</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">address</span><span class="o">,</span> <span class="n">body</span> <span class="o">=</span> <span class="n">messageDetails</span>
+</span><span class='line'>        <span class="k">use</span> <span class="n">smtpClient</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">SmtpClient</span><span class="o">(</span><span class="s2">&quot;smtp.local&quot;</span><span class="o">)</span>
+</span><span class='line'>        <span class="k">use</span> <span class="n">mailMessage</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">MailMessage</span><span class="o">(</span><span class="s2">&quot;me@example.com&quot;</span><span class="o">,</span> <span class="n">address</span><span class="o">)</span>
+</span><span class='line'>        <span class="n">mailMessage</span><span class="o">.</span><span class="nc">Subject</span> <span class="o">&lt;-</span> <span class="s2">&quot;Message subject&quot;</span>
+</span><span class='line'>        <span class="n">mailMessage</span><span class="o">.</span><span class="nc">Body</span> <span class="o">&lt;-</span> <span class="n">body</span>
+</span><span class='line'>        <span class="k">do</span><span class="o">!</span>
+</span><span class='line'>            <span class="n">smtpClient</span><span class="o">.</span><span class="nc">SendMailAsync</span><span class="o">(</span><span class="n">mailMessage</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">AwaitIAsyncResult</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Ignore</span>
+</span><span class='line'>        <span class="n">printfn</span> <span class="s2">&quot;I&#39;ve sent a mail message!&quot;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'><span class="c">(* But we probably don&#39;t want to send all of these</span>
+</span><span class='line'><span class="c">to the same person. *)</span>
+</span><span class='line'><span class="k">let</span> <span class="n">myMessages</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">[</span>
+</span><span class='line'>        <span class="s2">&quot;first@example.com&quot;</span><span class="o">,</span> <span class="s2">&quot;My first message&quot;</span>
+</span><span class='line'>        <span class="s2">&quot;secord@example.com&quot;</span><span class="o">,</span> <span class="s2">&quot;My second message&quot;</span>
+</span><span class='line'>        <span class="s2">&quot;third@example.com&quot;</span><span class="o">,</span> <span class="s2">&quot;My third and final message&quot;</span>
+</span><span class='line'>    <span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">myMessages</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="n">sendMessage</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Parallel</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">RunSynchronously</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">printfn</span> <span class="s2">&quot;Finished all sends!&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nn">System</span><span class="p">.</span><span class="nn">Console</span><span class="p">.</span><span class="nc">ReadLine</span><span class="bp">()</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<h2>Tag &#39;8&#39;</h2>
+
+<p>Record syntax.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Net</span><span class="p">.</span><span class="nc">Mail</span>
+</span><span class='line'>
+</span><span class='line'><span class="c">(* How about if I want to pass lots of different bits</span>
+</span><span class='line'><span class="c">of information in? *)</span>
+</span><span class='line'><span class="k">type</span> <span class="n">messageDetails</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span>
+</span><span class='line'>        <span class="n">toAddress</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>        <span class="n">fromAddress</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>        <span class="n">body</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">sendMessage</span> <span class="n">messageDetails</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">async</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">use</span> <span class="n">smtpClient</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">SmtpClient</span><span class="o">(</span><span class="s2">&quot;smtp.local&quot;</span><span class="o">)</span>
+</span><span class='line'>        <span class="k">use</span> <span class="n">mailMessage</span> <span class="o">=</span>
+</span><span class='line'>            <span class="k">new</span> <span class="nc">MailMessage</span><span class="o">(</span>
+</span><span class='line'>                <span class="n">messageDetails</span><span class="o">.</span><span class="n">fromAddress</span><span class="o">,</span>
+</span><span class='line'>                <span class="n">messageDetails</span><span class="o">.</span><span class="n">toAddress</span><span class="o">)</span>
+</span><span class='line'>        <span class="n">mailMessage</span><span class="o">.</span><span class="nc">Subject</span> <span class="o">&lt;-</span> <span class="s2">&quot;Message subject&quot;</span>
+</span><span class='line'>        <span class="n">mailMessage</span><span class="o">.</span><span class="nc">Body</span> <span class="o">&lt;-</span> <span class="n">messageDetails</span><span class="o">.</span><span class="n">body</span>
+</span><span class='line'>        <span class="k">do</span><span class="o">!</span>
+</span><span class='line'>            <span class="n">smtpClient</span><span class="o">.</span><span class="nc">SendMailAsync</span><span class="o">(</span><span class="n">mailMessage</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">AwaitIAsyncResult</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Ignore</span>
+</span><span class='line'>        <span class="n">printfn</span> <span class="s2">&quot;I&#39;ve sent a mail message!&quot;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">myMessages</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">[</span>
+</span><span class='line'>        <span class="o">{</span> <span class="n">toAddress</span> <span class="o">=</span> <span class="s2">&quot;first@example.com&quot;</span><span class="o">;</span> <span class="n">fromAddress</span> <span class="o">=</span> <span class="s2">&quot;official@example.com&quot;</span><span class="o">;</span> <span class="n">body</span> <span class="o">=</span> <span class="s2">&quot;My first message&quot;</span> <span class="o">}</span>
+</span><span class='line'>        <span class="o">{</span> <span class="n">toAddress</span> <span class="o">=</span> <span class="s2">&quot;second@example.com&quot;</span><span class="o">;</span> <span class="n">fromAddress</span> <span class="o">=</span> <span class="s2">&quot;personal@example.com&quot;</span><span class="o">;</span> <span class="n">body</span> <span class="o">=</span> <span class="s2">&quot;My second message&quot;</span> <span class="o">}</span>
+</span><span class='line'>        <span class="o">{</span> <span class="n">toAddress</span> <span class="o">=</span> <span class="s2">&quot;first@example.com&quot;</span><span class="o">;</span> <span class="n">fromAddress</span> <span class="o">=</span> <span class="s2">&quot;official@example.com&quot;</span><span class="o">;</span> <span class="n">body</span> <span class="o">=</span> <span class="s2">&quot;My third message&quot;</span> <span class="o">}</span>
+</span><span class='line'>    <span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">myMessages</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="n">sendMessage</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Parallel</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">RunSynchronously</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">printfn</span> <span class="s2">&quot;Finished all sends!&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nn">System</span><span class="p">.</span><span class="nn">Console</span><span class="p">.</span><span class="nc">ReadLine</span><span class="bp">()</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<h2>Tag &#39;9&#39;</h2>
+
+<p>Use discriminated unions for modeling business inputs. In this case, building a MessageDetails class that can contain the details of either an email or an SMS send request.</p>
+
+<p>Also has a 2nd, maybe slightly more idiomatic implementation of an async workflow.</p>
+
+<p>I&#39;m hoping to get at least this far in the session. The rest of it would be nice, but if we get here then I&#39;ll be happy I&#39;ve covered at least the basics.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">IO</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Net</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Net</span><span class="p">.</span><span class="nc">Mail</span>
+</span><span class='line'>
+</span><span class='line'><span class="c">(* But some people have given us mobile</span>
+</span><span class='line'><span class="c">numbers rather than email addresses *)</span>
+</span><span class='line'><span class="k">type</span> <span class="nc">EmailDetails</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span>
+</span><span class='line'>        <span class="n">toAddress</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>        <span class="n">fromAddress</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>        <span class="n">body</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">SmsDetails</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span>
+</span><span class='line'>        <span class="n">toNumber</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>        <span class="n">fromNumber</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>        <span class="n">message</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">MessageDetails</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Email</span> <span class="k">of</span> <span class="nc">EmailDetails</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Sms</span> <span class="k">of</span> <span class="nc">SmsDetails</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">sendEmail</span> <span class="n">messageDetails</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">async</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">use</span> <span class="n">smtpClient</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">SmtpClient</span><span class="o">(</span><span class="s2">&quot;smtp.local&quot;</span><span class="o">)</span>
+</span><span class='line'>        <span class="k">use</span> <span class="n">mailMessage</span> <span class="o">=</span>
+</span><span class='line'>            <span class="k">new</span> <span class="nc">MailMessage</span><span class="o">(</span>
+</span><span class='line'>                <span class="n">messageDetails</span><span class="o">.</span><span class="n">fromAddress</span><span class="o">,</span>
+</span><span class='line'>                <span class="n">messageDetails</span><span class="o">.</span><span class="n">toAddress</span><span class="o">)</span>
+</span><span class='line'>        <span class="n">mailMessage</span><span class="o">.</span><span class="nc">Subject</span> <span class="o">&lt;-</span> <span class="s2">&quot;Message subject&quot;</span>
+</span><span class='line'>        <span class="n">mailMessage</span><span class="o">.</span><span class="nc">Body</span> <span class="o">&lt;-</span> <span class="n">messageDetails</span><span class="o">.</span><span class="n">body</span>
+</span><span class='line'>        <span class="k">do</span><span class="o">!</span>
+</span><span class='line'>            <span class="n">smtpClient</span><span class="o">.</span><span class="nc">SendMailAsync</span><span class="o">(</span><span class="n">mailMessage</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">AwaitIAsyncResult</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Ignore</span>
+</span><span class='line'>        <span class="n">printfn</span> <span class="s2">&quot;I&#39;ve sent a mail message!&quot;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">sendSms</span> <span class="n">messageDetails</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">async</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">http</span> <span class="o">=</span> <span class="nn">HttpWebRequest</span><span class="p">.</span><span class="nc">Create</span><span class="o">(</span><span class="s2">&quot;http://sms.local&quot;</span><span class="o">)</span> <span class="o">:?&gt;</span> <span class="nc">HttpWebRequest</span>
+</span><span class='line'>        <span class="n">http</span><span class="o">.</span><span class="nc">Method</span> <span class="o">&lt;-</span> <span class="s2">&quot;POST&quot;</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">messagePayload</span> <span class="o">=</span>
+</span><span class='line'>            <span class="n">sprintf</span>
+</span><span class='line'>                <span class="s2">&quot;To: %s</span><span class="se">\n</span><span class="s2">From: %s</span><span class="se">\n</span><span class="s2">Message: %s&quot;</span>
+</span><span class='line'>                <span class="n">messageDetails</span><span class="o">.</span><span class="n">toNumber</span>
+</span><span class='line'>                <span class="n">messageDetails</span><span class="o">.</span><span class="n">fromNumber</span>
+</span><span class='line'>                <span class="n">messageDetails</span><span class="o">.</span><span class="n">message</span>
+</span><span class='line'>        <span class="n">using</span>
+</span><span class='line'>            <span class="o">(</span><span class="n">http</span><span class="o">.</span><span class="nc">GetRequestStream</span><span class="bp">()</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">(</span><span class="k">fun</span> <span class="n">stream</span> <span class="o">-&gt;</span>
+</span><span class='line'>                <span class="k">use</span> <span class="n">sw</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">StreamWriter</span><span class="o">(</span><span class="n">stream</span><span class="o">)</span>
+</span><span class='line'>                <span class="n">sw</span><span class="o">.</span><span class="nc">Write</span><span class="o">(</span><span class="n">messagePayload</span><span class="o">))</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">response</span> <span class="o">=</span> <span class="n">http</span><span class="o">.</span><span class="nc">GetResponseAsync</span><span class="bp">()</span> <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">AwaitTask</span>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(</span><span class="n">response</span> <span class="o">:?&gt;</span> <span class="nc">HttpWebResponse</span><span class="o">).</span><span class="nc">StatusCode</span> <span class="o">&lt;&gt;</span> <span class="nn">HttpStatusCode</span><span class="p">.</span><span class="nc">OK</span> <span class="k">then</span>
+</span><span class='line'>            <span class="n">failwith</span> <span class="s2">&quot;Http request failed!&quot;</span>
+</span><span class='line'>        <span class="n">printfn</span> <span class="s2">&quot;I&#39;ve sent an SMS!&quot;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">sendMessage</span> <span class="n">message</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">match</span> <span class="n">message</span> <span class="k">with</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Email</span> <span class="n">details</span> <span class="o">-&gt;</span> <span class="n">sendEmail</span> <span class="n">details</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Sms</span> <span class="n">details</span> <span class="o">-&gt;</span> <span class="n">sendSms</span> <span class="n">details</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">myMessages</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">[</span>
+</span><span class='line'>        <span class="nc">Email</span> <span class="o">{</span> <span class="n">toAddress</span> <span class="o">=</span> <span class="s2">&quot;first@example.com&quot;</span><span class="o">;</span> <span class="n">fromAddress</span> <span class="o">=</span> <span class="s2">&quot;official@example.com&quot;</span><span class="o">;</span> <span class="n">body</span> <span class="o">=</span> <span class="s2">&quot;My first message&quot;</span> <span class="o">}</span>
+</span><span class='line'>        <span class="nc">Email</span> <span class="o">{</span> <span class="n">toAddress</span> <span class="o">=</span> <span class="s2">&quot;second@example.com&quot;</span><span class="o">;</span> <span class="n">fromAddress</span> <span class="o">=</span> <span class="s2">&quot;personal@example.com&quot;</span><span class="o">;</span> <span class="n">body</span> <span class="o">=</span> <span class="s2">&quot;My second message&quot;</span> <span class="o">}</span>
+</span><span class='line'>        <span class="nc">Email</span> <span class="o">{</span> <span class="n">toAddress</span> <span class="o">=</span> <span class="s2">&quot;first@example.com&quot;</span><span class="o">;</span> <span class="n">fromAddress</span> <span class="o">=</span> <span class="s2">&quot;official@example.com&quot;</span><span class="o">;</span> <span class="n">body</span> <span class="o">=</span> <span class="s2">&quot;My third message&quot;</span> <span class="o">}</span>
+</span><span class='line'>        <span class="nc">Sms</span> <span class="o">{</span> <span class="n">toNumber</span> <span class="o">=</span> <span class="s2">&quot;+447777123123&quot;</span><span class="o">;</span> <span class="n">fromNumber</span> <span class="o">=</span> <span class="s2">&quot;+447888321321&quot;</span><span class="o">;</span> <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;Hello by sms&quot;</span> <span class="o">}</span>
+</span><span class='line'>        <span class="nc">Sms</span> <span class="o">{</span> <span class="n">toNumber</span> <span class="o">=</span> <span class="s2">&quot;+447777123124&quot;</span><span class="o">;</span> <span class="n">fromNumber</span> <span class="o">=</span> <span class="s2">&quot;+447888321321&quot;</span><span class="o">;</span> <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;Hello by sms x2&quot;</span> <span class="o">}</span>
+</span><span class='line'>        <span class="nc">Sms</span> <span class="o">{</span> <span class="n">toNumber</span> <span class="o">=</span> <span class="s2">&quot;+447777123123&quot;</span><span class="o">;</span> <span class="n">fromNumber</span> <span class="o">=</span> <span class="s2">&quot;+447888321321&quot;</span><span class="o">;</span> <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;Hello by sms x3&quot;</span> <span class="o">}</span>
+</span><span class='line'>    <span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">myMessages</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="n">sendMessage</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Parallel</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">RunSynchronously</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">printfn</span> <span class="s2">&quot;Finished all sends!&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nn">System</span><span class="p">.</span><span class="nn">Console</span><span class="p">.</span><span class="nc">ReadLine</span><span class="bp">()</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<h2>Tag &#39;10&#39;</h2>
+
+<p>Validation with Active patterns.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+<span class='line-number'>85</span>
+<span class='line-number'>86</span>
+<span class='line-number'>87</span>
+<span class='line-number'>88</span>
+<span class='line-number'>89</span>
+<span class='line-number'>90</span>
+<span class='line-number'>91</span>
+<span class='line-number'>92</span>
+<span class='line-number'>93</span>
+<span class='line-number'>94</span>
+<span class='line-number'>95</span>
+<span class='line-number'>96</span>
+<span class='line-number'>97</span>
+<span class='line-number'>98</span>
+<span class='line-number'>99</span>
+<span class='line-number'>100</span>
+<span class='line-number'>101</span>
+<span class='line-number'>102</span>
+<span class='line-number'>103</span>
+<span class='line-number'>104</span>
+<span class='line-number'>105</span>
+<span class='line-number'>106</span>
+<span class='line-number'>107</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">IO</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Net</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Net</span><span class="p">.</span><span class="nc">Mail</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">EmailDetails</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span>
+</span><span class='line'>        <span class="n">toAddress</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>        <span class="n">fromAddress</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>        <span class="n">body</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">SmsDetails</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span>
+</span><span class='line'>        <span class="n">toNumber</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>        <span class="n">fromNumber</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>        <span class="n">message</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">MessageDetails</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Email</span> <span class="k">of</span> <span class="nc">EmailDetails</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Sms</span> <span class="k">of</span> <span class="nc">SmsDetails</span>
+</span><span class='line'>
+</span><span class='line'><span class="c">(* But what if some people have given us invalid data?</span>
+</span><span class='line'>
+</span><span class='line'><span class="c">Our SMS sender requires full numbers with national</span>
+</span><span class='line'><span class="c">codes - let&#39;s add some validation! *)</span>
+</span><span class='line'><span class="k">let</span> <span class="o">(|</span><span class="nc">ValidSmsRequest</span><span class="o">|</span><span class="nc">InvalidSmsRequest</span><span class="o">|)</span> <span class="n">details</span> <span class="o">=</span>
+</span><span class='line'>    <span class="c1">// Hmm. Bananas. My favourite.</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">regex</span> <span class="o">=</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Text</span><span class="p">.</span><span class="nn">RegularExpressions</span><span class="p">.</span><span class="nc">Regex</span><span class="o">(@</span><span class="s2">&quot;^</span><span class="err">\</span><span class="s2">+</span><span class="err">\</span><span class="s2">d</span><span class="err">\</span><span class="s2">d&quot;</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">if</span> <span class="n">regex</span><span class="o">.</span><span class="nc">IsMatch</span><span class="o">(</span><span class="n">details</span><span class="o">.</span><span class="n">toNumber</span><span class="o">)</span> <span class="o">&amp;&amp;</span> <span class="n">regex</span><span class="o">.</span><span class="nc">IsMatch</span><span class="o">(</span><span class="n">details</span><span class="o">.</span><span class="n">fromNumber</span><span class="o">)</span> <span class="k">then</span>
+</span><span class='line'>        <span class="nc">ValidSmsRequest</span> <span class="n">details</span>
+</span><span class='line'>    <span class="k">else</span>
+</span><span class='line'>        <span class="nc">InvalidSmsRequest</span> <span class="s2">&quot;You must include the +xx country prefix on mobile numbers.&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">sendEmail</span> <span class="n">messageDetails</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">async</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">use</span> <span class="n">smtpClient</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">SmtpClient</span><span class="o">(</span><span class="s2">&quot;smtp.local&quot;</span><span class="o">)</span>
+</span><span class='line'>        <span class="k">use</span> <span class="n">mailMessage</span> <span class="o">=</span>
+</span><span class='line'>            <span class="k">new</span> <span class="nc">MailMessage</span><span class="o">(</span>
+</span><span class='line'>                <span class="n">messageDetails</span><span class="o">.</span><span class="n">fromAddress</span><span class="o">,</span>
+</span><span class='line'>                <span class="n">messageDetails</span><span class="o">.</span><span class="n">toAddress</span><span class="o">)</span>
+</span><span class='line'>        <span class="n">mailMessage</span><span class="o">.</span><span class="nc">Subject</span> <span class="o">&lt;-</span> <span class="s2">&quot;Message subject&quot;</span>
+</span><span class='line'>        <span class="n">mailMessage</span><span class="o">.</span><span class="nc">Body</span> <span class="o">&lt;-</span> <span class="n">messageDetails</span><span class="o">.</span><span class="n">body</span>
+</span><span class='line'>        <span class="k">do</span><span class="o">!</span>
+</span><span class='line'>            <span class="n">smtpClient</span><span class="o">.</span><span class="nc">SendMailAsync</span><span class="o">(</span><span class="n">mailMessage</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">AwaitIAsyncResult</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Ignore</span>
+</span><span class='line'>        <span class="n">printfn</span> <span class="s2">&quot;I&#39;ve sent a mail message!&quot;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="c">(* We&#39;ve moved the SMS post logic into this method</span>
+</span><span class='line'><span class="c">without change - no validation here.</span>
+</span><span class='line'>
+</span><span class='line'><span class="c">We&#39;ve marked it private so no one else can call it</span>
+</span><span class='line'><span class="c">by mistake *)</span>
+</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">postSms</span> <span class="n">messageDetails</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">async</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">http</span> <span class="o">=</span> <span class="nn">HttpWebRequest</span><span class="p">.</span><span class="nc">Create</span><span class="o">(</span><span class="s2">&quot;http://sms.local&quot;</span><span class="o">)</span> <span class="o">:?&gt;</span> <span class="nc">HttpWebRequest</span>
+</span><span class='line'>        <span class="n">http</span><span class="o">.</span><span class="nc">Method</span> <span class="o">&lt;-</span> <span class="s2">&quot;POST&quot;</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">messagePayload</span> <span class="o">=</span>
+</span><span class='line'>            <span class="n">sprintf</span>
+</span><span class='line'>                <span class="s2">&quot;To: %s</span><span class="se">\n</span><span class="s2">From: %s</span><span class="se">\n</span><span class="s2">Message: %s&quot;</span>
+</span><span class='line'>                <span class="n">messageDetails</span><span class="o">.</span><span class="n">toNumber</span>
+</span><span class='line'>                <span class="n">messageDetails</span><span class="o">.</span><span class="n">fromNumber</span>
+</span><span class='line'>                <span class="n">messageDetails</span><span class="o">.</span><span class="n">message</span>
+</span><span class='line'>        <span class="n">using</span>
+</span><span class='line'>            <span class="o">(</span><span class="n">http</span><span class="o">.</span><span class="nc">GetRequestStream</span><span class="bp">()</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">(</span><span class="k">fun</span> <span class="n">stream</span> <span class="o">-&gt;</span>
+</span><span class='line'>                <span class="k">use</span> <span class="n">sw</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">StreamWriter</span><span class="o">(</span><span class="n">stream</span><span class="o">)</span>
+</span><span class='line'>                <span class="n">sw</span><span class="o">.</span><span class="nc">Write</span><span class="o">(</span><span class="n">messagePayload</span><span class="o">))</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">response</span> <span class="o">=</span> <span class="n">http</span><span class="o">.</span><span class="nc">GetResponseAsync</span><span class="bp">()</span> <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">AwaitTask</span>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(</span><span class="n">response</span> <span class="o">:?&gt;</span> <span class="nc">HttpWebResponse</span><span class="o">).</span><span class="nc">StatusCode</span> <span class="o">&lt;&gt;</span> <span class="nn">HttpStatusCode</span><span class="p">.</span><span class="nc">OK</span> <span class="k">then</span>
+</span><span class='line'>            <span class="n">failwith</span> <span class="s2">&quot;Http request failed!&quot;</span>
+</span><span class='line'>        <span class="n">printfn</span> <span class="s2">&quot;I&#39;ve sent an SMS!&quot;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="c">(* And this is where we do our validation *)</span>
+</span><span class='line'><span class="k">let</span> <span class="n">sendSms</span> <span class="n">messageDetails</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">match</span> <span class="n">messageDetails</span> <span class="k">with</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">ValidSmsRequest</span> <span class="n">details</span> <span class="o">-&gt;</span> <span class="n">postSms</span> <span class="n">details</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">InvalidSmsRequest</span> <span class="n">error</span> <span class="o">-&gt;</span> <span class="n">async</span> <span class="o">{</span> <span class="n">printfn</span> <span class="s2">&quot;Sms sending error: %s&quot;</span> <span class="n">error</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">sendMessage</span> <span class="n">message</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">match</span> <span class="n">message</span> <span class="k">with</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Email</span> <span class="n">details</span> <span class="o">-&gt;</span> <span class="n">sendEmail</span> <span class="n">details</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Sms</span> <span class="n">details</span> <span class="o">-&gt;</span> <span class="n">sendSms</span> <span class="n">details</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">myMessages</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">[</span>
+</span><span class='line'>        <span class="nc">Email</span> <span class="o">{</span> <span class="n">toAddress</span> <span class="o">=</span> <span class="s2">&quot;first@example.com&quot;</span><span class="o">;</span> <span class="n">fromAddress</span> <span class="o">=</span> <span class="s2">&quot;official@example.com&quot;</span><span class="o">;</span> <span class="n">body</span> <span class="o">=</span> <span class="s2">&quot;My first message&quot;</span> <span class="o">}</span>
+</span><span class='line'>        <span class="nc">Email</span> <span class="o">{</span> <span class="n">toAddress</span> <span class="o">=</span> <span class="s2">&quot;second@example.com&quot;</span><span class="o">;</span> <span class="n">fromAddress</span> <span class="o">=</span> <span class="s2">&quot;personal@example.com&quot;</span><span class="o">;</span> <span class="n">body</span> <span class="o">=</span> <span class="s2">&quot;My second message&quot;</span> <span class="o">}</span>
+</span><span class='line'>        <span class="nc">Email</span> <span class="o">{</span> <span class="n">toAddress</span> <span class="o">=</span> <span class="s2">&quot;first@example.com&quot;</span><span class="o">;</span> <span class="n">fromAddress</span> <span class="o">=</span> <span class="s2">&quot;official@example.com&quot;</span><span class="o">;</span> <span class="n">body</span> <span class="o">=</span> <span class="s2">&quot;My third message&quot;</span> <span class="o">}</span>
+</span><span class='line'>        <span class="nc">Sms</span> <span class="o">{</span> <span class="n">toNumber</span> <span class="o">=</span> <span class="s2">&quot;+447777123123&quot;</span><span class="o">;</span> <span class="n">fromNumber</span> <span class="o">=</span> <span class="s2">&quot;+447888321321&quot;</span><span class="o">;</span> <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;Hello by sms&quot;</span> <span class="o">}</span>
+</span><span class='line'>        <span class="nc">Sms</span> <span class="o">{</span> <span class="n">toNumber</span> <span class="o">=</span> <span class="s2">&quot;+447777123124&quot;</span><span class="o">;</span> <span class="n">fromNumber</span> <span class="o">=</span> <span class="s2">&quot;+447888321321&quot;</span><span class="o">;</span> <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;Hello by sms x2&quot;</span> <span class="o">}</span>
+</span><span class='line'>        <span class="nc">Sms</span> <span class="o">{</span> <span class="n">toNumber</span> <span class="o">=</span> <span class="s2">&quot;+447777123123&quot;</span><span class="o">;</span> <span class="n">fromNumber</span> <span class="o">=</span> <span class="s2">&quot;+447888321321&quot;</span><span class="o">;</span> <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;Hello by sms x3&quot;</span> <span class="o">}</span>
+</span><span class='line'>        <span class="nc">Sms</span> <span class="o">{</span> <span class="n">toNumber</span> <span class="o">=</span> <span class="s2">&quot;447777123123&quot;</span><span class="o">;</span> <span class="n">fromNumber</span> <span class="o">=</span> <span class="s2">&quot;+447888321321&quot;</span><span class="o">;</span> <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;I won&#39;t be sent!&quot;</span> <span class="o">}</span>
+</span><span class='line'>        <span class="nc">Sms</span> <span class="o">{</span> <span class="n">toNumber</span> <span class="o">=</span> <span class="s2">&quot;+447777123123&quot;</span><span class="o">;</span> <span class="n">fromNumber</span> <span class="o">=</span> <span class="s2">&quot;+ab7888321321&quot;</span><span class="o">;</span> <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;Neither will I!&quot;</span> <span class="o">}</span>
+</span><span class='line'>        <span class="nc">Sms</span> <span class="o">{</span> <span class="n">toNumber</span> <span class="o">=</span> <span class="s2">&quot;Bob&quot;</span><span class="o">;</span> <span class="n">fromNumber</span> <span class="o">=</span> <span class="s2">&quot;+ab7888321321&quot;</span><span class="o">;</span> <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;..and I definitely won&#39;t!&quot;</span> <span class="o">}</span>
+</span><span class='line'>    <span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">myMessages</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="n">sendMessage</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Parallel</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">RunSynchronously</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">printfn</span> <span class="s2">&quot;Finished all sends!&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nn">System</span><span class="p">.</span><span class="nn">Console</span><span class="p">.</span><span class="nc">ReadLine</span><span class="bp">()</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<h2>Tag &#39;11&#39;</h2>
+
+<p>The extra credit section! I very much doubt I&#39;ll get this far in a one hour session, but if I do this is just some fun playing with type providers. Also covers randomness such as:</p>
+
+<ul>
+<li>generating infinite sequences using <code>seq</code> expressions</li>
+<li>double back tick identifiers</li>
+<li>pattern matching with guards</li>
+<li>a bit more of a workout of the <code>Seq</code> module</li>
+<li>we can have a lot of discussion of lazy evaluation, because this code is just insanely broken without it</li>
+</ul>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+<span class='line-number'>85</span>
+<span class='line-number'>86</span>
+<span class='line-number'>87</span>
+<span class='line-number'>88</span>
+<span class='line-number'>89</span>
+<span class='line-number'>90</span>
+<span class='line-number'>91</span>
+<span class='line-number'>92</span>
+<span class='line-number'>93</span>
+<span class='line-number'>94</span>
+<span class='line-number'>95</span>
+<span class='line-number'>96</span>
+<span class='line-number'>97</span>
+<span class='line-number'>98</span>
+<span class='line-number'>99</span>
+<span class='line-number'>100</span>
+<span class='line-number'>101</span>
+<span class='line-number'>102</span>
+<span class='line-number'>103</span>
+<span class='line-number'>104</span>
+<span class='line-number'>105</span>
+<span class='line-number'>106</span>
+<span class='line-number'>107</span>
+<span class='line-number'>108</span>
+<span class='line-number'>109</span>
+<span class='line-number'>110</span>
+<span class='line-number'>111</span>
+<span class='line-number'>112</span>
+<span class='line-number'>113</span>
+<span class='line-number'>114</span>
+<span class='line-number'>115</span>
+<span class='line-number'>116</span>
+<span class='line-number'>117</span>
+<span class='line-number'>118</span>
+<span class='line-number'>119</span>
+<span class='line-number'>120</span>
+<span class='line-number'>121</span>
+<span class='line-number'>122</span>
+<span class='line-number'>123</span>
+<span class='line-number'>124</span>
+<span class='line-number'>125</span>
+<span class='line-number'>126</span>
+<span class='line-number'>127</span>
+<span class='line-number'>128</span>
+<span class='line-number'>129</span>
+<span class='line-number'>130</span>
+<span class='line-number'>131</span>
+<span class='line-number'>132</span>
+<span class='line-number'>133</span>
+<span class='line-number'>134</span>
+<span class='line-number'>135</span>
+<span class='line-number'>136</span>
+<span class='line-number'>137</span>
+<span class='line-number'>138</span>
+<span class='line-number'>139</span>
+<span class='line-number'>140</span>
+<span class='line-number'>141</span>
+<span class='line-number'>142</span>
+<span class='line-number'>143</span>
+<span class='line-number'>144</span>
+<span class='line-number'>145</span>
+<span class='line-number'>146</span>
+<span class='line-number'>147</span>
+<span class='line-number'>148</span>
+<span class='line-number'>149</span>
+<span class='line-number'>150</span>
+<span class='line-number'>151</span>
+<span class='line-number'>152</span>
+<span class='line-number'>153</span>
+<span class='line-number'>154</span>
+<span class='line-number'>155</span>
+<span class='line-number'>156</span>
+<span class='line-number'>157</span>
+<span class='line-number'>158</span>
+<span class='line-number'>159</span>
+<span class='line-number'>160</span>
+<span class='line-number'>161</span>
+<span class='line-number'>162</span>
+<span class='line-number'>163</span>
+<span class='line-number'>164</span>
+<span class='line-number'>165</span>
+<span class='line-number'>166</span>
+<span class='line-number'>167</span>
+<span class='line-number'>168</span>
+<span class='line-number'>169</span>
+<span class='line-number'>170</span>
+<span class='line-number'>171</span>
+<span class='line-number'>172</span>
+<span class='line-number'>173</span>
+<span class='line-number'>174</span>
+<span class='line-number'>175</span>
+<span class='line-number'>176</span>
+<span class='line-number'>177</span>
+<span class='line-number'>178</span>
+<span class='line-number'>179</span>
+<span class='line-number'>180</span>
+<span class='line-number'>181</span>
+<span class='line-number'>182</span>
+<span class='line-number'>183</span>
+<span class='line-number'>184</span>
+<span class='line-number'>185</span>
+<span class='line-number'>186</span>
+<span class='line-number'>187</span>
+<span class='line-number'>188</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nc">System</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">IO</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Net</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Net</span><span class="p">.</span><span class="nc">Mail</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Text</span><span class="p">.</span><span class="nc">RegularExpressions</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">EmailDetails</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span>
+</span><span class='line'>        <span class="n">toAddress</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>        <span class="n">fromAddress</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>        <span class="n">body</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">SmsDetails</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span>
+</span><span class='line'>        <span class="n">toNumber</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>        <span class="n">fromNumber</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>        <span class="n">message</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">MessageDetails</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Email</span> <span class="k">of</span> <span class="nc">EmailDetails</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Sms</span> <span class="k">of</span> <span class="nc">SmsDetails</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="o">(|</span><span class="nc">ValidSmsRequest</span><span class="o">|</span><span class="nc">InvalidSmsRequest</span><span class="o">|)</span> <span class="n">details</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">regex</span> <span class="o">=</span> <span class="nc">Regex</span><span class="o">(@</span><span class="s2">&quot;^</span><span class="err">\</span><span class="s2">+</span><span class="err">\</span><span class="s2">d</span><span class="err">\</span><span class="s2">d&quot;</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">if</span> <span class="n">regex</span><span class="o">.</span><span class="nc">IsMatch</span><span class="o">(</span><span class="n">details</span><span class="o">.</span><span class="n">toNumber</span><span class="o">)</span> <span class="o">&amp;&amp;</span> <span class="n">regex</span><span class="o">.</span><span class="nc">IsMatch</span><span class="o">(</span><span class="n">details</span><span class="o">.</span><span class="n">fromNumber</span><span class="o">)</span> <span class="k">then</span>
+</span><span class='line'>        <span class="nc">ValidSmsRequest</span> <span class="n">details</span>
+</span><span class='line'>    <span class="k">else</span>
+</span><span class='line'>        <span class="nc">InvalidSmsRequest</span> <span class="s2">&quot;You must include the +xx country prefix on mobile numbers.&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">sendEmail</span> <span class="n">messageDetails</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">async</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">use</span> <span class="n">smtpClient</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">SmtpClient</span><span class="o">(</span><span class="s2">&quot;smtp.local&quot;</span><span class="o">)</span>
+</span><span class='line'>        <span class="k">use</span> <span class="n">mailMessage</span> <span class="o">=</span>
+</span><span class='line'>            <span class="k">new</span> <span class="nc">MailMessage</span><span class="o">(</span>
+</span><span class='line'>                <span class="n">messageDetails</span><span class="o">.</span><span class="n">fromAddress</span><span class="o">,</span>
+</span><span class='line'>                <span class="n">messageDetails</span><span class="o">.</span><span class="n">toAddress</span><span class="o">)</span>
+</span><span class='line'>        <span class="n">mailMessage</span><span class="o">.</span><span class="nc">Subject</span> <span class="o">&lt;-</span> <span class="s2">&quot;Message subject&quot;</span>
+</span><span class='line'>        <span class="n">mailMessage</span><span class="o">.</span><span class="nc">Body</span> <span class="o">&lt;-</span> <span class="n">messageDetails</span><span class="o">.</span><span class="n">body</span>
+</span><span class='line'>        <span class="k">do</span><span class="o">!</span>
+</span><span class='line'>            <span class="n">smtpClient</span><span class="o">.</span><span class="nc">SendMailAsync</span><span class="o">(</span><span class="n">mailMessage</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">AwaitIAsyncResult</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Ignore</span>
+</span><span class='line'>        <span class="n">printfn</span> <span class="s2">&quot;I&#39;ve sent a mail message!&quot;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">postSms</span> <span class="n">messageDetails</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">async</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">http</span> <span class="o">=</span> <span class="nn">HttpWebRequest</span><span class="p">.</span><span class="nc">Create</span><span class="o">(</span><span class="s2">&quot;http://sms.local&quot;</span><span class="o">)</span> <span class="o">:?&gt;</span> <span class="nc">HttpWebRequest</span>
+</span><span class='line'>        <span class="n">http</span><span class="o">.</span><span class="nc">Method</span> <span class="o">&lt;-</span> <span class="s2">&quot;POST&quot;</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">messagePayload</span> <span class="o">=</span>
+</span><span class='line'>            <span class="n">sprintf</span>
+</span><span class='line'>                <span class="s2">&quot;To: %s</span><span class="se">\n</span><span class="s2">From: %s</span><span class="se">\n</span><span class="s2">Message: %s&quot;</span>
+</span><span class='line'>                <span class="n">messageDetails</span><span class="o">.</span><span class="n">toNumber</span>
+</span><span class='line'>                <span class="n">messageDetails</span><span class="o">.</span><span class="n">fromNumber</span>
+</span><span class='line'>                <span class="n">messageDetails</span><span class="o">.</span><span class="n">message</span>
+</span><span class='line'>        <span class="n">using</span>
+</span><span class='line'>            <span class="o">(</span><span class="n">http</span><span class="o">.</span><span class="nc">GetRequestStream</span><span class="bp">()</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">(</span><span class="k">fun</span> <span class="n">stream</span> <span class="o">-&gt;</span>
+</span><span class='line'>                <span class="k">use</span> <span class="n">sw</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">StreamWriter</span><span class="o">(</span><span class="n">stream</span><span class="o">)</span>
+</span><span class='line'>                <span class="n">sw</span><span class="o">.</span><span class="nc">Write</span><span class="o">(</span><span class="n">messagePayload</span><span class="o">))</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">response</span> <span class="o">=</span> <span class="n">http</span><span class="o">.</span><span class="nc">GetResponseAsync</span><span class="bp">()</span> <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">AwaitTask</span>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(</span><span class="n">response</span> <span class="o">:?&gt;</span> <span class="nc">HttpWebResponse</span><span class="o">).</span><span class="nc">StatusCode</span> <span class="o">&lt;&gt;</span> <span class="nn">HttpStatusCode</span><span class="p">.</span><span class="nc">OK</span> <span class="k">then</span>
+</span><span class='line'>            <span class="n">failwith</span> <span class="s2">&quot;Http request failed!&quot;</span>
+</span><span class='line'>        <span class="n">printfn</span> <span class="s2">&quot;I&#39;ve sent an SMS!&quot;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">sendSms</span> <span class="n">messageDetails</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">match</span> <span class="n">messageDetails</span> <span class="k">with</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">ValidSmsRequest</span> <span class="n">details</span> <span class="o">-&gt;</span> <span class="n">postSms</span> <span class="n">details</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">InvalidSmsRequest</span> <span class="n">error</span> <span class="o">-&gt;</span> <span class="n">async</span> <span class="o">{</span> <span class="n">printfn</span> <span class="s2">&quot;Sms sending error: %s&quot;</span> <span class="n">error</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">sendMessage</span> <span class="n">message</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">match</span> <span class="n">message</span> <span class="k">with</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Email</span> <span class="n">details</span> <span class="o">-&gt;</span> <span class="n">sendEmail</span> <span class="n">details</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Sms</span> <span class="n">details</span> <span class="o">-&gt;</span> <span class="n">sendSms</span> <span class="n">details</span>
+</span><span class='line'>
+</span><span class='line'><span class="c">(* And now for something completely different...</span>
+</span><span class='line'>
+</span><span class='line'><span class="c">Let&#39;s send a bunch of actors and celebrities a selection </span>
+</span><span class='line'><span class="c">of astronomical data. Because, you know. Why not?</span>
+</span><span class='line'>
+</span><span class='line'><span class="c">If you&#39;re running this code at home, you&#39;ll need</span>
+</span><span class='line'><span class="c">to install the nuget package from the packages.config</span>
+</span><span class='line'><span class="c">file *)</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">FSharp</span><span class="p">.</span><span class="nc">Data</span>
+</span><span class='line'><span class="k">let</span> <span class="nc">FreebaseKey</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="k">rec</span> <span class="n">getKey</span> <span class="o">(</span><span class="n">dir</span> <span class="o">:</span> <span class="nc">DirectoryInfo</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">match</span> <span class="n">dir</span><span class="o">.</span><span class="nc">EnumerateFiles</span><span class="o">(</span><span class="s2">&quot;freebase.key&quot;</span><span class="o">)</span> <span class="k">with</span>
+</span><span class='line'>        <span class="o">|</span> <span class="n">files</span> <span class="k">when</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">isEmpty</span> <span class="n">files</span> <span class="o">-&gt;</span> <span class="n">getKey</span> <span class="o">(</span><span class="n">dir</span><span class="o">.</span><span class="nc">Parent</span><span class="o">)</span>
+</span><span class='line'>        <span class="o">|</span> <span class="n">files</span> <span class="o">-&gt;</span> <span class="o">(</span><span class="nn">Seq</span><span class="p">.</span><span class="n">head</span> <span class="n">files</span><span class="o">).</span><span class="nc">OpenText</span><span class="bp">()</span><span class="o">.</span><span class="nc">ReadToEnd</span><span class="bp">()</span><span class="o">.</span><span class="nc">Trim</span><span class="bp">()</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">dir</span> <span class="o">=</span> <span class="nc">DirectoryInfo</span><span class="o">(</span><span class="nn">Directory</span><span class="p">.</span><span class="nc">GetCurrentDirectory</span><span class="bp">()</span><span class="o">)</span>
+</span><span class='line'>    <span class="n">getKey</span> <span class="n">dir</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">FreebaseProvider</span> <span class="o">=</span> <span class="nc">FreebaseDataProvider</span><span class="o">&lt;</span><span class="nc">Key</span><span class="o">=</span><span class="s2">&quot;api key goes here&quot;</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">freebase</span> <span class="o">=</span> <span class="nn">FreebaseProvider</span><span class="p">.</span><span class="nc">GetDataContext</span><span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'><span class="c">(* If you don&#39;t have an api key you can delete lines</span>
+</span><span class='line'><span class="c">88 to the end of this comment, and uncomment the line below.</span>
+</span><span class='line'>
+</span><span class='line'><span class="c">It will limit how many times you can run the program</span>
+</span><span class='line'><span class="c">before it starts throwing authentication errors,</span>
+</span><span class='line'><span class="c">though - there&#39;s a fairly strict rate limit. *)</span>
+</span><span class='line'><span class="c1">//let freebase = FreebaseData.GetDataContext()</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">actors</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">freebase</span><span class="o">.``</span><span class="nc">Arts</span> <span class="k">and</span> <span class="nc">Entertainment</span><span class="o">``.</span><span class="nn">Film</span><span class="p">.</span><span class="err">``</span><span class="nc">Film</span> <span class="n">actors</span><span class="o">``</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">filter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">a</span> <span class="o">-&gt;</span> <span class="ow">not</span> <span class="o">&lt;|</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">isEmpty</span> <span class="n">a</span><span class="o">.``</span><span class="nc">Film</span> <span class="n">performances</span><span class="o">``)</span>
+</span><span class='line'>    <span class="c">(* You get a (virtual) cookie if you can work out</span>
+</span><span class='line'><span class="c">    why I&#39;ve added the filter below *)</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">filter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">a</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="o">(</span><span class="n">a</span><span class="o">.``</span><span class="nc">Film</span> <span class="n">performances</span><span class="o">``</span> <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">head</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">.</span><span class="nn">Film</span><span class="p">.</span><span class="nn">Name</span><span class="p">.</span><span class="err">[0</span> <span class="p">..</span> <span class="err">0]</span>
+</span><span class='line'>        <span class="err">|&gt;</span> <span class="nc">Regex</span><span class="o">(</span><span class="s2">&quot;[a-zA-Z]&quot;</span><span class="o">).</span><span class="nc">IsMatch</span><span class="o">)</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">filter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">a</span> <span class="o">-&gt;</span> <span class="ow">not</span> <span class="o">&lt;|</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">isEmpty</span> <span class="n">a</span><span class="o">.``</span><span class="nc">Country</span> <span class="k">of</span> <span class="n">nationality</span><span class="o">``)</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">take</span> <span class="mi">20</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">encode</span> <span class="o">(</span><span class="n">str</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">clean</span> <span class="o">=</span> <span class="nc">Regex</span><span class="o">(</span><span class="s2">&quot;</span><span class="err">\</span><span class="s2">W&quot;</span><span class="o">)</span>
+</span><span class='line'>    <span class="n">clean</span><span class="o">.</span><span class="nc">Replace</span><span class="o">(</span><span class="n">str</span><span class="o">,</span> <span class="s2">&quot;-&quot;</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">emailAddresses</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">seq</span> <span class="o">{</span> <span class="k">for</span> <span class="n">actor</span> <span class="k">in</span> <span class="n">actors</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">name</span> <span class="o">=</span> <span class="n">actor</span><span class="o">.</span><span class="nc">Name</span> <span class="o">|&gt;</span> <span class="n">encode</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">domain</span> <span class="o">=</span>
+</span><span class='line'>                <span class="o">(</span><span class="n">actor</span><span class="o">.``</span><span class="nc">Film</span> <span class="n">performances</span><span class="o">``</span> <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">head</span><span class="o">).</span><span class="nn">Film</span><span class="p">.</span><span class="nc">Name</span>
+</span><span class='line'>                <span class="o">|&gt;</span> <span class="n">encode</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">countryCode</span> <span class="o">=</span>
+</span><span class='line'>                <span class="k">match</span> <span class="o">(</span><span class="n">actor</span><span class="o">.``</span><span class="nc">Country</span> <span class="k">of</span> <span class="n">nationality</span><span class="o">``</span> <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">head</span><span class="o">).``</span><span class="nc">ISO</span> <span class="nc">Alpha</span> <span class="mi">2</span><span class="o">``</span> <span class="k">with</span>
+</span><span class='line'>                <span class="o">|</span> <span class="n">alpha</span> <span class="k">when</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">isEmpty</span> <span class="n">alpha</span> <span class="o">-&gt;</span>
+</span><span class='line'>                    <span class="s2">&quot;com&quot;</span>
+</span><span class='line'>                <span class="o">|</span> <span class="n">alpha</span> <span class="k">when</span> <span class="o">(</span><span class="nn">Seq</span><span class="p">.</span><span class="n">head</span> <span class="n">alpha</span><span class="o">).</span><span class="nc">ToLower</span><span class="bp">()</span> <span class="o">=</span> <span class="s2">&quot;us&quot;</span> <span class="o">-&gt;</span>
+</span><span class='line'>                    <span class="s2">&quot;com&quot;</span>
+</span><span class='line'>                <span class="o">|</span> <span class="n">alpha</span> <span class="o">-&gt;</span> <span class="n">sprintf</span> <span class="s2">&quot;co.%s&quot;</span> <span class="o">&lt;|</span> <span class="o">(</span><span class="nn">Seq</span><span class="p">.</span><span class="n">head</span> <span class="n">alpha</span><span class="o">).</span><span class="nc">ToLower</span><span class="bp">()</span>
+</span><span class='line'>            <span class="n">sprintf</span> <span class="s2">&quot;%s@%s.%s&quot;</span>
+</span><span class='line'>                <span class="n">name</span>
+</span><span class='line'>                <span class="n">domain</span>
+</span><span class='line'>                <span class="n">countryCode</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="c">(* We&#39;re going to need 20 planets for our 20 celebrities,</span>
+</span><span class='line'><span class="c">so we&#39;ll repeat the planets as many times as we need *)</span>
+</span><span class='line'><span class="k">let</span> <span class="n">planets</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">seq</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">while</span> <span class="bp">true</span> <span class="k">do</span>
+</span><span class='line'>            <span class="k">yield</span><span class="o">!</span> <span class="n">freebase</span><span class="o">.``</span><span class="nc">Science</span> <span class="k">and</span> <span class="nc">Technology</span><span class="o">``.</span><span class="nn">Astronomy</span><span class="p">.</span><span class="nc">Planets</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">messages</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">seq</span> <span class="o">{</span> <span class="k">for</span> <span class="n">planet</span> <span class="k">in</span> <span class="n">planets</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="n">sprintf</span> <span class="s2">&quot;&quot;&quot;Hi there!</span>
+</span><span class='line'><span class="s2">We thought you might be interested to know that:</span>
+</span><span class='line'>
+</span><span class='line'><span class="s2">The planet %s has:</span>
+</span><span class='line'><span class="s2">%d moons!</span>
+</span><span class='line'><span class="s2">An average orbital velocity of %Am/s!</span>
+</span><span class='line'>
+</span><span class='line'><span class="s2">And is also known as:</span>
+</span><span class='line'><span class="s2">%s</span>
+</span><span class='line'>
+</span><span class='line'><span class="s2">Regards,</span>
+</span><span class='line'>
+</span><span class='line'><span class="s2">Astro</span>
+</span><span class='line'><span class="s2">                &quot;&quot;&quot;</span>
+</span><span class='line'>                <span class="n">planet</span><span class="o">.</span><span class="nc">Name</span>
+</span><span class='line'>                <span class="o">(</span><span class="n">planet</span><span class="o">.``</span><span class="nc">Orbited</span> <span class="n">by</span><span class="o">``</span> <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">length</span><span class="o">)</span>
+</span><span class='line'>                <span class="n">planet</span><span class="o">.``</span><span class="nc">Average</span> <span class="nc">Orbital</span> <span class="nc">Speed</span><span class="o">``</span>
+</span><span class='line'>                <span class="o">(</span><span class="n">planet</span><span class="o">.``</span><span class="nc">Also</span> <span class="n">known</span> <span class="k">as</span><span class="o">``</span> <span class="o">|&gt;</span> <span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot;, &quot;</span><span class="o">)</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">combineAddressAndMessage</span> <span class="o">(</span><span class="n">address</span><span class="o">,</span> <span class="n">message</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="nc">Email</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">toAddress</span> <span class="o">=</span> <span class="n">address</span>
+</span><span class='line'>        <span class="n">fromAddress</span> <span class="o">=</span> <span class="s2">&quot;astro@random.org&quot;</span>
+</span><span class='line'>        <span class="n">body</span> <span class="o">=</span> <span class="n">message</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">myMessages</span> <span class="o">=</span>
+</span><span class='line'>    <span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">emailAddresses</span> <span class="n">messages</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="n">combineAddressAndMessage</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">myMessages</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="n">sendMessage</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Parallel</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">RunSynchronously</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">printfn</span> <span class="s2">&quot;Finished all sends!&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="nn">System</span><span class="p">.</span><span class="nn">Console</span><span class="p">.</span><span class="nc">ReadLine</span><span class="bp">()</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
+</span></code></pre></td></tr></table></div></figure>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">mavnn</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-10-14T12:30:00+01:00" pubdate data-updated="true">Oct 14<span>th</span>, 2013</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/fsharp/'>fsharp</a>, <a class='category' href='/blog/categories/programming/'>programming</a>, <a class='category' href='/blog/categories/teaching/'>teaching</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://blog.mavnn.co.uk/introducing-f-number-to-experienced-developers/" data-via="mavnn" data-counturl="http://blog.mavnn.co.uk/introducing-f-number-to-experienced-developers/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/being-a-priest-and-programming/" title="Previous Post: Being a priest and programming">&laquo; Being a priest and programming</a>
+      
+      
+        <a class="basic-alignment right" href="/to-infinity/" title="Next Post: To Infinity and Beyond">To Infinity and Beyond &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/deliberate-poster-fighting-imposter-syndrome/">Deliberate Poster: Fighting Imposter Syndrome</a>
+      </li>
+    
+      <li class="post">
+        <a href="/managing-mutable-state-with-computational-expressions/">Managing Mutable State With Computational Expressions</a>
+      </li>
+    
+      <li class="post">
+        <a href="/return-to-the-ivory-tower-video/">Return to the Ivory Tower Video</a>
+      </li>
+    
+      <li class="post">
+        <a href="/slides-for-f-number-exchange-2017/">Slides for F# Exchange 2017</a>
+      </li>
+    
+      <li class="post">
+        <a href="/level-up-your-f-number-skills/">Level Up Your F# Skills</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/mavnn">@mavnn</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'mavnn',
+            count: 3,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/+MichaelNewtonmavnn?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2017 - mavnn -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mavnn';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://blog.mavnn.co.uk/introducing-f-number-to-experienced-developers/';
+        var disqus_url = 'http://blog.mavnn.co.uk/introducing-f-number-to-experienced-developers/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,327 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: FSharp | Mavnn's blog]]></title>
+  <link href="http://blog.mavnn.co.uk/blog/categories/fsharp/atom.xml" rel="self"/>
+  <link href="http://blog.mavnn.co.uk/"/>
+  <updated>2017-07-24T09:28:26+01:00</updated>
+  <id>http://blog.mavnn.co.uk/</id>
+  <author>
+    <name><![CDATA[mavnn]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Implementing classic OO style code in F#]]></title>
+    <link href="http://blog.mavnn.co.uk/implementing-classic-oo-style-code-in-f-number/"/>
+    <updated>2013-09-24T14:21:00+01:00</updated>
+    <id>http://blog.mavnn.co.uk/implementing-classic-oo-style-code-in-f-number</id>
+    <content type="html"><![CDATA[<p>As part of writing up notes for introducing F# as a programming language to experienced C# devs I was looking for examples
+of heavily OO code being implemented in F#. Then I realised that I&#39;d written at least one suitable example myself.</p>
+
+<p>In the <a href="%22https://github.com/mavnn/NuGetPlus%22">NuGetPlus project</a> I needed to implement a ProjectSystem class that was almost a direct copy of the MSBuildProjectSystem in the NuGet commandline client.</p>
+
+<p>So without further ado, F# and then C# versions of a class with inheritance and which implements several interfaces.</p>
+
+<!--more-->
+
+<p>The <a href="%22https://github.com/mavnn/NuGetPlus/blob/master/NuGetPlus.Core/ProjectSystem.fs%22">ProjectSystem class from NuGetPlus</a>:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="o">[&lt;</span><span class="nc">AutoOpen</span><span class="o">&gt;]</span>
+<span class="k">module</span> <span class="nn">NuGetPlus</span><span class="p">.</span><span class="nc">ProjectSystem</span>
+
+<span class="k">open</span> <span class="nc">System</span>
+<span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">IO</span>
+<span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Collections</span><span class="p">.</span><span class="nc">Generic</span>
+<span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Reflection</span>
+<span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">Build</span><span class="p">.</span><span class="nc">Evaluation</span>
+<span class="k">open</span> <span class="nc">NuGet</span>
+
+<span class="k">let</span> <span class="nc">TryGetProject</span> <span class="n">projectFile</span> <span class="o">=</span> 
+    <span class="nn">ProjectCollection</span><span class="p">.</span><span class="nn">GlobalProjectCollection</span><span class="p">.</span><span class="nc">GetLoadedProjects</span><span class="o">(</span><span class="n">projectFile</span><span class="o">)</span> 
+    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">tryFind</span><span class="o">(</span><span class="k">fun</span> <span class="n">p</span> <span class="o">-&gt;</span> <span class="n">p</span><span class="o">.</span><span class="nc">FullPath</span> <span class="o">=</span> <span class="n">projectFile</span><span class="o">)</span>
+
+<span class="k">type</span> <span class="nc">ProjectSystem</span><span class="o">(</span><span class="n">projectFile</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span> 
+    <span class="k">inherit</span> <span class="nc">PhysicalFileSystem</span><span class="o">(</span><span class="nn">Path</span><span class="p">.</span><span class="nc">GetDirectoryName</span><span class="o">(</span><span class="n">projectFile</span><span class="o">))</span>
+
+    <span class="k">let</span> <span class="n">project</span> <span class="o">=</span> 
+        <span class="k">match</span> <span class="nc">TryGetProject</span> <span class="n">projectFile</span> <span class="k">with</span>
+        <span class="o">|</span> <span class="nc">Some</span> <span class="n">project</span> <span class="o">-&gt;</span> <span class="n">project</span>
+        <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="nc">Project</span><span class="o">(</span><span class="n">projectFile</span><span class="o">)</span>
+
+    <span class="k">let</span> <span class="n">projectName</span> <span class="o">=</span> <span class="nn">Path</span><span class="p">.</span><span class="nc">GetFileNameWithoutExtension</span> <span class="o">&lt;|</span> <span class="n">project</span><span class="o">.</span><span class="nc">FullPath</span>
+    <span class="k">let</span> <span class="n">framework</span> <span class="o">=</span> 
+        <span class="k">new</span> <span class="nn">Runtime</span><span class="p">.</span><span class="nn">Versioning</span><span class="p">.</span><span class="nc">FrameworkName</span><span class="o">(</span><span class="n">project</span><span class="o">.</span><span class="nc">GetPropertyValue</span>
+                                                 <span class="o">(</span><span class="s2">&quot;TargetFrameworkMoniker&quot;</span><span class="o">))</span>
+
+    <span class="k">let</span> <span class="nc">GetReferenceByName</span> <span class="n">name</span> <span class="o">=</span>
+        <span class="n">project</span><span class="o">.</span><span class="nc">GetItems</span><span class="o">(</span><span class="s2">&quot;Reference&quot;</span><span class="o">)</span>
+        <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">filter</span>
+               <span class="o">(</span><span class="k">fun</span> <span class="n">i</span> <span class="o">-&gt;</span> 
+                   <span class="n">i</span><span class="o">.</span><span class="nn">EvaluatedInclude</span><span class="p">.</span><span class="nc">StartsWith</span>
+                       <span class="o">(</span><span class="n">name</span><span class="o">,</span> <span class="nn">StringComparison</span><span class="p">.</span><span class="nc">OrdinalIgnoreCase</span><span class="o">))</span>
+        <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">tryFind</span>
+               <span class="o">(</span><span class="k">fun</span> <span class="n">i</span> <span class="o">-&gt;</span> 
+                   <span class="nc">AssemblyName</span><span class="o">(</span><span class="n">i</span><span class="o">.</span><span class="nc">EvaluatedInclude</span><span class="o">)</span>
+                       <span class="o">.</span><span class="nn">Name</span><span class="p">.</span><span class="nc">Equals</span><span class="o">(</span><span class="n">name</span><span class="o">,</span> <span class="nn">StringComparison</span><span class="p">.</span><span class="nc">OrdinalIgnoreCase</span><span class="o">))</span>
+
+    <span class="k">let</span> <span class="nc">GetReferenceByPath</span> <span class="n">path</span> <span class="o">=</span> 
+        <span class="k">let</span> <span class="n">name</span> <span class="o">=</span> <span class="nn">Path</span><span class="p">.</span><span class="nc">GetFileNameWithoutExtension</span> <span class="n">path</span>
+        <span class="nc">GetReferenceByName</span> <span class="n">name</span>
+
+    <span class="k">interface</span> <span class="nc">IProjectSystem</span> <span class="k">with</span>
+        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">TargetFramework</span> <span class="k">with</span> <span class="n">get</span> <span class="bp">()</span> <span class="o">=</span> <span class="n">framework</span>
+        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">ProjectName</span> <span class="k">with</span> <span class="n">get</span> <span class="bp">()</span> <span class="o">=</span> <span class="n">projectName</span>
+
+        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">AddReference</span><span class="o">(</span><span class="n">path</span><span class="o">,</span> <span class="n">stream</span><span class="o">)</span> <span class="o">=</span> 
+            <span class="k">let</span> <span class="n">fullPath</span> <span class="o">=</span> <span class="nn">PathUtility</span><span class="p">.</span><span class="nc">GetAbsolutePath</span><span class="o">(</span><span class="n">x</span><span class="o">.</span><span class="nc">Root</span><span class="o">,</span> <span class="n">path</span><span class="o">)</span>
+            <span class="k">let</span> <span class="n">relPath</span> <span class="o">=</span> 
+                <span class="nn">PathUtility</span><span class="p">.</span><span class="nc">GetRelativePath</span><span class="o">(</span><span class="n">project</span><span class="o">.</span><span class="nc">FullPath</span><span class="o">,</span> <span class="n">fullPath</span><span class="o">)</span>
+            <span class="k">let</span> <span class="n">includeName</span> <span class="o">=</span> <span class="nn">Path</span><span class="p">.</span><span class="nc">GetFileNameWithoutExtension</span> <span class="n">fullPath</span>
+            <span class="n">project</span><span class="o">.</span><span class="nc">AddItem</span>
+                <span class="o">(</span><span class="s2">&quot;Reference&quot;</span><span class="o">,</span> <span class="n">includeName</span><span class="o">,</span> <span class="o">[|</span><span class="nc">KeyValuePair</span><span class="o">(</span><span class="s2">&quot;HintPath&quot;</span><span class="o">,</span> <span class="n">relPath</span><span class="o">)|])</span> 
+            <span class="o">|&gt;</span> <span class="n">ignore</span>
+            <span class="n">project</span><span class="o">.</span><span class="nc">Save</span><span class="bp">()</span>
+
+        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">AddFrameworkReference</span> <span class="n">name</span> <span class="o">=</span> 
+            <span class="n">project</span><span class="o">.</span><span class="nc">AddItem</span><span class="o">(</span><span class="s2">&quot;Reference&quot;</span><span class="o">,</span> <span class="n">name</span><span class="o">)</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
+            <span class="n">project</span><span class="o">.</span><span class="nc">Save</span><span class="bp">()</span>
+
+        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">ReferenceExists</span> <span class="n">path</span> <span class="o">=</span> 
+            <span class="k">match</span> <span class="nc">GetReferenceByName</span> <span class="n">path</span> <span class="k">with</span>
+            <span class="o">|</span> <span class="nc">Some</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">true</span>
+            <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="bp">false</span>
+
+        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">RemoveReference</span> <span class="n">path</span> <span class="o">=</span> 
+            <span class="k">match</span> <span class="nc">GetReferenceByPath</span> <span class="n">path</span> <span class="k">with</span>
+            <span class="o">|</span> <span class="nc">Some</span> <span class="n">i</span> <span class="o">-&gt;</span> 
+                <span class="n">project</span><span class="o">.</span><span class="nc">RemoveItem</span><span class="o">(</span><span class="n">i</span><span class="o">)</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
+                <span class="n">project</span><span class="o">.</span><span class="nc">Save</span><span class="bp">()</span>
+            <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+
+        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">IsSupportedFile</span> <span class="n">path</span> <span class="o">=</span> <span class="bp">true</span>
+        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">ResolvePath</span> <span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">IsBindingRedirectSupported</span> <span class="k">with</span> <span class="n">get</span> <span class="bp">()</span> <span class="o">=</span> <span class="bp">true</span>
+
+        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">AddImport</span><span class="o">((</span><span class="n">targetPath</span> <span class="o">:</span> <span class="kt">string</span><span class="o">),</span> <span class="n">location</span><span class="o">)</span> <span class="o">=</span> 
+            <span class="k">if</span> <span class="n">project</span><span class="o">.</span><span class="nn">Xml</span><span class="p">.</span><span class="nc">Imports</span> <span class="o">=</span> <span class="k">null</span> 
+               <span class="o">||</span> <span class="n">project</span><span class="o">.</span><span class="nn">Xml</span><span class="p">.</span><span class="nc">Imports</span> 
+                  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">forall</span>
+                         <span class="o">(</span><span class="k">fun</span> <span class="n">import</span> <span class="o">-&gt;</span> 
+                             <span class="ow">not</span> 
+                             <span class="o">&lt;|</span> <span class="n">targetPath</span><span class="o">.</span><span class="nc">Equals</span>
+                                    <span class="o">(</span><span class="n">import</span><span class="o">.</span><span class="nc">Project</span><span class="o">,</span> 
+                                     <span class="nn">StringComparison</span><span class="p">.</span><span class="nc">OrdinalIgnoreCase</span><span class="o">))</span> <span class="k">then</span> 
+                <span class="n">project</span><span class="o">.</span><span class="nn">Xml</span><span class="p">.</span><span class="nc">AddImport</span><span class="o">(</span><span class="n">targetPath</span><span class="o">)</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
+                <span class="n">project</span><span class="o">.</span><span class="nc">ReevaluateIfNecessary</span><span class="bp">()</span>
+                <span class="n">project</span><span class="o">.</span><span class="nc">Save</span><span class="bp">()</span>
+
+        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">RemoveImport</span><span class="o">(</span><span class="n">targetPath</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span> 
+            <span class="k">match</span> <span class="n">project</span><span class="o">.</span><span class="nn">Xml</span><span class="p">.</span><span class="nc">Imports</span> 
+                  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">tryFind</span>
+                         <span class="o">(</span><span class="k">fun</span> <span class="n">import</span> <span class="o">-&gt;</span> 
+                             <span class="n">targetPath</span><span class="o">.</span><span class="nc">Equals</span>
+                                 <span class="o">(</span><span class="n">import</span><span class="o">.</span><span class="nc">Project</span><span class="o">,</span> 
+                                  <span class="nn">StringComparison</span><span class="p">.</span><span class="nc">OrdinalIgnoreCase</span><span class="o">))</span> <span class="k">with</span>
+            <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+            <span class="o">|</span> <span class="nc">Some</span> <span class="n">i</span> <span class="o">-&gt;</span> 
+                <span class="n">project</span><span class="o">.</span><span class="nn">Xml</span><span class="p">.</span><span class="nc">RemoveChild</span><span class="o">(</span><span class="n">i</span><span class="o">)</span>
+                <span class="n">project</span><span class="o">.</span><span class="nc">ReevaluateIfNecessary</span><span class="bp">()</span>
+                <span class="n">project</span><span class="o">.</span><span class="nc">Save</span><span class="bp">()</span>
+
+        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">FileExistsInProject</span><span class="o">(</span><span class="n">path</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span> 
+            <span class="n">project</span><span class="o">.</span><span class="nc">Items</span> 
+            <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">exists</span>
+                   <span class="o">(</span><span class="k">fun</span> <span class="n">i</span> <span class="o">-&gt;</span> 
+                       <span class="n">i</span><span class="o">.</span><span class="nn">EvaluatedInclude</span><span class="p">.</span><span class="nc">Equals</span>
+                           <span class="o">(</span><span class="n">path</span><span class="o">,</span> <span class="nn">StringComparison</span><span class="p">.</span><span class="nc">OrdinalIgnoreCase</span><span class="o">)</span> 
+                       <span class="o">&amp;&amp;</span> <span class="o">(</span><span class="nn">String</span><span class="p">.</span><span class="nc">IsNullOrEmpty</span><span class="o">(</span><span class="n">i</span><span class="o">.</span><span class="nc">ItemType</span><span class="o">)</span> 
+                           <span class="o">||</span> <span class="n">i</span><span class="o">.</span><span class="nn">ItemType</span><span class="p">.</span><span class="err">[0]</span> <span class="err">&lt;&gt;</span> <span class="err">&#39;</span><span class="n">_&#39;</span><span class="o">))</span>
+
+    <span class="k">interface</span> <span class="nc">IPropertyProvider</span> <span class="k">with</span>
+        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">GetPropertyValue</span> <span class="n">name</span> <span class="o">=</span> <span class="n">project</span><span class="o">.</span><span class="nc">GetPropertyValue</span><span class="o">(</span><span class="n">name</span><span class="o">)</span> <span class="o">:&gt;</span> <span class="n">obj</span>
+</code></pre></div>
+<p>and the <a href="%22http://nuget.codeplex.com/SourceControl/latest#src/CommandLine/Common/MSBuildProjectSystem.cs%22">MSBuildProjectSystem class from NuGet</a>:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="n">using</span> <span class="nc">System</span><span class="o">;</span>
+<span class="n">using</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Collections</span><span class="p">.</span><span class="nc">Generic</span><span class="o">;</span>
+<span class="n">using</span> <span class="nn">System</span><span class="p">.</span><span class="nc">IO</span><span class="o">;</span>
+<span class="n">using</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Linq</span><span class="o">;</span>
+<span class="n">using</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Reflection</span><span class="o">;</span>
+<span class="n">using</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Runtime</span><span class="p">.</span><span class="nc">Versioning</span><span class="o">;</span>
+<span class="n">using</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">Build</span><span class="p">.</span><span class="nc">Evaluation</span><span class="o">;</span>
+
+<span class="k">namespace</span> <span class="nn">NuGet</span><span class="p">.</span><span class="nc">Common</span>
+<span class="o">{</span>
+    <span class="k">public</span> <span class="k">class</span> <span class="nc">MSBuildProjectSystem</span> <span class="o">:</span> <span class="nc">PhysicalFileSystem</span><span class="o">,</span> <span class="nc">IMSBuildProjectSystem</span>
+    <span class="o">{</span>
+        <span class="k">public</span> <span class="nc">MSBuildProjectSystem</span><span class="o">(</span><span class="kt">string</span> <span class="n">projectFile</span><span class="o">)</span>
+            <span class="o">:</span> <span class="k">base</span><span class="o">(</span><span class="nn">Path</span><span class="p">.</span><span class="nc">GetDirectoryName</span><span class="o">(</span><span class="n">projectFile</span><span class="o">))</span>
+        <span class="o">{</span>
+            <span class="nc">Project</span> <span class="o">=</span> <span class="nc">GetProject</span><span class="o">(</span><span class="n">projectFile</span><span class="o">);</span>
+        <span class="o">}</span>
+
+        <span class="k">public</span> <span class="kt">bool</span> <span class="nc">IsBindingRedirectSupported</span>
+        <span class="o">{</span>
+            <span class="n">get</span>
+            <span class="o">{</span>
+                <span class="k">return</span> <span class="bp">true</span><span class="o">;</span>
+            <span class="o">}</span>
+        <span class="o">}</span>
+
+        <span class="k">private</span> <span class="nc">Project</span> <span class="nc">Project</span>
+        <span class="o">{</span>
+            <span class="n">get</span><span class="o">;</span>
+            <span class="n">set</span><span class="o">;</span>
+        <span class="o">}</span>
+
+        <span class="k">public</span> <span class="k">void</span> <span class="nc">AddFrameworkReference</span><span class="o">(</span><span class="kt">string</span> <span class="n">name</span><span class="o">)</span>
+        <span class="o">{</span>
+            <span class="c1">// No-op</span>
+        <span class="o">}</span>
+
+        <span class="k">public</span> <span class="k">void</span> <span class="nc">AddReference</span><span class="o">(</span><span class="kt">string</span> <span class="n">referencePath</span><span class="o">,</span> <span class="nc">Stream</span> <span class="n">stream</span><span class="o">)</span>
+        <span class="o">{</span>
+            <span class="kt">string</span> <span class="n">fullPath</span> <span class="o">=</span> <span class="nn">PathUtility</span><span class="p">.</span><span class="nc">GetAbsolutePath</span><span class="o">(</span><span class="nc">Root</span><span class="o">,</span> <span class="n">referencePath</span><span class="o">);</span>
+            <span class="kt">string</span> <span class="n">relativePath</span> <span class="o">=</span> <span class="nn">PathUtility</span><span class="p">.</span><span class="nc">GetRelativePath</span><span class="o">(</span><span class="nn">Project</span><span class="p">.</span><span class="nc">FullPath</span><span class="o">,</span> <span class="n">fullPath</span><span class="o">);</span>
+            <span class="c1">// REVIEW: Do we need to use the fully qualified the assembly name for strong named assemblies?</span>
+            <span class="kt">string</span> <span class="n">include</span> <span class="o">=</span> <span class="nn">Path</span><span class="p">.</span><span class="nc">GetFileNameWithoutExtension</span><span class="o">(</span><span class="n">fullPath</span><span class="o">);</span>
+
+            <span class="nn">Project</span><span class="p">.</span><span class="nc">AddItem</span><span class="o">(</span><span class="s2">&quot;Reference&quot;</span><span class="o">,</span>
+                            <span class="n">include</span><span class="o">,</span>
+                            <span class="k">new</span><span class="bp">[]</span> <span class="o">{</span> 
+                                    <span class="k">new</span> <span class="nc">KeyValuePair</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">,</span> <span class="kt">string</span><span class="o">&gt;(</span><span class="s2">&quot;HintPath&quot;</span><span class="o">,</span> <span class="n">relativePath</span><span class="o">)</span>
+                                <span class="o">});</span>
+        <span class="o">}</span>
+
+        <span class="k">public</span> <span class="n">dynamic</span> <span class="nc">GetPropertyValue</span><span class="o">(</span><span class="kt">string</span> <span class="n">propertyName</span><span class="o">)</span>
+        <span class="o">{</span>
+            <span class="k">return</span> <span class="nn">Project</span><span class="p">.</span><span class="nc">GetPropertyValue</span><span class="o">(</span><span class="n">propertyName</span><span class="o">);</span>
+        <span class="o">}</span>
+
+        <span class="k">public</span> <span class="kt">bool</span> <span class="nc">IsSupportedFile</span><span class="o">(</span><span class="kt">string</span> <span class="n">path</span><span class="o">)</span>
+        <span class="o">{</span>
+            <span class="k">return</span> <span class="bp">true</span><span class="o">;</span>
+        <span class="o">}</span>
+
+        <span class="k">public</span> <span class="kt">string</span> <span class="nc">ProjectName</span>
+        <span class="o">{</span>
+            <span class="n">get</span>
+            <span class="o">{</span>
+                <span class="k">return</span> <span class="nn">Path</span><span class="p">.</span><span class="nc">GetFileNameWithoutExtension</span><span class="o">(</span><span class="nn">Project</span><span class="p">.</span><span class="nc">FullPath</span><span class="o">);</span>
+            <span class="o">}</span>
+        <span class="o">}</span>
+
+        <span class="k">public</span> <span class="kt">bool</span> <span class="nc">ReferenceExists</span><span class="o">(</span><span class="kt">string</span> <span class="n">name</span><span class="o">)</span>
+        <span class="o">{</span>
+            <span class="k">return</span> <span class="nc">GetReference</span><span class="o">(</span><span class="n">name</span><span class="o">)</span> <span class="o">!=</span> <span class="k">null</span><span class="o">;</span>
+        <span class="o">}</span>
+
+        <span class="k">public</span> <span class="k">void</span> <span class="nc">RemoveReference</span><span class="o">(</span><span class="kt">string</span> <span class="n">name</span><span class="o">)</span>
+        <span class="o">{</span>
+            <span class="nc">ProjectItem</span> <span class="n">assemblyReference</span> <span class="o">=</span> <span class="nc">GetReference</span><span class="o">(</span><span class="n">name</span><span class="o">);</span>
+            <span class="k">if</span> <span class="o">(</span><span class="n">assemblyReference</span> <span class="o">!=</span> <span class="k">null</span><span class="o">)</span>
+            <span class="o">{</span>
+                <span class="nn">Project</span><span class="p">.</span><span class="nc">RemoveItem</span><span class="o">(</span><span class="n">assemblyReference</span><span class="o">);</span>
+            <span class="o">}</span>
+        <span class="o">}</span>
+
+        <span class="k">private</span> <span class="nc">IEnumerable</span><span class="o">&lt;</span><span class="nc">ProjectItem</span><span class="o">&gt;</span> <span class="nc">GetItems</span><span class="o">(</span><span class="kt">string</span> <span class="n">itemType</span><span class="o">,</span> <span class="kt">string</span> <span class="n">name</span><span class="o">)</span>
+        <span class="o">{</span>
+            <span class="k">return</span> <span class="nn">Project</span><span class="p">.</span><span class="nc">GetItems</span><span class="o">(</span><span class="n">itemType</span><span class="o">).</span><span class="nc">Where</span><span class="o">(</span><span class="n">i</span> <span class="o">=&gt;</span> <span class="n">i</span><span class="o">.</span><span class="nn">EvaluatedInclude</span><span class="p">.</span><span class="nc">StartsWith</span><span class="o">(</span><span class="n">name</span><span class="o">,</span> <span class="nn">StringComparison</span><span class="p">.</span><span class="nc">OrdinalIgnoreCase</span><span class="o">));</span>
+        <span class="o">}</span>
+
+        <span class="k">public</span> <span class="nc">ProjectItem</span> <span class="nc">GetReference</span><span class="o">(</span><span class="kt">string</span> <span class="n">name</span><span class="o">)</span>
+        <span class="o">{</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="nn">Path</span><span class="p">.</span><span class="nc">GetFileNameWithoutExtension</span><span class="o">(</span><span class="n">name</span><span class="o">);</span>
+            <span class="k">return</span> <span class="nc">GetItems</span><span class="o">(</span><span class="s2">&quot;Reference&quot;</span><span class="o">,</span> <span class="n">name</span><span class="o">)</span>
+                <span class="o">.</span><span class="nc">FirstOrDefault</span><span class="o">(</span>
+                    <span class="n">item</span> <span class="o">=&gt;</span>
+                    <span class="k">new</span> <span class="nc">AssemblyName</span><span class="o">(</span><span class="n">item</span><span class="o">.</span><span class="nc">EvaluatedInclude</span><span class="o">).</span><span class="nn">Name</span><span class="p">.</span><span class="nc">Equals</span><span class="o">(</span><span class="n">name</span><span class="o">,</span> <span class="nn">StringComparison</span><span class="p">.</span><span class="nc">OrdinalIgnoreCase</span><span class="o">));</span>
+        <span class="o">}</span>
+
+        <span class="k">public</span> <span class="nc">FrameworkName</span> <span class="nc">TargetFramework</span>
+        <span class="o">{</span>
+            <span class="n">get</span>
+            <span class="o">{</span>
+                <span class="kt">string</span> <span class="n">moniker</span> <span class="o">=</span> <span class="nc">GetPropertyValue</span><span class="o">(</span><span class="s2">&quot;TargetFrameworkMoniker&quot;</span><span class="o">);</span>
+                <span class="k">if</span> <span class="o">(</span><span class="nn">String</span><span class="p">.</span><span class="nc">IsNullOrEmpty</span><span class="o">(</span><span class="n">moniker</span><span class="o">))</span>
+                <span class="o">{</span>
+                    <span class="k">return</span> <span class="k">null</span><span class="o">;</span>
+                <span class="o">}</span>
+                <span class="k">return</span> <span class="k">new</span> <span class="nc">FrameworkName</span><span class="o">(</span><span class="n">moniker</span><span class="o">);</span>
+            <span class="o">}</span>
+        <span class="o">}</span>
+
+        <span class="k">public</span> <span class="kt">string</span> <span class="nc">ResolvePath</span><span class="o">(</span><span class="kt">string</span> <span class="n">path</span><span class="o">)</span>
+        <span class="o">{</span>
+            <span class="k">return</span> <span class="n">path</span><span class="o">;</span>
+        <span class="o">}</span>
+
+        <span class="k">public</span> <span class="k">void</span> <span class="nc">Save</span><span class="bp">()</span>
+        <span class="o">{</span>
+            <span class="nn">Project</span><span class="p">.</span><span class="nc">Save</span><span class="bp">()</span><span class="o">;</span>
+        <span class="o">}</span>
+
+        <span class="k">public</span> <span class="kt">bool</span> <span class="nc">FileExistsInProject</span><span class="o">(</span><span class="kt">string</span> <span class="n">path</span><span class="o">)</span>
+        <span class="o">{</span>
+            <span class="c1">// some ItemTypes which starts with _ are added by various MSBuild tasks for their own purposes</span>
+            <span class="c1">// and they do not represent content files of the projects. Therefore, we exclude them when checking for file existence.</span>
+            <span class="k">return</span> <span class="nn">Project</span><span class="p">.</span><span class="nn">Items</span><span class="p">.</span><span class="nc">Any</span><span class="o">(</span>
+                <span class="n">i</span> <span class="o">=&gt;</span> <span class="n">i</span><span class="o">.</span><span class="nn">EvaluatedInclude</span><span class="p">.</span><span class="nc">Equals</span><span class="o">(</span><span class="n">path</span><span class="o">,</span> <span class="nn">StringComparison</span><span class="p">.</span><span class="nc">OrdinalIgnoreCase</span><span class="o">)</span> <span class="o">&amp;&amp;</span> 
+                     <span class="o">(</span><span class="nn">String</span><span class="p">.</span><span class="nc">IsNullOrEmpty</span><span class="o">(</span><span class="n">i</span><span class="o">.</span><span class="nc">ItemType</span><span class="o">)</span> <span class="o">||</span> <span class="n">i</span><span class="o">.</span><span class="nc">ItemType</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span> <span class="o">!=</span> <span class="sc">&#39;_&#39;</span><span class="o">));</span>
+        <span class="o">}</span>
+
+        <span class="k">private</span> <span class="k">static</span> <span class="nc">Project</span> <span class="nc">GetProject</span><span class="o">(</span><span class="kt">string</span> <span class="n">projectFile</span><span class="o">)</span>
+        <span class="o">{</span>
+            <span class="k">return</span> <span class="nn">ProjectCollection</span><span class="p">.</span><span class="nn">GlobalProjectCollection</span><span class="p">.</span><span class="nc">GetLoadedProjects</span><span class="o">(</span><span class="n">projectFile</span><span class="o">).</span><span class="nc">FirstOrDefault</span><span class="bp">()</span> <span class="o">??</span> <span class="k">new</span> <span class="nc">Project</span><span class="o">(</span><span class="n">projectFile</span><span class="o">);</span>
+        <span class="o">}</span>
+
+        <span class="k">public</span> <span class="k">void</span> <span class="nc">AddImport</span><span class="o">(</span><span class="kt">string</span> <span class="n">targetPath</span><span class="o">,</span> <span class="nc">ProjectImportLocation</span> <span class="n">location</span><span class="o">)</span>
+        <span class="o">{</span>
+            <span class="k">if</span> <span class="o">(</span><span class="n">targetPath</span> <span class="o">==</span> <span class="k">null</span><span class="o">)</span>
+            <span class="o">{</span>
+                <span class="n">throw</span> <span class="k">new</span> <span class="nc">ArgumentNullException</span><span class="o">(</span><span class="s2">&quot;targetPath&quot;</span><span class="o">);</span>
+            <span class="o">}</span>
+
+            <span class="c1">// adds an &lt;Import&gt; element to this project file.</span>
+            <span class="k">if</span> <span class="o">(</span><span class="nn">Project</span><span class="p">.</span><span class="nn">Xml</span><span class="p">.</span><span class="nc">Imports</span> <span class="o">==</span> <span class="k">null</span> <span class="o">||</span>
+                <span class="nn">Project</span><span class="p">.</span><span class="nn">Xml</span><span class="p">.</span><span class="nn">Imports</span><span class="p">.</span><span class="nc">All</span><span class="o">(</span><span class="n">import</span> <span class="o">=&gt;</span> <span class="o">!</span><span class="n">targetPath</span><span class="o">.</span><span class="nc">Equals</span><span class="o">(</span><span class="n">import</span><span class="o">.</span><span class="nc">Project</span><span class="o">,</span> <span class="nn">StringComparison</span><span class="p">.</span><span class="nc">OrdinalIgnoreCase</span><span class="o">)))</span>
+            <span class="o">{</span>
+                <span class="nn">Project</span><span class="p">.</span><span class="nn">Xml</span><span class="p">.</span><span class="nc">AddImport</span><span class="o">(</span><span class="n">targetPath</span><span class="o">);</span>
+                <span class="nn">NuGet</span><span class="p">.</span><span class="nn">MSBuildProjectUtility</span><span class="p">.</span><span class="nc">AddEnsureImportedTarget</span><span class="o">(</span><span class="nc">Project</span><span class="o">,</span> <span class="n">targetPath</span><span class="o">);</span>
+                <span class="nn">Project</span><span class="p">.</span><span class="nc">ReevaluateIfNecessary</span><span class="bp">()</span><span class="o">;</span>
+                <span class="nn">Project</span><span class="p">.</span><span class="nc">Save</span><span class="bp">()</span><span class="o">;</span>
+            <span class="o">}</span>
+        <span class="o">}</span>
+
+        <span class="k">public</span> <span class="k">void</span> <span class="nc">RemoveImport</span><span class="o">(</span><span class="kt">string</span> <span class="n">targetPath</span><span class="o">)</span>
+        <span class="o">{</span>
+            <span class="k">if</span> <span class="o">(</span><span class="n">targetPath</span> <span class="o">==</span> <span class="k">null</span><span class="o">)</span>
+            <span class="o">{</span>
+                <span class="n">throw</span> <span class="k">new</span> <span class="nc">ArgumentNullException</span><span class="o">(</span><span class="s2">&quot;targetPath&quot;</span><span class="o">);</span>
+            <span class="o">}</span>
+
+            <span class="k">if</span> <span class="o">(</span><span class="nn">Project</span><span class="p">.</span><span class="nn">Xml</span><span class="p">.</span><span class="nc">Imports</span> <span class="o">!=</span> <span class="k">null</span><span class="o">)</span>
+            <span class="o">{</span>
+                <span class="c1">// search for this import statement and remove it</span>
+                <span class="n">var</span> <span class="n">importElement</span> <span class="o">=</span> <span class="nn">Project</span><span class="p">.</span><span class="nn">Xml</span><span class="p">.</span><span class="nn">Imports</span><span class="p">.</span><span class="nc">FirstOrDefault</span><span class="o">(</span>
+                    <span class="n">import</span> <span class="o">=&gt;</span> <span class="n">targetPath</span><span class="o">.</span><span class="nc">Equals</span><span class="o">(</span><span class="n">import</span><span class="o">.</span><span class="nc">Project</span><span class="o">,</span> <span class="nn">StringComparison</span><span class="p">.</span><span class="nc">OrdinalIgnoreCase</span><span class="o">));</span>
+
+                <span class="k">if</span> <span class="o">(</span><span class="n">importElement</span> <span class="o">!=</span> <span class="k">null</span><span class="o">)</span>
+                <span class="o">{</span>
+                    <span class="nn">Project</span><span class="p">.</span><span class="nn">Xml</span><span class="p">.</span><span class="nc">RemoveChild</span><span class="o">(</span><span class="n">importElement</span><span class="o">);</span>
+                    <span class="nn">NuGet</span><span class="p">.</span><span class="nn">MSBuildProjectUtility</span><span class="p">.</span><span class="nc">RemoveEnsureImportedTarget</span><span class="o">(</span><span class="nc">Project</span><span class="o">,</span> <span class="n">targetPath</span><span class="o">);</span>
+                    <span class="nn">Project</span><span class="p">.</span><span class="nc">ReevaluateIfNecessary</span><span class="bp">()</span><span class="o">;</span>
+                    <span class="nn">Project</span><span class="p">.</span><span class="nc">Save</span><span class="bp">()</span><span class="o">;</span>
+                <span class="o">}</span>
+            <span class="o">}</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div>
+<p>I can&#39;t honestly remember if they do exactly the same thing, but they are pretty similar and implement the same interfaces and inheritance. As you can see, while F#&#39;s focus is being functional it will support OO code just fine, which is very useful indeed when you need to interop with .NET code from other languages and coding styles.</p>
+]]></content>
+  </entry>
+  
+</feed>

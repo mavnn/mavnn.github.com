@@ -1,0 +1,1161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: typeprovider | Mavnn's blog]]></title>
+  <link href="http://blog.mavnn.co.uk/blog/categories/typeprovider/atom.xml" rel="self"/>
+  <link href="http://blog.mavnn.co.uk/"/>
+  <updated>2017-07-24T09:28:26+01:00</updated>
+  <id>http://blog.mavnn.co.uk/</id>
+  <author>
+    <name><![CDATA[mavnn]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Type Provider Pro-Tip: Using Dictionary]]></title>
+    <link href="http://blog.mavnn.co.uk/type-provider-pro-tip-using-dictionary/"/>
+    <updated>2016-03-05T15:38:45+00:00</updated>
+    <id>http://blog.mavnn.co.uk/type-provider-pro-tip-using-dictionary</id>
+    <content type="html"><![CDATA[<p>During the <a href="https//blog.mavnn.co.uk/type-providers-live-the-movie/">Type Provider Live</a> recording, <a href="https://twitter.com/panesofglass">Ryan</a> asked me about basing erased provided types on dictionary types, and then exposing nicely typed properties to access data stored within the dictionary.</p>
+
+<p>This will sound familiar to users of a number of dynamically typed languages as in many cases objects in these languages are just dictionaries under the hood.</p>
+
+<p>This is such a common thing to be doing in a type provider that I thought it was worth writing up a working example that can then be modified to your individual situation. I&#39;ve presented the entire listing below with comments, but there is one particular trick I&#39;ll explain in a bit more detail. Let&#39;s have a look at let bindings in quotations!</p>
+
+<!-- more -->
+
+<p>So, normally when you write a <code>let</code> binding in F#, and end up writing something like this:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="n">myFunction</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">10</span>
+
+  <span class="n">x</span> <span class="o">+</span> <span class="mi">10</span>
+</code></pre></div>
+<p>Here, the body of function <code>myFunction</code> is an expression that evaluates to 20. But it turns out that this is actually syntax sugar for:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="n">myFunction</span> <span class="bp">()</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">10</span> <span class="k">in</span> <span class="n">x</span> <span class="o">+</span> <span class="mi">10</span>
+</code></pre></div>
+<p>A quotation in F# always represents a single expression, so it shouldn&#39;t come as a surprise at this point that the <code>Expr.Let</code> class has a constructor this three arguments. The variable being bound, the value to bind to it, and the body in which it is used. So if you want to express the body of the function above you end up with something like this:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">open</span> <span class="nn">FSharp</span><span class="p">.</span><span class="nc">Quotations</span>
+
+<span class="k">let</span> <span class="n">version1</span> <span class="o">=</span>
+  <span class="o">&lt;@@</span> <span class="k">let</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">10</span> <span class="k">in</span> <span class="n">x</span> <span class="o">+</span> <span class="mi">10</span> <span class="o">@@&gt;</span> <span class="c1">// cheat!</span>
+
+<span class="k">let</span> <span class="n">version2</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">xVar</span> <span class="o">=</span> <span class="nc">Var</span><span class="o">(</span><span class="s2">&quot;x&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;)</span>
+  <span class="k">let</span> <span class="n">x</span> <span class="o">=</span> <span class="nn">Expr</span><span class="p">.</span><span class="nc">Var</span> <span class="n">xVar</span>
+  <span class="nn">Expr</span><span class="p">.</span><span class="nc">Let</span><span class="o">(</span><span class="n">xVar</span><span class="o">,</span> <span class="o">&lt;@@</span> <span class="mi">10</span> <span class="o">@@&gt;,</span> <span class="o">&lt;@@</span> <span class="o">%%</span><span class="n">x</span> <span class="o">+</span> <span class="mi">10</span> <span class="o">@@&gt;)</span>
+</code></pre></div>
+<p>The trick you need to know is that <code>Expr.Var</code> produces an Expr that represents a place where a variable will be used. But it creates an untyped Expr, and this can (and does) cause issues with type inference. We can work around this by making use of typed expressions, represented by the generic <code>Expr&lt;&#39;a&gt;</code> class. The type provider API takes the untyped version, but you can convert back to the untyped version either by calling the <code>Raw</code> property on the typed expression or just by using it to help construct an expression which contains the typed expression but which is untyped itself using the <code>Expr</code> classes.</p>
+
+<p>In the code below, notice the use of <code>&lt;@ ... @&gt;</code> and <code>%</code> rather than <code>&lt;@@ ... @@&gt;</code> and <code>%%</code> to work with typed expressions rather than untyped.</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">open</span> <span class="nn">FSharp</span><span class="p">.</span><span class="nc">Quotations</span>
+
+<span class="k">type</span> <span class="nc">GD</span> <span class="o">=</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Collections</span><span class="p">.</span><span class="nn">Generic</span><span class="p">.</span><span class="nc">Dictionary</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">,</span><span class="kt">string</span><span class="o">&gt;</span>
+
+<span class="k">let</span> <span class="n">dictExpr</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">gdVar</span> <span class="o">=</span> <span class="nc">Var</span><span class="o">(</span><span class="s2">&quot;gd&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="nc">GD</span><span class="o">&gt;)</span>
+  <span class="k">let</span> <span class="n">gdExpr</span> <span class="o">=</span>
+    <span class="nn">Expr</span><span class="p">.</span><span class="nc">Var</span> <span class="n">gdVar</span> <span class="o">|&gt;</span> <span class="nn">Expr</span><span class="p">.</span><span class="nc">Cast</span><span class="o">&lt;</span><span class="nc">GD</span><span class="o">&gt;</span>
+    <span class="c1">// Expr.Cast forces this to be a typed expression</span>
+  <span class="k">let</span> <span class="n">addValue</span> <span class="o">=</span>
+    <span class="nn">Expr</span><span class="p">.</span><span class="nc">Let</span><span class="o">(</span><span class="n">gdVar</span><span class="o">,</span> <span class="o">&lt;@</span> <span class="nc">GD</span><span class="bp">()</span> <span class="o">@&gt;,</span> <span class="o">&lt;@</span> <span class="o">%</span><span class="n">gdExpr</span><span class="o">.[</span><span class="s2">&quot;one&quot;</span><span class="o">]</span> <span class="o">&lt;-</span> <span class="s2">&quot;the number one&quot;</span> <span class="o">@&gt;)</span>
+    <span class="c1">// the line above fails without typed expressions</span>
+</code></pre></div>
+<p>With that out of the way, we&#39;re good to go. The type provider below is a simple wrapper around a string, string dictionary. It looks like this in use:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">type</span> <span class="nc">MyType</span> <span class="o">=</span> <span class="nn">DictProvider</span><span class="p">.</span><span class="nc">ParaProvider</span><span class="o">&lt;</span><span class="s2">&quot;name1, name2&quot;</span><span class="o">&gt;</span>
+
+<span class="k">let</span> <span class="n">thing</span> <span class="o">=</span> <span class="nc">MyType</span><span class="o">(</span><span class="s2">&quot;1&quot;</span><span class="o">,</span><span class="s2">&quot;2&quot;</span><span class="o">)</span>
+
+<span class="n">thing</span><span class="o">.</span><span class="n">name1</span> <span class="c1">// &quot;1&quot;</span>
+<span class="n">thing</span><span class="o">.</span><span class="n">name2</span> <span class="c1">// &quot;2&quot;</span>
+
+<span class="n">thing</span><span class="o">.</span><span class="n">name1</span> <span class="o">&lt;-</span> <span class="s2">&quot;not one. Muhahahaha!&quot;</span>
+<span class="n">thing</span><span class="o">.</span><span class="n">name2</span> <span class="o">&lt;-</span> <span class="s2">&quot;that&#39;s why you shouldn&#39;t make things mutable&quot;</span>
+
+<span class="n">thing</span><span class="o">.</span><span class="n">name1</span> <span class="c1">// &quot;not one. Muhahahaha!&quot;</span>
+</code></pre></div>
+<p>You&#39;ll get different properties depending which strings you supply as parameters.</p>
+
+<p>Here&#39;s the source:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">module</span> <span class="nc">DictProvider</span>
+
+<span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Reflection</span>
+<span class="k">open</span> <span class="nn">FSharp</span><span class="p">.</span><span class="nn">Core</span><span class="p">.</span><span class="nc">CompilerServices</span>
+<span class="k">open</span> <span class="nn">FSharp</span><span class="p">.</span><span class="nc">Quotations</span>
+<span class="k">open</span> <span class="nn">ProviderImplementation</span><span class="p">.</span><span class="nc">ProvidedTypes</span>
+
+<span class="k">type</span> <span class="nc">GD</span> <span class="o">=</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Collections</span><span class="p">.</span><span class="nn">Generic</span><span class="p">.</span><span class="nc">Dictionary</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">,</span> <span class="kt">string</span><span class="o">&gt;</span>
+
+<span class="o">[&lt;</span><span class="nc">TypeProvider</span><span class="o">&gt;]</span>
+<span class="k">type</span> <span class="nc">DictionaryProvider</span><span class="bp">()</span> <span class="k">as</span> <span class="n">this</span> <span class="o">=</span>
+  <span class="k">inherit</span> <span class="nc">TypeProviderForNamespaces</span><span class="bp">()</span>
+
+  <span class="k">let</span> <span class="n">ns</span> <span class="o">=</span> <span class="s2">&quot;DictProvider&quot;</span>
+  <span class="k">let</span> <span class="n">asm</span> <span class="o">=</span> <span class="nn">Assembly</span><span class="p">.</span><span class="nc">GetExecutingAssembly</span><span class="bp">()</span>
+
+  <span class="k">let</span> <span class="n">createType</span> <span class="n">typeName</span> <span class="o">(</span><span class="n">parameters</span> <span class="o">:</span> <span class="n">obj</span> <span class="bp">[]</span><span class="o">)</span> <span class="o">=</span>
+    <span class="c1">// We&#39;ll get our property names by just splitting</span>
+    <span class="c1">// our single parameter on commas</span>
+    <span class="k">let</span> <span class="n">propNames</span> <span class="o">=</span>
+      <span class="o">(</span><span class="n">parameters</span><span class="o">.[</span><span class="mi">0</span><span class="o">]</span> <span class="o">:?&gt;</span> <span class="kt">string</span><span class="o">).</span><span class="nc">Split</span> <span class="sc">&#39;,&#39;</span>
+      <span class="o">|&gt;</span> <span class="nn">Array</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">s</span> <span class="o">-&gt;</span> <span class="n">s</span><span class="o">.</span><span class="nc">Trim</span><span class="bp">()</span><span class="o">)</span>
+
+    <span class="c1">// Each of our properties has setter code to set the value in the dict with the</span>
+    <span class="c1">// name of the property, and getter code with gets the same value</span>
+    <span class="k">let</span> <span class="n">aProp</span> <span class="n">name</span> <span class="o">=</span>
+      <span class="nc">ProvidedProperty</span><span class="o">(</span>
+        <span class="n">name</span><span class="o">,</span>
+        <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;,</span>
+        <span class="nc">IsStatic</span> <span class="o">=</span> <span class="bp">false</span><span class="o">,</span>
+        <span class="nc">GetterCode</span> <span class="o">=</span> <span class="o">(</span><span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="o">(%%</span><span class="n">args</span><span class="o">.[</span><span class="mi">0</span><span class="o">]:</span><span class="nc">GD</span><span class="o">).[</span><span class="n">name</span><span class="o">]</span> <span class="o">@@&gt;),</span>
+        <span class="nc">SetterCode</span> <span class="o">=</span> <span class="o">(</span><span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="o">(%%</span><span class="n">args</span><span class="o">.[</span><span class="mi">0</span><span class="o">]:</span><span class="nc">GD</span><span class="o">).[</span><span class="n">name</span><span class="o">]</span> <span class="o">&lt;-</span> <span class="o">(%%</span><span class="n">args</span><span class="o">.[</span><span class="mi">1</span><span class="o">]:</span><span class="kt">string</span><span class="o">)</span> <span class="o">@@&gt;))</span>
+
+    <span class="c1">// Here we set the type to be erased to as &quot;GD&quot; (our type alias for a dictionary)</span>
+    <span class="c1">// If we want to hide the normal dictionary methods, we could use:</span>
+    <span class="c1">// &#39;myType.HideObjectMethods &lt;- true&#39;</span>
+    <span class="c1">// But here we&#39;ll just let people use the type as a dictionary as well.</span>
+    <span class="k">let</span> <span class="n">myType</span> <span class="o">=</span>
+      <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="n">typeName</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="nc">GD</span><span class="o">&gt;)</span>
+
+    <span class="c1">// Make sure we add all the properties to the object.</span>
+    <span class="n">propNames</span>
+    <span class="o">|&gt;</span> <span class="nn">Array</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">propName</span> <span class="o">-&gt;</span> <span class="n">aProp</span> <span class="n">propName</span><span class="o">)</span>
+    <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">ofArray</span>
+    <span class="o">|&gt;</span> <span class="n">myType</span><span class="o">.</span><span class="nc">AddMembers</span>
+
+    <span class="c1">// We&#39;ll want a constructor that takes as many parameters as we have</span>
+    <span class="c1">// properties, as we&#39;ll want to set the value in the dictionary of our</span>
+    <span class="c1">// properties during construction. If we don&#39;t, trying to use the properties</span>
+    <span class="c1">// will result in a key not found exception.</span>
+    <span class="k">let</span> <span class="n">cstorParams</span> <span class="o">=</span>
+      <span class="n">propNames</span>
+      <span class="o">|&gt;</span> <span class="nn">Array</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">propName</span> <span class="o">-&gt;</span> <span class="nc">ProvidedParameter</span><span class="o">(</span><span class="n">propName</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;))</span>
+      <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">ofArray</span>
+
+    <span class="c1">// Here&#39;s the constructor code where we set each property in turn.</span>
+    <span class="c1">// Notice how the fold keeps on building up a larger let expression,</span>
+    <span class="c1">// adding a set value line at the top of the expression each time through.</span>
+    <span class="c1">// Our initial state (a line with only the dictionary variable on) is always</span>
+    <span class="c1">// left last, so this is what will be returned from the constructor.</span>
+    <span class="k">let</span> <span class="n">cstorCode</span> <span class="o">=</span>
+      <span class="k">fun</span> <span class="o">(</span><span class="n">args</span> <span class="o">:</span> <span class="nc">Expr</span> <span class="kt">list</span><span class="o">)</span> <span class="o">-&gt;</span>
+        <span class="k">let</span> <span class="n">dictionaryVar</span> <span class="o">=</span> <span class="nc">Var</span><span class="o">(</span><span class="s2">&quot;dictionary&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="nc">GD</span><span class="o">&gt;)</span>
+        <span class="k">let</span> <span class="n">dictionary</span> <span class="o">:</span> <span class="nc">Expr</span><span class="o">&lt;</span><span class="nc">GD</span><span class="o">&gt;</span> <span class="o">=</span> <span class="n">dictionaryVar</span> <span class="o">|&gt;</span> <span class="nn">Expr</span><span class="p">.</span><span class="nc">Var</span> <span class="o">|&gt;</span> <span class="nn">Expr</span><span class="p">.</span><span class="nc">Cast</span>
+        <span class="k">let</span> <span class="n">setValues</span> <span class="o">=</span>
+          <span class="n">args</span>
+          <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">propNames</span>
+          <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">fold</span> <span class="o">(</span><span class="k">fun</span> <span class="n">state</span> <span class="o">(</span><span class="n">name</span><span class="o">,</span> <span class="n">arg</span><span class="o">)</span> <span class="o">-&gt;</span>
+            <span class="o">&lt;@</span> <span class="o">(%</span><span class="n">dictionary</span><span class="o">).[</span><span class="n">name</span><span class="o">]</span> <span class="o">&lt;-</span> <span class="o">(%%</span><span class="n">arg</span><span class="o">:</span><span class="kt">string</span><span class="o">)</span>
+               <span class="o">%</span><span class="n">state</span> <span class="o">@&gt;)</span> <span class="o">&lt;@</span> <span class="o">%</span><span class="n">dictionary</span> <span class="o">@&gt;</span>
+        <span class="nn">Expr</span><span class="p">.</span><span class="nc">Let</span><span class="o">(</span><span class="n">dictionaryVar</span><span class="o">,</span> <span class="o">&lt;@</span> <span class="nc">GD</span><span class="bp">()</span> <span class="o">@&gt;,</span> <span class="n">setValues</span><span class="o">)</span>
+
+    <span class="c1">// Build the constructor out of our helpers</span>
+    <span class="k">let</span> <span class="n">cstor</span> <span class="o">=</span>
+      <span class="nc">ProvidedConstructor</span><span class="o">(</span><span class="n">cstorParams</span><span class="o">,</span> <span class="nc">InvokeCode</span> <span class="o">=</span> <span class="n">cstorCode</span><span class="o">)</span>
+
+    <span class="c1">// And make sure you add it to the class!</span>
+    <span class="n">myType</span><span class="o">.</span><span class="nc">AddMember</span> <span class="n">cstor</span>
+
+    <span class="n">myType</span>
+
+  <span class="k">let</span> <span class="n">provider</span> <span class="o">=</span>
+    <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="s2">&quot;ParaProvider&quot;</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;)</span>
+  <span class="k">let</span> <span class="n">parameters</span> <span class="o">=</span>
+    <span class="o">[</span><span class="nc">ProvidedStaticParameter</span><span class="o">(</span><span class="s2">&quot;PropNames&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;)]</span>
+
+  <span class="k">do</span>
+    <span class="n">provider</span><span class="o">.</span><span class="nc">DefineStaticParameters</span><span class="o">(</span><span class="n">parameters</span><span class="o">,</span> <span class="n">createType</span><span class="o">)</span>
+    <span class="n">this</span><span class="o">.</span><span class="nc">AddNamespace</span><span class="o">(</span><span class="n">ns</span><span class="o">,</span> <span class="o">[</span><span class="n">provider</span><span class="o">])</span>
+
+<span class="o">[&lt;</span><span class="n">assembly</span><span class="o">:</span><span class="nc">TypeProviderAssembly</span><span class="o">&gt;]</span>
+<span class="k">do</span><span class="bp">()</span>
+</code></pre></div>]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Type Providers Live - the Movie]]></title>
+    <link href="http://blog.mavnn.co.uk/type-providers-live-the-movie/"/>
+    <updated>2016-02-29T21:10:51+00:00</updated>
+    <id>http://blog.mavnn.co.uk/type-providers-live-the-movie</id>
+    <content type="html"><![CDATA[<p>I recently gave a live streamed tutorial on building type providers, which I&#39;ve embedded below. Apologies for the sound; apparently Google Hangouts added a feature I was unaware of until after the stream started which mutes your microphone whenever you type.</p>
+
+<p>Fortunately I think enough was preserved to be useful, and (amazingly!) all of the demonstrations actually worked.</p>
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/pXT0li6zxKQ" frameborder="0" allowfullscreen></iframe>
+
+<p>If you&#39;d like to try things out for yourself, there&#39;s a github repository at https://github.com/mavnn/CambridgeTypeProvider which contains 6 individual fsx files, one for each new feature added to the type provider.</p>
+
+<p>There&#39;s a bunch of other type provider information scattered around this blog, if you&#39;re interested just click <a href="https//blog.mavnn.co.uk/blog/categories/typeprovider/">the &quot;typeprovider&quot; tag</a>.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[EmParsec Embedded Parser Library]]></title>
+    <link href="http://blog.mavnn.co.uk/emparsec-embedded-parser-library/"/>
+    <updated>2016-01-18T12:53:11+00:00</updated>
+    <id>http://blog.mavnn.co.uk/emparsec-embedded-parser-library</id>
+    <content type="html"><![CDATA[<blockquote>
+<p>You can find EmParsec on GitHub: https://github.com/mavnn/EmParsec </p>
+</blockquote>
+
+<p>Type providers, by their very nature, tend to access data external to the .net ecosystem. It can also be very awkward technically to make use of dependencies during the actual type generation process.</p>
+
+<p>This is rather a pity, because accessing all of that external data is much nicer and easier when you have a decent parser to do it with. And F# has very, very nice parser support via the <a href="http://www.quanttec.com/fparsec/">FParsec</a> library. Instead, many (most?) type providers end up creating mini-one shot parsers which can be a bit slow to write and don&#39;t tend to have features that come for free in a more complete solution such as nice error reporting.</p>
+
+<p>Writing yet an other parser (YAOP) this week I decided that enough was enough. What I needed was a shared resource that people could pool improvements for that could be easily embedded in projects like type providers were it isn&#39;t desirable (or sometimes possible) to take external binary dependencies.</p>
+
+<p>So I built it.</p>
+
+<!-- more -->
+
+<p>EmParsec is a single file parser combinator &quot;library&quot;, inspired by both FParsec library and <a href="http://fsharpforfunandprofit.com/posts/understanding-parser-combinators/">Scott&#39;s excellent series on building parser combinators</a>.</p>
+
+<p>It consists of a single fs file that can be loaded in the editor of your choice without any requirement for a project file or similar. When you want to use it, you can just reference it as a <a href="https://fsprojects.github.io/Paket/github-dependencies.html">Paket GitHub dependency</a> (which you&#39;ll be wanting to do for the ProvidedTypes.fs file if you&#39;re creating a type provider anyway) or even just copy the file across.</p>
+
+<p>If you are compiling EmParsec into a larger project, it marks itself as &quot;internal&quot; so that you don&#39;t pollute the end users name space, and so that if two projects you reference have embedded different versions of EmParsec there are no collisions.</p>
+
+<h2>How do I use it?</h2>
+
+<p>So, you&#39;ve added EmParsec.fs to your project (manually or with Paket) and now you&#39;re wondering how to use it. Let&#39;s build some simple examples.</p>
+
+<h3>Matching an exact string</h3>
+
+<p>Let&#39;s start with something simple: what if I just want to match a string?</p>
+
+<p>Parser combinator libraries allow you to combine parsers from simpler parsers (hence the name), but in this case <code>pstring</code> (the &#39;p&#39; is there to avoid clashing with the existing <code>string</code> function) is provided for us by EmParsec.</p>
+
+<p>Let&#39;s try it out!</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">open</span> <span class="nc">EmParsec</span>
+
+<span class="k">let</span> <span class="n">thingParser</span> <span class="o">=</span> <span class="n">pstring</span> <span class="s2">&quot;thing&quot;</span>
+<span class="c1">// When you enter this line, F# give a &quot;Value restriction&quot; error.</span>
+<span class="c1">// You can either mark thingParser as type UParser&lt;string&gt;, or</span>
+<span class="c1">// use the parser with run as below and the error will disappear.</span>
+
+<span class="n">run</span> <span class="n">thingParser</span> <span class="s2">&quot;thing&quot;</span>
+<span class="c1">// val it : Choice&lt;string,string&gt; = Choice1Of2 &quot;thing&quot;</span>
+
+<span class="n">run</span> <span class="n">thingParser</span> <span class="s2">&quot;th1ng&quot;</span>
+<span class="c1">// val it : Choice&lt;string,string&gt; =</span>
+<span class="c1">//   Choice2Of2</span>
+<span class="c1">//     &quot;Parser &lt;string thing&gt; failed at line 0 column 2</span>
+<span class="c1">// Unexpected [&#39;1&#39;]</span>
+<span class="c1">// th1ng</span>
+<span class="c1">//   ^&quot;</span>
+</code></pre></div>
+<p>Not bad! It even marks the unexpected character in the error output.</p>
+
+<p>Unfortunately:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="n">run</span> <span class="n">thingParser</span> <span class="s2">&quot;thing and more&quot;</span>
+<span class="c1">// val it : Choice&lt;string,string&gt; = Choice1Of2 &quot;thing&quot;</span>
+</code></pre></div>
+<p>That probably isn&#39;t the behaviour you were hoping for. There&#39;s still input left after the parser has finished, but that isn&#39;t being seen as an error. EmParsec includes the <code>eof</code> parser for just this type of occasion - a parser that checks the input is exhausted.</p>
+
+<p>So we want a parser that parses &quot;thing&quot; and then ends.</p>
+
+<p>Let&#39;s go:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="n">thingParser2</span> <span class="o">=</span> <span class="n">andThen</span> <span class="o">(</span><span class="n">pstring</span> <span class="s2">&quot;thing&quot;</span><span class="o">)</span> <span class="n">eof</span>
+<span class="c1">// normally written</span>
+<span class="k">let</span> <span class="n">thingParser2&#39;</span> <span class="o">=</span> <span class="n">pstring</span> <span class="s2">&quot;thing&quot;</span> <span class="o">.&gt;&gt;.</span> <span class="n">eof</span>
+
+<span class="n">run</span> <span class="n">thingParser2</span> <span class="s2">&quot;thing&quot;</span>
+<span class="c1">// val it : Choice&lt;(string * unit),string&gt; = Choice1Of2 (&quot;thing&quot;, null)</span>
+
+<span class="n">run</span> <span class="n">thingParser2</span> <span class="s2">&quot;th1ng&quot;</span>
+<span class="c1">// val it : Choice&lt;(string * unit),string&gt; =</span>
+<span class="c1">//   Choice2Of2</span>
+<span class="c1">//     &quot;Parser (&lt;string thing&gt; andThen &lt;end&gt;) failed at line 0 column 2</span>
+<span class="c1">// Unexpected [&#39;1&#39;]</span>
+<span class="c1">// th1ng</span>
+<span class="c1">//   ^&quot;</span>
+
+<span class="n">run</span> <span class="n">thingParser2</span> <span class="s2">&quot;thing and more&quot;</span>
+<span class="c1">// val it : Choice&lt;(string * unit),string&gt; =</span>
+<span class="c1">//   Choice2Of2</span>
+<span class="c1">//     &quot;Parser (&lt;string thing&gt; andThen &lt;end&gt;) failed at line 0 column 5</span>
+<span class="c1">// Unexpected input remaining &#39; and more&#39;</span>
+<span class="c1">// thing and more</span>
+<span class="c1">//      ^&quot;</span>
+</code></pre></div>
+<p>That&#39;s more like it. The only issue now is that we&#39;ve combined two parser, so we&#39;re getting back a tuple of two results.</p>
+
+<p>A simple tweak tells EmParsec to throw away the unit result returned by <code>eof</code>.</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="n">improvedThingParser</span> <span class="o">=</span> <span class="n">pstring</span> <span class="s2">&quot;thing&quot;</span> <span class="o">.&gt;&gt;</span> <span class="n">eof</span>
+
+<span class="n">run</span> <span class="n">improvedThingParser</span> <span class="s2">&quot;thing&quot;</span>
+<span class="c1">// val it : Choice&lt;string,string&gt; = Choice1Of2 &quot;thing&quot;</span>
+</code></pre></div>
+<p>&quot;Impressive,&quot; I hear you say: &quot;You can parse static strings!&quot;</p>
+
+<h3>Parsing a simple template language</h3>
+
+<p>You have a point. Let&#39;s tackle a simple template language. You know the kind of thing:</p>
+
+<p><code>Welcome {name}! Please spend money here.</code></p>
+
+<p>That kind of thing. I&#39;m going to start building up a set of helper parsers for this, applying some type annotations both to make the example code clearer and to avoid the value restriction errors that crop up until you actually use the parsers (those occur because these parsers can carry generic user state, but we&#39;re not going to go into using that here).</p>
+
+<p>We have two &quot;types&quot; of token that can exist in our template language: values to be replaced, and text to be preserved. Let&#39;s start by creating a union type to contain our parse results:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">type</span> <span class="nc">TemplatePart</span> <span class="o">=</span>
+  <span class="o">|</span> <span class="nc">Text</span> <span class="k">of</span> <span class="kt">string</span>
+  <span class="o">|</span> <span class="nc">Value</span> <span class="k">of</span> <span class="kt">string</span>
+</code></pre></div>
+<p>Then, we&#39;ll have a parser that will parse individual characters which are <em>not</em> an opening bracket:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="n">notOpenBracket</span> <span class="o">:</span> <span class="nc">UParser</span><span class="o">&lt;</span><span class="kt">char</span><span class="o">&gt;</span> <span class="o">=</span>
+  <span class="n">satisfy</span> <span class="o">(</span><span class="k">fun</span> <span class="n">c</span> <span class="o">-&gt;</span> <span class="n">c</span> <span class="o">&lt;&gt;</span> <span class="kt">char</span> <span class="sc">&#39;{&#39;</span><span class="o">)</span> <span class="s2">&quot;not open bracket&quot;</span>
+</code></pre></div>
+<p><code>satisfy</code> is a function built into EmParsec which takes a predicate for whether or not it will consume the next character in the input stream. The final string argument is a name for the parser, which will be used in error messages.</p>
+
+<p>Then we&#39;ll use that parser to create one that consumes as many &quot;not open bracket&quot; characters as it can, combines them into a string and then counts that string as a <code>Text</code> part.</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="n">textParser</span> <span class="o">:</span> <span class="nc">UParser</span><span class="o">&lt;</span><span class="nc">TemplatePart</span><span class="o">&gt;</span> <span class="o">=</span>
+  <span class="n">many1</span> <span class="n">notOpenBracket</span>
+  <span class="o">|&gt;&gt;</span> <span class="o">(</span><span class="k">fun</span> <span class="n">charList</span> <span class="o">-&gt;</span>
+         <span class="n">charList</span>
+         <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="kt">string</span>
+         <span class="o">|&gt;</span> <span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot;&quot;</span>
+         <span class="o">|&gt;</span> <span class="nc">Text</span><span class="o">)</span>
+  <span class="o">&lt;?&gt;</span> <span class="s2">&quot;&lt;text parser&gt;&quot;</span>
+</code></pre></div>
+<p>There&#39;s a new function here and a couple of new operators (all taken from FParsec, by the way). <code>|&gt;&gt;</code> is a map operator; it allows you to transform the result of a parser and then rewrap everything back up into a new parser. This is really at the heart of the power of parser combinator libraries.</p>
+
+<p>The <code>&lt;?&gt;</code> operator is much simpler: it allows you to name a parser rather than its name being some combination of the parsers it&#39;s built of.</p>
+
+<p>The <code>many1</code> function says &quot;match one or more instances of the parser that follows&quot;. There is also a <code>many</code>, which matches 0 or more repeats.</p>
+
+<p>So that&#39;s good - we can capture the text in between our replacable values. Let&#39;s go with a parser for the bracketed value names next!</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="n">valueName</span> <span class="o">:</span> <span class="nc">UParser</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span> <span class="o">=</span>
+  <span class="n">many1</span> <span class="o">(</span><span class="n">satisfy</span> <span class="o">(</span><span class="k">fun</span> <span class="n">c</span> <span class="o">-&gt;</span> <span class="n">c</span> <span class="o">&lt;&gt;</span> <span class="sc">&#39;}&#39;</span> <span class="o">&amp;&amp;</span> <span class="o">(</span><span class="ow">not</span> <span class="o">&lt;|</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Char</span><span class="p">.</span><span class="nc">IsWhiteSpace</span> <span class="n">c</span><span class="o">))</span> <span class="s2">&quot;&quot;</span><span class="o">)</span>
+  <span class="o">|&gt;&gt;</span> <span class="o">(</span><span class="k">fun</span> <span class="n">charList</span> <span class="o">-&gt;</span> <span class="n">charList</span> <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="kt">string</span> <span class="o">|&gt;</span> <span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot;&quot;</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="n">openValue</span> <span class="o">:</span> <span class="nc">UParser</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span> <span class="o">=</span>
+  <span class="n">pchar</span> <span class="sc">&#39;{&#39;</span> <span class="o">.&gt;&gt;.</span> <span class="n">spaces</span>
+  <span class="o">|&gt;&gt;</span> <span class="n">ignore</span>
+
+<span class="k">let</span> <span class="n">closeValue</span> <span class="o">:</span> <span class="nc">UParser</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span> <span class="o">=</span>
+  <span class="n">spaces</span> <span class="o">.&gt;&gt;.</span> <span class="n">pchar</span> <span class="sc">&#39;}&#39;</span>
+  <span class="o">|&gt;&gt;</span> <span class="n">ignore</span>
+
+<span class="k">let</span> <span class="n">value</span> <span class="o">:</span> <span class="nc">UParser</span><span class="o">&lt;</span><span class="nc">TemplatePart</span><span class="o">&gt;</span> <span class="o">=</span>
+  <span class="n">between</span> <span class="n">openValue</span> <span class="n">closeValue</span> <span class="n">valueName</span>
+  <span class="o">|&gt;&gt;</span> <span class="nc">Value</span>
+  <span class="o">&lt;?&gt;</span> <span class="s2">&quot;&lt;value parser&gt;&quot;</span>
+</code></pre></div>
+<p>So we now have parsers for white space and our &quot;valueName&quot; (which we are saying must be at least one character long, and can consist of any character which is not whitespace or a closing curly bracket). We can then use pchar (&quot;parse char&quot;) and whitespace to allow for minor variations in syntax (some people like <code>{name}</code>, others like <code>{ name }</code>).</p>
+
+<p>Finally we build our value parser, using the <code>between</code> function, which does pretty much what you&#39;d expect: it takes an opening parser, a closing parser, and captures what&#39;s in between with third parser.</p>
+
+<p>Our final step is just to combine our parsers for value and text sections. We want to capture &quot;many&quot; of one or the other, until we run out of input. We&#39;ll put an explicit <code>eof</code> on there as well, otherwise things like (for example) an unclosed <code>}</code> at the end of the string will not show up as an error - the parser will just stop at the character before the opening <code>{</code> as the last matching input.</p>
+
+<p>Our final parser introduces the <code>&lt;|&gt;</code> (orElse) operator, and looks like this:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="n">template</span> <span class="o">:</span> <span class="nc">UParser</span><span class="o">&lt;</span><span class="nc">TemplatePart</span> <span class="kt">list</span><span class="o">&gt;</span> <span class="o">=</span>
+  <span class="n">many</span> <span class="o">(</span><span class="n">value</span> <span class="o">&lt;|&gt;</span> <span class="n">textParser</span><span class="o">)</span>
+  <span class="o">.&gt;&gt;</span> <span class="n">eof</span>
+  <span class="o">&lt;?&gt;</span> <span class="s2">&quot;&lt;template parser&gt;&quot;</span>
+</code></pre></div>
+<p>Let&#39;s try it out!</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Text</span>
+
+<span class="k">let</span> <span class="n">showTemplate</span> <span class="n">values</span> <span class="n">parts</span> <span class="o">=</span>
+  <span class="k">let</span> <span class="n">folder</span> <span class="o">(</span><span class="n">sb</span> <span class="o">:</span> <span class="nc">StringBuilder</span><span class="o">)</span> <span class="n">part</span> <span class="o">=</span>
+    <span class="k">match</span> <span class="n">part</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="nc">Text</span> <span class="n">s</span> <span class="o">-&gt;</span>
+      <span class="n">sb</span><span class="o">.</span><span class="nc">Append</span> <span class="n">s</span>
+    <span class="o">|</span> <span class="nc">Value</span> <span class="n">v</span> <span class="o">-&gt;</span>
+      <span class="n">defaultArg</span> <span class="o">(</span><span class="nn">Map</span><span class="p">.</span><span class="n">tryFind</span> <span class="n">v</span> <span class="n">values</span><span class="o">)</span> <span class="s2">&quot;&quot;</span>
+      <span class="o">|&gt;</span> <span class="n">sb</span><span class="o">.</span><span class="nc">Append</span>
+  <span class="k">let</span> <span class="n">sb</span> <span class="o">=</span> <span class="nn">List</span><span class="p">.</span><span class="n">fold</span> <span class="n">folder</span> <span class="o">(</span><span class="nc">StringBuilder</span><span class="bp">()</span><span class="o">)</span> <span class="n">parts</span>
+  <span class="n">sb</span><span class="o">.</span><span class="nc">ToString</span><span class="bp">()</span>
+
+<span class="k">let</span> <span class="n">values</span> <span class="o">=</span> <span class="nc">Map</span> <span class="o">[</span> <span class="s2">&quot;name&quot;</span><span class="o">,</span> <span class="s2">&quot;bob&quot;</span> <span class="o">]</span>
+
+<span class="k">let</span> <span class="n">run&#39;</span> <span class="n">parser</span> <span class="n">str</span> <span class="o">=</span>
+  <span class="n">run</span> <span class="n">parser</span> <span class="n">str</span>
+  <span class="o">|&gt;</span> <span class="k">function</span>
+     <span class="o">|</span> <span class="nc">Choice1Of2</span> <span class="n">success</span> <span class="o">-&gt;</span> <span class="n">showTemplate</span> <span class="n">values</span> <span class="n">success</span>
+     <span class="o">|</span> <span class="nc">Choice2Of2</span> <span class="n">fail</span> <span class="o">-&gt;</span> <span class="n">failwithf</span> <span class="s2">&quot;Parsing failed!</span><span class="se">\n</span><span class="s2">%s&quot;</span> <span class="n">fail</span>
+</code></pre></div>
+<p>A couple of helpers: <code>showTemplate</code> knows how to build up a string from a list of template parts and a value map, <code>run&#39;</code> is just a simple wrapper around <code>run</code> that throws if parsing is not successful.</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="n">ex1</span> <span class="o">=</span> <span class="s2">&quot;Welcome {name}! Please spend money here!&quot;</span>
+<span class="k">let</span> <span class="n">ex2</span> <span class="o">=</span> <span class="s2">&quot;hello { name } thing&quot;</span>
+
+<span class="n">run&#39;</span> <span class="n">template</span> <span class="n">ex1</span>
+<span class="c1">// val it : string = &quot;Welcome bob! Please spend money here!&quot;</span>
+
+<span class="n">run&#39;</span> <span class="n">template</span> <span class="n">ex2</span>
+<span class="c1">// val it : string = &quot;hello bob thing&quot;</span>
+
+<span class="k">let</span> <span class="n">ex3</span> <span class="o">=</span> <span class="s2">&quot;Hello, { name }! How about {</span>
+<span class="s2"> date:alreadyrendered?</span>
+<span class="s2">}? &lt;- That should be left blank, but parse as valid.&quot;</span>
+
+<span class="n">run&#39;</span> <span class="n">template</span> <span class="n">ex3</span>
+<span class="c1">// val it : string =</span>
+<span class="c1">//   &quot;Hello, bob! How about ? &lt;- That should be left blank, but parse as valid.&quot;</span>
+</code></pre></div>
+<p>And finally our templates in action. You can see that even with a simple parser like this, it&#39;s already reaching a complexity that would be painful to match with a hand rolled creation.</p>
+
+<p>If you want to know more about parser combinators, and especially how to use them to create recursive grammars, do check out the <a href="http://www.quanttec.com/fparsec/">FParsec documentation</a> which is excellent. It is also more complete and <em>much</em> more performant than EmParsec.</p>
+
+<p>But if you need a small, single file parser where performance is not the primary concern - maybe EmParsec is your friend. Anyone who wants to join in making it better is more than welcome! Of particular note is that EmParsec does not yet support controlling when backtracking does or doesn&#39;t happen (it will always backtrack) which can make for some pretty confusing error messages.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Testing ProvidedType.fs by Example]]></title>
+    <link href="http://blog.mavnn.co.uk/testing-providedtype-dot-fs/"/>
+    <updated>2015-02-16T12:12:56+00:00</updated>
+    <id>http://blog.mavnn.co.uk/testing-providedtype-dot-fs</id>
+    <content type="html"><![CDATA[<p>The <a href="https://github.com/fsprojects/FSharp.TypeProviders.StarterPack">Type Provider Starter Pack</a> was designed with two purposes initially. Firstly, to be a canonical repository for the ProvidedTypes files which provide a source file based API for creating type providers. And secondly, to be a set of tutorials and examples for people wanting to dip their toes into building type providers for the first time.</p>
+
+<p>To be honest, it&#39;s not been doing a complete job of either:</p>
+
+<ul>
+<li>I think most people are using it as the source of ProvidedTypes.fs and .fsi now days, but it didn&#39;t provide any infrastructure or testing for progressing the library.</li>
+<li>The &quot;examples&quot; were limited to a link to my <a href="/type-providers-from-the-ground-up/">tutorial on building type providers</a></li>
+</ul>
+
+<p>Today, that&#39;s changed. And I need your help!</p>
+
+<h3>Testing ProvidedTypes</h3>
+
+<p>Once I started thinking about it, it became clear that the code needed for basic type provider examples, and the code needed to test ProvidedTypes.fs were basically identical.</p>
+
+<p>So I implemented a system for compiling and testing example .fsx scripts within the Starter Pack repository.</p>
+
+<p>Want to help out? As long as you have some basic git and F# knowledge, it&#39;s easy!</p>
+
+<!-- more -->
+
+<h4>Fork the repository and pull down a clone</h4>
+
+<h4>Add an example to the <code>/examples</code> directory</h4>
+
+<p>Structure the example as below and save it as an .fsx file:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="o">#</span><span class="k">if</span> <span class="nc">INTERACTIVE</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;../src/ProvidedTypes.fsi&quot;</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;../src/ProvidedTypes.fs&quot;</span>
+<span class="o">#</span><span class="n">endif</span>
+
+<span class="k">open</span> <span class="nn">ProviderImplementation</span><span class="p">.</span><span class="nc">ProvidedTypes</span>
+<span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nn">Core</span><span class="p">.</span><span class="nc">CompilerServices</span>
+<span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Reflection</span>
+
+<span class="o">[&lt;</span><span class="nc">TypeProvider</span><span class="o">&gt;]</span>
+<span class="k">type</span> <span class="nc">BasicProvider</span> <span class="o">(</span><span class="n">config</span> <span class="o">:</span> <span class="nc">TypeProviderConfig</span><span class="o">)</span> <span class="k">as</span> <span class="n">this</span> <span class="o">=</span>
+    <span class="k">inherit</span> <span class="nc">TypeProviderForNamespaces</span> <span class="bp">()</span>
+
+    <span class="k">let</span> <span class="n">ns</span> <span class="o">=</span> <span class="s2">&quot;StaticProperty.Provided&quot;</span>
+    <span class="k">let</span> <span class="n">asm</span> <span class="o">=</span> <span class="nn">Assembly</span><span class="p">.</span><span class="nc">GetExecutingAssembly</span><span class="bp">()</span>
+
+    <span class="k">let</span> <span class="n">createTypes</span> <span class="bp">()</span> <span class="o">=</span>
+        <span class="k">let</span> <span class="n">myType</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="s2">&quot;MyType&quot;</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;)</span>
+        <span class="k">let</span> <span class="n">myProp</span> <span class="o">=</span> <span class="nc">ProvidedProperty</span><span class="o">(</span><span class="s2">&quot;MyProperty&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;,</span> <span class="nc">IsStatic</span> <span class="o">=</span> <span class="bp">true</span><span class="o">,</span>
+                                        <span class="nc">GetterCode</span> <span class="o">=</span> <span class="o">(</span><span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="s2">&quot;Hello world&quot;</span> <span class="o">@@&gt;))</span>
+        <span class="n">myType</span><span class="o">.</span><span class="nc">AddMember</span><span class="o">(</span><span class="n">myProp</span><span class="o">)</span>
+        <span class="o">[</span><span class="n">myType</span><span class="o">]</span>
+
+    <span class="k">do</span>
+        <span class="n">this</span><span class="o">.</span><span class="nc">AddNamespace</span><span class="o">(</span><span class="n">ns</span><span class="o">,</span> <span class="n">createTypes</span><span class="bp">()</span><span class="o">)</span>
+
+<span class="o">[&lt;</span><span class="n">assembly</span><span class="o">:</span><span class="nc">TypeProviderAssembly</span><span class="o">&gt;]</span>
+<span class="k">do</span> <span class="bp">()</span>
+</code></pre></div>
+<p>The <code>#if INTERACTIVE</code> block at the top will allow you to write your example in Visual Studio, without us requiring a separate project for each example provider.</p>
+
+<h4>Add a set of tests in a .fsx script in the <code>/examples</code> directory</h4>
+
+<p>The test file for the example above looks like this, and again should be saved as an .fsx file:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="o">#</span><span class="k">if</span> <span class="nc">INTERACTIVE</span>
+<span class="o">#</span><span class="n">r</span> <span class="o">@</span><span class="s2">&quot;../packages/Nunit.Runners/tools/nunit.framework.dll&quot;</span>
+<span class="o">#</span><span class="n">r</span> <span class="o">@</span><span class="s2">&quot;../test/StaticProperty.dll&quot;</span>
+<span class="o">#</span><span class="n">endif</span>
+
+<span class="k">open</span> <span class="nn">NUnit</span><span class="p">.</span><span class="nc">Framework</span>
+<span class="k">open</span> <span class="nn">StaticProperty</span><span class="p">.</span><span class="nc">Provided</span>
+
+<span class="o">[&lt;</span><span class="nc">Test</span><span class="o">&gt;]</span>
+<span class="k">let</span> <span class="o">``</span><span class="nc">Static</span> <span class="n">property</span> <span class="n">should</span> <span class="n">have</span> <span class="n">been</span> <span class="n">created</span><span class="o">``</span> <span class="bp">()</span> <span class="o">=</span>
+    <span class="nn">Assert</span><span class="p">.</span><span class="nc">AreEqual</span><span class="o">(</span><span class="s2">&quot;Hello world&quot;</span><span class="o">,</span> <span class="nn">MyType</span><span class="p">.</span><span class="nc">MyProperty</span><span class="o">)</span>
+</code></pre></div>
+<p>Note the two #r references at the top. Remember what you choose to call the dll!</p>
+
+<h4>Hooking up the examples so they get built and tested</h4>
+
+<p>The main build file is where the magic happens - <a href="https://github.com/fsprojects/FSharp.TypeProviders.StarterPack/blob/master/build.fsx">build.fsx</a> in the root directory.</p>
+
+<p>Squirrelled away in there is a target called <code>Examples</code>. It&#39;s contents look like this:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="n">examples</span> <span class="o">=</span>
+    <span class="o">[</span>
+        <span class="o">{</span>
+            <span class="nc">Name</span> <span class="o">=</span> <span class="s2">&quot;StaticProperty&quot;</span>
+            <span class="nc">ProviderSourceFiles</span> <span class="o">=</span> <span class="o">[</span><span class="s2">&quot;StaticProperty.fsx&quot;</span><span class="o">]</span>
+            <span class="nc">TestSourceFiles</span> <span class="o">=</span> <span class="o">[</span><span class="s2">&quot;StaticProperty.Tests.fsx&quot;</span><span class="o">]</span>
+        <span class="o">}</span>
+        <span class="o">{</span>
+            <span class="nc">Name</span> <span class="o">=</span> <span class="s2">&quot;ErasedWithConstructor&quot;</span>
+            <span class="nc">ProviderSourceFiles</span> <span class="o">=</span> <span class="o">[</span><span class="s2">&quot;ErasedWithConstructor.fsx&quot;</span><span class="o">]</span>
+            <span class="nc">TestSourceFiles</span> <span class="o">=</span> <span class="o">[</span><span class="s2">&quot;ErasedWithConstructor.Tests.fsx&quot;</span><span class="o">]</span>
+        <span class="o">}</span>
+    <span class="o">]</span>
+
+<span class="k">let</span> <span class="n">testNunitDll</span> <span class="o">=</span> <span class="n">testDir</span> <span class="o">@@</span> <span class="s2">&quot;nunit.framework.dll&quot;</span>
+
+<span class="k">do</span>
+    <span class="k">if</span> <span class="nn">File</span><span class="p">.</span><span class="nc">Exists</span> <span class="n">testNunitDll</span> <span class="k">then</span>
+        <span class="nn">File</span><span class="p">.</span><span class="nc">Delete</span> <span class="n">testNunitDll</span>
+    <span class="nn">File</span><span class="p">.</span><span class="nc">Copy</span> <span class="o">(</span><span class="n">nunitDir</span> <span class="o">@@</span> <span class="s2">&quot;nunit.framework.dll&quot;</span><span class="o">,</span> <span class="n">testNunitDll</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="n">fromExampleDir</span> <span class="n">filenames</span> <span class="o">=</span>
+    <span class="n">filenames</span>
+    <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">filename</span> <span class="o">-&gt;</span> <span class="n">exampleDir</span> <span class="o">@@</span> <span class="n">filename</span><span class="o">)</span>
+
+<span class="n">examples</span>
+<span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">iter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">example</span> <span class="o">-&gt;</span>
+        <span class="c1">// Compile type provider</span>
+        <span class="k">let</span> <span class="n">output</span> <span class="o">=</span> <span class="n">testDir</span> <span class="o">@@</span> <span class="n">example</span><span class="o">.</span><span class="nc">Name</span> <span class="o">+</span> <span class="s2">&quot;.dll&quot;</span>
+        <span class="k">let</span> <span class="n">setOpts</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">def</span> <span class="o">-&gt;</span> <span class="o">{</span> <span class="n">def</span> <span class="k">with</span> <span class="nc">Output</span> <span class="o">=</span> <span class="n">output</span><span class="o">;</span> <span class="nc">FscTarget</span> <span class="o">=</span> <span class="nn">FscTarget</span><span class="p">.</span><span class="nc">Library</span> <span class="o">}</span>
+        <span class="nc">Fsc</span> <span class="n">setOpts</span> <span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">concat</span> <span class="o">[</span><span class="n">pt</span><span class="o">;</span><span class="n">fromExampleDir</span> <span class="n">example</span><span class="o">.</span><span class="nc">ProviderSourceFiles</span><span class="o">])</span>
+
+        <span class="c1">// Compile test dll</span>
+        <span class="k">let</span> <span class="n">setTestOpts</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">def</span> <span class="o">-&gt;</span>
+            <span class="o">{</span> <span class="n">def</span> <span class="k">with</span> 
+                <span class="nc">Output</span> <span class="o">=</span> <span class="n">testDir</span> <span class="o">@@</span> <span class="n">example</span><span class="o">.</span><span class="nc">Name</span> <span class="o">+</span> <span class="s2">&quot;.Tests.dll&quot;</span>
+                <span class="nc">FscTarget</span> <span class="o">=</span> <span class="nn">FscTarget</span><span class="p">.</span><span class="nc">Library</span>
+                <span class="nc">References</span> <span class="o">=</span> <span class="o">[</span><span class="n">output</span><span class="o">;</span><span class="n">nunitDir</span> <span class="o">@@</span> <span class="s2">&quot;nunit.framework.dll&quot;</span><span class="o">]</span> <span class="o">}</span>
+        <span class="nc">Fsc</span> <span class="n">setTestOpts</span> <span class="o">(</span><span class="n">fromExampleDir</span> <span class="n">example</span><span class="o">.</span><span class="nc">TestSourceFiles</span><span class="o">)</span>
+    <span class="o">)</span>
+</code></pre></div>
+<p>You will need to add your example to the <code>examples</code> list at the top of the target. <code>Name</code> is the name of the dll that will be produced for your type provider. <code>ProviderSourceFiles</code> is the fsx file with your type provider example code. And <code>TestSourceFiles</code> is the code of your tests.</p>
+
+<p>If you check further down, the call to the compiler to compile your provider will automatically prepend the ProvidedTypes files, so there&#39;s no need to list those. And the call to the compiler to run your tests will have references added for the provider you just built and <code>nunit.framework.dll</code>.</p>
+
+<p>So what are you waiting for? Get writing some examples!</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Modelling Inheritance with Inheritance]]></title>
+    <link href="http://blog.mavnn.co.uk/modelling-inheritance-with-inheritance/"/>
+    <updated>2014-12-18T12:01:41+00:00</updated>
+    <id>http://blog.mavnn.co.uk/modelling-inheritance-with-inheritance</id>
+    <content type="html"><![CDATA[<blockquote>
+<p>This post is part of the <a href="https://sergeytihon.wordpress.com/tag/fsadvent/">F# Advent Calendar</a> 2014, which is stuffed full of other interesting posts. Go have a read!</p>
+</blockquote>
+
+<p>Note: This post is epic in length. If you just want to see the final resulting script of much silliness, skip straight to <a href="#conclusion">the conclusion</a>!</p>
+
+<p>Note 2: If you just want to see an example of a sane generated type provider, <a href="https://github.com/mavnn/FPDays.TypeProvider/">the code from my FPDays tutorial</a> is a much better bet.</p>
+
+<p>Note 3: There is a lot of code below. If you&#39;re viewing this on a desktop, I suggest collapsing the sidebar to the right otherwise you&#39;ll have a lot of horizontal scroll bars. If you&#39;re on a mobile device, you might want to bookmark for later.</p>
+
+<p>So... I&#39;ve been playing with generated (not erased) type providers for a bit, and meaning to write something up about them. Most of the documentation out there is for erased type providers, and to be honest they have a lot of advantages in terms of performance.</p>
+
+<p>But they also have two fundamental limitations:</p>
+
+<ul>
+<li>You can&#39;t used erased F# types in any other .net language</li>
+<li>You can&#39;t use reflection on erased types (even in F#)</li>
+</ul>
+
+<p>So let&#39;s see if we can have a play with generated types, and then - given this is Christmas, and all - let&#39;s see if we can build Jesus&#39; family tree in the .net type system. After all, if you&#39;re going to use inheritance to model something, how about modelling inheritance?</p>
+
+<!-- more -->
+
+<blockquote>
+<p>If you need a reminder of type provider basics, check out <a href="https//blog.mavnn.co.uk/type-providers-from-the-ground-up/">Type Providers from the Ground Up</a></p>
+</blockquote>
+
+<p>Let&#39;s start with a really basic example of a generative type provider. We&#39;ll just create a single type with a static property on it.</p>
+
+<p>First, our input. We&#39;re going to grab <a href="https://www.biblegateway.com/passage/?search=matthew+1%3A2-16&amp;version=NIV">the genealogy of Jesus from Matthew</a> and then massage the content just enough that the first name on each line is a &quot;parent&quot;, and any other names on a line are... other people. We&#39;ll assume they&#39;re siblings, although actually not all of them are.</p>
+<div class="highlight"><pre><code class="text">Abraham was the father of Isaac,
+Isaac the father of Jacob,
+Jacob the father of Judah and his brothers,
+Judah the father of Perez and Zerah, whose mother was Tamar,
+Perez the father of Hezron,
+Hezron the father of Ram,
+Ram the father of Amminadab,
+... (some other people here) ...
+Akim the father of Elihud,
+Elihud the father of Eleazar,
+Eleazar the father of Matthan,
+Matthan the father of Jacob,
+Jacob the father of Joseph, the husband of Mary, 
+and Mary was the mother of Jesus who is called the Messiah.
+</code></pre></div>
+<p>For round one, we&#39;re just going to put this string into a type as a property.</p>
+
+<p>Our type provider file looks a bit like this:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">module</span> <span class="nc">AdventProvider</span>
+<span class="o">#</span><span class="k">if</span> <span class="nc">INTERACTIVE</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;paket-files/fsprojects/FSharp.TypeProviders.StarterPack/src/ProvidedTypes.fsi&quot;</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;paket-files/fsprojects/FSharp.TypeProviders.StarterPack/src/ProvidedTypes.fs&quot;</span>
+<span class="o">#</span><span class="n">endif</span>
+
+<span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Reflection</span>
+<span class="k">open</span> <span class="nn">ProviderImplementation</span><span class="p">.</span><span class="nc">ProvidedTypes</span>
+<span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nn">Core</span><span class="p">.</span><span class="nc">CompilerServices</span>
+<span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nc">Quotations</span>
+
+<span class="o">[&lt;</span><span class="nc">TypeProvider</span><span class="o">&gt;]</span>
+<span class="k">type</span> <span class="nc">AdventProvider</span> <span class="o">(</span><span class="n">cfg</span> <span class="o">:</span> <span class="nc">TypeProviderConfig</span><span class="o">)</span> <span class="k">as</span> <span class="n">this</span> <span class="o">=</span>
+    <span class="k">inherit</span> <span class="nc">TypeProviderForNamespaces</span> <span class="bp">()</span>
+
+    <span class="k">let</span> <span class="n">ns</span> <span class="o">=</span> <span class="s2">&quot;Advent.Provided&quot;</span>
+    <span class="k">let</span> <span class="n">asm</span> <span class="o">=</span> <span class="nn">Assembly</span><span class="p">.</span><span class="nc">GetExecutingAssembly</span><span class="bp">()</span>
+    <span class="k">let</span> <span class="n">tempAsmPath</span> <span class="o">=</span> <span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">ChangeExtension</span><span class="o">(</span><span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">GetTempFileName</span><span class="bp">()</span><span class="o">,</span> <span class="s2">&quot;.dll&quot;</span><span class="o">)</span>
+    <span class="k">let</span> <span class="n">tempAsm</span> <span class="o">=</span> <span class="nc">ProvidedAssembly</span> <span class="n">tempAsmPath</span>
+
+    <span class="k">let</span> <span class="n">t</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="s2">&quot;Family&quot;</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;,</span> <span class="nc">IsErased</span> <span class="o">=</span> <span class="bp">false</span><span class="o">)</span>
+    <span class="k">let</span> <span class="n">parameters</span> <span class="o">=</span> <span class="o">[</span><span class="nc">ProvidedStaticParameter</span><span class="o">(</span><span class="s2">&quot;Genealogy&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;)]</span>
+
+    <span class="k">do</span>
+        <span class="n">t</span><span class="o">.</span><span class="nc">DefineStaticParameters</span><span class="o">(</span>
+            <span class="n">parameters</span><span class="o">,</span>
+            <span class="k">fun</span> <span class="n">typeName</span> <span class="n">args</span> <span class="o">-&gt;</span>
+                <span class="k">let</span> <span class="n">genealogy</span> <span class="o">=</span> <span class="n">args</span><span class="o">.[</span><span class="mi">0</span><span class="o">]</span> <span class="o">:?&gt;</span> <span class="kt">string</span>
+                <span class="k">let</span> <span class="n">inputFile</span> <span class="o">=</span> 
+                    <span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">Combine</span><span class="o">(</span><span class="n">cfg</span><span class="o">.</span><span class="nc">ResolutionFolder</span><span class="o">,</span> <span class="n">genealogy</span><span class="o">)</span>
+                <span class="k">let</span> <span class="n">raw</span> <span class="o">=</span>
+                    <span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">File</span><span class="p">.</span><span class="nc">ReadAllLines</span> <span class="n">inputFile</span>
+
+                <span class="k">let</span> <span class="n">g</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span>
+                            <span class="n">asm</span><span class="o">,</span> 
+                            <span class="n">ns</span><span class="o">,</span> 
+                            <span class="n">typeName</span><span class="o">,</span> 
+                            <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;,</span> 
+                            <span class="nc">IsErased</span> <span class="o">=</span> <span class="bp">false</span><span class="o">)</span>
+
+                <span class="k">let</span> <span class="n">s</span> <span class="o">=</span> <span class="nc">ProvidedProperty</span><span class="o">(</span><span class="s2">&quot;Raw&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;,</span> <span class="nc">IsStatic</span> <span class="o">=</span> <span class="bp">true</span><span class="o">)</span>
+                <span class="k">let</span> <span class="n">rawStr</span> <span class="o">=</span> <span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">raw</span>
+                <span class="n">s</span><span class="o">.</span><span class="nc">GetterCode</span> <span class="o">&lt;-</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="nn">Expr</span><span class="p">.</span><span class="nc">Value</span> <span class="n">rawStr</span>
+                <span class="n">g</span><span class="o">.</span><span class="nc">AddMember</span> <span class="n">s</span>
+
+                <span class="n">tempAsm</span><span class="o">.</span><span class="nc">AddTypes</span> <span class="o">[</span><span class="n">g</span><span class="o">]</span>
+
+                <span class="n">g</span>
+            <span class="o">)</span>
+
+    <span class="k">do</span>
+        <span class="n">this</span><span class="o">.</span><span class="nc">RegisterRuntimeAssemblyLocationAsProbingFolder</span> <span class="n">cfg</span>
+        <span class="n">tempAsm</span><span class="o">.</span><span class="nc">AddTypes</span> <span class="o">[</span><span class="n">t</span><span class="o">]</span>
+        <span class="n">this</span><span class="o">.</span><span class="nc">AddNamespace</span><span class="o">(</span><span class="n">ns</span><span class="o">,</span> <span class="o">[</span><span class="n">t</span><span class="o">])</span>
+
+<span class="o">[&lt;</span><span class="n">assembly</span><span class="o">:</span><span class="nc">TypeProviderAssembly</span><span class="o">&gt;]</span>
+<span class="k">do</span> <span class="bp">()</span>
+</code></pre></div>
+<p>What&#39;s with the <code>#if INTERACTIVE</code> bits? Well, that&#39;ll be the subject of another blog post soon; I&#39;m doing must of my type provider dev in Vim these days to avoid the Visual Studio restart cycle, so I thought I might as well skip the fsproj file completely.</p>
+
+<p>In the actual provider itself, there&#39;s a few new things to note if you&#39;ve only previously done erased type provider development.</p>
+<div class="highlight"><pre><code class="fsharp">    <span class="k">let</span> <span class="n">tempAsmPath</span> <span class="o">=</span> <span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">ChangeExtension</span><span class="o">(</span><span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">GetTempFileName</span><span class="bp">()</span><span class="o">,</span> <span class="s2">&quot;.dll&quot;</span><span class="o">)</span>
+    <span class="k">let</span> <span class="n">tempAsm</span> <span class="o">=</span> <span class="nc">ProvidedAssembly</span> <span class="n">tempAsmPath</span>
+</code></pre></div>
+<p>Generative type providers, unlike erased type providers, actually pass IL (.net byte code) to the compiler rather than just a quotation. To achieve that, we need to write the IL into an actual assembly that the compiler will then merge into the dll it&#39;s compiling.</p>
+
+<p>Let&#39;s try that again, slower. The compiler will be building a piece of code that uses your type provider into <code>Output.dll</code>. It will call into your type provider, which needs to write the IL of the type/codes it&#39;s generating to disk into <code>Temp.dll</code>. The compiler will then take the IL from <code>Temp.dll</code> and insert it into <code>Output.dll</code>. At this point, we have no further use for <code>Temp.dll</code>, hence why we&#39;re using <code>GetTempFileName</code> to get a file in the OS temporary file
+folder.</p>
+
+<p>The <code>ProvidedTypes</code> API knows how to create these temporary dlls, so we wrap our filename in the <code>ProvidedAssembly</code> type.</p>
+<div class="highlight"><pre><code class="fsharp">    <span class="k">do</span>
+        <span class="n">this</span><span class="o">.</span><span class="nc">RegisterRuntimeAssemblyLocationAsProbingFolder</span> <span class="n">cfg</span>
+        <span class="n">tempAsm</span><span class="o">.</span><span class="nc">AddTypes</span> <span class="o">[</span><span class="n">t</span><span class="o">]</span>
+        <span class="n">this</span><span class="o">.</span><span class="nc">AddNamespace</span><span class="o">(</span><span class="n">ns</span><span class="o">,</span> <span class="o">[</span><span class="n">t</span><span class="o">])</span>
+</code></pre></div>
+<p>We also need to specify which types need adding to the temporary assembly. Here we&#39;re specifying that the parameterized type (the one that takes a filename) should be added; on line 46 of the main code you&#39;ll see the type generated when a parameter is supplied being added. We also need to tell the type provider where the runtime dll is being created - fortunately, a helper method works this out for us when given the config item from the type provider constructor.</p>
+
+<p>It&#39;s important to note that nested types <em>should not</em> be added to the temporary assembly. That&#39;s handled by adding the root.</p>
+
+<p>So, if you compile this code down you can invoke it like this:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="o">#!/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">env</span> <span class="n">fsharpi</span>
+<span class="c1">// Put all of this in a file called something like Families.fsx</span>
+<span class="c1">// Yes, that hashbang line means if you make it executable it</span>
+<span class="c1">// will run on linux/mac</span>
+<span class="o">#</span><span class="n">r</span> <span class="o">@</span><span class="s2">&quot;AdventProvider.dll&quot;</span>
+
+<span class="k">open</span> <span class="nc">AdventProvider</span>
+<span class="k">open</span> <span class="nn">Advent</span><span class="p">.</span><span class="nc">Provided</span>
+
+<span class="k">type</span> <span class="nc">JesusGenerations</span> <span class="o">=</span> <span class="nc">Family</span><span class="o">&lt;</span><span class="s2">&quot;Genealogy.txt&quot;</span><span class="o">&gt;</span>
+
+<span class="n">printfn</span> <span class="s2">&quot;%s&quot;</span> <span class="nn">JesusGenerations</span><span class="p">.</span><span class="nc">Raw</span>
+</code></pre></div>
+<p>Excellent! A real, valid .net type. You can only invoke the type provider from F#, but the types generated are usable across the .net language universe - and reflection works fine.</p>
+
+<p>So... phase two. Let&#39;s see if we can parse something sane out of our plain text mess to turn into types. I&#39;m not going to go into this in detail, but because I wanted to avoid the complication of external dependencies I just wrote a very simple regex based parser for this.</p>
+
+<p>Behold! The <code>Parser.fs</code> file:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">module</span> <span class="nc">Parser</span>
+<span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Text</span><span class="p">.</span><span class="nc">RegularExpressions</span>
+
+<span class="k">type</span> <span class="nc">Person</span> <span class="o">=</span>
+    <span class="o">{</span>
+        <span class="nc">Name</span> <span class="o">:</span> <span class="kt">string</span>
+        <span class="nc">Heir</span> <span class="o">:</span> <span class="nc">Person</span> <span class="n">option</span>
+        <span class="nc">Others</span> <span class="o">:</span> <span class="kt">string</span> <span class="kt">list</span>
+    <span class="o">}</span>
+
+<span class="k">let</span> <span class="n">namesRegex</span> <span class="o">=</span> <span class="nc">Regex</span><span class="o">(@</span><span class="s2">&quot;(?&lt;name&gt;[A-Z][a-z]+)&quot;</span><span class="o">,</span> <span class="nn">RegexOptions</span><span class="p">.</span><span class="nc">Compiled</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="nc">ParseToNames</span> <span class="n">line</span> <span class="o">=</span>
+    <span class="n">namesRegex</span><span class="o">.</span><span class="nc">Matches</span><span class="o">(</span><span class="n">line</span><span class="o">)</span>
+    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">cast</span><span class="o">&lt;</span><span class="nc">Match</span><span class="o">&gt;</span>
+    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">m</span> <span class="o">-&gt;</span> <span class="n">m</span><span class="o">.</span><span class="nn">Groups</span><span class="p">.</span><span class="err">[&quot;</span><span class="n">name</span><span class="s2">&quot;].Value)</span>
+<span class="s2">    |&gt; Seq.filter (fun n -&gt; n &lt;&gt; &quot;</span><span class="nc">King</span><span class="s2">&quot; &amp;&amp; n &lt;&gt; &quot;</span><span class="nc">Messiah</span><span class="s2">&quot; &amp;&amp; n &lt;&gt; &quot;</span><span class="nc">Babylon</span><span class="s2">&quot;)</span>
+<span class="s2">    |&gt; Seq.toList</span>
+<span class="s2">    |&gt; function h::t -&gt; h, t | [] -&gt; failwith &quot;</span><span class="nc">No</span> <span class="n">blank</span> <span class="n">lines</span><span class="o">!</span><span class="s2">&quot;</span>
+
+<span class="s2">let rec NamesToPerson names =</span>
+<span class="s2">    match names with</span>
+<span class="s2">    | [] -&gt; None</span>
+<span class="s2">    | (father,others)::t -&gt;</span>
+<span class="s2">        let heir =</span>
+<span class="s2">            match t with</span>
+<span class="s2">            | [] -&gt; None</span>
+<span class="s2">            | (heir, _)::_ -&gt; Some heir</span>
+<span class="s2">        Some {</span>
+<span class="s2">            Name = father</span>
+<span class="s2">            Heir = NamesToPerson t</span>
+<span class="s2">            Others =</span>
+<span class="s2">                others</span>
+<span class="s2">                |&gt; List.filter</span>
+<span class="s2">                    (fun c -&gt;</span>
+<span class="s2">                        match heir with</span>
+<span class="s2">                        | Some h -&gt; c &lt;&gt; h</span>
+<span class="s2">                        | None -&gt; true)</span>
+<span class="s2">        }</span>
+
+<span class="s2">let Parse lines =</span>
+<span class="s2">    lines</span>
+<span class="s2">    |&gt; List.map ParseToNames</span>
+<span class="s2">    |&gt; NamesToPerson</span>
+</code></pre></div>
+<p>Nb. Never, ever, ever build a parser like this for production code. Treat this as a &quot;how not to build a parser&quot; example, and go read something like <a href="http://trelford.com/blog/post/parser.aspx">Phil&#39;s excellent parsing posts</a> instead.</p>
+
+<p>So... what can we do this this?</p>
+
+<p>Let&#39;s start be parsing our file, and seeing if we can build a nested set of types representing the family tree.</p>
+
+<p>Recursive type building! Go!</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">module</span> <span class="nc">AdventProvider</span>
+<span class="o">#</span><span class="k">if</span> <span class="nc">INTERACTIVE</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;paket-files/fsprojects/FSharp.TypeProviders.StarterPack/src/ProvidedTypes.fsi&quot;</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;paket-files/fsprojects/FSharp.TypeProviders.StarterPack/src/ProvidedTypes.fs&quot;</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;Parser.fs&quot;</span>
+<span class="o">#</span><span class="n">endif</span>
+
+<span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Reflection</span>
+<span class="k">open</span> <span class="nn">ProviderImplementation</span><span class="p">.</span><span class="nc">ProvidedTypes</span>
+<span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nn">Core</span><span class="p">.</span><span class="nc">CompilerServices</span>
+<span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nc">Quotations</span>
+<span class="k">open</span> <span class="nc">Parser</span>
+
+<span class="o">[&lt;</span><span class="nc">TypeProvider</span><span class="o">&gt;]</span>
+<span class="k">type</span> <span class="nc">AdventProvider</span> <span class="o">(</span><span class="n">cfg</span> <span class="o">:</span> <span class="nc">TypeProviderConfig</span><span class="o">)</span> <span class="k">as</span> <span class="n">this</span> <span class="o">=</span>
+    <span class="k">inherit</span> <span class="nc">TypeProviderForNamespaces</span> <span class="bp">()</span>
+
+    <span class="k">let</span> <span class="n">ns</span> <span class="o">=</span> <span class="s2">&quot;Advent.Provided&quot;</span>
+    <span class="k">let</span> <span class="n">asm</span> <span class="o">=</span> <span class="nn">Assembly</span><span class="p">.</span><span class="nc">GetExecutingAssembly</span><span class="bp">()</span>
+    <span class="k">let</span> <span class="n">tempAsmPath</span> <span class="o">=</span> <span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">ChangeExtension</span><span class="o">(</span><span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">GetTempFileName</span><span class="bp">()</span><span class="o">,</span> <span class="s2">&quot;.dll&quot;</span><span class="o">)</span>
+    <span class="k">let</span> <span class="n">tempAsm</span> <span class="o">=</span> <span class="nc">ProvidedAssembly</span> <span class="n">tempAsmPath</span>
+
+    <span class="k">let</span> <span class="n">t</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="s2">&quot;Family&quot;</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;,</span> <span class="nc">IsErased</span> <span class="o">=</span> <span class="bp">false</span><span class="o">)</span>
+    <span class="k">let</span> <span class="n">parameters</span> <span class="o">=</span> <span class="o">[</span><span class="nc">ProvidedStaticParameter</span><span class="o">(</span><span class="s2">&quot;Genealogy&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;)]</span>
+
+    <span class="k">do</span>
+        <span class="n">t</span><span class="o">.</span><span class="nc">DefineStaticParameters</span><span class="o">(</span>
+            <span class="n">parameters</span><span class="o">,</span>
+            <span class="k">fun</span> <span class="n">typeName</span> <span class="n">args</span> <span class="o">-&gt;</span>
+                <span class="k">let</span> <span class="n">genealogy</span> <span class="o">=</span> <span class="n">args</span><span class="o">.[</span><span class="mi">0</span><span class="o">]</span> <span class="o">:?&gt;</span> <span class="kt">string</span>
+                <span class="k">let</span> <span class="n">inputFile</span> <span class="o">=</span> 
+                    <span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">Combine</span><span class="o">(</span><span class="n">cfg</span><span class="o">.</span><span class="nc">ResolutionFolder</span><span class="o">,</span> <span class="n">genealogy</span><span class="o">)</span>
+                <span class="k">let</span> <span class="n">raw</span> <span class="o">=</span>
+                    <span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">File</span><span class="p">.</span><span class="nc">ReadAllLines</span> <span class="n">inputFile</span>
+                <span class="k">let</span> <span class="n">input</span> <span class="o">=</span>
+                    <span class="n">raw</span>
+                    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">toList</span>
+                    <span class="o">|&gt;</span> <span class="nc">Parse</span>
+
+                <span class="k">let</span> <span class="n">g</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span>
+                            <span class="n">asm</span><span class="o">,</span> 
+                            <span class="n">ns</span><span class="o">,</span> 
+                            <span class="n">typeName</span><span class="o">,</span> 
+                            <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;,</span> 
+                            <span class="nc">IsErased</span> <span class="o">=</span> <span class="bp">false</span><span class="o">)</span>
+                <span class="n">g</span><span class="o">.</span><span class="nc">SetAttributes</span> <span class="o">(</span><span class="nn">TypeAttributes</span><span class="p">.</span><span class="nc">Public</span> <span class="o">|||</span> <span class="nn">TypeAttributes</span><span class="p">.</span><span class="nc">Class</span><span class="o">)</span>
+
+                <span class="k">let</span> <span class="n">s</span> <span class="o">=</span> <span class="nc">ProvidedProperty</span><span class="o">(</span><span class="s2">&quot;Raw&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;,</span> <span class="nc">IsStatic</span> <span class="o">=</span> <span class="bp">true</span><span class="o">)</span>
+                <span class="k">let</span> <span class="n">rawStr</span> <span class="o">=</span> <span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">raw</span>
+                <span class="n">s</span><span class="o">.</span><span class="nc">GetterCode</span> <span class="o">&lt;-</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="nn">Expr</span><span class="p">.</span><span class="nc">Value</span> <span class="n">rawStr</span>
+                <span class="n">g</span><span class="o">.</span><span class="nc">AddMember</span> <span class="n">s</span>
+
+                <span class="k">let</span> <span class="k">rec</span> <span class="n">personToType</span> <span class="o">(</span><span class="n">father</span> <span class="o">:</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">)</span> <span class="o">(</span><span class="n">person</span> <span class="o">:</span> <span class="nc">Person</span><span class="o">)</span> <span class="o">=</span>
+                    <span class="k">let</span> <span class="n">t</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">person</span><span class="o">.</span><span class="nc">Name</span><span class="o">,</span> <span class="nc">Some</span> <span class="o">(</span><span class="n">father</span> <span class="o">:&gt;</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Type</span><span class="o">),</span> <span class="nc">IsErased</span> <span class="o">=</span> <span class="bp">false</span><span class="o">)</span>
+                    <span class="n">t</span><span class="o">.</span><span class="nc">SetAttributes</span> <span class="o">(</span><span class="nn">TypeAttributes</span><span class="p">.</span><span class="nc">Class</span> <span class="o">|||</span> <span class="nn">TypeAttributes</span><span class="p">.</span><span class="nc">Public</span><span class="o">)</span>
+                    <span class="n">father</span><span class="o">.</span><span class="nc">AddMember</span> <span class="n">t</span>
+                    <span class="k">match</span> <span class="n">person</span><span class="o">.</span><span class="nc">Heir</span> <span class="k">with</span>
+                    <span class="o">|</span> <span class="nc">Some</span> <span class="n">p</span> <span class="o">-&gt;</span> <span class="n">personToType</span> <span class="n">t</span> <span class="n">p</span>
+                    <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+
+                <span class="k">match</span> <span class="n">input</span> <span class="k">with</span>
+                <span class="o">|</span> <span class="nc">Some</span> <span class="n">p</span> <span class="o">-&gt;</span>
+                    <span class="n">personToType</span> <span class="n">g</span> <span class="n">p</span>
+                <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span>
+                    <span class="bp">()</span>
+
+                <span class="n">tempAsm</span><span class="o">.</span><span class="nc">AddTypes</span> <span class="o">[</span><span class="n">g</span><span class="o">]</span>
+
+                <span class="n">g</span>
+            <span class="o">)</span>
+
+    <span class="k">do</span>
+        <span class="n">this</span><span class="o">.</span><span class="nc">RegisterRuntimeAssemblyLocationAsProbingFolder</span> <span class="n">cfg</span>
+        <span class="n">tempAsm</span><span class="o">.</span><span class="nc">AddTypes</span> <span class="o">[</span><span class="n">t</span><span class="o">]</span>
+        <span class="n">this</span><span class="o">.</span><span class="nc">AddNamespace</span><span class="o">(</span><span class="n">ns</span><span class="o">,</span> <span class="o">[</span><span class="n">t</span><span class="o">])</span>
+
+<span class="o">[&lt;</span><span class="n">assembly</span><span class="o">:</span><span class="nc">TypeProviderAssembly</span><span class="o">&gt;]</span>
+<span class="k">do</span> <span class="bp">()</span>
+</code></pre></div>
+<p>It&#39;s not looking too bad... but we&#39;re also getting our first hint of trouble to come. The first time I tried to use this provider, I didn&#39;t have lines 46 and 55. It turns out that the default attributes of a <code>ProvidedTypeDefinition</code> set the <code>Sealed</code> attribute on the class that&#39;s generated. If you then try and build a type that inherits from it, you get an error when you try and consume the types from the provider.</p>
+
+<p>But, hey? We&#39;ve worked around that, right? I&#39;m sure there&#39;s no reason it&#39;s set that way by default...</p>
+
+<p>And: we have types. Lots of types:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="o">#!/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">env</span> <span class="n">fsharpi</span>
+<span class="o">#</span><span class="n">r</span> <span class="o">@</span><span class="s2">&quot;AdventProvider.dll&quot;</span>
+
+<span class="k">open</span> <span class="nc">AdventProvider</span>
+<span class="k">open</span> <span class="nn">Advent</span><span class="p">.</span><span class="nc">Provided</span>
+
+<span class="k">type</span> <span class="nc">JesusGenerations</span> <span class="o">=</span> <span class="nc">Family</span><span class="o">&lt;</span><span class="s2">&quot;Genealogy.txt&quot;</span><span class="o">&gt;</span>
+
+<span class="n">printfn</span> <span class="s2">&quot;%s&quot;</span> <span class="nn">JesusGenerations</span><span class="p">.</span><span class="nc">Raw</span>
+
+<span class="nn">JesusGenerations</span><span class="p">.</span><span class="nn">Abraham</span><span class="p">.</span><span class="nn">Isaac</span><span class="p">.</span><span class="nn">Jacob</span><span class="p">.</span><span class="nn">Judah</span><span class="p">.</span><span class="nn">Perez</span><span class="p">.</span><span class="nn">Hezron</span><span class="p">.</span><span class="nn">Ram</span><span class="p">.</span><span class="nc">Amminadab</span>
+<span class="c1">// ... there&#39;s more where that came from</span>
+</code></pre></div>
+<p>We can even do things like this:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="nc">DescendedFromAbraham</span> <span class="o">(</span><span class="n">person</span> <span class="o">:</span> <span class="nn">JesusGenerations</span><span class="p">.</span><span class="nc">Abraham</span><span class="o">)</span> <span class="o">=</span>
+    <span class="bp">true</span>
+</code></pre></div>
+<p>Compile time family tree checking - pretty nifty. Except... when we try and call this function we realise we have a problem. None of these classes have constructors.</p>
+
+<p>Hmmm.</p>
+
+<p>Let&#39;s try and add one. Nothing fancy - just a default constructor.</p>
+
+<p>We&#39;ll replace the <code>personToType</code> method with this:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="k">rec</span> <span class="n">personToType</span> <span class="o">(</span><span class="n">father</span> <span class="o">:</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">)</span> <span class="o">(</span><span class="n">person</span> <span class="o">:</span> <span class="nc">Person</span><span class="o">)</span> <span class="o">=</span>
+    <span class="k">let</span> <span class="n">t</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">person</span><span class="o">.</span><span class="nc">Name</span><span class="o">,</span> <span class="nc">Some</span> <span class="o">(</span><span class="n">father</span> <span class="o">:&gt;</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Type</span><span class="o">),</span> <span class="nc">IsErased</span> <span class="o">=</span> <span class="bp">false</span><span class="o">)</span>
+    <span class="n">t</span><span class="o">.</span><span class="nc">SetAttributes</span> <span class="o">(</span><span class="nn">TypeAttributes</span><span class="p">.</span><span class="nc">Class</span> <span class="o">|||</span> <span class="nn">TypeAttributes</span><span class="p">.</span><span class="nc">Public</span><span class="o">)</span>
+    <span class="k">let</span> <span class="n">c</span> <span class="o">=</span> <span class="nc">ProvidedConstructor</span><span class="o">(</span><span class="bp">[]</span><span class="o">)</span>
+    <span class="n">c</span><span class="o">.</span><span class="nc">InvokeCode</span> <span class="o">&lt;-</span>
+        <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span>
+            <span class="k">match</span> <span class="n">args</span> <span class="k">with</span>
+            <span class="o">|</span> <span class="bp">[]</span> <span class="o">-&gt;</span>
+                <span class="n">failwith</span> <span class="s2">&quot;Generated constructors should always pass the instance as the first argument!&quot;</span>
+            <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
+                <span class="o">&lt;@@</span> <span class="bp">()</span> <span class="o">@@&gt;</span>
+    <span class="n">t</span><span class="o">.</span><span class="nc">AddMember</span> <span class="n">c</span>
+    <span class="n">father</span><span class="o">.</span><span class="nc">AddMember</span> <span class="n">t</span>
+    <span class="k">match</span> <span class="n">person</span><span class="o">.</span><span class="nc">Heir</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="nc">Some</span> <span class="n">p</span> <span class="o">-&gt;</span> <span class="n">personToType</span> <span class="n">t</span> <span class="n">p</span>
+    <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+</code></pre></div>
+<p>All looks good. In here you can see one of the first differences between erased and generated type. For a generated type, the first input arg to the constructor is the instance of the type to be initialized - and the return type of the constructor should be null.</p>
+
+<p>The only problem is that our type provider errors immediately on usage with an &quot;Argument cannot be null. Parameter name: obj&quot; error. Not immediately informative.</p>
+
+<p>A quick check with a type provider providing a single type later, we can confirm that the constructor above is valid; sounds like we&#39;re having issues with the fact that we&#39;re inheriting from a provided type. Maybe they&#39;re sealed for a reason after all. Still; we&#39;re not to be deterred so easily!</p>
+
+<p><em>Cue dramatic music of choice!</em></p>
+
+<p>Taking an guess, we&#39;ll assume this might have something to do with the <code>JesusGenerations</code> type not having a constructor; we&#39;ll add one and try again and... no dice. Same error.</p>
+
+<p>Which is round about the time I noticed that provided constructors also have a <code>BaseConstructorCall</code> property. Time for a slightly more invasive rewrite, leaving us an overall type provider that looks like this:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">module</span> <span class="nc">AdventProvider</span>
+<span class="o">#</span><span class="k">if</span> <span class="nc">INTERACTIVE</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;paket-files/fsprojects/FSharp.TypeProviders.StarterPack/src/ProvidedTypes.fsi&quot;</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;paket-files/fsprojects/FSharp.TypeProviders.StarterPack/src/ProvidedTypes.fs&quot;</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;Parser.fs&quot;</span>
+<span class="o">#</span><span class="n">endif</span>
+
+<span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Reflection</span>
+<span class="k">open</span> <span class="nn">ProviderImplementation</span><span class="p">.</span><span class="nc">ProvidedTypes</span>
+<span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nn">Core</span><span class="p">.</span><span class="nc">CompilerServices</span>
+<span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nc">Quotations</span>
+<span class="k">open</span> <span class="nc">Parser</span>
+
+<span class="o">[&lt;</span><span class="nc">TypeProvider</span><span class="o">&gt;]</span>
+<span class="k">type</span> <span class="nc">AdventProvider</span> <span class="o">(</span><span class="n">cfg</span> <span class="o">:</span> <span class="nc">TypeProviderConfig</span><span class="o">)</span> <span class="k">as</span> <span class="n">this</span> <span class="o">=</span>
+    <span class="k">inherit</span> <span class="nc">TypeProviderForNamespaces</span> <span class="bp">()</span>
+
+    <span class="k">let</span> <span class="n">ns</span> <span class="o">=</span> <span class="s2">&quot;Advent.Provided&quot;</span>
+    <span class="k">let</span> <span class="n">asm</span> <span class="o">=</span> <span class="nn">Assembly</span><span class="p">.</span><span class="nc">GetExecutingAssembly</span><span class="bp">()</span>
+    <span class="k">let</span> <span class="n">tempAsmPath</span> <span class="o">=</span> <span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">ChangeExtension</span><span class="o">(</span><span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">GetTempFileName</span><span class="bp">()</span><span class="o">,</span> <span class="s2">&quot;.dll&quot;</span><span class="o">)</span>
+    <span class="k">let</span> <span class="n">tempAsm</span> <span class="o">=</span> <span class="nc">ProvidedAssembly</span> <span class="n">tempAsmPath</span>
+
+    <span class="k">let</span> <span class="n">t</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="s2">&quot;Family&quot;</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;,</span> <span class="nc">IsErased</span> <span class="o">=</span> <span class="bp">false</span><span class="o">)</span>
+    <span class="k">let</span> <span class="n">parameters</span> <span class="o">=</span> <span class="o">[</span><span class="nc">ProvidedStaticParameter</span><span class="o">(</span><span class="s2">&quot;Genealogy&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;)]</span>
+
+    <span class="k">do</span>
+        <span class="n">t</span><span class="o">.</span><span class="nc">DefineStaticParameters</span><span class="o">(</span>
+            <span class="n">parameters</span><span class="o">,</span>
+            <span class="k">fun</span> <span class="n">typeName</span> <span class="n">args</span> <span class="o">-&gt;</span>
+                <span class="k">let</span> <span class="n">genealogy</span> <span class="o">=</span> <span class="n">args</span><span class="o">.[</span><span class="mi">0</span><span class="o">]</span> <span class="o">:?&gt;</span> <span class="kt">string</span>
+                <span class="k">let</span> <span class="n">inputFile</span> <span class="o">=</span> 
+                    <span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">Combine</span><span class="o">(</span><span class="n">cfg</span><span class="o">.</span><span class="nc">ResolutionFolder</span><span class="o">,</span> <span class="n">genealogy</span><span class="o">)</span>
+                <span class="k">let</span> <span class="n">raw</span> <span class="o">=</span>
+                    <span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">File</span><span class="p">.</span><span class="nc">ReadAllLines</span> <span class="n">inputFile</span>
+                <span class="k">let</span> <span class="n">input</span> <span class="o">=</span>
+                    <span class="n">raw</span>
+                    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">toList</span>
+                    <span class="o">|&gt;</span> <span class="nc">Parse</span>
+
+                <span class="k">let</span> <span class="n">g</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span>
+                            <span class="n">asm</span><span class="o">,</span> 
+                            <span class="n">ns</span><span class="o">,</span> 
+                            <span class="n">typeName</span><span class="o">,</span> 
+                            <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;,</span> 
+                            <span class="nc">IsErased</span> <span class="o">=</span> <span class="bp">false</span><span class="o">)</span>
+                <span class="n">g</span><span class="o">.</span><span class="nc">SetAttributes</span> <span class="o">(</span><span class="nn">TypeAttributes</span><span class="p">.</span><span class="nc">Public</span> <span class="o">|||</span> <span class="nn">TypeAttributes</span><span class="p">.</span><span class="nc">Class</span><span class="o">)</span>
+
+                <span class="k">let</span> <span class="n">s</span> <span class="o">=</span> <span class="nc">ProvidedProperty</span><span class="o">(</span><span class="s2">&quot;Raw&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;,</span> <span class="nc">IsStatic</span> <span class="o">=</span> <span class="bp">true</span><span class="o">)</span>
+                <span class="k">let</span> <span class="n">rawStr</span> <span class="o">=</span> <span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">raw</span>
+                <span class="n">s</span><span class="o">.</span><span class="nc">GetterCode</span> <span class="o">&lt;-</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="nn">Expr</span><span class="p">.</span><span class="nc">Value</span> <span class="n">rawStr</span>
+                <span class="n">g</span><span class="o">.</span><span class="nc">AddMember</span> <span class="n">s</span>
+
+                <span class="k">let</span> <span class="n">c</span> <span class="o">=</span> <span class="nc">ProvidedConstructor</span><span class="o">(</span><span class="bp">[]</span><span class="o">)</span>
+                <span class="n">c</span><span class="o">.</span><span class="nc">InvokeCode</span> <span class="o">&lt;-</span>
+                    <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span>
+                        <span class="k">match</span> <span class="n">args</span> <span class="k">with</span>
+                        <span class="o">|</span> <span class="bp">[]</span> <span class="o">-&gt;</span>
+                            <span class="n">failwith</span> <span class="s2">&quot;Generated constructors should always pass the instance as the first argument!&quot;</span>
+                        <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
+                            <span class="o">&lt;@@</span> <span class="bp">()</span> <span class="o">@@&gt;</span>
+                <span class="n">g</span><span class="o">.</span><span class="nc">AddMember</span> <span class="n">c</span>
+
+                <span class="k">let</span> <span class="k">rec</span> <span class="n">personToType</span> <span class="o">(</span><span class="n">father</span> <span class="o">:</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">)</span> <span class="n">fatherCtor</span> <span class="o">(</span><span class="n">person</span> <span class="o">:</span> <span class="nc">Person</span><span class="o">)</span> <span class="o">=</span>
+                    <span class="k">let</span> <span class="n">t</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">person</span><span class="o">.</span><span class="nc">Name</span><span class="o">,</span> <span class="nc">Some</span> <span class="o">(</span><span class="n">father</span> <span class="o">:&gt;</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Type</span><span class="o">),</span> <span class="nc">IsErased</span> <span class="o">=</span> <span class="bp">false</span><span class="o">)</span>
+                    <span class="n">t</span><span class="o">.</span><span class="nc">SetAttributes</span> <span class="o">(</span><span class="nn">TypeAttributes</span><span class="p">.</span><span class="nc">Class</span> <span class="o">|||</span> <span class="nn">TypeAttributes</span><span class="p">.</span><span class="nc">Public</span><span class="o">)</span>
+                    <span class="k">let</span> <span class="n">c</span> <span class="o">=</span> <span class="nc">ProvidedConstructor</span><span class="o">(</span><span class="bp">[]</span><span class="o">)</span>
+                    <span class="n">c</span><span class="o">.</span><span class="nc">BaseConstructorCall</span> <span class="o">&lt;-</span> <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">(</span><span class="n">fatherCtor</span><span class="o">,</span> <span class="n">args</span><span class="o">)</span>
+                    <span class="n">c</span><span class="o">.</span><span class="nc">InvokeCode</span> <span class="o">&lt;-</span>
+                        <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span>
+                            <span class="k">match</span> <span class="n">args</span> <span class="k">with</span>
+                            <span class="o">|</span> <span class="bp">[]</span> <span class="o">-&gt;</span>
+                                <span class="n">failwith</span> <span class="s2">&quot;Generated constructors should always pass the instance as the first argument!&quot;</span>
+                            <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
+                                <span class="o">&lt;@@</span> <span class="bp">()</span> <span class="o">@@&gt;</span>
+                    <span class="n">t</span><span class="o">.</span><span class="nc">AddMember</span> <span class="n">c</span>
+                    <span class="n">father</span><span class="o">.</span><span class="nc">AddMember</span> <span class="n">t</span>
+                    <span class="k">match</span> <span class="n">person</span><span class="o">.</span><span class="nc">Heir</span> <span class="k">with</span>
+                    <span class="o">|</span> <span class="nc">Some</span> <span class="n">p</span> <span class="o">-&gt;</span> <span class="n">personToType</span> <span class="n">t</span> <span class="n">c</span> <span class="n">p</span>
+                    <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+
+                <span class="k">match</span> <span class="n">input</span> <span class="k">with</span>
+                <span class="o">|</span> <span class="nc">Some</span> <span class="n">p</span> <span class="o">-&gt;</span>
+                    <span class="n">personToType</span> <span class="n">g</span> <span class="n">c</span> <span class="n">p</span>
+                <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span>
+                    <span class="bp">()</span>
+
+                <span class="n">tempAsm</span><span class="o">.</span><span class="nc">AddTypes</span> <span class="o">[</span><span class="n">g</span><span class="o">]</span>
+
+                <span class="n">g</span>
+            <span class="o">)</span>
+
+    <span class="k">do</span>
+        <span class="n">this</span><span class="o">.</span><span class="nc">RegisterRuntimeAssemblyLocationAsProbingFolder</span> <span class="n">cfg</span>
+        <span class="n">tempAsm</span><span class="o">.</span><span class="nc">AddTypes</span> <span class="o">[</span><span class="n">t</span><span class="o">]</span>
+        <span class="n">this</span><span class="o">.</span><span class="nc">AddNamespace</span><span class="o">(</span><span class="n">ns</span><span class="o">,</span> <span class="o">[</span><span class="n">t</span><span class="o">])</span>
+
+<span class="o">[&lt;</span><span class="n">assembly</span><span class="o">:</span><span class="nc">TypeProviderAssembly</span><span class="o">&gt;]</span>
+<span class="k">do</span> <span class="bp">()</span>
+</code></pre></div>
+<p>It all builds, we can reference it... and then we get: </p>
+<div class="highlight"><pre><code class="text">The type provider &#39;AdventProvider+AdventProvider&#39; reported an error: User defined subclasses of System.Type are not yet supported
+</code></pre></div>
+<p>Hmm. Irritating. Especially as the error message is actually incorrect; we&#39;re not subclassing System.Type and we know that that was working correctly as the types were being generated correctly before we tried to add constructors to them. But it looks like we might have hit the limits of what the current type provider implementation allows.</p>
+
+<p>But we&#39;re still not quite done yet; let&#39;s turn the insanity up a notch.</p>
+
+<p><em>Cue your choice of even more dramatic music or Benny Hill here</em></p>
+
+<p>As well as actual inheritance in .net, we have interfaces which can be used to model inheritance. Let&#39;s have a last throw of the dice, and see whether we can create generated interfaces to do compile time ancestry checking.</p>
+
+<p>Adding an <code>Interface</code> at every level turns out to be fairly easy, and it appears we can create generated interfaces - a useful trick to have up your sleeve. Let&#39;s have a look what that looks like:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">module</span> <span class="nc">AdventProvider</span>
+<span class="o">#</span><span class="k">if</span> <span class="nc">INTERACTIVE</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;paket-files/fsprojects/FSharp.TypeProviders.StarterPack/src/ProvidedTypes.fsi&quot;</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;paket-files/fsprojects/FSharp.TypeProviders.StarterPack/src/ProvidedTypes.fs&quot;</span>
+<span class="o">#</span><span class="n">load</span> <span class="s2">&quot;Parser.fs&quot;</span>
+<span class="o">#</span><span class="n">endif</span>
+
+<span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Reflection</span>
+<span class="k">open</span> <span class="nn">ProviderImplementation</span><span class="p">.</span><span class="nc">ProvidedTypes</span>
+<span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nn">Core</span><span class="p">.</span><span class="nc">CompilerServices</span>
+<span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">FSharp</span><span class="p">.</span><span class="nc">Quotations</span>
+<span class="k">open</span> <span class="nc">Parser</span>
+
+<span class="o">[&lt;</span><span class="nc">TypeProvider</span><span class="o">&gt;]</span>
+<span class="k">type</span> <span class="nc">AdventProvider</span> <span class="o">(</span><span class="n">cfg</span> <span class="o">:</span> <span class="nc">TypeProviderConfig</span><span class="o">)</span> <span class="k">as</span> <span class="n">this</span> <span class="o">=</span>
+    <span class="k">inherit</span> <span class="nc">TypeProviderForNamespaces</span> <span class="bp">()</span>
+
+    <span class="k">let</span> <span class="n">ns</span> <span class="o">=</span> <span class="s2">&quot;Advent.Provided&quot;</span>
+    <span class="k">let</span> <span class="n">asm</span> <span class="o">=</span> <span class="nn">Assembly</span><span class="p">.</span><span class="nc">GetExecutingAssembly</span><span class="bp">()</span>
+    <span class="k">let</span> <span class="n">tempAsmPath</span> <span class="o">=</span> <span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">ChangeExtension</span><span class="o">(</span><span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">GetTempFileName</span><span class="bp">()</span><span class="o">,</span> <span class="s2">&quot;.dll&quot;</span><span class="o">)</span>
+    <span class="k">let</span> <span class="n">tempAsm</span> <span class="o">=</span> <span class="nc">ProvidedAssembly</span> <span class="n">tempAsmPath</span>
+
+    <span class="k">let</span> <span class="n">t</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="s2">&quot;Family&quot;</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;,</span> <span class="nc">IsErased</span> <span class="o">=</span> <span class="bp">false</span><span class="o">)</span>
+    <span class="k">let</span> <span class="n">parameters</span> <span class="o">=</span> <span class="o">[</span><span class="nc">ProvidedStaticParameter</span><span class="o">(</span><span class="s2">&quot;Genealogy&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;)]</span>
+
+    <span class="k">do</span>
+        <span class="n">t</span><span class="o">.</span><span class="nc">DefineStaticParameters</span><span class="o">(</span>
+            <span class="n">parameters</span><span class="o">,</span>
+            <span class="k">fun</span> <span class="n">typeName</span> <span class="n">args</span> <span class="o">-&gt;</span>
+                <span class="k">let</span> <span class="n">genealogy</span> <span class="o">=</span> <span class="n">args</span><span class="o">.[</span><span class="mi">0</span><span class="o">]</span> <span class="o">:?&gt;</span> <span class="kt">string</span>
+                <span class="k">let</span> <span class="n">inputFile</span> <span class="o">=</span> 
+                    <span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">Combine</span><span class="o">(</span><span class="n">cfg</span><span class="o">.</span><span class="nc">ResolutionFolder</span><span class="o">,</span> <span class="n">genealogy</span><span class="o">)</span>
+                <span class="k">let</span> <span class="n">raw</span> <span class="o">=</span>
+                    <span class="nn">System</span><span class="p">.</span><span class="nn">IO</span><span class="p">.</span><span class="nn">File</span><span class="p">.</span><span class="nc">ReadAllLines</span> <span class="n">inputFile</span>
+                <span class="k">let</span> <span class="n">input</span> <span class="o">=</span>
+                    <span class="n">raw</span>
+                    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">toList</span>
+                    <span class="o">|&gt;</span> <span class="nc">Parse</span>
+
+                <span class="k">let</span> <span class="n">g</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span>
+                            <span class="n">asm</span><span class="o">,</span> 
+                            <span class="n">ns</span><span class="o">,</span> 
+                            <span class="n">typeName</span><span class="o">,</span> 
+                            <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;,</span> 
+                            <span class="nc">IsErased</span> <span class="o">=</span> <span class="bp">false</span><span class="o">)</span>
+
+                <span class="k">let</span> <span class="n">s</span> <span class="o">=</span> <span class="nc">ProvidedProperty</span><span class="o">(</span><span class="s2">&quot;Raw&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;,</span> <span class="nc">IsStatic</span> <span class="o">=</span> <span class="bp">true</span><span class="o">)</span>
+                <span class="k">let</span> <span class="n">rawStr</span> <span class="o">=</span> <span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="n">raw</span>
+                <span class="n">s</span><span class="o">.</span><span class="nc">GetterCode</span> <span class="o">&lt;-</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="nn">Expr</span><span class="p">.</span><span class="nc">Value</span> <span class="n">rawStr</span>
+                <span class="n">g</span><span class="o">.</span><span class="nc">AddMember</span> <span class="n">s</span>
+
+                <span class="k">let</span> <span class="k">rec</span> <span class="n">personToType</span> <span class="o">(</span><span class="n">father</span> <span class="o">:</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">)</span> <span class="o">(</span><span class="n">fatherInterfaces</span> <span class="o">:</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Type</span> <span class="kt">list</span><span class="o">)</span> <span class="o">(</span><span class="n">person</span> <span class="o">:</span> <span class="nc">Person</span><span class="o">)</span> <span class="o">=</span>
+                    <span class="k">let</span> <span class="n">t</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">person</span><span class="o">.</span><span class="nc">Name</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;,</span> <span class="nc">IsErased</span> <span class="o">=</span> <span class="bp">false</span><span class="o">)</span>
+                    <span class="k">let</span> <span class="n">parentInterface</span> <span class="o">=</span>
+                        <span class="k">match</span> <span class="n">fatherInterfaces</span> <span class="k">with</span>
+                        <span class="o">|</span> <span class="bp">[]</span> <span class="o">-&gt;</span> <span class="nc">None</span>
+                        <span class="o">|</span> <span class="n">h</span><span class="o">::_</span> <span class="o">-&gt;</span> <span class="nc">Some</span> <span class="n">h</span>
+                    <span class="k">let</span> <span class="n">i</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="s2">&quot;I&quot;</span> <span class="o">+</span> <span class="n">person</span><span class="o">.</span><span class="nc">Name</span><span class="o">,</span> <span class="nc">None</span><span class="o">,</span> <span class="nc">IsErased</span> <span class="o">=</span> <span class="bp">false</span><span class="o">)</span>
+                    <span class="n">i</span><span class="o">.</span><span class="nc">SetAttributes</span> <span class="o">(</span><span class="nn">TypeAttributes</span><span class="p">.</span><span class="nc">Public</span> <span class="o">|||</span> <span class="nn">TypeAttributes</span><span class="p">.</span><span class="nc">Interface</span> <span class="o">|||</span> <span class="nn">TypeAttributes</span><span class="p">.</span><span class="nc">Abstract</span><span class="o">)</span>
+                    <span class="n">father</span><span class="o">.</span><span class="nc">AddMembers</span> <span class="o">[</span><span class="n">t</span><span class="o">;</span><span class="n">i</span><span class="o">]</span>
+                    <span class="k">match</span> <span class="n">person</span><span class="o">.</span><span class="nc">Heir</span> <span class="k">with</span>
+                    <span class="o">|</span> <span class="nc">Some</span> <span class="n">p</span> <span class="o">-&gt;</span> <span class="n">personToType</span> <span class="n">t</span> <span class="o">(</span><span class="n">i</span> <span class="o">:&gt;</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Type</span><span class="o">::</span><span class="n">fatherInterfaces</span><span class="o">)</span> <span class="n">p</span>
+                    <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+
+                <span class="k">match</span> <span class="n">input</span> <span class="k">with</span>
+                <span class="o">|</span> <span class="nc">Some</span> <span class="n">p</span> <span class="o">-&gt;</span>
+                    <span class="n">personToType</span> <span class="n">g</span> <span class="bp">[]</span> <span class="n">p</span>
+                <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span>
+                    <span class="bp">()</span>
+
+                <span class="n">tempAsm</span><span class="o">.</span><span class="nc">AddTypes</span> <span class="o">[</span><span class="n">g</span><span class="o">]</span>
+
+                <span class="n">g</span>
+            <span class="o">)</span>
+
+    <span class="k">do</span>
+        <span class="n">this</span><span class="o">.</span><span class="nc">RegisterRuntimeAssemblyLocationAsProbingFolder</span> <span class="n">cfg</span>
+        <span class="n">tempAsm</span><span class="o">.</span><span class="nc">AddTypes</span> <span class="o">[</span><span class="n">t</span><span class="o">]</span>
+        <span class="n">this</span><span class="o">.</span><span class="nc">AddNamespace</span><span class="o">(</span><span class="n">ns</span><span class="o">,</span> <span class="o">[</span><span class="n">t</span><span class="o">])</span>
+
+<span class="o">[&lt;</span><span class="n">assembly</span><span class="o">:</span><span class="nc">TypeProviderAssembly</span><span class="o">&gt;]</span>
+<span class="k">do</span> <span class="bp">()</span>
+</code></pre></div>
+<p>Line 58 and 59 do all the work - normally an interface has no base type, and we need to reset the type attributes to make the interface look like an interface to the compiler. This all works well - but doesn&#39;t, of course, give us any inheritance. Lets see if we can use those &quot;fatherInterfaces&quot; I&#39;ve fed into the function to get us any closer.</p>
+
+<p>A brief experiment with <code>IDisposable</code> shows us that if we change the base type of the interface to <code>Some typeof&lt;System.IDisposable&gt;</code>, that actually works. Again - useful type provider knowledge, but doesn&#39;t help us here. No dice on using the parent interface as the base type - we just start getting into more of the problems we were having above inheriting from other generated types.</p>
+
+<p>So let&#39;s see what happens if instead we use implement interface instead of trying to inherit the interface; it seems about as reasonable as anything else we&#39;re tried so far...</p>
+
+<p>We&#39;ll add this:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="n">fatherInterfaces</span>
+<span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">iter</span> <span class="n">i</span><span class="o">.</span><span class="nc">AddInterfaceImplementation</span>
+</code></pre></div>
+<p>after line 59 of the version above and see what happens.</p>
+
+<h2><a name="conclusion"></a> Conclusion</h2>
+
+<p>And suddenly... hey presto! We can do things like this:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="o">#!/</span><span class="n">usr</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">env</span> <span class="n">fsharpi</span>
+<span class="o">#</span><span class="n">r</span> <span class="o">@</span><span class="s2">&quot;AdventProvider.dll&quot;</span>
+
+<span class="k">open</span> <span class="nc">AdventProvider</span>
+<span class="k">open</span> <span class="nn">Advent</span><span class="p">.</span><span class="nc">Provided</span>
+
+<span class="k">type</span> <span class="nc">JesusGenerations</span> <span class="o">=</span> <span class="nc">Family</span><span class="o">&lt;</span><span class="s2">&quot;Genealogy.txt&quot;</span><span class="o">&gt;</span>
+
+<span class="n">printfn</span> <span class="s2">&quot;%s&quot;</span> <span class="o">(</span><span class="nn">JesusGenerations</span><span class="p">.</span><span class="nn">Raw</span><span class="p">.</span><span class="nc">Substring</span><span class="o">(</span><span class="mi">0</span><span class="o">,</span> <span class="mi">20</span><span class="o">)</span> <span class="o">+</span> <span class="s2">&quot;...&quot;</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="n">descendentOfAbraham</span> <span class="o">(_</span> <span class="o">:</span> <span class="o">#</span><span class="nn">JesusGenerations</span><span class="p">.</span><span class="nc">IAbraham</span><span class="o">)</span> <span class="o">=</span> <span class="bp">true</span>
+<span class="k">let</span> <span class="n">descendentOfDavid</span> 
+        <span class="o">(_</span> <span class="o">:</span> 
+            <span class="o">#</span><span class="nn">JesusGenerations</span>
+                <span class="p">.</span><span class="nn">Abraham</span>
+                <span class="p">.</span><span class="nn">Isaac</span>
+                <span class="p">.</span><span class="nn">Jacob</span>
+                <span class="p">.</span><span class="nn">Judah</span>
+                <span class="p">.</span><span class="nn">Perez</span>
+                <span class="p">.</span><span class="nn">Hezron</span>
+                <span class="p">.</span><span class="nn">Ram</span>
+                <span class="p">.</span><span class="nn">Amminadab</span>
+                <span class="p">.</span><span class="nn">Nahshon</span>
+                <span class="p">.</span><span class="nn">Salmon</span>
+                <span class="p">.</span><span class="nn">Boaz</span>
+                <span class="p">.</span><span class="nn">Obed</span>
+                <span class="p">.</span><span class="nn">Jesse</span>
+                <span class="p">.</span><span class="nc">IDavid</span><span class="o">)</span> <span class="o">=</span> <span class="bp">true</span>
+
+
+<span class="c1">// This compiles...</span>
+<span class="n">printfn</span> <span class="s2">&quot;%A&quot;</span> <span class="o">&lt;|</span> <span class="n">descendentOfAbraham</span> <span class="o">({</span> <span class="k">new</span> <span class="nn">JesusGenerations</span><span class="p">.</span><span class="nn">Abraham</span><span class="p">.</span><span class="nc">IIsaac</span> <span class="o">})</span>
+
+<span class="c1">// So does this:</span>
+<span class="n">printfn</span> <span class="s2">&quot;%A&quot;</span> <span class="o">&lt;|</span>
+    <span class="n">descendentOfDavid</span> 
+        <span class="o">({</span> <span class="k">new</span> <span class="nn">JesusGenerations</span>
+                <span class="p">.</span><span class="nn">Abraham</span>
+                <span class="p">.</span><span class="nn">Isaac</span>
+                <span class="p">.</span><span class="nn">Jacob</span>
+                <span class="p">.</span><span class="nn">Judah</span>
+                <span class="p">.</span><span class="nn">Perez</span>
+                <span class="p">.</span><span class="nn">Hezron</span>
+                <span class="p">.</span><span class="nn">Ram</span>
+                <span class="p">.</span><span class="nn">Amminadab</span>
+                <span class="p">.</span><span class="nn">Nahshon</span>
+                <span class="p">.</span><span class="nn">Salmon</span>
+                <span class="p">.</span><span class="nn">Boaz</span>
+                <span class="p">.</span><span class="nn">Obed</span>
+                <span class="p">.</span><span class="nn">Jesse</span>
+                <span class="p">.</span><span class="nn">David</span>
+                <span class="p">.</span><span class="nn">Solomon</span>
+                <span class="p">.</span><span class="nn">Rehoboam</span>
+                <span class="p">.</span><span class="nc">IAbijah</span> <span class="o">})</span>
+
+<span class="c1">// This doesn&#39;t - how cool is that?</span>
+<span class="c">(* printfn &quot;%A&quot; &lt;|</span>
+<span class="c">    descendentOfDavid ({ new JesusGenerations.Abraham.IIsaac }) *)</span>
+</code></pre></div>
+<p>Which personally I think is pretty awesome.</p>
+
+<p>There is, unfortunately, only one problem. Whilst we now have compile time propositional logic... unfortunately our code fails at runtime with a type load error. Whilst the compiler is happy with the IL my random hacking has turned at, apparently the runtime is not.</p>
+
+<p>Maybe next year...</p>
+
+<p>I hope you enjoyed this random journey down the rabbit hole of type providers; and if you&#39;re interested in looking into the genealogy a bit further <a href="http://christianity.about.com/od/biblefactsandlists/a/jesusgenealogy.htm">this article</a> gives a brief overview of a few things, like why we think Jesus has two different genealogies in the bible and how Jewish genealogies didn&#39;t always include every generation.</p>
+
+<p>See you next time: and if anyone can get the inheritance to work properly, I&#39;ll owe you a beverage of (reasonable) choice!</p>
+
+<p>The code from this blog post can, as normal be found on github in the <a href="https://github.com/mavnn/Advent2014">Advent2014</a> repository.</p>
+
+<p>It&#39;s set up to be developed in Vim or Emacs without project files on a nix system, but it will probably play nicely with Visual Studio as well.</p>
+]]></content>
+  </entry>
+  
+</feed>

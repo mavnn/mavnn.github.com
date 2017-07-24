@@ -1,0 +1,965 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Angels From the Realms of Glory - Mavnn's blog</title>
+  <meta name="author" content="mavnn">
+
+  
+  <meta name="description" content="An angel of the Lord appeared to them, and the glory of the Lord shone around them, and they were terrified. Luke 2:9 It&#39;s that time of year &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+  <link rel="canonical" href="http://blog.mavnn.co.uk/angels-from-the-realms-of-glory/">
+  <link href="/favicon.ico" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Mavnn's blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+<!-- Google Analytics -->
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-37561687-1', 'auto');
+ga('send', 'pageview');
+
+</script>
+<!-- End Google Analytics -->
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <a href="http://mavnn.co.uk"><img class="swirl-logo" src="/images/swirl.svg"/></a>
+  <h1><a href="/">Mavnn's blog</a></h1>
+  
+    <h2>Stuff from my brain</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:blog.mavnn.co.uk" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Angels From the Realms of Glory</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-12-19T12:00:00+00:00" pubdate data-updated="true">Dec 19<span>th</span>, 2015</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><blockquote>
+<p>An angel of the Lord appeared to them, and the glory of the Lord shone around them, and they were terrified. <ref><a href="https://www.biblegateway.com/passage/?search=luke+2:9&version=NIV" title="Luke 2:9">Luke 2:9</a></ref></p>
+</blockquote>
+
+<p>It&#39;s that time of year again, where the F# community get together to source a collection of weird, wonderful and occasionally useful blog posts on life, the universe and sometimes Christmas.</p>
+
+<p>As mentioned in last years post, I like to go back to the source when it comes to advent posts, so lets dive back into the book of Luke (and learn about agent based programming as we go).</p>
+
+<!-- more -->
+
+<h3>The plan</h3>
+
+<p>We&#39;re going to simulate the angelic choir as they sing for the shepherds, although with a
+couple of minor limitations. One is I don&#39;t feel like dealing with cross platform audio issues
+(and don&#39;t think I could do the voices justice anyway&#8230;) and the other is that I can&#39;t draw
+for toffee.</p>
+
+<p>So we&#39;re going to simulate a view of the angels from a long way away out of earshot.</p>
+
+<p>The final result should end up looking something like this (your results may vary depending
+on console colour scheme, but I&#39;d suggest dark background for the best effect!):</p>
+
+<p><img src="/images/angels1.gif"/></p>
+
+<h3>Step 1: atomic writes to the console</h3>
+
+<p>If you&#39;ve tried to use the <code>System.Console</code> namespace in .net, you&#39;ll have discovered a few
+things about it. The biggest problem we want to deal with, is that writing a character in colour
+to the console is not atomic.</p>
+
+<p>You have to:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="c1">// Set the cursor to the position you want to write</span>
+</span><span class='line'><span class="nn">Console</span><span class="p">.</span><span class="nc">SetCursorPosition</span><span class="o">(</span><span class="n">x</span><span class="o">,</span> <span class="n">y</span><span class="o">)</span>
+</span><span class='line'><span class="c1">// Change the foreground colour to the colour you want</span>
+</span><span class='line'><span class="nn">Console</span><span class="p">.</span><span class="nc">ForegroundColor</span> <span class="o">&lt;-</span> <span class="n">c</span>
+</span><span class='line'><span class="c1">// Write the character</span>
+</span><span class='line'><span class="nn">Console</span><span class="p">.</span><span class="nc">Write</span> <span class="o">(</span><span class="kt">string</span> <span class="n">m</span><span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>In async code, different threads doing this at the same time will mix these operations up,
+as there&#39;s no way to know what an other thread is doing with the cursor while you try and
+set up your own write.</p>
+
+<p>For this we&#39;re going to set up our first agent: the console agent. It will be responsible
+for all writes to the screen in our program.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="o">(|</span><span class="nc">ConsoleColour</span><span class="o">|)</span> <span class="n">i</span> <span class="o">=</span>
+</span><span class='line'>  <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="k">then</span>
+</span><span class='line'>    <span class="nn">ConsoleColor</span><span class="p">.</span><span class="nc">Black</span>
+</span><span class='line'>  <span class="k">elif</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">15</span> <span class="k">then</span>
+</span><span class='line'>    <span class="nn">ConsoleColor</span><span class="p">.</span><span class="nc">White</span>
+</span><span class='line'>  <span class="k">else</span>
+</span><span class='line'>    <span class="n">enum</span> <span class="n">i</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">console</span> <span class="o">=</span>
+</span><span class='line'>  <span class="nn">MailboxProcessor</span><span class="p">.</span><span class="nc">Start</span><span class="o">(</span>
+</span><span class='line'>    <span class="k">fun</span> <span class="n">agent</span> <span class="o">-&gt;</span>
+</span><span class='line'>      <span class="k">let</span> <span class="k">rec</span> <span class="n">inner</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">async</span> <span class="o">{</span>
+</span><span class='line'>          <span class="k">let</span><span class="o">!</span> <span class="o">(</span><span class="n">x</span><span class="o">,</span> <span class="n">y</span><span class="o">,</span> <span class="nc">ConsoleColour</span> <span class="n">c</span><span class="o">,</span> <span class="n">m</span> <span class="o">:</span> <span class="kt">char</span><span class="o">)</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="nc">Receive</span><span class="bp">()</span>
+</span><span class='line'>          <span class="nn">Console</span><span class="p">.</span><span class="nc">SetCursorPosition</span><span class="o">(</span><span class="n">x</span><span class="o">,</span> <span class="n">y</span><span class="o">)</span>
+</span><span class='line'>          <span class="nn">Console</span><span class="p">.</span><span class="nc">ForegroundColor</span> <span class="o">&lt;-</span> <span class="n">c</span>
+</span><span class='line'>          <span class="nn">Console</span><span class="p">.</span><span class="nc">Write</span> <span class="o">(</span><span class="kt">string</span> <span class="n">m</span><span class="o">)</span>
+</span><span class='line'>          <span class="k">return</span><span class="o">!</span> <span class="n">inner</span> <span class="bp">()</span> <span class="o">}</span>
+</span><span class='line'>      <span class="n">inner</span> <span class="bp">()</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">console</span><span class="o">.</span><span class="nn">Error</span><span class="p">.</span><span class="nc">Add</span><span class="o">(</span><span class="k">fun</span> <span class="n">e</span> <span class="o">-&gt;</span> <span class="n">printfn</span> <span class="s2">&quot;%A&quot;</span> <span class="n">e</span><span class="o">.</span><span class="nc">Message</span><span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>The <code>(|ConsoleColour|)</code> construct is what&#39;s called an active pattern. With it, we can pattern
+match on any integer and be guaranteed to get a valid ConsoleColor enum out. It also spells
+&quot;colour&quot; correctly :D.</p>
+
+<p>Then we start a <code>MailboxProcessor</code> (the default name for an agent in F#). This agent listens
+for messages which consist of: an x coordinate, a y coordinate, an int for colour and a character
+to write. The overall agent is implemented as an async block and so will not block a thread while
+waiting for messages - but it will guarantee that it will not start processing the next message
+until the current one is finished.</p>
+
+<p>Hey presto! We can now safely write to the console from any thread simply by calling <code>console.Post.</code></p>
+
+<p>We&#39;ll try it out by creating some random stationary angels.</p>
+
+<p>First, we&#39;ll initialize some infinite sequences of random numbers:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">seedx</span><span class="o">,</span> <span class="n">seedy</span><span class="o">,</span> <span class="n">seedc</span> <span class="o">=</span> <span class="mi">100</span><span class="o">,</span> <span class="mi">150</span><span class="o">,</span> <span class="mi">200</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">randX</span> <span class="o">=</span> <span class="nc">Random</span><span class="o">(</span><span class="n">seedx</span><span class="o">)</span>
+</span><span class='line'><span class="k">let</span> <span class="n">randY</span> <span class="o">=</span> <span class="nc">Random</span><span class="o">(</span><span class="n">seedy</span><span class="o">)</span>
+</span><span class='line'><span class="k">let</span> <span class="n">randC</span> <span class="o">=</span> <span class="nc">Random</span><span class="o">(</span><span class="n">seedc</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">randSeq</span> <span class="o">(</span><span class="n">rand</span> <span class="o">:</span> <span class="nc">Random</span><span class="o">)</span> <span class="n">min&#39;</span> <span class="n">max&#39;</span> <span class="o">=</span>
+</span><span class='line'>  <span class="nn">Seq</span><span class="p">.</span><span class="n">unfold</span> <span class="o">(</span><span class="k">fun</span> <span class="bp">()</span> <span class="o">-&gt;</span> <span class="nc">Some</span><span class="o">(</span><span class="n">rand</span><span class="o">.</span><span class="nc">Next</span><span class="o">(</span><span class="n">min&#39;</span><span class="o">,</span> <span class="n">max&#39;</span><span class="o">),</span> <span class="bp">()</span><span class="o">))</span> <span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">xSeq</span> <span class="o">=</span> <span class="n">randSeq</span> <span class="n">randX</span> <span class="n">xZero</span> <span class="o">(</span><span class="n">width</span> <span class="o">+</span> <span class="n">xZero</span> <span class="o">-</span> <span class="mi">1</span><span class="o">)</span>
+</span><span class='line'><span class="k">let</span> <span class="n">ySeq</span> <span class="o">=</span> <span class="n">randSeq</span> <span class="n">randY</span> <span class="n">yZero</span> <span class="o">(</span><span class="n">height</span> <span class="o">+</span> <span class="n">yZero</span> <span class="o">-</span> <span class="mi">1</span><span class="o">)</span>
+</span><span class='line'><span class="k">let</span> <span class="n">cSeq</span> <span class="o">=</span> <span class="n">randSeq</span> <span class="n">randC</span> <span class="mi">0</span> <span class="mi">15</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Then we&#39;ll wrap the write in an async method, and draw our angels across the screen concurrently;
+each angel will wait 50 milliseconds per unit across the x axis to give a nice staggered appearance.</p>
+
+<p>You can find a full listing in <a href="https://github.com/mavnn/advent2015/blob/master/advent1.fsx">advent1.fsx</a>. Running it should give you something like this:</p>
+
+<p><img src="/images/angels2.gif"/></p>
+
+<blockquote>
+<p>But the angel said to them, “Do not be afraid. I bring you good news that will cause great joy for all the people. Today in the town of David a Savior has been born to you; he is the Messiah, the Lord. This will be a sign to you: You will find a baby wrapped in cloths and lying in a manger.” <ref><a href="https://www.biblegateway.com/passage/?search=luke+2:10-12&version=NIV" title="Luke 2:10-12">Luke 2:10-12</a></ref></p>
+</blockquote>
+
+<h2>Step 2: Add event loop</h2>
+
+<p>Onwards! Time to make our angels move. Following on with the theme, we&#39;re going to make an agent
+responsible for ticking off each &#39;loop&#39; of events.</p>
+
+<p>We&#39;ll add some safety to our console agent to make sure that writes outside the console don&#39;t
+cause us issues:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">width</span>  <span class="o">=</span> <span class="nn">Console</span><span class="p">.</span><span class="nc">WindowWidth</span>
+</span><span class='line'><span class="k">let</span> <span class="n">height</span> <span class="o">=</span> <span class="nn">Console</span><span class="p">.</span><span class="nc">WindowHeight</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">xZero</span>  <span class="o">=</span> <span class="nn">Console</span><span class="p">.</span><span class="nc">WindowLeft</span>
+</span><span class='line'><span class="k">let</span> <span class="n">yZero</span>  <span class="o">=</span> <span class="nn">Console</span><span class="p">.</span><span class="nc">WindowTop</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="o">(|</span><span class="nc">ConsoleColour</span><span class="o">|)</span> <span class="n">i</span> <span class="o">=</span>
+</span><span class='line'>  <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="k">then</span>
+</span><span class='line'>    <span class="nn">ConsoleColor</span><span class="p">.</span><span class="nc">Black</span>
+</span><span class='line'>  <span class="k">elif</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">15</span> <span class="k">then</span>
+</span><span class='line'>    <span class="nn">ConsoleColor</span><span class="p">.</span><span class="nc">White</span>
+</span><span class='line'>  <span class="k">else</span>
+</span><span class='line'>    <span class="n">enum</span> <span class="n">i</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="o">(|</span><span class="nc">X</span><span class="o">|)</span> <span class="n">x</span> <span class="o">=</span>
+</span><span class='line'>  <span class="k">if</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="n">xZero</span> <span class="k">then</span>
+</span><span class='line'>    <span class="n">xZero</span>
+</span><span class='line'>  <span class="k">elif</span> <span class="n">x</span> <span class="o">&gt;=</span> <span class="n">width</span> <span class="k">then</span>
+</span><span class='line'>    <span class="n">width</span> <span class="o">-</span> <span class="mi">1</span>
+</span><span class='line'>  <span class="k">else</span>
+</span><span class='line'>    <span class="n">x</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="o">(|</span><span class="nc">Y</span><span class="o">|)</span> <span class="n">y</span> <span class="o">=</span>
+</span><span class='line'>  <span class="k">if</span> <span class="n">y</span> <span class="o">&lt;</span> <span class="n">yZero</span> <span class="k">then</span>
+</span><span class='line'>    <span class="n">yZero</span>
+</span><span class='line'>  <span class="k">elif</span> <span class="n">y</span> <span class="o">&gt;=</span> <span class="n">height</span> <span class="k">then</span>
+</span><span class='line'>    <span class="n">height</span> <span class="o">-</span> <span class="mi">1</span>
+</span><span class='line'>  <span class="k">else</span>
+</span><span class='line'>    <span class="n">y</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">console</span> <span class="o">=</span>
+</span><span class='line'>  <span class="nn">MailboxProcessor</span><span class="p">.</span><span class="nc">Start</span><span class="o">(</span>
+</span><span class='line'>    <span class="k">fun</span> <span class="n">agent</span> <span class="o">-&gt;</span>
+</span><span class='line'>      <span class="k">let</span> <span class="k">rec</span> <span class="n">inner</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">async</span> <span class="o">{</span>
+</span><span class='line'>          <span class="k">let</span><span class="o">!</span> <span class="o">(</span><span class="nc">X</span> <span class="n">x</span><span class="o">,</span> <span class="nc">Y</span> <span class="n">y</span><span class="o">,</span> <span class="nc">ConsoleColour</span> <span class="n">c</span><span class="o">,</span> <span class="n">m</span> <span class="o">:</span> <span class="kt">char</span><span class="o">)</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="nc">Receive</span><span class="bp">()</span>
+</span><span class='line'>          <span class="nn">Console</span><span class="p">.</span><span class="nc">SetCursorPosition</span><span class="o">(</span><span class="n">x</span><span class="o">,</span> <span class="n">y</span><span class="o">)</span>
+</span><span class='line'>          <span class="nn">Console</span><span class="p">.</span><span class="nc">ForegroundColor</span> <span class="o">&lt;-</span> <span class="n">c</span>
+</span><span class='line'>          <span class="nn">Console</span><span class="p">.</span><span class="nc">Write</span> <span class="o">(</span><span class="kt">string</span> <span class="n">m</span><span class="o">)</span>
+</span><span class='line'>          <span class="k">return</span><span class="o">!</span> <span class="n">inner</span> <span class="bp">()</span> <span class="o">}</span>
+</span><span class='line'>      <span class="n">inner</span> <span class="bp">()</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">console</span><span class="o">.</span><span class="nn">Error</span><span class="p">.</span><span class="nc">Add</span><span class="o">(</span><span class="k">fun</span> <span class="n">e</span> <span class="o">-&gt;</span> <span class="n">printfn</span> <span class="s2">&quot;%A&quot;</span> <span class="n">e</span><span class="o">.</span><span class="nc">Message</span><span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Notice the use of the X and Y active patterns to enforce our domain constraints on the underlying
+.net type.</p>
+
+<p>We&#39;ll also have some types for keeping track of an angels position and velocity.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">Vector2</span> <span class="o">=</span>
+</span><span class='line'>  <span class="o">{</span> <span class="n">x</span> <span class="o">:</span> <span class="kt">float</span><span class="o">;</span> <span class="n">y</span> <span class="o">:</span> <span class="kt">float</span> <span class="o">}</span>
+</span><span class='line'>  <span class="k">static</span> <span class="k">member</span> <span class="o">(+)</span> <span class="o">({</span> <span class="n">x</span> <span class="o">=</span> <span class="n">x1</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="n">y1</span> <span class="o">},</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="n">x2</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="n">y2</span> <span class="o">})</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="n">x1</span> <span class="o">+</span> <span class="n">x2</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="n">y1</span> <span class="o">+</span> <span class="n">y2</span> <span class="o">}</span>
+</span><span class='line'>  <span class="k">static</span> <span class="k">member</span> <span class="o">(-)</span> <span class="o">({</span> <span class="n">x</span> <span class="o">=</span> <span class="n">x1</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="n">y1</span> <span class="o">},</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="n">x2</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="n">y2</span> <span class="o">})</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="n">x1</span> <span class="o">-</span> <span class="n">x2</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="n">y1</span> <span class="o">-</span> <span class="n">y2</span> <span class="o">}</span>
+</span><span class='line'>  <span class="k">static</span> <span class="k">member</span> <span class="nc">Abs</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="n">x1</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="n">y1</span> <span class="o">}</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">x1</span> <span class="o">*</span> <span class="n">x1</span> <span class="o">+</span> <span class="n">y1</span> <span class="o">*</span> <span class="n">y1</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="n">sqrt</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">AngelInfo</span> <span class="o">=</span>
+</span><span class='line'>  <span class="o">{</span> <span class="nc">Position</span> <span class="o">:</span> <span class="nc">Vector2</span>
+</span><span class='line'>    <span class="nc">Velocity</span> <span class="o">:</span> <span class="nc">Vector2</span> <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Here we&#39;ve defined + and - on a two element vector, and a helper function to calculate the vectors
+magnitude.</p>
+
+<p>Now we&#39;re ready to set up our event loop agent. I&#39;m going to call mine <code>ping</code>.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">AngelMessage</span> <span class="o">=</span>
+</span><span class='line'>  <span class="o">|</span> <span class="nc">Init</span> <span class="k">of</span> <span class="nc">AsyncReplyChannel</span><span class="o">&lt;</span><span class="nc">AngelInfo</span><span class="o">&gt;</span>
+</span><span class='line'>  <span class="o">|</span> <span class="nc">Next</span> <span class="k">of</span> <span class="nc">AngelInfo</span> <span class="kt">list</span> <span class="o">*</span> <span class="nc">AsyncReplyChannel</span><span class="o">&lt;</span><span class="nc">AngelInfo</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">ping</span> <span class="o">=</span>
+</span><span class='line'>  <span class="nn">MailboxProcessor</span><span class="p">.</span><span class="nc">Start</span><span class="o">(</span>
+</span><span class='line'>    <span class="k">fun</span> <span class="n">agent</span> <span class="o">-&gt;</span>
+</span><span class='line'>      <span class="k">let</span> <span class="k">rec</span> <span class="n">inner</span> <span class="o">(</span><span class="n">angels</span> <span class="o">:</span> <span class="nc">MailboxProcessor</span><span class="o">&lt;</span><span class="nc">AngelMessage</span><span class="o">&gt;</span> <span class="kt">list</span><span class="o">)</span> <span class="n">infos</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">async</span> <span class="o">{</span>
+</span><span class='line'>          <span class="c1">// Ask the angels where they will be next</span>
+</span><span class='line'>          <span class="k">let</span><span class="o">!</span> <span class="n">newInfos</span> <span class="o">=</span>
+</span><span class='line'>            <span class="n">angels</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">angel</span> <span class="o">-&gt;</span> <span class="n">angel</span><span class="o">.</span><span class="nc">PostAndAsyncReply</span> <span class="o">(</span><span class="k">fun</span> <span class="n">r</span> <span class="o">-&gt;</span> <span class="nc">Next</span><span class="o">(</span><span class="n">infos</span><span class="o">,</span> <span class="n">r</span><span class="o">)))</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Parallel</span>
+</span><span class='line'>
+</span><span class='line'>          <span class="k">let</span> <span class="n">newInfos</span> <span class="o">=</span> <span class="n">newInfos</span> <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">ofArray</span>
+</span><span class='line'>
+</span><span class='line'>          <span class="c1">// Erase old locations</span>
+</span><span class='line'>          <span class="k">do</span><span class="o">!</span>
+</span><span class='line'>            <span class="n">infos</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="o">{</span> <span class="nc">Position</span> <span class="o">=</span> <span class="n">p</span> <span class="o">}</span> <span class="o">-&gt;</span> <span class="n">p</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">p</span> <span class="o">-&gt;</span> <span class="n">setAsync</span> <span class="o">(</span><span class="kt">int</span> <span class="n">p</span><span class="o">.</span><span class="n">x</span><span class="o">)</span> <span class="o">(</span><span class="kt">int</span> <span class="n">p</span><span class="o">.</span><span class="n">y</span><span class="o">)</span> <span class="mi">0</span> <span class="sc">&#39; &#39;</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Parallel</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Ignore</span>
+</span><span class='line'>
+</span><span class='line'>          <span class="c1">// Draw new locations</span>
+</span><span class='line'>          <span class="k">do</span><span class="o">!</span>
+</span><span class='line'>            <span class="n">newInfos</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="o">{</span> <span class="nc">Position</span> <span class="o">=</span> <span class="n">p</span> <span class="o">}</span> <span class="o">-&gt;</span> <span class="n">p</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">p</span> <span class="o">-&gt;</span> <span class="n">setAsync</span> <span class="o">(</span><span class="kt">int</span> <span class="n">p</span><span class="o">.</span><span class="n">x</span><span class="o">)</span> <span class="o">(</span><span class="kt">int</span> <span class="n">p</span><span class="o">.</span><span class="n">y</span><span class="o">)</span> <span class="mi">15</span> <span class="sc">&#39;*&#39;</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Parallel</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Ignore</span>
+</span><span class='line'>
+</span><span class='line'>          <span class="k">do</span><span class="o">!</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Sleep</span> <span class="mi">100</span>
+</span><span class='line'>          <span class="k">return</span><span class="o">!</span> <span class="n">inner</span> <span class="n">angels</span> <span class="n">newInfos</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>      <span class="k">let</span> <span class="n">init</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">async</span> <span class="o">{</span>
+</span><span class='line'>          <span class="c1">// Wait for angels to be passed in</span>
+</span><span class='line'>          <span class="k">let</span><span class="o">!</span> <span class="o">(</span><span class="n">msg</span> <span class="o">:</span> <span class="nc">MailboxProcessor</span><span class="o">&lt;</span><span class="nc">AngelMessage</span><span class="o">&gt;</span> <span class="kt">list</span><span class="o">)</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="nc">Receive</span><span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'>          <span class="k">let</span><span class="o">!</span> <span class="n">infos</span> <span class="o">=</span>
+</span><span class='line'>            <span class="n">msg</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">angel</span> <span class="o">-&gt;</span> <span class="n">angel</span><span class="o">.</span><span class="nc">PostAndAsyncReply</span> <span class="nc">Init</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Parallel</span>
+</span><span class='line'>
+</span><span class='line'>          <span class="k">return</span><span class="o">!</span> <span class="n">inner</span> <span class="n">msg</span> <span class="o">(</span><span class="n">infos</span> <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">ofArray</span><span class="o">)</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>      <span class="n">init</span> <span class="bp">()</span>
+</span><span class='line'>    <span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>This agent is a bit more chunky. If you look down to the end of the body, you&#39;ll see it starts
+by calling <code>init</code>. This method is responsible for waiting for the initial list of angels that
+will populate our night sky. The angels themselves will be agents that listen for the AngelMessage
+type.</p>
+
+<p><code>init</code> sends an <code>Init</code> message to each angel, asking it for it&#39;s initial position and velocity.
+The message consists solely of a reply channel which the angel will use to pass back the information.</p>
+
+<p>Once all the angels have reported in, we pass control to the recursive inner loop. On each round
+through, the <code>ping</code> agent asks every angel where it&#39;s moving to. It then writes spaces to every square on the console that held an angel last
+tick, and finally draws the new positions of every angel.</p>
+
+<p>And most of our infrastructure is in place! Let&#39;s test it with a collection of angels that will
+start with a random position and velocity and move in a straight line for a while.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">xSeq</span>  <span class="o">=</span> <span class="n">randSeq</span> <span class="n">randX</span> <span class="n">xZero</span> <span class="o">(</span><span class="n">width</span> <span class="o">+</span> <span class="n">xZero</span> <span class="o">-</span> <span class="mi">1</span><span class="o">)</span>
+</span><span class='line'><span class="k">let</span> <span class="n">ySeq</span>  <span class="o">=</span> <span class="n">randSeq</span> <span class="n">randY</span> <span class="n">yZero</span> <span class="o">(</span><span class="n">height</span> <span class="o">+</span> <span class="n">yZero</span> <span class="o">-</span> <span class="mi">1</span><span class="o">)</span>
+</span><span class='line'><span class="k">let</span> <span class="n">vxSeq</span> <span class="o">=</span> <span class="n">randSeq</span> <span class="n">randX</span> <span class="o">-</span><span class="mi">5</span> <span class="mi">5</span>
+</span><span class='line'><span class="k">let</span> <span class="n">vySeq</span> <span class="o">=</span> <span class="n">randSeq</span> <span class="n">randY</span> <span class="o">-</span><span class="mi">5</span> <span class="mi">5</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">createAngel</span> <span class="n">logic</span> <span class="n">angelInfo</span> <span class="o">=</span>
+</span><span class='line'>  <span class="nn">MailboxProcessor</span><span class="p">.</span><span class="nc">Start</span><span class="o">(</span>
+</span><span class='line'>    <span class="k">fun</span> <span class="n">agent</span> <span class="o">-&gt;</span>
+</span><span class='line'>      <span class="k">let</span> <span class="k">rec</span> <span class="n">inner</span> <span class="n">currentInfo</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">async</span> <span class="o">{</span>
+</span><span class='line'>          <span class="k">let</span><span class="o">!</span> <span class="n">msg</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="nc">Receive</span><span class="bp">()</span>
+</span><span class='line'>          <span class="k">return</span><span class="o">!</span>
+</span><span class='line'>            <span class="k">match</span> <span class="n">msg</span> <span class="k">with</span>
+</span><span class='line'>            <span class="o">|</span> <span class="nc">Init</span> <span class="n">r</span> <span class="o">-&gt;</span>
+</span><span class='line'>              <span class="n">r</span><span class="o">.</span><span class="nc">Reply</span> <span class="n">currentInfo</span>
+</span><span class='line'>              <span class="n">inner</span> <span class="n">currentInfo</span>
+</span><span class='line'>            <span class="o">|</span> <span class="nc">Next</span> <span class="o">(</span><span class="n">infos</span><span class="o">,</span> <span class="n">r</span><span class="o">)</span> <span class="o">-&gt;</span>
+</span><span class='line'>              <span class="k">let</span> <span class="n">newInfo</span> <span class="o">=</span> <span class="n">logic</span> <span class="n">currentInfo</span> <span class="n">infos</span>
+</span><span class='line'>              <span class="n">r</span><span class="o">.</span><span class="nc">Reply</span> <span class="n">newInfo</span>
+</span><span class='line'>              <span class="n">inner</span> <span class="n">newInfo</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>      <span class="n">inner</span> <span class="n">angelInfo</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">angels</span> <span class="o">=</span>
+</span><span class='line'>  <span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="o">(</span><span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">xSeq</span> <span class="n">ySeq</span><span class="o">)</span> <span class="o">(</span><span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">vxSeq</span> <span class="n">vySeq</span><span class="o">)</span>
+</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">take</span> <span class="mi">10</span>
+</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span>
+</span><span class='line'>      <span class="o">(</span><span class="k">fun</span> <span class="o">((</span><span class="n">px</span><span class="o">,</span> <span class="n">py</span><span class="o">),</span> <span class="o">(</span><span class="n">vx</span><span class="o">,</span> <span class="n">vy</span><span class="o">))</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="o">{</span> <span class="nc">Position</span> <span class="o">=</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="kt">float</span> <span class="n">px</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="kt">float</span> <span class="n">py</span> <span class="o">};</span> <span class="nc">Velocity</span> <span class="o">=</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="kt">float</span> <span class="n">vx</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="kt">float</span> <span class="n">py</span> <span class="o">}})</span>
+</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="n">createAngel</span> <span class="o">(</span><span class="k">fun</span> <span class="n">c</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="o">{</span> <span class="n">c</span> <span class="k">with</span> <span class="nc">Position</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="nc">Position</span> <span class="o">+</span> <span class="n">c</span><span class="o">.</span><span class="nc">Velocity</span> <span class="o">}))</span>
+</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">toList</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// Start the whole thing off</span>
+</span><span class='line'><span class="n">ping</span><span class="o">.</span><span class="nc">Post</span> <span class="n">angels</span>
+</span><span class='line'>
+</span><span class='line'><span class="nn">Console</span><span class="p">.</span><span class="nc">ReadLine</span><span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'><span class="nn">Console</span><span class="p">.</span><span class="nc">ForegroundColor</span> <span class="o">&lt;-</span> <span class="nn">ConsoleColor</span><span class="p">.</span><span class="nc">White</span>
+</span><span class='line'><span class="nn">Console</span><span class="p">.</span><span class="nc">CursorVisible</span> <span class="o">&lt;-</span> <span class="bp">true</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Each of our angels knows how to report its initial state, and how to apply a function called <code>logic</code> to it&#39;s previous state to generate the new position. For testing, the <code>logic</code> we&#39;re passing in is just to add its velocity to it&#39;s current position each time its asked.</p>
+
+<p>Full listing is in <a href="https://github.com/mavnn/advent2015/blob/master/advent2.fsx">advent2.fsx</a>, and running it should give us something like this:</p>
+
+<p><img src="/images/angels3.gif"/></p>
+
+<blockquote>
+<p>Suddenly a great company of the heavenly host appeared with the angel, praising God and saying,</p>
+
+<p>“Glory to God in the highest heaven,
+   and on earth peace to those on whom his favor rests.” <ref><a href="https://www.biblegateway.com/passage/?search=luke+2:13-14&version=NIV" title="Luke 2:13-14">Luke 2:13-14</a></ref></p>
+</blockquote>
+
+<h3>Adding some dancing</h3>
+
+<p>But! Angels in straight lines doesn&#39;t sound much fun. We&#39;ll make our angels a bit more interesting
+by implementing a simple <a href="https://en.wikipedia.org/wiki/Boids">boid</a> variant.</p>
+
+<p>First we&#39;ll add the ability to specify a colour as part of our angel info (check the full listing for details). We&#39;ll also expand the vectors to implement multiplication, division and a magnitude limit.</p>
+
+<p>Then we can add a <code>logic</code> module:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nc">Logic</span> <span class="o">=</span>
+</span><span class='line'>  <span class="k">let</span> <span class="k">private</span> <span class="n">surrounding</span> <span class="n">radius</span> <span class="o">(</span><span class="n">us</span> <span class="o">:</span> <span class="nc">AngelInfo</span><span class="o">)</span> <span class="o">(</span><span class="n">others</span> <span class="o">:</span> <span class="nc">AngelInfo</span> <span class="kt">list</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">others</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">filter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">a</span> <span class="o">-&gt;</span> <span class="nn">Vector2</span><span class="p">.</span><span class="n">abs</span> <span class="o">(</span><span class="n">a</span><span class="o">.</span><span class="nc">Position</span> <span class="o">-</span> <span class="n">us</span><span class="o">.</span><span class="nc">Position</span><span class="o">)</span> <span class="o">&lt;</span> <span class="n">radius</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">let</span> <span class="k">private</span> <span class="n">desiredVel</span> <span class="n">angels</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">angels</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">fold</span>
+</span><span class='line'>        <span class="o">(</span><span class="k">fun</span> <span class="o">(</span><span class="n">v</span><span class="o">,</span> <span class="n">i</span><span class="o">)</span> <span class="n">angel</span> <span class="o">-&gt;</span>
+</span><span class='line'>          <span class="o">(</span><span class="n">angel</span><span class="o">.</span><span class="nc">Velocity</span> <span class="o">+</span> <span class="n">v</span><span class="o">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="o">))</span> <span class="o">({</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.;</span> <span class="n">y</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.},</span> <span class="mi">0</span><span class="o">)</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="k">fun</span> <span class="o">(</span><span class="n">v</span><span class="o">,</span> <span class="n">i</span><span class="o">)</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="k">match</span> <span class="n">i</span> <span class="k">with</span>
+</span><span class='line'>        <span class="o">|</span> <span class="mi">0</span> <span class="o">-&gt;</span>
+</span><span class='line'>          <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.;</span> <span class="n">y</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.</span> <span class="o">}</span>
+</span><span class='line'>        <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
+</span><span class='line'>          <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">x</span> <span class="o">/</span> <span class="kt">float</span> <span class="n">i</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">y</span> <span class="o">/</span> <span class="kt">float</span> <span class="n">i</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">let</span> <span class="k">private</span> <span class="n">avoid</span> <span class="n">this</span> <span class="n">angels</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">dodge</span> <span class="n">v</span> <span class="o">=</span>
+</span><span class='line'>      <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">1</span><span class="o">.</span> <span class="o">/</span> <span class="n">v</span><span class="o">.</span><span class="n">x</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span><span class="o">.</span>
+</span><span class='line'>        <span class="n">y</span> <span class="o">=</span> <span class="mi">1</span><span class="o">.</span> <span class="o">/</span> <span class="n">v</span><span class="o">.</span><span class="n">y</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span><span class="o">.</span> <span class="o">}</span> <span class="o">*</span> <span class="o">(</span><span class="nn">List</span><span class="p">.</span><span class="n">length</span> <span class="n">angels</span> <span class="o">|&gt;</span> <span class="kt">float</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">match</span> <span class="n">angels</span> <span class="k">with</span>
+</span><span class='line'>    <span class="o">|</span> <span class="bp">[]</span> <span class="o">|</span> <span class="o">[_]</span> <span class="o">-&gt;</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.;</span> <span class="n">y</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.</span> <span class="o">}</span>
+</span><span class='line'>    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
+</span><span class='line'>      <span class="n">angels</span>
+</span><span class='line'>      <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">angel</span> <span class="o">-&gt;</span> <span class="n">angel</span><span class="o">.</span><span class="nc">Position</span> <span class="o">-</span> <span class="n">this</span><span class="o">.</span><span class="nc">Position</span><span class="o">)</span>
+</span><span class='line'>      <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">reduce</span> <span class="o">(+)</span>
+</span><span class='line'>      <span class="o">|&gt;</span> <span class="n">dodge</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">let</span> <span class="n">boid</span> <span class="n">midpoint</span> <span class="n">friendRadius</span> <span class="n">dodgeRadius</span> <span class="n">maxAcc</span> <span class="n">maxVel</span> <span class="n">this</span> <span class="n">angels</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">groupVel</span> <span class="o">=</span>
+</span><span class='line'>      <span class="n">surrounding</span> <span class="n">friendRadius</span> <span class="n">this</span> <span class="n">angels</span>
+</span><span class='line'>      <span class="o">|&gt;</span> <span class="n">desiredVel</span>
+</span><span class='line'>      <span class="o">|&gt;</span> <span class="nn">Vector2</span><span class="p">.</span><span class="n">limit</span> <span class="n">maxVel</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">avoidCollision</span> <span class="o">=</span>
+</span><span class='line'>      <span class="n">surrounding</span> <span class="n">dodgeRadius</span> <span class="n">this</span> <span class="n">angels</span>
+</span><span class='line'>      <span class="o">|&gt;</span> <span class="n">avoid</span> <span class="n">this</span>
+</span><span class='line'>      <span class="o">|&gt;</span> <span class="nn">Vector2</span><span class="p">.</span><span class="n">limit</span> <span class="n">maxVel</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">towardsMiddle</span> <span class="o">=</span>
+</span><span class='line'>      <span class="n">midpoint</span> <span class="o">-</span> <span class="n">this</span><span class="o">.</span><span class="nc">Position</span>
+</span><span class='line'>      <span class="o">|&gt;</span> <span class="nn">Vector2</span><span class="p">.</span><span class="n">limit</span> <span class="n">maxVel</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">acceleration</span> <span class="o">=</span>
+</span><span class='line'>      <span class="o">(</span><span class="n">groupVel</span> <span class="o">*</span> <span class="mi">0</span><span class="o">.</span><span class="mi">5</span> <span class="o">+</span> <span class="n">avoidCollision</span> <span class="o">*</span> <span class="mi">2</span><span class="o">.</span> <span class="o">+</span> <span class="n">towardsMiddle</span><span class="o">)</span>
+</span><span class='line'>      <span class="o">/</span> <span class="mi">3</span><span class="o">.</span>
+</span><span class='line'>    <span class="o">{</span> <span class="n">this</span> <span class="k">with</span> <span class="nc">Position</span> <span class="o">=</span> <span class="n">this</span><span class="o">.</span><span class="nc">Position</span> <span class="o">+</span> <span class="n">this</span><span class="o">.</span><span class="nc">Velocity</span>
+</span><span class='line'>                <span class="nc">Velocity</span> <span class="o">=</span> <span class="o">(</span><span class="n">this</span><span class="o">.</span><span class="nc">Velocity</span> <span class="o">+</span> <span class="n">acceleration</span><span class="o">)</span> <span class="o">|&gt;</span> <span class="nn">Vector2</span><span class="p">.</span><span class="n">limit</span> <span class="n">maxVel</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">let</span> <span class="n">stationary</span> <span class="n">this</span> <span class="o">_</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span> <span class="n">this</span> <span class="k">with</span> <span class="nc">Velocity</span> <span class="o">=</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.;</span> <span class="n">y</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.</span> <span class="o">}</span> <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Nothing super exciting here individually - we have methods for discovering other angels nearby
+(<code>surrounding</code>), the average velocity of a group of angels (<code>desiredVel</code>) and a rough guess
+at not running into a group of nearby angels (<code>avoid</code>). All could probably be improved!</p>
+
+<p>Putting it all together, the <code>boid</code> method calculates the acceleration the angel would &quot;like&quot; to
+have to follow all if its rules fully, and then limits that by a specified maximum acceleration.
+I played with the weighting of the rules a bit to get something that looked kind of nice, and also
+decided to make my life easier by aiming cohesion towards the middle of the screen rather than the
+middle of the flock.</p>
+
+<p>Generating our angels is now just a case of partially applying boid with the parameters of our
+choice:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">angels</span> <span class="o">=</span>
+</span><span class='line'>  <span class="nn">Seq</span><span class="p">.</span><span class="n">zip3</span> <span class="o">(</span><span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">xSeq</span> <span class="n">ySeq</span><span class="o">)</span> <span class="o">(</span><span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">vxSeq</span> <span class="n">vySeq</span><span class="o">)</span> <span class="n">cSeq</span>
+</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">take</span> <span class="mi">40</span>
+</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span>
+</span><span class='line'>      <span class="o">(</span><span class="k">fun</span> <span class="o">((</span><span class="n">px</span><span class="o">,</span> <span class="n">py</span><span class="o">),</span> <span class="o">(</span><span class="n">vx</span><span class="o">,</span> <span class="n">vy</span><span class="o">),</span> <span class="n">c</span><span class="o">)</span> <span class="o">-&gt;</span>
+</span><span class='line'>       <span class="o">{</span> <span class="nc">Position</span> <span class="o">=</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="kt">float</span> <span class="n">px</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="kt">float</span> <span class="n">py</span> <span class="o">}</span>
+</span><span class='line'>         <span class="nc">Velocity</span> <span class="o">=</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="kt">float</span> <span class="n">vx</span><span class="o">;</span> <span class="n">y</span> <span class="o">=</span> <span class="kt">float</span> <span class="n">vy</span> <span class="o">}</span>
+</span><span class='line'>         <span class="nc">Colour</span>   <span class="o">=</span> <span class="n">c</span> <span class="o">})</span>
+</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="n">createAngel</span> <span class="o">(</span><span class="nn">Logic</span><span class="p">.</span><span class="n">boid</span> <span class="n">midpoint</span> <span class="mi">10</span><span class="o">.</span> <span class="mi">1</span><span class="o">.</span> <span class="mi">0</span><span class="o">.</span><span class="mi">3</span> <span class="mi">1</span><span class="o">.))</span>
+</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">append</span>
+</span><span class='line'>      <span class="o">[(</span><span class="n">createAngel</span>
+</span><span class='line'>         <span class="nn">Logic</span><span class="p">.</span><span class="n">stationary</span> <span class="o">{</span> <span class="nc">Position</span> <span class="o">=</span> <span class="n">midpoint</span>
+</span><span class='line'>                            <span class="nc">Velocity</span> <span class="o">=</span> <span class="o">{</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.;</span> <span class="n">y</span> <span class="o">=</span> <span class="mi">0</span><span class="o">.</span> <span class="o">}</span>
+</span><span class='line'>                            <span class="nc">Colour</span>   <span class="o">=</span> <span class="mi">15</span> <span class="o">})]</span>
+</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">toList</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>The ones in listing <a href="https://github.com/mavnn/advent2015/blob/master/advent3.fsx">advent3.fsx</a> give something reasonably nice, looking like:</p>
+
+<p><img src="/images/angels4.gif"/></p>
+
+<p>One word of warning: there&#39;s a bug in the avoidance which I haven&#39;t had a chance to track down,
+so if you add too many angels they&#39;ll all push each other into the top left corner. Oops.</p>
+
+<p>And that&#39;s all for now. I hope you enjoyed this brief dive into agent based programming,
+and how we can use agents to separate responsibility and protect against unwanted race conditions.</p>
+
+<p>As you can see, this framework allows easy modification of angel logic, and in fact allows for
+every angel to have its own implementation without much added complexity - as long as it replies to
+the same messages.</p>
+
+<p>Happy Christmas, and God bless.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">mavnn</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-12-19T12:00:00+00:00" pubdate data-updated="true">Dec 19<span>th</span>, 2015</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/fsadvent/'>FsAdvent</a>, <a class='category' href='/blog/categories/agents/'>agents</a>, <a class='category' href='/blog/categories/fsharp/'>fsharp</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://blog.mavnn.co.uk/angels-from-the-realms-of-glory/" data-via="mavnn" data-counturl="http://blog.mavnn.co.uk/angels-from-the-realms-of-glory/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/annoucing-at-mavnn-ltd/" title="Previous Post: Annoucing @mavnn ltd">&laquo; Annoucing @mavnn ltd</a>
+      
+      
+        <a class="basic-alignment right" href="/emparsec-embedded-parser-library/" title="Next Post: EmParsec Embedded Parser Library">EmParsec Embedded Parser Library &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/deliberate-poster-fighting-imposter-syndrome/">Deliberate Poster: Fighting Imposter Syndrome</a>
+      </li>
+    
+      <li class="post">
+        <a href="/managing-mutable-state-with-computational-expressions/">Managing Mutable State With Computational Expressions</a>
+      </li>
+    
+      <li class="post">
+        <a href="/return-to-the-ivory-tower-video/">Return to the Ivory Tower Video</a>
+      </li>
+    
+      <li class="post">
+        <a href="/slides-for-f-number-exchange-2017/">Slides for F# Exchange 2017</a>
+      </li>
+    
+      <li class="post">
+        <a href="/level-up-your-f-number-skills/">Level Up Your F# Skills</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/mavnn">@mavnn</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'mavnn',
+            count: 3,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/+MichaelNewtonmavnn?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2017 - mavnn -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mavnn';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://blog.mavnn.co.uk/angels-from-the-realms-of-glory/';
+        var disqus_url = 'http://blog.mavnn.co.uk/angels-from-the-realms-of-glory/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

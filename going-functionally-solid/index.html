@@ -1,0 +1,930 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Going Functionally SOLID - Mavnn's blog</title>
+  <meta name="author" content="mavnn">
+
+  
+  <meta name="description" content="The one giant robot every programmer should know and love! Meet Big O! For all your algorithmic complexity needs. And any giant mecha in need of a &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+  <link rel="canonical" href="http://blog.mavnn.co.uk/going-functionally-solid/">
+  <link href="/favicon.ico" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Mavnn's blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+<!-- Google Analytics -->
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-37561687-1', 'auto');
+ga('send', 'pageview');
+
+</script>
+<!-- End Google Analytics -->
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <a href="http://mavnn.co.uk"><img class="swirl-logo" src="/images/swirl.svg"/></a>
+  <h1><a href="/">Mavnn's blog</a></h1>
+  
+    <h2>Stuff from my brain</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:blog.mavnn.co.uk" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Going Functionally SOLID</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-04-11T11:45:47+01:00" pubdate data-updated="true">Apr 11<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p><em>The one giant robot every programmer should know and love! Meet Big O!</em></p>
+
+<p><img src="/images/Big_o.jpg" alt="Big O"></p>
+
+<p><em>For all your algorithmic complexity needs. And any giant mecha in need of a good pounding.</em></p>
+
+<p>And now, back to your regularly scheduled blog post&#8230;</p>
+
+<p>Inspired both by <a href="http://blog.ploeh.dk/2014/03/10/solid-the-next-step-is-functional/">Mark Seemann&#39;s excellent blog post</a> and by my ongoing campaign to introduce functional programming techniques to <a href="http://www.15below.com/">15below</a> developers who aren&#39;t familiar with them yet, I decided it was time to run a mini-series on applying good principles like <a href="http://en.wikipedia.org/wiki/Solid_%28object-oriented_design%29">SOLID</a> in a functional world.</p>
+
+<p>We run weekly one hour &quot;Developer Education&quot; sessions. For this series I started with a badly written piece of code (it came naturally, given I had limited prep time&#8230;) in a style of someone who has kind of heard about SOLID and functional programming:</p>
+
+<ul>
+<li><strong>SOLID</strong>: &quot;So, eh, I need some interfaces and things. Concrete bad, interface good. In wonder what the whole DI thing is?&quot;</li>
+<li><strong>Functional</strong>: &quot;And, erm. Chainable functions? Fluent APIs, maybe? That&#39;s kind of functional, right?&quot;</li>
+</ul>
+
+<!-- More -->
+
+<p>And then we had a open house suggesting modifications to the code where I made the changes live as we went along. In this first session, we only got as far as making the code a bit more solid - tune back in next month for the make it functional session..</p>
+
+<p>Deciding that we needed a more interesting example domain than sending emails for once, I decided to go the whole hog. Below you&#39;ll find the before and after versions of &quot;HeavyGearSOLID&quot;&#39;s unit representation code.</p>
+
+<p>Because everything is better with giant robots.</p>
+
+<p>The session was a fun change of pace from other things we&#39;ve done, and sparked off a nice bit of discussion (although not as much as I hoped&#8230; heckle more, 15below people!). I&#39;m quite looking forward to the next part of the series.</p>
+
+<h2>Before</h2>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+<span class='line-number'>85</span>
+<span class='line-number'>86</span>
+<span class='line-number'>87</span>
+<span class='line-number'>88</span>
+<span class='line-number'>89</span>
+<span class='line-number'>90</span>
+<span class='line-number'>91</span>
+<span class='line-number'>92</span>
+<span class='line-number'>93</span>
+<span class='line-number'>94</span>
+<span class='line-number'>95</span>
+<span class='line-number'>96</span>
+<span class='line-number'>97</span>
+<span class='line-number'>98</span>
+<span class='line-number'>99</span>
+<span class='line-number'>100</span>
+<span class='line-number'>101</span>
+<span class='line-number'>102</span>
+<span class='line-number'>103</span>
+<span class='line-number'>104</span>
+<span class='line-number'>105</span>
+<span class='line-number'>106</span>
+<span class='line-number'>107</span>
+<span class='line-number'>108</span>
+<span class='line-number'>109</span>
+<span class='line-number'>110</span>
+<span class='line-number'>111</span>
+<span class='line-number'>112</span>
+<span class='line-number'>113</span>
+<span class='line-number'>114</span>
+<span class='line-number'>115</span>
+<span class='line-number'>116</span>
+<span class='line-number'>117</span>
+<span class='line-number'>118</span>
+<span class='line-number'>119</span>
+<span class='line-number'>120</span>
+<span class='line-number'>121</span>
+<span class='line-number'>122</span>
+<span class='line-number'>123</span>
+<span class='line-number'>124</span>
+<span class='line-number'>125</span>
+<span class='line-number'>126</span>
+<span class='line-number'>127</span>
+<span class='line-number'>128</span>
+<span class='line-number'>129</span>
+<span class='line-number'>130</span>
+<span class='line-number'>131</span>
+<span class='line-number'>132</span>
+<span class='line-number'>133</span>
+<span class='line-number'>134</span>
+<span class='line-number'>135</span>
+<span class='line-number'>136</span>
+<span class='line-number'>137</span>
+<span class='line-number'>138</span>
+<span class='line-number'>139</span>
+<span class='line-number'>140</span>
+<span class='line-number'>141</span>
+<span class='line-number'>142</span>
+<span class='line-number'>143</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">namespace</span> <span class="o">``</span><span class="err">メタルギアソリッド</span><span class="o">``</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nc">System</span>
+</span><span class='line'><span class="k">open</span> <span class="nc">Utils</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">IMecha</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Walk</span> <span class="o">:</span> <span class="nc">Direction</span> <span class="o">*</span> <span class="kt">int</span> <span class="o">-&gt;</span> <span class="nc">IMecha</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Jump</span> <span class="o">:</span> <span class="nc">Direction</span> <span class="o">*</span> <span class="kt">int</span> <span class="o">-&gt;</span> <span class="nc">IMecha</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Fly</span> <span class="o">:</span> <span class="nc">Direction</span> <span class="o">*</span> <span class="kt">int</span> <span class="o">-&gt;</span> <span class="nc">IMecha</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Position</span> <span class="o">:</span> <span class="kt">int</span> <span class="o">*</span> <span class="kt">int</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Hits</span> <span class="o">:</span> <span class="kt">int</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Destroyed</span> <span class="o">:</span> <span class="kt">bool</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Dodge</span> <span class="o">:</span> <span class="kt">int</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Armour</span> <span class="o">:</span> <span class="kt">int</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">TakeDamage</span> <span class="o">:</span> <span class="kt">int</span> <span class="o">-&gt;</span> <span class="nc">IMecha</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">FireCannon</span> <span class="o">:</span> <span class="nc">IMecha</span> <span class="o">*</span> <span class="kt">int</span> <span class="o">-&gt;</span> <span class="nc">IMecha</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">FireMissiles</span> <span class="o">:</span> <span class="nc">IMecha</span> <span class="o">*</span> <span class="kt">int</span> <span class="o">-&gt;</span> <span class="nc">IMecha</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">GiantRobo</span> <span class="o">(</span><span class="n">position</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="o">_</span><span class="n">position</span> <span class="o">=</span> <span class="n">ref</span> <span class="n">position</span>
+</span><span class='line'>    <span class="k">let</span> <span class="o">_</span><span class="n">hits</span> <span class="o">=</span> <span class="n">ref</span> <span class="mi">100</span>
+</span><span class='line'>    <span class="k">let</span> <span class="o">_</span><span class="n">destroyed</span> <span class="o">=</span> <span class="n">ref</span> <span class="bp">false</span>
+</span><span class='line'>    <span class="k">let</span> <span class="o">_</span><span class="n">dodge</span> <span class="o">=</span> <span class="n">ref</span> <span class="mi">5</span>
+</span><span class='line'>    <span class="k">let</span> <span class="o">_</span><span class="n">armour</span> <span class="o">=</span> <span class="n">ref</span> <span class="mi">20</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">rand</span> <span class="o">=</span> <span class="nc">Random</span><span class="bp">()</span>
+</span><span class='line'>    <span class="k">interface</span> <span class="nc">IMecha</span> <span class="k">with</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Walk</span> <span class="o">(</span><span class="n">dir</span><span class="o">,</span> <span class="n">distance</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">iMecha</span> <span class="o">=</span> <span class="n">x</span> <span class="o">:&gt;</span> <span class="nc">IMecha</span>
+</span><span class='line'>            <span class="k">if</span> <span class="n">distance</span> <span class="o">&gt;</span> <span class="mi">4</span> <span class="k">then</span>
+</span><span class='line'>                <span class="n">failwith</span> <span class="s2">&quot;GiantRobo is slow!&quot;</span>
+</span><span class='line'>            <span class="k">else</span>
+</span><span class='line'>                <span class="o">_</span><span class="n">position</span> <span class="o">:=</span> <span class="nc">Move</span> <span class="o">(!_</span><span class="n">position</span><span class="o">)</span> <span class="n">dir</span> <span class="n">distance</span>
+</span><span class='line'>                <span class="n">iMecha</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Jump</span> <span class="o">(_,</span> <span class="o">_)</span> <span class="o">=</span>
+</span><span class='line'>            <span class="n">raise</span> <span class="o">&lt;|</span> <span class="nc">NotImplementedException</span><span class="o">(</span><span class="s2">&quot;GiantRobo can&#39;t jump&quot;</span><span class="o">)</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Fly</span> <span class="o">(_,</span> <span class="o">_)</span> <span class="o">=</span>
+</span><span class='line'>            <span class="n">raise</span> <span class="o">&lt;|</span> <span class="nc">NotImplementedException</span><span class="o">(</span><span class="s2">&quot;GiantRobo can&#39;t fly&quot;</span><span class="o">)</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Position</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">!_</span><span class="n">position</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Hits</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">!_</span><span class="n">hits</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Destroyed</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">!_</span><span class="n">destroyed</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Dodge</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">!_</span><span class="n">dodge</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Armour</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">!_</span><span class="n">armour</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">TakeDamage</span> <span class="n">damage</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">_</span><span class="n">hits</span> <span class="o">:=</span> <span class="o">!_</span><span class="n">hits</span> <span class="o">-</span> <span class="n">damage</span>
+</span><span class='line'>            <span class="o">_</span><span class="n">destroyed</span> <span class="o">:=</span> <span class="o">!_</span><span class="n">hits</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+</span><span class='line'>            <span class="n">x</span> <span class="o">:&gt;</span> <span class="nc">IMecha</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">FireCannon</span> <span class="o">(</span><span class="n">target</span><span class="o">,</span> <span class="n">roll</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>            <span class="k">if</span> <span class="n">roll</span> <span class="o">&gt;</span> <span class="n">target</span><span class="o">.</span><span class="nc">Dodge</span> <span class="k">then</span>
+</span><span class='line'>                <span class="n">target</span><span class="o">.</span><span class="nc">TakeDamage</span> <span class="o">(</span><span class="n">max</span> <span class="mi">0</span> <span class="o">(</span><span class="mi">60</span> <span class="o">-</span> <span class="n">target</span><span class="o">.</span><span class="nc">Armour</span><span class="o">))</span>
+</span><span class='line'>            <span class="k">else</span>
+</span><span class='line'>                <span class="n">target</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">FireMissiles</span> <span class="o">(</span><span class="n">target</span><span class="o">,</span> <span class="n">roll</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>            <span class="n">raise</span> <span class="o">&lt;|</span> <span class="nc">NotImplementedException</span><span class="o">(</span><span class="s2">&quot;Giant Robo has no missiles&quot;</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">ITransformingMecha</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">inherit</span> <span class="nc">IMecha</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Mode</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="o">``</span><span class="nc">Transform</span><span class="o">!``</span> <span class="o">:</span> <span class="kt">string</span> <span class="o">-&gt;</span> <span class="nc">ITransformingMecha</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">VF1</span> <span class="o">(</span><span class="n">position</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="o">_</span><span class="n">position</span> <span class="o">=</span> <span class="n">ref</span> <span class="n">position</span>
+</span><span class='line'>    <span class="k">let</span> <span class="o">_</span><span class="n">hits</span> <span class="o">=</span> <span class="n">ref</span> <span class="mi">50</span>
+</span><span class='line'>    <span class="k">let</span> <span class="o">_</span><span class="n">destroyed</span> <span class="o">=</span> <span class="n">ref</span> <span class="bp">false</span>
+</span><span class='line'>    <span class="k">let</span> <span class="o">_</span><span class="n">dodge</span> <span class="o">=</span> <span class="n">ref</span> <span class="mi">10</span>
+</span><span class='line'>    <span class="k">let</span> <span class="o">_</span><span class="n">armour</span> <span class="o">=</span> <span class="n">ref</span> <span class="mi">10</span>
+</span><span class='line'>    <span class="k">let</span> <span class="o">_</span><span class="n">mode</span> <span class="o">=</span> <span class="n">ref</span> <span class="s2">&quot;Battroid&quot;</span>
+</span><span class='line'>    <span class="k">interface</span> <span class="nc">ITransformingMecha</span> <span class="k">with</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Walk</span> <span class="o">(</span><span class="n">dir</span><span class="o">,</span> <span class="n">distance</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">iMecha</span> <span class="o">=</span> <span class="n">x</span> <span class="o">:&gt;</span> <span class="nc">IMecha</span>
+</span><span class='line'>            <span class="k">if</span> <span class="o">!_</span><span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;Fighter&quot;</span> <span class="k">then</span> <span class="n">failwith</span> <span class="s2">&quot;No legs in Fighter mode!&quot;</span>
+</span><span class='line'>            <span class="k">if</span> <span class="n">distance</span> <span class="o">&gt;</span> <span class="mi">6</span> <span class="k">then</span>
+</span><span class='line'>                <span class="n">failwith</span> <span class="s2">&quot;VF-1 isn&#39;t that fast!&quot;</span>
+</span><span class='line'>            <span class="k">else</span>
+</span><span class='line'>                <span class="o">_</span><span class="n">position</span> <span class="o">:=</span> <span class="nc">Move</span> <span class="o">(!_</span><span class="n">position</span><span class="o">)</span> <span class="n">dir</span> <span class="n">distance</span>
+</span><span class='line'>                <span class="n">iMecha</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Jump</span> <span class="o">(</span><span class="n">dir</span><span class="o">,</span> <span class="n">distance</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">iMecha</span> <span class="o">=</span> <span class="n">x</span> <span class="o">:&gt;</span> <span class="nc">IMecha</span>
+</span><span class='line'>            <span class="k">if</span> <span class="o">!_</span><span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;Fighter&quot;</span> <span class="k">then</span> <span class="n">failwith</span> <span class="s2">&quot;Jumping in Fighter mode makes no sense!&quot;</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">maxDistance</span> <span class="o">=</span>
+</span><span class='line'>                <span class="k">match</span> <span class="o">!_</span><span class="n">mode</span> <span class="k">with</span>
+</span><span class='line'>                <span class="o">|</span> <span class="s2">&quot;GERWALK&quot;</span> <span class="o">-&gt;</span> <span class="mi">8</span>
+</span><span class='line'>                <span class="o">|</span> <span class="s2">&quot;Battroid&quot;</span> <span class="o">-&gt;</span> <span class="mi">6</span>
+</span><span class='line'>                <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">failwith</span> <span class="s2">&quot;No good&quot;</span>
+</span><span class='line'>            <span class="k">if</span> <span class="n">distance</span> <span class="o">&gt;</span> <span class="n">maxDistance</span> <span class="k">then</span>
+</span><span class='line'>                <span class="n">failwith</span> <span class="s2">&quot;VF-1 isn&#39;t that fast!&quot;</span>
+</span><span class='line'>            <span class="k">else</span>
+</span><span class='line'>                <span class="o">_</span><span class="n">position</span> <span class="o">:=</span> <span class="nc">Move</span> <span class="o">(!_</span><span class="n">position</span><span class="o">)</span> <span class="n">dir</span> <span class="n">distance</span>
+</span><span class='line'>                <span class="n">iMecha</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Fly</span> <span class="o">(</span><span class="n">dir</span><span class="o">,</span> <span class="n">distance</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">iMecha</span> <span class="o">=</span> <span class="n">x</span> <span class="o">:&gt;</span> <span class="nc">IMecha</span>
+</span><span class='line'>            <span class="k">if</span> <span class="o">!_</span><span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;Battroid&quot;</span> <span class="k">then</span> <span class="n">failwith</span> <span class="s2">&quot;Battroid mode can&#39;t fly&quot;</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">maxDistance</span> <span class="o">=</span>
+</span><span class='line'>                <span class="k">match</span> <span class="o">!_</span><span class="n">mode</span> <span class="k">with</span>
+</span><span class='line'>                <span class="o">|</span> <span class="s2">&quot;Fighter&quot;</span> <span class="o">-&gt;</span> <span class="mi">20</span>
+</span><span class='line'>                <span class="o">|</span> <span class="s2">&quot;GERWALK&quot;</span> <span class="o">-&gt;</span> <span class="mi">15</span>
+</span><span class='line'>                <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">failwith</span> <span class="s2">&quot;No good&quot;</span>
+</span><span class='line'>            <span class="k">if</span> <span class="n">distance</span> <span class="o">&gt;</span> <span class="n">maxDistance</span> <span class="k">then</span>
+</span><span class='line'>                <span class="n">failwith</span> <span class="s2">&quot;VF-1 isn&#39;t that fast!&quot;</span>
+</span><span class='line'>            <span class="k">else</span>
+</span><span class='line'>                <span class="o">_</span><span class="n">position</span> <span class="o">:=</span> <span class="nc">Move</span> <span class="o">(!_</span><span class="n">position</span><span class="o">)</span> <span class="n">dir</span> <span class="n">distance</span>
+</span><span class='line'>                <span class="n">iMecha</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Position</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">!_</span><span class="n">position</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Hits</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">!_</span><span class="n">hits</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Destroyed</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">!_</span><span class="n">destroyed</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Dodge</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">!_</span><span class="n">dodge</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Armour</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">!_</span><span class="n">armour</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">TakeDamage</span> <span class="n">damage</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">_</span><span class="n">hits</span> <span class="o">:=</span> <span class="o">!_</span><span class="n">hits</span> <span class="o">-</span> <span class="n">damage</span>
+</span><span class='line'>            <span class="o">_</span><span class="n">destroyed</span> <span class="o">:=</span> <span class="o">!_</span><span class="n">hits</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+</span><span class='line'>            <span class="n">x</span> <span class="o">:&gt;</span> <span class="nc">IMecha</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">FireCannon</span> <span class="o">(</span><span class="n">target</span><span class="o">,</span> <span class="n">roll</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>            <span class="k">if</span> <span class="n">roll</span> <span class="o">&gt;</span> <span class="n">target</span><span class="o">.</span><span class="nc">Dodge</span> <span class="k">then</span>
+</span><span class='line'>                <span class="n">target</span><span class="o">.</span><span class="nc">TakeDamage</span> <span class="o">(</span><span class="n">max</span> <span class="mi">0</span> <span class="o">(</span><span class="mi">20</span> <span class="o">-</span> <span class="n">target</span><span class="o">.</span><span class="nc">Armour</span><span class="o">))</span>
+</span><span class='line'>            <span class="k">else</span>
+</span><span class='line'>                <span class="n">target</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">FireMissiles</span> <span class="o">(</span><span class="n">target</span><span class="o">,</span> <span class="n">roll</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>            <span class="k">if</span> <span class="n">roll</span> <span class="o">&gt;</span> <span class="o">(</span><span class="n">target</span><span class="o">.</span><span class="nc">Dodge</span> <span class="o">/</span> <span class="mi">2</span><span class="o">)</span> <span class="k">then</span>
+</span><span class='line'>                <span class="n">target</span><span class="o">.</span><span class="nc">TakeDamage</span> <span class="o">(</span><span class="n">max</span> <span class="mi">0</span> <span class="o">(</span><span class="mi">60</span> <span class="o">-</span> <span class="n">target</span><span class="o">.</span><span class="nc">Armour</span><span class="o">))</span>
+</span><span class='line'>            <span class="k">else</span>
+</span><span class='line'>                <span class="n">target</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Mode</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">!_</span><span class="n">mode</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.``</span><span class="nc">Transform</span><span class="o">!``</span> <span class="n">mode</span> <span class="o">=</span>
+</span><span class='line'>            <span class="k">match</span> <span class="n">mode</span> <span class="k">with</span>
+</span><span class='line'>            <span class="o">|</span> <span class="s2">&quot;Fighter&quot;</span> <span class="o">-&gt;</span>
+</span><span class='line'>                <span class="o">_</span><span class="n">mode</span> <span class="o">:=</span> <span class="s2">&quot;Fighter&quot;</span>
+</span><span class='line'>            <span class="o">|</span> <span class="s2">&quot;GERWALK&quot;</span> <span class="o">-&gt;</span>
+</span><span class='line'>                <span class="o">_</span><span class="n">mode</span> <span class="o">:=</span> <span class="s2">&quot;GERWALK&quot;</span>
+</span><span class='line'>            <span class="o">|</span> <span class="s2">&quot;Battroid&quot;</span> <span class="o">-&gt;</span>
+</span><span class='line'>                <span class="o">_</span><span class="n">mode</span> <span class="o">:=</span> <span class="s2">&quot;Battroid&quot;</span>
+</span><span class='line'>            <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
+</span><span class='line'>                <span class="n">failwith</span> <span class="s2">&quot;Not a valid VF-1 mode&quot;</span>
+</span><span class='line'>            <span class="n">x</span> <span class="o">:&gt;</span> <span class="nc">ITransformingMecha</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<h2>After</h2>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+<span class='line-number'>85</span>
+<span class='line-number'>86</span>
+<span class='line-number'>87</span>
+<span class='line-number'>88</span>
+<span class='line-number'>89</span>
+<span class='line-number'>90</span>
+<span class='line-number'>91</span>
+<span class='line-number'>92</span>
+<span class='line-number'>93</span>
+<span class='line-number'>94</span>
+<span class='line-number'>95</span>
+<span class='line-number'>96</span>
+<span class='line-number'>97</span>
+<span class='line-number'>98</span>
+<span class='line-number'>99</span>
+<span class='line-number'>100</span>
+<span class='line-number'>101</span>
+<span class='line-number'>102</span>
+<span class='line-number'>103</span>
+<span class='line-number'>104</span>
+<span class='line-number'>105</span>
+<span class='line-number'>106</span>
+<span class='line-number'>107</span>
+<span class='line-number'>108</span>
+<span class='line-number'>109</span>
+<span class='line-number'>110</span>
+<span class='line-number'>111</span>
+<span class='line-number'>112</span>
+<span class='line-number'>113</span>
+<span class='line-number'>114</span>
+<span class='line-number'>115</span>
+<span class='line-number'>116</span>
+<span class='line-number'>117</span>
+<span class='line-number'>118</span>
+<span class='line-number'>119</span>
+<span class='line-number'>120</span>
+<span class='line-number'>121</span>
+<span class='line-number'>122</span>
+<span class='line-number'>123</span>
+<span class='line-number'>124</span>
+<span class='line-number'>125</span>
+<span class='line-number'>126</span>
+<span class='line-number'>127</span>
+<span class='line-number'>128</span>
+<span class='line-number'>129</span>
+<span class='line-number'>130</span>
+<span class='line-number'>131</span>
+<span class='line-number'>132</span>
+<span class='line-number'>133</span>
+<span class='line-number'>134</span>
+<span class='line-number'>135</span>
+<span class='line-number'>136</span>
+<span class='line-number'>137</span>
+<span class='line-number'>138</span>
+<span class='line-number'>139</span>
+<span class='line-number'>140</span>
+<span class='line-number'>141</span>
+<span class='line-number'>142</span>
+<span class='line-number'>143</span>
+<span class='line-number'>144</span>
+<span class='line-number'>145</span>
+<span class='line-number'>146</span>
+<span class='line-number'>147</span>
+<span class='line-number'>148</span>
+<span class='line-number'>149</span>
+<span class='line-number'>150</span>
+<span class='line-number'>151</span>
+<span class='line-number'>152</span>
+<span class='line-number'>153</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">namespace</span> <span class="o">``</span><span class="err">メタルギアソリッド</span><span class="o">``</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nc">System</span>
+</span><span class='line'><span class="k">open</span> <span class="nc">Utils</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">Location</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span>
+</span><span class='line'>        <span class="nc">Position</span> <span class="o">:</span> <span class="kt">int</span> <span class="o">*</span> <span class="kt">int</span>
+</span><span class='line'>        <span class="nc">Altitude</span> <span class="o">:</span> <span class="kt">int</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">IDestructable</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Armour</span> <span class="o">:</span> <span class="kt">int</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Dodge</span> <span class="o">:</span> <span class="kt">int</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Hits</span> <span class="o">:</span> <span class="kt">int</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Destroyed</span> <span class="o">:</span> <span class="kt">bool</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">TakeDamage</span> <span class="o">:</span> <span class="kt">int</span> <span class="o">-&gt;</span> <span class="nc">IDestructable</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">IWalk</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Walk</span> <span class="o">:</span> <span class="nc">Direction</span> <span class="o">*</span> <span class="kt">int</span> <span class="o">-&gt;</span> <span class="nc">Location</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">IJump</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Jump</span> <span class="o">:</span> <span class="nc">Direction</span> <span class="o">*</span> <span class="kt">int</span> <span class="o">-&gt;</span> <span class="nc">Location</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">IFly</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Fly</span> <span class="o">:</span> <span class="nc">Direction</span> <span class="o">*</span> <span class="kt">int</span> <span class="o">-&gt;</span> <span class="nc">Location</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">IHazWeapon</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Fire</span> <span class="o">:</span> <span class="nc">IDestructable</span> <span class="o">*</span> <span class="kt">int</span> <span class="o">-&gt;</span> <span class="nc">IDestructable</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">IHazWeapons</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">WMDs</span> <span class="o">:</span> <span class="nc">List</span><span class="o">&lt;</span><span class="nc">IHazWeapon</span><span class="o">&gt;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">IHazCannon</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">inherit</span> <span class="nc">IHazWeapon</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">IHazMissiles</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">inherit</span> <span class="nc">IHazWeapon</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">NormalDestructable</span> <span class="o">(</span><span class="n">hits</span><span class="o">,</span> <span class="n">dodge</span><span class="o">,</span> <span class="n">armour</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="o">_</span><span class="n">hits</span> <span class="o">=</span> <span class="n">ref</span> <span class="mi">100</span>
+</span><span class='line'>    <span class="k">let</span> <span class="o">_</span><span class="n">destroyed</span> <span class="o">=</span> <span class="n">ref</span> <span class="bp">false</span>
+</span><span class='line'>    <span class="k">let</span> <span class="o">_</span><span class="n">dodge</span> <span class="o">=</span> <span class="n">ref</span> <span class="mi">5</span>
+</span><span class='line'>    <span class="k">let</span> <span class="o">_</span><span class="n">armour</span> <span class="o">=</span> <span class="n">ref</span> <span class="mi">20</span>
+</span><span class='line'>    <span class="k">interface</span> <span class="nc">IDestructable</span> <span class="k">with</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Hits</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">!_</span><span class="n">hits</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Destroyed</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">!_</span><span class="n">destroyed</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Dodge</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">!_</span><span class="n">dodge</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Armour</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">!_</span><span class="n">armour</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">TakeDamage</span> <span class="n">damage</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">_</span><span class="n">hits</span> <span class="o">:=</span> <span class="o">!_</span><span class="n">hits</span> <span class="o">-</span> <span class="n">damage</span>
+</span><span class='line'>            <span class="o">_</span><span class="n">destroyed</span> <span class="o">:=</span> <span class="o">!_</span><span class="n">hits</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+</span><span class='line'>            <span class="n">x</span> <span class="o">:&gt;</span> <span class="nc">IDestructable</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">GiantRobo</span> <span class="o">(</span><span class="n">position</span><span class="o">,</span> <span class="n">destructable</span> <span class="o">:</span> <span class="o">#</span><span class="nc">IDestructable</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="o">_</span><span class="n">position</span> <span class="o">=</span> <span class="n">ref</span> <span class="n">position</span>
+</span><span class='line'>    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Position</span> <span class="o">=</span>
+</span><span class='line'>        <span class="o">!_</span><span class="n">position</span>
+</span><span class='line'>    <span class="k">interface</span> <span class="nc">IWalk</span> <span class="k">with</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Walk</span> <span class="o">(</span><span class="n">dir</span><span class="o">,</span> <span class="n">distance</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>            <span class="k">if</span> <span class="n">distance</span> <span class="o">&gt;</span> <span class="mi">4</span> <span class="k">then</span>
+</span><span class='line'>                <span class="n">failwith</span> <span class="s2">&quot;GiantRobo is slow!&quot;</span>
+</span><span class='line'>            <span class="k">else</span>
+</span><span class='line'>                <span class="o">{</span> <span class="nc">Position</span> <span class="o">=</span> <span class="nc">Move</span> <span class="o">(!_</span><span class="n">position</span><span class="o">)</span> <span class="n">dir</span> <span class="n">distance</span><span class="o">;</span> <span class="nc">Altitude</span> <span class="o">=</span> <span class="mi">0</span> <span class="o">}</span>
+</span><span class='line'>    <span class="k">interface</span> <span class="nc">IDestructable</span> <span class="k">with</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Hits</span> <span class="o">=</span> <span class="n">destructable</span><span class="o">.</span><span class="nc">Hits</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Destroyed</span> <span class="o">=</span> <span class="n">destructable</span><span class="o">.</span><span class="nc">Destroyed</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Dodge</span> <span class="o">=</span> <span class="n">destructable</span><span class="o">.</span><span class="nc">Dodge</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Armour</span> <span class="o">=</span> <span class="n">destructable</span><span class="o">.</span><span class="nc">Armour</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">TakeDamage</span> <span class="n">damage</span> <span class="o">=</span> <span class="n">destructable</span><span class="o">.</span><span class="nc">TakeDamage</span> <span class="n">damage</span>
+</span><span class='line'>    <span class="k">interface</span> <span class="nc">IHazWeapons</span> <span class="k">with</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">WMDs</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">[{</span> <span class="k">new</span> <span class="nc">IHazCannon</span> <span class="k">with</span>
+</span><span class='line'>                <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Fire</span> <span class="o">(</span><span class="n">target</span><span class="o">,</span> <span class="n">roll</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>                    <span class="k">if</span> <span class="n">roll</span> <span class="o">&gt;</span> <span class="n">target</span><span class="o">.</span><span class="nc">Dodge</span> <span class="k">then</span>
+</span><span class='line'>                        <span class="n">target</span><span class="o">.</span><span class="nc">TakeDamage</span> <span class="o">(</span><span class="n">max</span> <span class="mi">0</span> <span class="o">(</span><span class="mi">60</span> <span class="o">-</span> <span class="n">target</span><span class="o">.</span><span class="nc">Armour</span><span class="o">))</span>
+</span><span class='line'>                    <span class="k">else</span>
+</span><span class='line'>                        <span class="n">target</span> <span class="o">}]</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">ITransforming</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Mode</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="o">``</span><span class="nc">Transform</span><span class="o">!``</span> <span class="o">:</span> <span class="kt">string</span> <span class="o">-&gt;</span> <span class="nc">ITransforming</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">VF1</span> <span class="o">(</span><span class="n">position</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="o">_</span><span class="n">position</span> <span class="o">=</span> <span class="n">ref</span> <span class="n">position</span>
+</span><span class='line'>    <span class="k">let</span> <span class="o">_</span><span class="n">mode</span> <span class="o">=</span> <span class="n">ref</span> <span class="s2">&quot;Battroid&quot;</span>
+</span><span class='line'>    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Position</span> <span class="o">=</span>
+</span><span class='line'>        <span class="o">!_</span><span class="n">position</span>
+</span><span class='line'>    <span class="k">interface</span> <span class="nc">IWalk</span> <span class="k">with</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Walk</span> <span class="o">(</span><span class="n">dir</span><span class="o">,</span> <span class="n">distance</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>            <span class="k">if</span> <span class="o">!_</span><span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;Fighter&quot;</span> <span class="k">then</span> <span class="n">failwith</span> <span class="s2">&quot;No legs in Fighter mode!&quot;</span>
+</span><span class='line'>            <span class="k">if</span> <span class="n">distance</span> <span class="o">&gt;</span> <span class="mi">6</span> <span class="k">then</span>
+</span><span class='line'>                <span class="n">failwith</span> <span class="s2">&quot;VF-1 isn&#39;t that fast!&quot;</span>
+</span><span class='line'>            <span class="k">else</span>
+</span><span class='line'>                <span class="o">{</span> <span class="nc">Position</span> <span class="o">=</span> <span class="nc">Move</span> <span class="o">(!_</span><span class="n">position</span><span class="o">)</span> <span class="n">dir</span> <span class="n">distance</span><span class="o">;</span> <span class="nc">Altitude</span> <span class="o">=</span> <span class="mi">0</span> <span class="o">}</span>
+</span><span class='line'>    <span class="k">interface</span> <span class="nc">IJump</span> <span class="k">with</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Jump</span> <span class="o">(</span><span class="n">dir</span><span class="o">,</span> <span class="n">distance</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>            <span class="k">if</span> <span class="o">!_</span><span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;Fighter&quot;</span> <span class="k">then</span> <span class="n">failwith</span> <span class="s2">&quot;Jumping in Fighter mode makes no sense!&quot;</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">maxDistance</span> <span class="o">=</span>
+</span><span class='line'>                <span class="k">match</span> <span class="o">!_</span><span class="n">mode</span> <span class="k">with</span>
+</span><span class='line'>                <span class="o">|</span> <span class="s2">&quot;GERWALK&quot;</span> <span class="o">-&gt;</span> <span class="mi">8</span>
+</span><span class='line'>                <span class="o">|</span> <span class="s2">&quot;Battroid&quot;</span> <span class="o">-&gt;</span> <span class="mi">6</span>
+</span><span class='line'>                <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">failwith</span> <span class="s2">&quot;No good&quot;</span>
+</span><span class='line'>            <span class="k">if</span> <span class="n">distance</span> <span class="o">&gt;</span> <span class="n">maxDistance</span> <span class="k">then</span>
+</span><span class='line'>                <span class="n">failwith</span> <span class="s2">&quot;VF-1 isn&#39;t that fast!&quot;</span>
+</span><span class='line'>            <span class="k">else</span>
+</span><span class='line'>                <span class="o">{</span> <span class="nc">Position</span> <span class="o">=</span> <span class="nc">Move</span> <span class="o">(!_</span><span class="n">position</span><span class="o">)</span> <span class="n">dir</span> <span class="n">distance</span><span class="o">;</span> <span class="nc">Altitude</span> <span class="o">=</span> <span class="mi">0</span> <span class="o">}</span>
+</span><span class='line'>    <span class="k">interface</span> <span class="nc">IFly</span> <span class="k">with</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Fly</span> <span class="o">(</span><span class="n">dir</span><span class="o">,</span> <span class="n">distance</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>            <span class="k">if</span> <span class="o">!_</span><span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;Battroid&quot;</span> <span class="k">then</span> <span class="n">failwith</span> <span class="s2">&quot;Battroid mode can&#39;t fly&quot;</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">maxDistance</span> <span class="o">=</span>
+</span><span class='line'>                <span class="k">match</span> <span class="o">!_</span><span class="n">mode</span> <span class="k">with</span>
+</span><span class='line'>                <span class="o">|</span> <span class="s2">&quot;Fighter&quot;</span> <span class="o">-&gt;</span> <span class="mi">20</span>
+</span><span class='line'>                <span class="o">|</span> <span class="s2">&quot;GERWALK&quot;</span> <span class="o">-&gt;</span> <span class="mi">15</span>
+</span><span class='line'>                <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">failwith</span> <span class="s2">&quot;No good&quot;</span>
+</span><span class='line'>            <span class="k">if</span> <span class="n">distance</span> <span class="o">&gt;</span> <span class="n">maxDistance</span> <span class="k">then</span>
+</span><span class='line'>                <span class="n">failwith</span> <span class="s2">&quot;VF-1 isn&#39;t that fast!&quot;</span>
+</span><span class='line'>            <span class="k">else</span>
+</span><span class='line'>                <span class="o">{</span> <span class="nc">Position</span> <span class="o">=</span> <span class="nc">Move</span> <span class="o">(!_</span><span class="n">position</span><span class="o">)</span> <span class="n">dir</span> <span class="n">distance</span><span class="o">;</span> <span class="nc">Altitude</span> <span class="o">=</span> <span class="mi">0</span> <span class="o">}</span>
+</span><span class='line'>    <span class="k">interface</span> <span class="nc">IHazWeapons</span> <span class="k">with</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">WMDs</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">[</span>
+</span><span class='line'>                <span class="o">{</span> <span class="k">new</span> <span class="nc">IHazCannon</span> <span class="k">with</span>
+</span><span class='line'>                    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Fire</span> <span class="o">(</span><span class="n">target</span><span class="o">,</span> <span class="n">roll</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>                        <span class="k">if</span> <span class="n">roll</span> <span class="o">&gt;</span> <span class="n">target</span><span class="o">.</span><span class="nc">Dodge</span> <span class="k">then</span>
+</span><span class='line'>                            <span class="n">target</span><span class="o">.</span><span class="nc">TakeDamage</span> <span class="o">(</span><span class="n">max</span> <span class="mi">0</span> <span class="o">(</span><span class="mi">20</span> <span class="o">-</span> <span class="n">target</span><span class="o">.</span><span class="nc">Armour</span><span class="o">))</span>
+</span><span class='line'>                        <span class="k">else</span>
+</span><span class='line'>                            <span class="n">target</span> <span class="o">};</span>
+</span><span class='line'>                 <span class="o">{</span> <span class="k">new</span> <span class="nc">IHazMissiles</span> <span class="k">with</span>
+</span><span class='line'>                    <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Fire</span> <span class="o">(</span><span class="n">target</span><span class="o">,</span> <span class="n">roll</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>                        <span class="k">if</span> <span class="n">roll</span> <span class="o">&gt;</span> <span class="o">(</span><span class="n">target</span><span class="o">.</span><span class="nc">Dodge</span> <span class="o">/</span> <span class="mi">2</span><span class="o">)</span> <span class="k">then</span>
+</span><span class='line'>                            <span class="n">target</span><span class="o">.</span><span class="nc">TakeDamage</span> <span class="o">(</span><span class="n">max</span> <span class="mi">0</span> <span class="o">(</span><span class="mi">60</span> <span class="o">-</span> <span class="n">target</span><span class="o">.</span><span class="nc">Armour</span><span class="o">))</span>
+</span><span class='line'>                        <span class="k">else</span>
+</span><span class='line'>                            <span class="n">target</span> <span class="o">}</span>
+</span><span class='line'>            <span class="o">]</span>
+</span><span class='line'>    <span class="k">interface</span> <span class="nc">ITransforming</span> <span class="k">with</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Mode</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">!_</span><span class="n">mode</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.``</span><span class="nc">Transform</span><span class="o">!``</span> <span class="n">mode</span> <span class="o">=</span>
+</span><span class='line'>            <span class="k">match</span> <span class="n">mode</span> <span class="k">with</span>
+</span><span class='line'>            <span class="o">|</span> <span class="s2">&quot;Fighter&quot;</span> <span class="o">-&gt;</span>
+</span><span class='line'>                <span class="o">_</span><span class="n">mode</span> <span class="o">:=</span> <span class="s2">&quot;Fighter&quot;</span>
+</span><span class='line'>            <span class="o">|</span> <span class="s2">&quot;GERWALK&quot;</span> <span class="o">-&gt;</span>
+</span><span class='line'>                <span class="o">_</span><span class="n">mode</span> <span class="o">:=</span> <span class="s2">&quot;GERWALK&quot;</span>
+</span><span class='line'>            <span class="o">|</span> <span class="s2">&quot;Battroid&quot;</span> <span class="o">-&gt;</span>
+</span><span class='line'>                <span class="o">_</span><span class="n">mode</span> <span class="o">:=</span> <span class="s2">&quot;Battroid&quot;</span>
+</span><span class='line'>            <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
+</span><span class='line'>                <span class="n">failwith</span> <span class="s2">&quot;Not a valid VF-1 mode&quot;</span>
+</span><span class='line'>            <span class="n">x</span> <span class="o">:&gt;</span> <span class="nc">ITransforming</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p><em>This series continues in the imaginatively named &quot;<a href="/functionally-solid-2/">Functionally SOLID 2</a>&quot;</em></p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">mavnn</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-04-11T11:45:47+01:00" pubdate data-updated="true">Apr 11<span>th</span>, 2014</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/15below/'>15below</a>, <a class='category' href='/blog/categories/fsharp/'>fsharp</a>, <a class='category' href='/blog/categories/programming/'>programming</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://blog.mavnn.co.uk/going-functionally-solid/" data-via="mavnn" data-counturl="http://blog.mavnn.co.uk/going-functionally-solid/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/type-providers-from-the-first-floor/" title="Previous Post: Type Providers From the First Floor">&laquo; Type Providers From the First Floor</a>
+      
+      
+        <a class="basic-alignment right" href="/type-safe-printf-via-type-providers/" title="Next Post: Type safe printf via Type Providers">Type safe printf via Type Providers &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/deliberate-poster-fighting-imposter-syndrome/">Deliberate Poster: Fighting Imposter Syndrome</a>
+      </li>
+    
+      <li class="post">
+        <a href="/managing-mutable-state-with-computational-expressions/">Managing Mutable State With Computational Expressions</a>
+      </li>
+    
+      <li class="post">
+        <a href="/return-to-the-ivory-tower-video/">Return to the Ivory Tower Video</a>
+      </li>
+    
+      <li class="post">
+        <a href="/slides-for-f-number-exchange-2017/">Slides for F# Exchange 2017</a>
+      </li>
+    
+      <li class="post">
+        <a href="/level-up-your-f-number-skills/">Level Up Your F# Skills</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/mavnn">@mavnn</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'mavnn',
+            count: 3,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/+MichaelNewtonmavnn?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2017 - mavnn -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mavnn';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://blog.mavnn.co.uk/going-functionally-solid/';
+        var disqus_url = 'http://blog.mavnn.co.uk/going-functionally-solid/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

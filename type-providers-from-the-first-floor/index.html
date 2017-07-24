@@ -1,0 +1,954 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Type Providers From the First Floor - Mavnn's blog</title>
+  <meta name="author" content="mavnn">
+
+  
+  <meta name="description" content="This post follows on directly from my previous post Type Providers from the Ground Up. I highly recommend that you read that first, and check out the &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+  <link rel="canonical" href="http://blog.mavnn.co.uk/type-providers-from-the-first-floor/">
+  <link href="/favicon.ico" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Mavnn's blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+<!-- Google Analytics -->
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-37561687-1', 'auto');
+ga('send', 'pageview');
+
+</script>
+<!-- End Google Analytics -->
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <a href="http://mavnn.co.uk"><img class="swirl-logo" src="/images/swirl.svg"/></a>
+  <h1><a href="/">Mavnn's blog</a></h1>
+  
+    <h2>Stuff from my brain</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:blog.mavnn.co.uk" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Type Providers From the First Floor</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-03-19T21:06:05+00:00" pubdate data-updated="true">Mar 19<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p><em>This post follows on directly from my previous post <a href="https//blog.mavnn.co.uk/type-providers-from-the-ground-up/">Type Providers from the Ground Up</a>. I highly recommend that you read that first, and check out the relevant example code from GitHub.</em></p>
+
+<p><em>It&#39;s also a bit epic&#8230; grab yourself a coffee before you start.</em></p>
+
+<p>So we have a working type provider now. Unfortunately, we&#39;re missing out on at least two major features that your new type provider will almost certainly want to make use of.</p>
+
+<p>The first is that in our example, we&#39;re reading the metadata that defines our types from a fixed file location. In almost every real life case, you will want to be able to parametrize your provider to specify where this instance is getting it&#39;s metadata from.</p>
+
+<p>The second is that in many cases getting the metadata will be slow, and the number of types available to generate may be very large. In these situations, you really want to be able to only generate the types that are required as they are requested, especially because this will reduce the size of the final compiled output. This is particularly important for type providers that read from large network based data sources like the Freebase provider.</p>
+
+<p>We&#39;ll take the second first, because it&#39;s easy - and we like easy&#8230;</p>
+
+<!-- more -->
+
+<h2>Generating types on demand</h2>
+
+<p>This is in many ways one of the features that makes type providers uniquely powerful compared to code generation. Because the types are being requested by the compiler as needed, type providers can give meaningful access to literally infinite type hierarchies.</p>
+
+<p>So, does all this power come with great cost and complexity? Not really, no.</p>
+
+<p>Let&#39;s take the our node creation function, with some bits snipped out:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">createNodeType</span> <span class="n">id</span> <span class="o">(</span><span class="n">node</span> <span class="o">:</span> <span class="nc">Node</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">nodeType</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="n">node</span><span class="o">.</span><span class="nn">Id</span><span class="p">.</span><span class="nc">Name</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">nodeInstance</span><span class="o">&gt;)</span>
+</span><span class='line'>    <span class="c1">// ... snip constructors</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">outputs</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="s2">&quot;Outputs&quot;</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;)</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">outputCtor</span> <span class="o">=</span> <span class="nc">ProvidedConstructor</span><span class="o">(</span><span class="bp">[]</span><span class="o">,</span> <span class="nc">InvokeCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="n">obj</span><span class="bp">()</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>    <span class="n">outputs</span><span class="o">.</span><span class="nc">AddMember</span><span class="o">(</span><span class="n">outputCtor</span><span class="o">)</span>
+</span><span class='line'>    <span class="n">outputs</span><span class="o">.</span><span class="nc">HideObjectMethods</span> <span class="o">&lt;-</span> <span class="bp">true</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">inputs</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="s2">&quot;Inputs&quot;</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;)</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">inputCtor</span> <span class="o">=</span> <span class="nc">ProvidedConstructor</span><span class="o">(</span><span class="bp">[]</span><span class="o">,</span> <span class="nc">InvokeCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="n">obj</span><span class="bp">()</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>    <span class="n">inputs</span><span class="o">.</span><span class="nc">AddMember</span><span class="o">(</span><span class="n">inputCtor</span><span class="o">)</span>
+</span><span class='line'>    <span class="n">inputs</span><span class="o">.</span><span class="nc">HideObjectMethods</span> <span class="o">&lt;-</span> <span class="bp">true</span>
+</span><span class='line'>    <span class="n">addPorts</span> <span class="n">inputs</span> <span class="n">outputs</span> <span class="n">node</span><span class="o">.</span><span class="nc">Ports</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// Add the inputs and outputs types of nested types under the Node type</span>
+</span><span class='line'>    <span class="n">nodeType</span><span class="o">.</span><span class="nc">AddMembers</span><span class="o">([</span><span class="n">inputs</span><span class="o">;</span><span class="n">outputs</span><span class="o">])</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// Now add some instance properties to expose them on a node instance.</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">outputPorts</span> <span class="o">=</span> <span class="nc">ProvidedProperty</span><span class="o">(</span><span class="s2">&quot;OutputPorts&quot;</span><span class="o">,</span> <span class="n">outputs</span><span class="o">,</span> <span class="bp">[]</span><span class="o">,</span>
+</span><span class='line'>                        <span class="nc">GetterCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="n">obj</span><span class="bp">()</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">inputPorts</span> <span class="o">=</span> <span class="nc">ProvidedProperty</span><span class="o">(</span><span class="s2">&quot;InputPorts&quot;</span><span class="o">,</span> <span class="n">inputs</span><span class="o">,</span> <span class="bp">[]</span><span class="o">,</span>
+</span><span class='line'>                        <span class="nc">GetterCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="n">obj</span><span class="bp">()</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">nodeType</span><span class="o">.</span><span class="nc">AddMembers</span><span class="o">([</span><span class="n">inputPorts</span><span class="o">;</span><span class="n">outputPorts</span><span class="o">])</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">nodeType</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>To make the ports deferred, we simply change the <code>AddMembers</code> call at the end to <code>AddMembersDelayed</code> and wrap the creation of the array in a function that takes <code>unit</code>.</p>
+
+<p>It ends up looking like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">createNodeType</span> <span class="n">id</span> <span class="o">(</span><span class="n">node</span> <span class="o">:</span> <span class="nc">Node</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">nodeType</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="n">node</span><span class="o">.</span><span class="nn">Id</span><span class="p">.</span><span class="nc">Name</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">nodeInstance</span><span class="o">&gt;)</span>
+</span><span class='line'>    <span class="c1">// ... snip out the constructor again...</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">addInputOutput</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">outputs</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="s2">&quot;Outputs&quot;</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;)</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">outputCtor</span> <span class="o">=</span> <span class="nc">ProvidedConstructor</span><span class="o">(</span><span class="bp">[]</span><span class="o">,</span> <span class="nc">InvokeCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="n">obj</span><span class="bp">()</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>        <span class="n">outputs</span><span class="o">.</span><span class="nc">AddMember</span><span class="o">(</span><span class="n">outputCtor</span><span class="o">)</span>
+</span><span class='line'>        <span class="n">outputs</span><span class="o">.</span><span class="nc">HideObjectMethods</span> <span class="o">&lt;-</span> <span class="bp">true</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">let</span> <span class="n">inputs</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="s2">&quot;Inputs&quot;</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;)</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">inputCtor</span> <span class="o">=</span> <span class="nc">ProvidedConstructor</span><span class="o">(</span><span class="bp">[]</span><span class="o">,</span> <span class="nc">InvokeCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="n">obj</span><span class="bp">()</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>        <span class="n">inputs</span><span class="o">.</span><span class="nc">AddMember</span><span class="o">(</span><span class="n">inputCtor</span><span class="o">)</span>
+</span><span class='line'>        <span class="n">inputs</span><span class="o">.</span><span class="nc">HideObjectMethods</span> <span class="o">&lt;-</span> <span class="bp">true</span>
+</span><span class='line'>        <span class="n">addPorts</span> <span class="n">inputs</span> <span class="n">outputs</span> <span class="n">node</span><span class="o">.</span><span class="nc">Ports</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="c1">// Add the inputs and outputs types of nested types under the Node type</span>
+</span><span class='line'>        <span class="n">nodeType</span><span class="o">.</span><span class="nc">AddMembers</span><span class="o">([</span><span class="n">inputs</span><span class="o">;</span><span class="n">outputs</span><span class="o">])</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="c1">// Now add some instance properties to expose them on a node instance.</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">outputPorts</span> <span class="o">=</span> <span class="nc">ProvidedProperty</span><span class="o">(</span><span class="s2">&quot;OutputPorts&quot;</span><span class="o">,</span> <span class="n">outputs</span><span class="o">,</span> <span class="bp">[]</span><span class="o">,</span>
+</span><span class='line'>                            <span class="nc">GetterCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="n">obj</span><span class="bp">()</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">inputPorts</span> <span class="o">=</span> <span class="nc">ProvidedProperty</span><span class="o">(</span><span class="s2">&quot;InputPorts&quot;</span><span class="o">,</span> <span class="n">inputs</span><span class="o">,</span> <span class="bp">[]</span><span class="o">,</span>
+</span><span class='line'>                            <span class="nc">GetterCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="n">obj</span><span class="bp">()</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>        <span class="o">[</span><span class="n">inputPorts</span><span class="o">;</span><span class="n">outputPorts</span><span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">nodeType</span><span class="o">.</span><span class="nc">AddMembersDelayed</span><span class="o">(</span><span class="n">addInputOutput</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">nodeType</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Now the input and output ports of a node will only be generated the first time that the compiler needs them available. If you don&#39;t use a particular node in your program, then the compiler will never generate it&#39;s ports, and they will not be including in your final build output.</p>
+
+<p>Of course, in this case we&#39;re pre-loading all of our metadata anyway, but hopefully this gives you an idea.</p>
+
+<h2>Parametrizing the Data Source</h2>
+
+<p>Currently, we&#39;re reading the json that&#39;s generating our types like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">nodes</span> <span class="o">=</span> <span class="nn">JsonConvert</span><span class="p">.</span><span class="nc">DeserializeObject</span><span class="o">&lt;</span><span class="n">seq</span><span class="o">&lt;</span><span class="nc">Node</span><span class="o">&gt;&gt;(</span><span class="nn">IO</span><span class="p">.</span><span class="nn">File</span><span class="p">.</span><span class="nc">ReadAllText</span><span class="o">(@</span><span class="s2">&quot;c:</span><span class="err">\</span><span class="s2">Temp</span><span class="err">\</span><span class="s2">Graph.json&quot;</span><span class="o">))</span>
+</span><span class='line'>                    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">n</span> <span class="o">-&gt;</span> <span class="n">n</span><span class="o">.</span><span class="nn">Id</span><span class="p">.</span><span class="nn">UniqueId</span><span class="p">.</span><span class="nc">ToString</span><span class="bp">()</span><span class="o">,</span> <span class="n">n</span><span class="o">)</span>
+</span><span class='line'>                    <span class="o">|&gt;</span> <span class="nn">Map</span><span class="p">.</span><span class="n">ofSeq</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Lovely.</p>
+
+<p>Now, you&#39;ll probably of noticed from playing with other type providers that they allow you to do funky things like:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="n">myThing</span> <span class="o">=</span> <span class="nc">FancyProvider</span><span class="o">&lt;</span><span class="s2">&quot;configStringThing&quot;</span><span class="o">&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>This is actually one of the things that kept me going for longest in writing my first type provider, and I have to admit I&#39;m still not fully certain why it&#39;s done this way.</p>
+
+<p>At the moment, if we strip out all of the type creation logic, our type provider looks like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="o">[&lt;</span><span class="nc">TypeProvider</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">type</span> <span class="nc">MavnnProvider</span> <span class="o">(</span><span class="n">config</span> <span class="o">:</span> <span class="nc">TypeProviderConfig</span><span class="o">)</span> <span class="k">as</span> <span class="n">this</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">inherit</span> <span class="nc">TypeProviderForNamespaces</span> <span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">ns</span> <span class="o">=</span> <span class="s2">&quot;Mavnn.Blog.TypeProvider.Provided&quot;</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">asm</span> <span class="o">=</span> <span class="nn">Assembly</span><span class="p">.</span><span class="nc">GetExecutingAssembly</span><span class="bp">()</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// ... massive snip</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">createNodeType</span> <span class="n">id</span> <span class="o">(</span><span class="n">node</span> <span class="o">:</span> <span class="nc">Node</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">nodeType</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="n">node</span><span class="o">.</span><span class="nn">Id</span><span class="p">.</span><span class="nc">Name</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">nodeInstance</span><span class="o">&gt;)</span>
+</span><span class='line'>        <span class="c1">// ... more snipped here ...</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">createTypes</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">nodes</span> <span class="o">|&gt;</span> <span class="nn">Map</span><span class="p">.</span><span class="n">map</span> <span class="n">createNodeType</span> <span class="o">|&gt;</span> <span class="nn">Map</span><span class="p">.</span><span class="n">toList</span> <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="o">(</span><span class="n">k</span><span class="o">,</span> <span class="n">v</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="n">v</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">do</span>
+</span><span class='line'>        <span class="n">this</span><span class="o">.</span><span class="nc">AddNamespace</span><span class="o">(</span><span class="n">ns</span><span class="o">,</span> <span class="n">createTypes</span><span class="bp">()</span><span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>As you can see, we add the types to the namespace during the initialization of the MavnnProvider type.</p>
+
+<p>This is no good if we want to add parameters - after all, we don&#39;t know what they are yet. And the same provider might be used several times with different parameters. Also, when we create our provided type (<code>let nodeType = ...</code>) we&#39;re putting into a fixed space in the assemblies namespace. Again, this is no good if we want to be able to use more than one of our provider with different parameters.</p>
+
+<p>To get around these issues, we create a &quot;parent&quot; provided type within the type provider which will host an isolated namespace for each parametrized provider instance:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">mavnnProvider</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="s2">&quot;MavnnProvider&quot;</span><span class="o">,</span> <span class="nc">Some</span><span class="o">(</span><span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;))</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Then we define some &#39;static parameters&#39; and call the <code>DefineStaticParameters</code> method on the parent provided type, still within the construction of the type provider:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">parameters</span> <span class="o">=</span> <span class="o">[</span><span class="nc">ProvidedStaticParameter</span><span class="o">(</span><span class="s2">&quot;PathToJson&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;)]</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">do</span> <span class="n">mavnnProvider</span><span class="o">.</span><span class="nc">DefineStaticParameters</span><span class="o">(</span><span class="n">parameters</span><span class="o">,</span> <span class="k">fun</span> <span class="n">typeName</span> <span class="n">args</span> <span class="o">-&gt;</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">pathToJson</span> <span class="o">=</span> <span class="n">args</span><span class="o">.[</span><span class="mi">0</span><span class="o">]</span> <span class="o">:?&gt;</span> <span class="kt">string</span>
+</span><span class='line'>    <span class="c1">// ... do all our type creation logic in here ...</span>
+</span><span class='line'>    <span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>&#8230; and then we amend the base TypeProvider type so that the only type it adds to the namespace is the <code>mavnnProvider</code> type:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="c1">// was: do this.AddNamespace(ns, createTypes())</span>
+</span><span class='line'><span class="k">do</span> <span class="n">this</span><span class="o">.</span><span class="nc">AddNamespace</span><span class="o">(</span><span class="n">ns</span><span class="o">,</span> <span class="o">[</span><span class="n">mavnnProvider</span><span class="o">])</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>At this point, we&#39;re creating an independent environment for each instance of the type provider. Unfortunately we need to make several changes to the type creation logic to make this work.</p>
+
+<p>Firstly, we loaded quite a few things globally in the original version - things like the node list now need to happen within the context of <code>DefineStaticParameters</code>. You&#39;ll also notice that <code>DefineStaticParameters</code> gets given a <code>typeName</code> as one of the parameters on the callback. This is a compiler generated type name for this instance of the which is passed in when a parameterised provider is defined, and the callback method needs to return a provided type with that name.</p>
+
+<p>So, for example:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="c1">// In a script file called: Script.fsx</span>
+</span><span class='line'><span class="o">#</span><span class="n">r</span> <span class="o">@</span><span class="s2">&quot;../../Mavnn.Blog.TypeProvider/Mavnn.Blog.TypeProvider/bin/Debug/Newtonsoft.Json.dll&quot;</span>
+</span><span class='line'><span class="o">#</span><span class="n">r</span> <span class="o">@</span><span class="s2">&quot;../../Mavnn.Blog.TypeProvider/Mavnn.Blog.TypeProvider/bin/Debug/Mavnn.Blog.TypeProvider.dll&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nc">System</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Mavnn</span><span class="p">.</span><span class="nn">Blog</span><span class="p">.</span><span class="nn">TypeProvider</span><span class="p">.</span><span class="nc">Provided</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="n">thisOne</span> <span class="o">=</span> <span class="nc">MavnnProvider</span><span class="o">&lt;</span><span class="s2">&quot;c:</span><span class="err">\</span><span class="s2">Temp</span><span class="err">\</span><span class="s2">Graph.json&quot;</span><span class="o">&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Will pass in <code>&quot;Script.thisOne&quot; [| box &quot;c:\Temp\Graph.json&quot; |]</code> to the callback method, and expect to get back a provided type. So the first thing we&#39;ll do in the callback is create the new type which we will then add all of our nodes to.</p>
+
+<p>Keeping all of the amendments separate in your head just gets harder and harder at this point, so let&#39;s just few the final annotated method and get an overview of the final result. It&#39;s long, but hopefully worth it!</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+<span class='line-number'>85</span>
+<span class='line-number'>86</span>
+<span class='line-number'>87</span>
+<span class='line-number'>88</span>
+<span class='line-number'>89</span>
+<span class='line-number'>90</span>
+<span class='line-number'>91</span>
+<span class='line-number'>92</span>
+<span class='line-number'>93</span>
+<span class='line-number'>94</span>
+<span class='line-number'>95</span>
+<span class='line-number'>96</span>
+<span class='line-number'>97</span>
+<span class='line-number'>98</span>
+<span class='line-number'>99</span>
+<span class='line-number'>100</span>
+<span class='line-number'>101</span>
+<span class='line-number'>102</span>
+<span class='line-number'>103</span>
+<span class='line-number'>104</span>
+<span class='line-number'>105</span>
+<span class='line-number'>106</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">do</span> <span class="n">mavnnProvider</span><span class="o">.</span><span class="nc">DefineStaticParameters</span><span class="o">(</span><span class="n">parameters</span><span class="o">,</span> <span class="k">fun</span> <span class="n">typeName</span> <span class="n">args</span> <span class="o">-&gt;</span>
+</span><span class='line'>    <span class="c1">// All args arrive as type obj - you&#39;ll need to cast them back to what</span>
+</span><span class='line'>    <span class="c1">// you specified for actual usage</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">pathToJson</span> <span class="o">=</span> <span class="n">args</span><span class="o">.[</span><span class="mi">0</span><span class="o">]</span> <span class="o">:?&gt;</span> <span class="kt">string</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// This is the type that is going to host all the other types</span>
+</span><span class='line'>    <span class="c1">// and get returned at the end of the method</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">provider</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="n">typeName</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;,</span> <span class="nc">HideObjectMethods</span> <span class="o">=</span> <span class="bp">true</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// ---------- set up ----------</span>
+</span><span class='line'>    <span class="c1">// This section contains all the methods that where previously global</span>
+</span><span class='line'>    <span class="c1">// to the module, but now need to be constrained to this instance of</span>
+</span><span class='line'>    <span class="c1">// the provider</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">nodes</span> <span class="o">=</span> <span class="nn">JsonConvert</span><span class="p">.</span><span class="nc">DeserializeObject</span><span class="o">&lt;</span><span class="n">seq</span><span class="o">&lt;</span><span class="nc">Node</span><span class="o">&gt;&gt;(</span><span class="nn">IO</span><span class="p">.</span><span class="nn">File</span><span class="p">.</span><span class="nc">ReadAllText</span><span class="o">(</span><span class="n">pathToJson</span><span class="o">))</span>
+</span><span class='line'>                <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">n</span> <span class="o">-&gt;</span> <span class="n">n</span><span class="o">.</span><span class="nn">Id</span><span class="p">.</span><span class="nn">UniqueId</span><span class="p">.</span><span class="nc">ToString</span><span class="bp">()</span><span class="o">,</span> <span class="n">n</span><span class="o">)</span>
+</span><span class='line'>                <span class="o">|&gt;</span> <span class="nn">Map</span><span class="p">.</span><span class="n">ofSeq</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="nc">GetNode</span> <span class="n">id</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">nodes</span><span class="o">.[</span><span class="n">id</span><span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">ports</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">nodes</span>
+</span><span class='line'>        <span class="o">|&gt;</span> <span class="nn">Map</span><span class="p">.</span><span class="n">toSeq</span>
+</span><span class='line'>        <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="o">(_,</span> <span class="n">node</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="n">node</span><span class="o">.</span><span class="nc">Ports</span><span class="o">)</span>
+</span><span class='line'>        <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">concat</span>
+</span><span class='line'>        <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">p</span> <span class="o">-&gt;</span> <span class="n">p</span><span class="o">.</span><span class="nn">Id</span><span class="p">.</span><span class="nn">UniqueId</span><span class="p">.</span><span class="nc">ToString</span><span class="bp">()</span><span class="o">,</span> <span class="n">p</span><span class="o">)</span>
+</span><span class='line'>        <span class="o">|&gt;</span> <span class="nn">Map</span><span class="p">.</span><span class="n">ofSeq</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="nc">GetPort</span> <span class="n">id</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">ports</span><span class="o">.[</span><span class="n">id</span><span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">addInputPort</span> <span class="o">(</span><span class="n">inputs</span> <span class="o">:</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">)</span> <span class="o">(</span><span class="n">port</span> <span class="o">:</span> <span class="nc">Port</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">port</span> <span class="o">=</span> <span class="nc">ProvidedProperty</span><span class="o">(</span>
+</span><span class='line'>                        <span class="n">port</span><span class="o">.</span><span class="nn">Id</span><span class="p">.</span><span class="nc">Name</span><span class="o">,</span>
+</span><span class='line'>                        <span class="n">typeof</span><span class="o">&lt;</span><span class="nc">InputPort</span><span class="o">&gt;,</span>
+</span><span class='line'>                        <span class="nc">GetterCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span>
+</span><span class='line'>                            <span class="k">let</span> <span class="n">id</span> <span class="o">=</span> <span class="n">port</span><span class="o">.</span><span class="nn">Id</span><span class="p">.</span><span class="nn">UniqueId</span><span class="p">.</span><span class="nc">ToString</span><span class="bp">()</span>
+</span><span class='line'>                            <span class="o">&lt;@@</span> <span class="nc">GetPort</span> <span class="n">id</span> <span class="o">|&gt;</span> <span class="nc">InputPort</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>        <span class="n">inputs</span><span class="o">.</span><span class="nc">AddMember</span><span class="o">(</span><span class="n">port</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">addOutputPort</span> <span class="o">(</span><span class="n">outputs</span> <span class="o">:</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">)</span> <span class="o">(</span><span class="n">port</span> <span class="o">:</span> <span class="nc">Port</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">port</span> <span class="o">=</span> <span class="nc">ProvidedProperty</span><span class="o">(</span>
+</span><span class='line'>                        <span class="n">port</span><span class="o">.</span><span class="nn">Id</span><span class="p">.</span><span class="nc">Name</span><span class="o">,</span>
+</span><span class='line'>                        <span class="n">typeof</span><span class="o">&lt;</span><span class="nc">OutputPort</span><span class="o">&gt;,</span>
+</span><span class='line'>                        <span class="nc">GetterCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span>
+</span><span class='line'>                            <span class="k">let</span> <span class="n">id</span> <span class="o">=</span> <span class="n">port</span><span class="o">.</span><span class="nn">Id</span><span class="p">.</span><span class="nn">UniqueId</span><span class="p">.</span><span class="nc">ToString</span><span class="bp">()</span>
+</span><span class='line'>                            <span class="o">&lt;@@</span> <span class="nc">GetPort</span> <span class="n">id</span> <span class="o">|&gt;</span> <span class="nc">OutputPort</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>        <span class="n">outputs</span><span class="o">.</span><span class="nc">AddMember</span><span class="o">(</span><span class="n">port</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">addPorts</span> <span class="n">inputs</span> <span class="n">outputs</span> <span class="o">(</span><span class="n">portList</span> <span class="o">:</span> <span class="n">seq</span><span class="o">&lt;</span><span class="nc">Port</span><span class="o">&gt;)</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">portList</span>
+</span><span class='line'>        <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">iter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">port</span> <span class="o">-&gt;</span>
+</span><span class='line'>                        <span class="k">match</span> <span class="n">port</span><span class="o">.</span><span class="nc">Type</span> <span class="k">with</span>
+</span><span class='line'>                        <span class="o">|</span> <span class="s2">&quot;input&quot;</span> <span class="o">-&gt;</span> <span class="n">addInputPort</span> <span class="n">inputs</span> <span class="n">port</span>
+</span><span class='line'>                        <span class="o">|</span> <span class="s2">&quot;output&quot;</span> <span class="o">-&gt;</span> <span class="n">addOutputPort</span> <span class="n">outputs</span> <span class="n">port</span>
+</span><span class='line'>                        <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">failwithf</span> <span class="s2">&quot;Unknown port type for port %s/%s&quot;</span> <span class="n">port</span><span class="o">.</span><span class="nn">Id</span><span class="p">.</span><span class="nc">Name</span> <span class="o">(</span><span class="n">port</span><span class="o">.</span><span class="nn">Id</span><span class="p">.</span><span class="nn">UniqueId</span><span class="p">.</span><span class="nc">ToString</span><span class="bp">()</span><span class="o">))</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// ---------- end set up ----------</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">createNodeType</span> <span class="n">id</span> <span class="o">(</span><span class="n">node</span> <span class="o">:</span> <span class="nc">Node</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">nodeType</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">node</span><span class="o">.</span><span class="nn">Id</span><span class="p">.</span><span class="nc">Name</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">nodeInstance</span><span class="o">&gt;)</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">ctor</span> <span class="o">=</span> <span class="nc">ProvidedConstructor</span><span class="o">(</span>
+</span><span class='line'>                    <span class="o">[</span>
+</span><span class='line'>                        <span class="nc">ProvidedParameter</span><span class="o">(</span><span class="s2">&quot;Name&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;)</span>
+</span><span class='line'>                        <span class="nc">ProvidedParameter</span><span class="o">(</span><span class="s2">&quot;UniqueId&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="nc">Guid</span><span class="o">&gt;)</span>
+</span><span class='line'>                        <span class="nc">ProvidedParameter</span><span class="o">(</span><span class="s2">&quot;Config&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;)</span>
+</span><span class='line'>                    <span class="o">],</span>
+</span><span class='line'>                    <span class="nc">InvokeCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="o">[</span><span class="n">name</span><span class="o">;</span><span class="n">unique</span><span class="o">;</span><span class="n">config</span><span class="o">]</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="nn">NodeInstance</span><span class="p">.</span><span class="n">create</span> <span class="o">(</span><span class="nc">GetNode</span> <span class="n">id</span><span class="o">)</span> <span class="o">(%%</span><span class="n">name</span><span class="o">:</span><span class="kt">string</span><span class="o">)</span> <span class="o">(%%</span><span class="n">unique</span><span class="o">:</span><span class="nc">Guid</span><span class="o">)</span> <span class="o">(%%</span><span class="n">config</span><span class="o">:</span><span class="kt">string</span><span class="o">)</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>        <span class="n">nodeType</span><span class="o">.</span><span class="nc">AddMember</span><span class="o">(</span><span class="n">ctor</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">let</span> <span class="n">addInputOutput</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">outputs</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="s2">&quot;Outputs&quot;</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;)</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">outputCtor</span> <span class="o">=</span> <span class="nc">ProvidedConstructor</span><span class="o">(</span><span class="bp">[]</span><span class="o">,</span> <span class="nc">InvokeCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="n">obj</span><span class="bp">()</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>            <span class="n">outputs</span><span class="o">.</span><span class="nc">AddMember</span><span class="o">(</span><span class="n">outputCtor</span><span class="o">)</span>
+</span><span class='line'>            <span class="n">outputs</span><span class="o">.</span><span class="nc">HideObjectMethods</span> <span class="o">&lt;-</span> <span class="bp">true</span>
+</span><span class='line'>
+</span><span class='line'>            <span class="k">let</span> <span class="n">inputs</span> <span class="o">=</span> <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="s2">&quot;Inputs&quot;</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;)</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">inputCtor</span> <span class="o">=</span> <span class="nc">ProvidedConstructor</span><span class="o">(</span><span class="bp">[]</span><span class="o">,</span> <span class="nc">InvokeCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="n">obj</span><span class="bp">()</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>            <span class="n">inputs</span><span class="o">.</span><span class="nc">AddMember</span><span class="o">(</span><span class="n">inputCtor</span><span class="o">)</span>
+</span><span class='line'>            <span class="n">inputs</span><span class="o">.</span><span class="nc">HideObjectMethods</span> <span class="o">&lt;-</span> <span class="bp">true</span>
+</span><span class='line'>            <span class="n">addPorts</span> <span class="n">inputs</span> <span class="n">outputs</span> <span class="n">node</span><span class="o">.</span><span class="nc">Ports</span>
+</span><span class='line'>
+</span><span class='line'>            <span class="c1">// Add the inputs and outputs types of nested types under the Node type</span>
+</span><span class='line'>            <span class="n">nodeType</span><span class="o">.</span><span class="nc">AddMembers</span><span class="o">([</span><span class="n">inputs</span><span class="o">;</span><span class="n">outputs</span><span class="o">])</span>
+</span><span class='line'>
+</span><span class='line'>            <span class="c1">// Now add some instance properties to expose them on a node instance.</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">outputPorts</span> <span class="o">=</span> <span class="nc">ProvidedProperty</span><span class="o">(</span><span class="s2">&quot;OutputPorts&quot;</span><span class="o">,</span> <span class="n">outputs</span><span class="o">,</span> <span class="bp">[]</span><span class="o">,</span>
+</span><span class='line'>                                <span class="nc">GetterCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="n">obj</span><span class="bp">()</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">inputPorts</span> <span class="o">=</span> <span class="nc">ProvidedProperty</span><span class="o">(</span><span class="s2">&quot;InputPorts&quot;</span><span class="o">,</span> <span class="n">inputs</span><span class="o">,</span> <span class="bp">[]</span><span class="o">,</span>
+</span><span class='line'>                                <span class="nc">GetterCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="n">obj</span><span class="bp">()</span> <span class="o">@@&gt;)</span>
+</span><span class='line'>            <span class="o">[</span><span class="n">inputPorts</span><span class="o">;</span><span class="n">outputPorts</span><span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">nodeType</span><span class="o">.</span><span class="nc">AddMembersDelayed</span><span class="o">(</span><span class="n">addInputOutput</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">provider</span><span class="o">.</span><span class="nc">AddMember</span><span class="o">(</span><span class="n">nodeType</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// And this is where we actually interate through the loaded nodes,</span>
+</span><span class='line'>    <span class="c1">// using createNodeType to add each one to the parent provider type.</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">createTypes</span> <span class="n">pathToJson</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">nodes</span> <span class="o">|&gt;</span> <span class="nn">Map</span><span class="p">.</span><span class="n">map</span> <span class="n">createNodeType</span> <span class="o">|&gt;</span> <span class="nn">Map</span><span class="p">.</span><span class="n">toList</span> <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">iter</span> <span class="o">(</span><span class="k">fun</span> <span class="o">(</span><span class="n">k</span><span class="o">,</span> <span class="n">v</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="n">v</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">createTypes</span> <span class="n">pathToJson</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// And then we return our fully populated provider.</span>
+</span><span class='line'>    <span class="n">provider</span><span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Let&#39;s just check this all still works&#8230;</p>
+
+<p><img src="/images/tp-oh-no.png" alt="Losing!"></p>
+
+<p>Ah. No. No, it doesn&#39;t.</p>
+
+<p>This is where type provider development can get a bit more frustrating. The compiler allows the code above to compile - it&#39;s completely valid F# that looks like it should do the right thing. But now, our quotations are doing something different; and evaluating them at runtime fails.</p>
+
+<p>Let&#39;s take a look at the constructor that&#39;s throwing the error:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="nc">InvokeCode</span> <span class="o">=</span> <span class="k">fun</span> <span class="o">[</span><span class="n">name</span><span class="o">;</span><span class="n">unique</span><span class="o">;</span><span class="n">config</span><span class="o">]</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="nn">NodeInstance</span><span class="p">.</span><span class="n">create</span> <span class="o">(</span><span class="nc">GetNode</span> <span class="n">id</span><span class="o">)</span> <span class="o">(%%</span><span class="n">name</span><span class="o">:</span><span class="kt">string</span><span class="o">)</span> <span class="o">(%%</span><span class="n">unique</span><span class="o">:</span><span class="nc">Guid</span><span class="o">)</span> <span class="o">(%%</span><span class="n">config</span><span class="o">:</span><span class="kt">string</span><span class="o">)</span> <span class="o">@@&gt;)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Previously, <code>GetNode</code> was referring to a public method in the type provider assembly. But if you look above now, it&#39;s actually a private method with in the type provider class that we are closing over. But our generated type is in the assembly that&#39;s being created, not in the type provider assembly so <em>it can&#39;t access this method</em>. Even if it was in the same assembly, this method is actually private to the class, so we&#39;d still be stuck. Bearing that in mind, let&#39;s try a
+rewrite to see if we can get all of our quotations into better shape.</p>
+
+<p>What are our options? Well, we can either capture all private state in types that the quotation evaluator knows about (<code>string</code>, mostly!). Or we can make sure that any methods called in the quotations are public.</p>
+
+<p>The first gives us a cleaner interface for the outside world (the <code>GetNode</code> method should never really have been public in the first place), so let&#39;s give it a try.</p>
+
+<p>In our first version of the type provider, we were using the <code>GetNode</code> method to avoid having to embed the <code>Node</code> in the constructor directly. But how would we go about putting the node in directly? We need something that creates an <code>Expr&lt;Node&gt;</code>; but <code>Node</code> isn&#39;t a completely trivial type - it&#39;s members (<code>Id</code> and <code>Ports</code>) are made of more complex types themselves. Let&#39;s start with a simpler challenge, and see if we can make an <code>Expr&lt;Id&gt;</code>.</p>
+
+<p>We already know that:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">embeddedId</span> <span class="o">(</span><span class="n">identifier</span> <span class="o">:</span> <span class="nc">Id</span><span class="o">)</span> <span class="o">=</span> <span class="o">&lt;@</span> <span class="n">identifier</span> <span class="o">@&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>isn&#39;t going to work. The expression evaluator won&#39;t know what to do with the <code>Id</code> type. But <code>Id</code>&#39;s constructor is a public method, as is the <code>Guid</code> constructor. Let&#39;s try it:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">embeddedId</span> <span class="o">(</span><span class="n">id</span> <span class="o">:</span> <span class="nc">Id</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">guid</span> <span class="o">=</span> <span class="n">sprintf</span> <span class="s2">&quot;%A&quot;</span> <span class="o">(</span><span class="n">id</span><span class="o">.</span><span class="nc">UniqueId</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">name</span> <span class="o">=</span> <span class="n">id</span><span class="o">.</span><span class="nc">Name</span>
+</span><span class='line'>    <span class="o">&lt;@</span> <span class="nc">Id</span><span class="o">(</span><span class="nc">UniqueId</span> <span class="o">=</span> <span class="nc">Guid</span><span class="o">(</span><span class="n">guid</span><span class="o">),</span> <span class="nc">Name</span> <span class="o">=</span> <span class="n">name</span><span class="o">)</span> <span class="o">@&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Cool. It works, and even has the right signature. Looks like we might be getting somewhere. The <code>Port</code> type is nearly as straight forward:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">embeddedPort</span> <span class="o">(</span><span class="n">port</span> <span class="o">:</span> <span class="nc">Port</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">idExpr</span> <span class="o">=</span> <span class="n">embeddedId</span> <span class="n">port</span><span class="o">.</span><span class="nc">Id</span>
+</span><span class='line'>    <span class="k">let</span> <span class="k">type&#39;</span> <span class="o">=</span> <span class="n">port</span><span class="o">.</span><span class="nc">Type</span>
+</span><span class='line'>    <span class="o">&lt;@</span> <span class="nc">Port</span><span class="o">(</span><span class="nc">Id</span> <span class="o">=</span> <span class="o">%</span><span class="n">idExpr</span><span class="o">,</span> <span class="nc">Type</span> <span class="o">=</span> <span class="k">type&#39;</span><span class="o">)</span> <span class="o">@&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>We&#39;re using our embeddedId method to &#39;lift&#39; the port&#39;s <code>Id</code> into an expression, and then splicing that expression into a call to create a new port.</p>
+
+<p>We&#39;re on a roll! Just need to do the same for the <code>Node</code> type itself, with it&#39;s&#8230; <code>List</code> of <code>Port</code>s. Ah.</p>
+
+<p>There&#39;s probably a more elegant way of doing this, but given this is a functional first language, let&#39;s grab the first tool that springs to mind.</p>
+
+<p>Recursion.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">embeddedNode</span> <span class="o">(</span><span class="n">node</span> <span class="o">:</span> <span class="nc">Node</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">idExpr</span> <span class="o">=</span> <span class="n">embeddedId</span> <span class="n">node</span><span class="o">.</span><span class="nc">Id</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">portsExpr</span> <span class="n">adder</span> <span class="o">=</span>
+</span><span class='line'>        <span class="o">&lt;@</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">outPorts</span> <span class="o">=</span> <span class="nn">Collections</span><span class="p">.</span><span class="nn">Generic</span><span class="p">.</span><span class="nc">List</span><span class="o">&lt;</span><span class="nc">Port</span><span class="o">&gt;</span><span class="bp">()</span>
+</span><span class='line'>            <span class="o">(%</span><span class="n">adder</span><span class="o">)</span> <span class="n">outPorts</span>
+</span><span class='line'>            <span class="n">outPorts</span>
+</span><span class='line'>        <span class="o">@&gt;</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">adder</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">portExprs</span> <span class="o">=</span>
+</span><span class='line'>            <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">port</span> <span class="o">-&gt;</span> <span class="n">embeddedPort</span> <span class="n">port</span><span class="o">)</span> <span class="o">(</span><span class="n">node</span><span class="o">.</span><span class="nc">Ports</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">toList</span>
+</span><span class='line'>        <span class="k">let</span> <span class="k">rec</span> <span class="n">builder</span> <span class="n">expr</span> <span class="n">remaining</span> <span class="o">=</span>
+</span><span class='line'>            <span class="k">match</span> <span class="n">remaining</span> <span class="k">with</span>
+</span><span class='line'>            <span class="o">|</span> <span class="n">h</span><span class="o">::</span><span class="n">t</span> <span class="o">-&gt;</span>
+</span><span class='line'>                <span class="n">builder</span>
+</span><span class='line'>                    <span class="o">&lt;@</span> <span class="k">fun</span> <span class="o">(</span><span class="n">ports</span> <span class="o">:</span> <span class="nn">Collections</span><span class="p">.</span><span class="nn">Generic</span><span class="p">.</span><span class="nc">List</span><span class="o">&lt;</span><span class="nc">Port</span><span class="o">&gt;)</span> <span class="o">-&gt;</span>
+</span><span class='line'>                            <span class="o">(%</span><span class="n">expr</span><span class="o">)</span> <span class="n">ports</span>
+</span><span class='line'>                            <span class="n">ports</span><span class="o">.</span><span class="nc">Add</span><span class="o">(%</span><span class="n">h</span><span class="o">)</span> <span class="o">@&gt;</span>
+</span><span class='line'>                    <span class="n">t</span>
+</span><span class='line'>            <span class="o">|</span> <span class="bp">[]</span> <span class="o">-&gt;</span>
+</span><span class='line'>                <span class="n">expr</span>
+</span><span class='line'>        <span class="n">builder</span>
+</span><span class='line'>            <span class="o">&lt;@</span> <span class="k">fun</span> <span class="o">(</span><span class="n">ports</span> <span class="o">:</span> <span class="nn">Collections</span><span class="p">.</span><span class="nn">Generic</span><span class="p">.</span><span class="nc">List</span><span class="o">&lt;</span><span class="nc">Port</span><span class="o">&gt;)</span> <span class="o">-&gt;</span> <span class="bp">()</span> <span class="o">@&gt;</span>
+</span><span class='line'>            <span class="n">portExprs</span>
+</span><span class='line'>    <span class="o">&lt;@</span> <span class="nc">Node</span><span class="o">(</span><span class="nc">Id</span> <span class="o">=</span> <span class="o">%</span><span class="n">idExpr</span><span class="o">,</span> <span class="nc">Ports</span> <span class="o">=</span> <span class="o">(%</span><span class="n">portsExpr</span> <span class="n">adder</span><span class="o">))</span> <span class="o">@&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>So, from the top down. <code>portsExpr</code> creates a quotation that takes an <code>adder</code> quotation (<code>Expr&lt;List&lt;Port&gt;&gt; -&gt; unit</code>) and returns an <code>Expr&lt;List&lt;Port&gt;&gt;</code>. This is what we&#39;re going to use in our <code>Node</code> construction quotation; but first we need the <code>adder</code>; some kind of magic method that takes a List and adds each of the ports from the node that&#39;s being passed into <code>embeddedNode</code>. I&#39;ve built it as a recursive function; the &#39;zero&#39; state that&#39;s passed in looks like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="o">&lt;@</span> <span class="k">fun</span> <span class="o">(</span><span class="n">ports</span> <span class="o">:</span> <span class="nn">Collections</span><span class="p">.</span><span class="nn">Generic</span><span class="p">.</span><span class="nc">List</span><span class="o">&lt;</span><span class="nc">Port</span><span class="o">&gt;)</span> <span class="o">-&gt;</span> <span class="bp">()</span> <span class="o">@&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>This is what will happen if the port list on the input node is empty. If it&#39;s not empty, we repeated build up nested calls to:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="o">&lt;@</span> <span class="k">fun</span> <span class="o">(</span><span class="n">ports</span> <span class="o">:</span> <span class="nn">Collections</span><span class="p">.</span><span class="nn">Generic</span><span class="p">.</span><span class="nc">List</span><span class="o">&lt;</span><span class="nc">Port</span><span class="o">&gt;)</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="o">(%</span><span class="n">expr</span><span class="o">)</span> <span class="n">ports</span>
+</span><span class='line'>        <span class="n">ports</span><span class="o">.</span><span class="nc">Add</span><span class="o">(%</span><span class="n">h</span><span class="o">)</span> <span class="o">@&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Where <code>h</code> is the next port from the list. By the end of the process we have a chain of anonymous functions, each in turn closing over the quotation of a port from the input. Finally, we can splice that into the expression that actually creates our node.</p>
+
+<p>Now we can use our new <code>embeddedX</code> expressions in our provided constructors and methods; for example, the constructor above becomes:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">ctor</span> <span class="o">=</span> <span class="nc">ProvidedConstructor</span><span class="o">(</span>
+</span><span class='line'>            <span class="o">[</span>
+</span><span class='line'>                <span class="nc">ProvidedParameter</span><span class="o">(</span><span class="s2">&quot;Name&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;)</span>
+</span><span class='line'>                <span class="nc">ProvidedParameter</span><span class="o">(</span><span class="s2">&quot;UniqueId&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="nc">Guid</span><span class="o">&gt;)</span>
+</span><span class='line'>                <span class="nc">ProvidedParameter</span><span class="o">(</span><span class="s2">&quot;Config&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;)</span>
+</span><span class='line'>            <span class="o">],</span>
+</span><span class='line'>            <span class="nc">InvokeCode</span> <span class="o">=</span>
+</span><span class='line'>                <span class="k">fun</span> <span class="o">[</span><span class="n">name</span><span class="o">;</span><span class="n">unique</span><span class="o">;</span><span class="n">config</span><span class="o">]</span> <span class="o">-&gt;</span>
+</span><span class='line'>                    <span class="k">let</span> <span class="n">nodeExpr</span> <span class="o">=</span> <span class="n">embeddedNode</span> <span class="o">&lt;|</span> <span class="nc">GetNode</span> <span class="n">id</span>
+</span><span class='line'>                    <span class="o">&lt;@@</span> <span class="nn">NodeInstance</span><span class="p">.</span><span class="n">create</span> <span class="o">(%</span><span class="n">nodeExpr</span><span class="o">)</span> <span class="o">(%%</span><span class="n">name</span><span class="o">:</span><span class="kt">string</span><span class="o">)</span> <span class="o">(%%</span><span class="n">unique</span><span class="o">:</span><span class="nc">Guid</span><span class="o">)</span> <span class="o">(%%</span><span class="n">config</span><span class="o">:</span><span class="kt">string</span><span class="o">)</span> <span class="o">@@&gt;)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Can you see the difference? Now, rather than closing over the <code>GetNode</code> method, we&#39;re closing over the quotation of the node that it returns.</p>
+
+<p>With a sense of deja vu, let&#39;s just check this all works&#8230;</p>
+
+<p><img src="/images/tp_quotations.png" alt="Winning!"></p>
+
+<p>And somewhat surprisingly - it does.</p>
+
+<p>If you want to see and play with the code, the version for this post can be found in <a href="https://github.com/mavnn/Mavnn.Blog.TypeProvider/tree/FirstFloor">the FirstFloor branch of the project on GitHub</a>.</p>
+
+<p>As with the first post in the series, let me know your questions and comments.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">mavnn</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-03-19T21:06:05+00:00" pubdate data-updated="true">Mar 19<span>th</span>, 2014</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/fsharp/'>fsharp</a>, <a class='category' href='/blog/categories/programming/'>programming</a>, <a class='category' href='/blog/categories/typeprovider/'>typeprovider</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://blog.mavnn.co.uk/type-providers-from-the-first-floor/" data-via="mavnn" data-counturl="http://blog.mavnn.co.uk/type-providers-from-the-first-floor/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/single-file-websites-with-suave/" title="Previous Post: Single file websites with Suave">&laquo; Single file websites with Suave</a>
+      
+      
+        <a class="basic-alignment right" href="/going-functionally-solid/" title="Next Post: Going Functionally SOLID">Going Functionally SOLID &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/deliberate-poster-fighting-imposter-syndrome/">Deliberate Poster: Fighting Imposter Syndrome</a>
+      </li>
+    
+      <li class="post">
+        <a href="/managing-mutable-state-with-computational-expressions/">Managing Mutable State With Computational Expressions</a>
+      </li>
+    
+      <li class="post">
+        <a href="/return-to-the-ivory-tower-video/">Return to the Ivory Tower Video</a>
+      </li>
+    
+      <li class="post">
+        <a href="/slides-for-f-number-exchange-2017/">Slides for F# Exchange 2017</a>
+      </li>
+    
+      <li class="post">
+        <a href="/level-up-your-f-number-skills/">Level Up Your F# Skills</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/mavnn">@mavnn</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'mavnn',
+            count: 3,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/+MichaelNewtonmavnn?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2017 - mavnn -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mavnn';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://blog.mavnn.co.uk/type-providers-from-the-first-floor/';
+        var disqus_url = 'http://blog.mavnn.co.uk/type-providers-from-the-first-floor/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

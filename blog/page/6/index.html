@@ -1,0 +1,1102 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Mavnn's blog</title>
+  <meta name="author" content="mavnn">
+
+  
+  <meta name="description" content="So, first post with the new blogging engine. Let&#39;s see how it goes. Our code base at 15below started it&#39;s life a fair
+while ago, well before &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+  <link rel="canonical" href="http://blog.mavnn.co.uk/blog/page/6/index.html">
+  <link href="/favicon.ico" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Mavnn's blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+<!-- Google Analytics -->
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-37561687-1', 'auto');
+ga('send', 'pageview');
+
+</script>
+<!-- End Google Analytics -->
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <a href="http://mavnn.co.uk"><img class="swirl-logo" src="/images/swirl.svg"/></a>
+  <h1><a href="/">Mavnn's blog</a></h1>
+  
+    <h2>Stuff from my brain</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:blog.mavnn.co.uk" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div class="blog-index">
+  
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/coding-hygiene-moving-from-project-references-to-nuget-dependencies/">Coding Hygiene: Moving From Project References to NuGet Dependencies</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-03-08T17:08:00+00:00" pubdate data-updated="true">Mar 8<span>th</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>So, first post with the new blogging engine. Let&#39;s see how it goes.</p>
+
+<p>Our code base at <a href="http://15below.com">15below</a> started it&#39;s life a fair
+while ago, well before any form of .NET package management became
+practical. Because of that, we ended up building a lot of code in
+&#39;lockstep&#39; with project references in code as there was no sensible way
+of taking versioned binary dependencies.</p>
+
+<p>That&#39;s fine and all, but it encourages bad code hygiene: rather than
+having sharply defined contracts between components, if you&#39;ve got them
+all open in the same solution it becomes far too tempting to just nudge
+changes around as it&#39;s convenient at the time. Changes can infect other
+pieces of code, and the power of automatic refactoring across the entire
+solution becomes intoxicating.</p>
+
+<p>The result? It becomes very hard to do incremental builds (or
+deployments, for that matter). This in turn makes for a long feed back
+cycle between making a change, and being able to see it rolled out to a
+testing environment.</p>
+
+<p>So as part of the ongoing refactoring that any long lived code base needs to
+keep it maintainable and under control, we&#39;ve embarked on the process of
+splitting our code down into more logically separated repositories that
+reference each other via NuGet. This will require us to start being much
+more disciplined in our <a href="http://semver.org">semantic versioning</a> than we
+have been in the past, but will also allow us to build and deploy
+incrementally and massively reduce our feed back times.</p>
+
+<p>As part of splitting out the first logical division (I&#39;d like to say
+<a href="http://en.wikipedia.org/wiki/Domain-driven_design">domain</a> but we&#39;re
+not there yet!), I created the new repository and got the included
+assemblies up and building on TeamCity. It was only then (stupidly) that
+I realised that we had several hundred project references to these
+assemblies in our code. There was no way I was going to update them all
+by hand, so after a few hours development we now have a script for
+idempotently updating a project reference in a [cs|vb|fs]proj file to a
+NuGet reference. It does require you to do one update manually first;
+especially with assemblies that are strongly signed, I chickened out of
+trying to generate the reference nodes that needed to be added
+automatically. The script also makes sure that you end up with a
+packages.config file with the project that includes the new dependency.</p>
+
+<p>It should be noted that this script has only seen minimal testing, was
+coded up for one time use and does not come with a warranty of any kind!
+Use at your own risk, and once you understand what it&#39;s doing. But for
+all that, I hope you find it useful.</p>
+
+<div><script src='https://gist.githubusercontent.com/mavnn/5983379.js'></script>
+<noscript><pre><code>#r &quot;System.Xml.Linq&quot;
+#r &quot;tools\FAKE\FakeLib.dll&quot;
+open System.IO
+open System.Xml
+open System.Xml.Linq
+open System.Xml.XPath
+open Fake
+
+// You&#39;ll want to replace these values...
+let nugetId = &quot;my.package.id&quot;
+let refName = &quot;my.ref.name&quot;
+let packageNode = XElement.Parse &quot;&quot;&quot;&lt;package id=&quot;my.package.id&quot; version=&quot;1.0.0.6&quot; targetFramework=&quot;net40&quot; /&gt;&quot;&quot;&quot;
+let refXml =
+    &quot;&quot;&quot;
+    &lt;Reference Include=&quot;my.ref.name&quot;&gt;
+      &lt;HintPath&gt;..\..\packages\my.package.id.1.0.0.6\lib\net40\my.ref.name.dll&lt;/HintPath&gt;
+      &lt;Private&gt;True&lt;/Private&gt;
+    &lt;/Reference&gt;
+    &quot;&quot;&quot;
+let hintPathFromRoot =
+@&quot;packages\my.package.id.1.0.0.6\lib\net40\my.ref.name.dll&quot;
+let sourceRoot = &quot;C:\WhereIKeepMyRepo&quot;
+
+// You should be able to leave the rest alone
+let ns = &quot;http://schemas.microsoft.com/developer/msbuild/2003&quot;
+let nsm = new XmlNamespaceManager(new NameTable())
+nsm.AddNamespace(&quot;ns&quot;, ns)
+let nugetPath = sourceRoot @@ &quot;tools&quot; @@ &quot;NuGet&quot; @@ &quot;NuGet.exe&quot;
+
+let HasProjectReference (projDoc : XDocument) refName =
+    projDoc.Root.XPathSelectElements(&quot;//ns:ProjectReference[ns:Name=&#39;&quot; + refName + &quot;&#39;]&quot;, nsm)
+    |&gt; Seq.length
+    |&gt; (&lt;) 0
+
+let GetProjectReference (projDoc : XDocument) refName =
+    projDoc.Root.XPathSelectElement(&quot;//ns:ProjectReference[ns:Name=&#39;&quot; + refName + &quot;&#39;]&quot;, nsm)
+
+let DeleteProjectReference refName (projFile : string) =
+    let projDoc = XDocument.Load(projFile)
+    if HasProjectReference projDoc refName then
+        let ref = GetProjectReference projDoc refName
+        ref.Remove()
+        projDoc.Save(projFile)
+
+let HasReference (projDoc : XDocument) refName =
+    projDoc.Root.XPathSelectElements(&quot;//ns:Reference[@Include=&#39;&quot; + refName + &quot;&#39;]&quot;, nsm)
+    |&gt; Seq.append &lt;| projDoc.Root.XPathSelectElements(&quot;//ns:Reference[@Include[starts-with(., &#39;&quot; + refName + &quot;,&#39;)]]&quot;, nsm)
+    |&gt; Seq.tryPick (fun e -&gt; Some e)
+
+let FirstReference (projDoc : XDocument) =
+    projDoc.Root.XPathSelectElements(&quot;//ns:Reference&quot;, nsm)
+    |&gt; Seq.head
+
+let GetHintPath hintPathFromRoot root projFile =
+    let rootDir = DirectoryInfo(root)
+    let projDir = DirectoryInfo(Path.GetDirectoryName(projFile))
+    let rec dirDiff (rootDir : DirectoryInfo) (currentDir : DirectoryInfo) levels =
+        if rootDir.FullName = currentDir.FullName then
+            levels
+        else
+            dirDiff rootDir (currentDir.Parent) (levels + 1)
+    hintPathFromRoot::[for _ in 1..(dirDiff rootDir projDir 0) -&gt; &quot;..&quot;]
+    |&gt; List.rev
+    |&gt; List.fold (@@) &quot;.&quot;
+
+let UpdateHintPath projFile =
+    let ref = XElement.Parse(refXml)
+    let xs = XNamespace.Get(ns)
+    let el = ref.XPathSelectElement(&quot;//HintPath&quot;)
+    el.SetValue (GetHintPath hintPathFromRoot sourceRoot projFile)
+    for node in ref.DescendantsAndSelf() do
+        node.Name &lt;- xs + node.Name.LocalName
+    ref
+
+let EnsureReference refName (projFile : string) =
+    let doc = XDocument.Load(projFile)
+    match HasReference doc refName with
+    | Some el -&gt; el.Remove()
+    | None -&gt; ()
+    let el = FirstReference doc
+    el.AddBeforeSelf(UpdateHintPath projFile)
+    doc.Save(projFile)
+
+type PackageFile =
+    | Exists of string
+    | Missing of string
+
+let GetPackagesDotConfig projFile =
+    let dir = Path.GetDirectoryName(projFile)
+    let path = dir @@ &quot;packages.config&quot;
+    if File.Exists(path) then
+        Exists path
+    else
+        Missing path
+
+let HasPackageReference (doc : XDocument) nugetId =
+    doc.XPathSelectElements(&quot;//package[@id = &#39;&quot; + nugetId + &quot;&#39;]&quot;)
+    |&gt; Seq.length
+    |&gt; (&lt;) 0
+
+let EnsurePackagesDotConfigHasPackage nugetId projFile =
+    let doc, path =
+        match GetPackagesDotConfig projFile with
+        | Missing path -&gt;
+            XDocument.Parse(&quot;&lt;packages /&gt;&quot;), path
+        | Exists path -&gt;
+            XDocument.Load(path), path
+    if not &lt;| HasPackageReference doc nugetId then
+        doc.Root.XPathSelectElement(&quot;/packages&quot;).Add(packageNode)
+        doc.Save path
+
+let UpdateProj (projFile : string) =
+    if HasProjectReference (XDocument.Load(projFile)) refName then
+        DeleteProjectReference refName projFile
+        EnsureReference refName projFile
+        EnsurePackagesDotConfigHasPackage nugetId projFile
+
+!+ (@&quot;**\*.csproj&quot;)
+++ (@&quot;**\*.fsproj&quot;)
+++ (@&quot;**\*.vbproj&quot;)
+|&gt; Scan
+|&gt; Seq.map (fun proj -&gt; printfn &quot;Updating %s&quot; proj; proj)
+|&gt; Seq.iter UpdateProj
+</code></pre></noscript></div>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/throttling-the-level-of-concurrency-in-f/">Throttling the Level of Concurrency in F#</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-02-15T00:00:00+00:00" pubdate data-updated="true"></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Async.Parallel |&gt; Async.RunSynchronously is great for running a load of stuff in parallel in F#, as long as you don&#39;t mind them all running at the same time.</p>
+
+<p>Often, though, you want to map across a sequence and run functions on the elements in parallel, but with a limit to how many are being processed concurrently. Whether you&#39;re doing something CPU heavy and there&#39;s no point running more than the number of processors on the box, or whether you know that you&#39;ll swamp a remote server if you just dump all of your connections on it at once, this issue comes up surprisingly often.</p>
+
+<p>As a first stab, you might be tempted to do something like this (if you think like I do):</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="k">inline</span> <span class="n">doParallelWithThrottle</span> <span class="n">limit</span> <span class="n">f</span> <span class="n">items</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">use</span> <span class="n">sem</span> <span class="o">=</span> <span class="k">new</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Threading</span><span class="p">.</span><span class="nc">Semaphore</span><span class="o">(</span><span class="n">limit</span><span class="o">,</span> <span class="n">limit</span><span class="o">)</span>
+</span><span class='line'>    <span class="n">items</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">element</span> <span class="o">-&gt;</span> <span class="n">async</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">sem</span><span class="o">.</span><span class="nc">WaitOne</span><span class="bp">()</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">result</span> <span class="o">=</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">RunSynchronously</span> <span class="o">&lt;|</span> <span class="n">async</span> <span class="o">{</span> <span class="k">return</span> <span class="n">f</span> <span class="n">element</span> <span class="o">}</span>
+</span><span class='line'>            <span class="n">sem</span><span class="o">.</span><span class="nc">Release</span><span class="bp">()</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
+</span><span class='line'>            <span class="k">return</span> <span class="n">result</span>
+</span><span class='line'>        <span class="o">})</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Parallel</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">RunSynchronously</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>In a word: don&#39;t. The contention in the Semaphore make this enormously inefficient with even a few hundred tasks.</p>
+
+<p>In the end, the simplest  implementation I could come up with that didn&#39;t involve dragging in external dependencies was the following:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Collections</span><span class="p">.</span><span class="nc">Concurrent</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">JobRequest</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="nc">T</span><span class="o">&gt;</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span>
+</span><span class='line'>        <span class="nc">Id</span> <span class="o">:</span> <span class="kt">int</span>
+</span><span class='line'>        <span class="nc">WorkItem</span> <span class="o">:</span> <span class="k">&#39;</span><span class="nc">T</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">WorkRequest</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="nc">T</span><span class="o">&gt;</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Job</span> <span class="k">of</span> <span class="nc">JobRequest</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="nc">T</span><span class="o">&gt;</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">End</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="k">inline</span> <span class="n">doParallelWithThrottle</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">,</span> <span class="k">&#39;</span><span class="n">b</span><span class="o">&gt;</span> <span class="n">limit</span> <span class="n">f</span> <span class="n">items</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">itemArray</span> <span class="o">=</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">toArray</span> <span class="n">items</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">itemCount</span> <span class="o">=</span> <span class="nn">Array</span><span class="p">.</span><span class="n">length</span> <span class="n">itemArray</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">resultMap</span> <span class="o">=</span> <span class="nc">ConcurrentDictionary</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">,</span> <span class="k">&#39;</span><span class="n">b</span><span class="o">&gt;</span><span class="bp">()</span>
+</span><span class='line'>    <span class="k">use</span> <span class="n">block</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">BlockingCollection</span><span class="o">&lt;</span><span class="nc">WorkRequest</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;&gt;(</span><span class="mi">1</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">use</span> <span class="n">completeBlock</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">BlockingCollection</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;(</span><span class="mi">1</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">monitor</span> <span class="o">=</span>
+</span><span class='line'>        <span class="nn">MailboxProcessor</span><span class="p">.</span><span class="nc">Start</span><span class="o">(</span><span class="k">fun</span> <span class="n">inbox</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="k">let</span> <span class="k">rec</span> <span class="n">inner</span> <span class="n">complete</span> <span class="o">=</span>
+</span><span class='line'>                <span class="n">async</span> <span class="o">{</span>
+</span><span class='line'>                    <span class="k">do</span><span class="o">!</span> <span class="n">inbox</span><span class="o">.</span><span class="nc">Receive</span><span class="bp">()</span>
+</span><span class='line'>                    <span class="k">if</span> <span class="n">complete</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">=</span> <span class="n">limit</span> <span class="k">then</span>
+</span><span class='line'>                        <span class="n">completeBlock</span><span class="o">.</span><span class="nc">Add</span><span class="o">(</span><span class="bp">()</span><span class="o">)</span>
+</span><span class='line'>                        <span class="k">return</span> <span class="bp">()</span>
+</span><span class='line'>                    <span class="k">else</span>
+</span><span class='line'>                        <span class="k">return</span><span class="o">!</span> <span class="n">inner</span> <span class="o">&lt;|</span> <span class="n">complete</span> <span class="o">+</span> <span class="mi">1</span>
+</span><span class='line'>                <span class="o">}</span>
+</span><span class='line'>            <span class="n">inner</span> <span class="mi">0</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">createAgent</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>        <span class="nn">MailboxProcessor</span><span class="p">.</span><span class="nc">Start</span><span class="o">(</span>
+</span><span class='line'>            <span class="k">fun</span> <span class="n">inbox</span> <span class="o">-&gt;</span>
+</span><span class='line'>                <span class="k">let</span> <span class="k">rec</span> <span class="n">inner</span> <span class="bp">()</span> <span class="o">=</span> <span class="n">async</span> <span class="o">{</span>
+</span><span class='line'>                        <span class="k">let</span><span class="o">!</span> <span class="n">request</span> <span class="o">=</span> <span class="n">async</span> <span class="o">{</span> <span class="k">return</span> <span class="n">block</span><span class="o">.</span><span class="nc">Take</span><span class="bp">()</span> <span class="o">}</span>
+</span><span class='line'>                        <span class="k">match</span> <span class="n">request</span> <span class="k">with</span>
+</span><span class='line'>                        <span class="o">|</span> <span class="nc">Job</span> <span class="n">job</span> <span class="o">-&gt;</span>
+</span><span class='line'>                            <span class="k">let</span><span class="o">!</span> <span class="n">result</span> <span class="o">=</span> <span class="n">async</span> <span class="o">{</span> <span class="k">return</span> <span class="n">f</span> <span class="o">(</span><span class="n">job</span><span class="o">.</span><span class="nc">WorkItem</span><span class="o">)</span> <span class="o">}</span>
+</span><span class='line'>                            <span class="n">resultMap</span><span class="o">.</span><span class="nc">AddOrUpdate</span><span class="o">(</span><span class="n">job</span><span class="o">.</span><span class="nc">Id</span><span class="o">,</span> <span class="n">result</span><span class="o">,</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">result</span><span class="o">)</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
+</span><span class='line'>                            <span class="k">return</span><span class="o">!</span> <span class="n">inner</span> <span class="bp">()</span>
+</span><span class='line'>                        <span class="o">|</span> <span class="nc">End</span>  <span class="o">-&gt;</span>
+</span><span class='line'>                            <span class="n">monitor</span><span class="o">.</span><span class="nc">Post</span> <span class="bp">()</span>
+</span><span class='line'>                            <span class="k">return</span> <span class="bp">()</span>
+</span><span class='line'>                    <span class="o">}</span>
+</span><span class='line'>                <span class="n">inner</span> <span class="bp">()</span>
+</span><span class='line'>        <span class="o">)</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">agents</span> <span class="o">=</span>
+</span><span class='line'>        <span class="o">[|</span> <span class="k">for</span> <span class="n">i</span> <span class="k">in</span> <span class="mi">1</span><span class="o">..</span><span class="n">limit</span> <span class="o">-&gt;</span> <span class="n">createAgent</span><span class="bp">()</span> <span class="o">|]</span>
+</span><span class='line'>    <span class="n">itemArray</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Array</span><span class="p">.</span><span class="n">mapi</span> <span class="o">(</span><span class="k">fun</span> <span class="n">i</span> <span class="n">item</span> <span class="o">-&gt;</span> <span class="nc">Job</span> <span class="o">{</span> <span class="nc">Id</span> <span class="o">=</span> <span class="n">i</span><span class="o">;</span> <span class="nc">WorkItem</span> <span class="o">=</span> <span class="n">item</span> <span class="o">})</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Array</span><span class="p">.</span><span class="n">iter</span> <span class="o">(</span><span class="n">block</span><span class="o">.</span><span class="nc">Add</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="o">[</span><span class="mi">1</span><span class="o">..</span><span class="n">limit</span><span class="o">]</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">iter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">x</span> <span class="o">-&gt;</span> <span class="n">block</span><span class="o">.</span><span class="nc">Add</span><span class="o">(</span><span class="nc">End</span><span class="o">))</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">completeBlock</span><span class="o">.</span><span class="nc">Take</span><span class="bp">()</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">results</span> <span class="o">=</span> <span class="nn">Array</span><span class="p">.</span><span class="n">zeroCreate</span> <span class="n">itemCount</span>
+</span><span class='line'>    <span class="n">resultMap</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">iter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">kv</span> <span class="o">-&gt;</span> <span class="n">results</span><span class="o">.[</span><span class="n">kv</span><span class="o">.</span><span class="nc">Key</span><span class="o">]</span> <span class="o">&lt;-</span> <span class="n">kv</span><span class="o">.</span><span class="nc">Value</span><span class="o">)</span>
+</span><span class='line'>    <span class="n">results</span>
+</span></code></pre></td></tr></table></div></figure>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/fake-part-2-build-and-test/index.html">Fake Part 2: Build and Test</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-02-13T00:00:00+00:00" pubdate data-updated="true"></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>The introduction to this series can be found at <a href="https//blog.mavnn.co.uk/getting-started-with-fake-an-introduction-tag">https//blog.mavnn.co.uk/getting-started-with-fake-an-introduction-tag</a> or just check out my Fake tag.</p>
+<p><strong>The scenario</strong></p>
+<p>So, you&#8217;ve written your brave new F# 3.0 solution, and now you want to build, test and package it with a shared build setup between your CI environment (which, of course, doesn&#8217;t have Visual Studio installed) and your developer&#8217;s machines.</p>
+<p><span style="font-size: 13px;">Hopefully this will walk you through most of the potential pitfalls you might find along the way.</span></p>
+<p><span style="font-size: 13px;">This post has been written using an actual build.fsx script that we use for a utility project at <a href="http://15below.com" title="15below" target="_blank">15below</a>. We&#8217;re hiring, so if you&#8217;re interested in this kind of thing, drop me a line.</span></p>
+<p><strong><span style="font-size: 13px;">Set up</span></strong></p>
+<p><span style="font-size: 13px;">There is no installer for the F# 3 compiler, so we&#8217;re going to be playing some games to support building on a TeamCity build agent without VS 2012 installed.</span></p>
+<p><span style="font-size: 13px;">The script assumes a few things about your repository:</span></p>
+<p>&nbsp;</p>
+<ul>
+<li><span style="font-size: 13px;">a tools directory with the same NuGet and FSharp directories as at <a href="https://github.com/fsharp/FAKE/tree/develop/tools">https://github.com/fsharp/FAKE/tree/develop/tools</a> (basically a recent nuget.exe in one, and a recent build of the open source F# compiler project in the other)</span></li>
+<li><span style="font-size: 13px;">a tools/FAKE directory with a recent build of FAKE (I prefer to have a known version checked into git, but you can read instructions on how to bootstrap it via nuget at <a href="http://www.navision-blog.de/blog/2009/04/01/getting-started-with-fake-a-f-sharp-make-tool/)">http://www.navision-blog.de/blog/2009/04/01/getting-started-with-fake-a-f-sha&#8230;</a></span></li>
+</ul>
+<p>&nbsp;</p>
+<p><span style="font-size: 13px;">From here on down is just a heavily commented build.fsx file. I was going to use FSharp.Formatting to nicely format this, but unfortunately the combination of FSharp.Formatting itself and Posterous have defeated me. Something to play with more at a later date.</span></p>
+<p><span style="font-size: 13px;"><script src="https://gist.github.com/4944580.js"></script></span></p>
+<p><span style="font-size: 13px;">Hopefully this example will give you a start on using FAKE in real projects.</span></p>
+<p><span style="font-size: 13px;">In future posts I&#8217;d like to address some of the more esoteric bits and pieces we&#8217;ve been using FAKE for, such as building Octopus deployment packages, running integration tests (with full setup and database deployment) and running unit tests in parallel. Stay tuned&#8230;</span></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/a-short-interlude-into-adaptive-polling-tag-f/">A Short Interlude Into Adaptive Polling</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-01-22T00:00:00+00:00" pubdate data-updated="true"></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Your windows service is watching an email inbox.</p>
+
+<p>How often should it poll?</p>
+
+<p>Once every 5 minutes? Every 10? Then of course you realise that it should be different for every customer… or maybe every mailbox. You need more config!</p>
+
+<h3>Or not.</h3>
+
+<p>The real answer, of course, is something completely different: it should poll a lot when a lot of emails are arriving, and not very much when they aren’t.</p>
+
+<p>It took a lot longer than it should have done to get my maths brain back on, but with the help of my wife I eventually settled on this code for deciding the intervals between polls:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">interval</span> <span class="n">i</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">x</span> <span class="o">=</span> <span class="kt">float</span> <span class="n">i</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">maxWait</span> <span class="o">=</span> <span class="mi">60</span><span class="o">.</span> <span class="o">*</span> <span class="mi">10</span><span class="o">.</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">raisePower</span> <span class="n">x</span> <span class="o">=</span> <span class="n">pown</span> <span class="o">(</span><span class="n">x</span> <span class="o">/</span><span class="mi">10</span><span class="o">.)</span> <span class="mi">4</span>
+</span><span class='line'>    <span class="o">(</span><span class="n">maxWait</span> <span class="o">*</span> <span class="o">(</span><span class="n">raisePower</span> <span class="n">x</span><span class="o">))</span> <span class="o">/</span> <span class="o">(</span><span class="n">raisePower</span> <span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="o">.)</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="o">(*)</span> <span class="mi">1000</span><span class="o">.</span> <span class="o">|&gt;</span> <span class="kt">int</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>The ‘i’ in this function is the number of times we’ve polled since the last time a new email was received (if one is received, we reset i to 0).</p>
+
+<p>If you plot this out on a graph, you get something that looks like this:</p>
+
+<p><img src="http://www.wolframalpha.com/share/img?i=d41d8cd98f00b204e9800998ecf8427ehd954rh40i&amp;f=HBQTQYZYGY4TOM3CGRSGMMBWGAYDCM3DGYZGMOBWGFRDANDCMUZAaaaa" alt="" /></p>
+
+<p>You can play with the shape of the graph at <a href="http://www.wolframalpha.com/share/clip?f=d41d8cd98f00b204e9800998ecf8427ehd954rh40i">Wolfram|Alpha if you&#39;re feeling really geeky</a> :).</p>
+
+<p>This gives us very aggressive polling for the first few minutes after discovering an email, then dropping off rapidly to close to the one every ten minutes mark that I decided was a reasonable background polling rate.</p>
+
+<p>It&#39;s not truly adaptive in the machine learning sense, but it gives a very good first cut that is an awful lot better than any fixed value could be.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/corrected-error-handling-computational-expres/index.html">Corrected Error Handling Computational Expression</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-01-18T00:00:00+00:00" pubdate data-updated="true"></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>I&rsquo;ve been wanting to write code like this in F#, and know that any
+exceptions within a bound expression in an audit { } block will not
+only get caught, but that an external auditing service will get
+notified that the operation has failed.</p>
+
+<p><script src="https://gist.github.com/4565937.js"></script></p>
+
+<p>Unfortunately, it turns out my code in my post on error handling
+( <a href="https//blog.mavnn.co.uk/playing-with-error-handling-strategies">https//blog.mavnn.co.uk/playing-with-error-handling-strategies</a> ) was
+flawed in its ability to handle errors. The irony has not escaped me.</p>
+
+<p>The issue is with the eager evaluation of arguments to the TryFinally
+method of the builder. If it takes you a while to work out what that
+means, don&rsquo;t worry: it took me about 2 days to wrap my head round it
+and work out how to correct the code to make it behave as I would have
+expected.</p>
+
+<p>To make things work correctly, the type returned by the computational
+expression pretty much has to be a deferred function of some kind.</p>
+
+<p>So, the Interface, now renamed IAuditBuilder, gains a couple of helper
+functions and becomes:</p>
+
+<p><script src="https://gist.github.com/4565812.js"></script></p>
+
+<p>The implementation of the TestAuditBuilder (only logs to console on
+error) becomes:</p>
+
+<p><script src="https://gist.github.com/4565838.js"></script></p>
+
+<p>So: many thanks to Johann Deneux for patiently pointing out to me what
+the flaw in the original code was. I hope this example of a lazy
+computational expression is useful to other starting out down this
+rabbit hole of monadic weirdness. At least the resulting code looks
+pretty nice and readable now that the builder is fixed.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/in-which-our-intrepid-author-de-sugars-a-mona/index.html">In Which Our Intrepid Author De-sugars a Monad by Hand</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-01-16T00:00:00+00:00" pubdate data-updated="true"></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>In my previous post ( <a href="https//blog.mavnn.co.uk/playing-with-error-handling-strategies">https//blog.mavnn.co.uk/playing-with-error-handling-strategies</a> ), Johann Deneux asked me whether my implementation of TryFinally actually worked. <p /> TD;LR: It works. But thank you Johann for making me check!</p>
+<p>Editted TD;LR: It&#8217;s broken, but not for the reason I thought. See the comments for details, and corrected code here&nbsp;<a href="https//blog.mavnn.co.uk/corrected-error-handling-computational-expres">https//blog.mavnn.co.uk/corrected-error-handling-computational-expres</a><p /> This gave me a bit of a pause, as it&#8217;s actually an implementation I took from another source. One I trust, but it was still embarrassing to realise I couldn&#8217;t answer this question with full confidence as I didn&#8217;t quite understand the code myself. <p /> In the end (especially given I&#8217;m planning to actually use this code in production at some point), I decided to go the whole hog and de-sugar a couple of simple versions of the computational expression. <p /> So, first, the audit monad as used in my example code from the last post with just a simple let binding: <p /> <script src="https://gist.github.com/4550342.js"></script><p /> This raised my confidence slightly - the code I&#8217;d written did what I expected. But, what happened when I tried to bind a disposable resource using use! rather than let!? Time for the moment of truth: <p /> <script src="https://gist.github.com/4550496.js"></script><p /> So there you have it. The code does actually behave as expected, protecting the use of the disposable resource and ensuring it&#8217;s disposal. And I can breath easy that my code is doing what I thought it should be. Hopefully this will also serve as a useful example for anyone else starting out on the happy road of using computational expressions.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/playing-with-error-handling-strategies/index.html">Playing With Error Handling Strategies</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-01-14T00:00:00+00:00" pubdate data-updated="true"></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Taking a break from Fake for a moment (I&#8217;ll get back to it, I promise!) <p /> Note: this post assumes a basic understanding of computation expressions in F#; if you&#8217;re looking for a primer on them,&nbsp;<a href="http://en.wikibooks.org/wiki/F_Sharp_Programming/Computation_Expressions">http://en.wikibooks.org/wiki/F_Sharp_Programming/Computation_Expressions</a> <br />is a good place to start.</p>
+<p>Note 2: the code in this post is actually broken if you use a use! or try finally block within your audit block. Check out&nbsp;<a href="https//blog.mavnn.co.uk/corrected-error-handling-computational-expres" style="font-size: 13px;">https//blog.mavnn.co.uk/corrected-error-handling-computational-expres</a>&nbsp;for the corrected code.</p>
+<p><br />I had a series of small services I needed to add error handling to today to polish them up from nice clean prototype to production ready status. <p /> Thinking about the joys of re-implementing the same error handling strategy in each of them, it occurred to me that this was exactly the kind of thing that computational expressions were built for. But my requirements went a bit further than just log the error and continue: each of these services contain critical locations where if a error occurred, we didn&#8217;t just want it logged locally, but we wanted (in some cases) an alert sent to a remote auditing* server. <p /> Of course, mocking out the auditing service for testing is a bit of a pain in the backside, and how auditing is achieved shouldn&#8217;t really be the responsibility of these services anyway. <p /> So, I decided to experiment with a builder interface. <p /> Meet the IErrorHandlerBuilder interface: <p /> <script src="https://gist.github.com/4533440.js"></script><p /> Should look awfully familiar if you&#8217;ve recently checked out the msdn page on computational expressions: <a href="http://msdn.microsoft.com/en-us/library/dd233182.aspx">http://msdn.microsoft.com/en-us/library/dd233182.aspx</a> (except, you know, mine has the right signatures; that might want to be fixed at some point). <p /> How do we use it? <p /> Well, first we need an implementation. In fact, let&#8217;s have two. Our first candidate, the AuditBuilder, takes an unhealthy number of dependencies that (in turn) take an unhealthy number of dependencies that you almost certainly want to supply from an IoC container. <p /> <script src="https://gist.github.com/4533554.js"></script><p /> What does it do? Well, basically if any bound function throws it logs the error via log4net and our in house audit server and then returns None. Otherwise it returns Some result from the computation. Obviously, if a computation further up the chain has already thrown we already have a None and we just pass it along. TryFinally and Using are implemented to make sure that you can still use disposable resources as you would expect within the expression. <p /> Our second candidate is the TestErrorBuilder: <p /> <script src="https://gist.github.com/4533560.js"></script><p /> This is almost identical to the implementation above, except that it takes no dependencies at all and if there is an error it just logs to the console via printfn. Very useful for debugging - you might even want a unit test version that logs nothing, depending on your unit tests. <p /> And now, our preparation is complete. How do we use our new toy, you ask? <p /> Something like this: <p /> <script src="https://gist.github.com/4533619.js"></script><p /> This little service persists interesting email messages to a document store, and sends the contents back to you when you request them. If an email is not persisted, or a request for an email fails, we want a remote alert to be triggered in production. Both the persist and content requests are handled as RabbitMq messages (using the EasyNetQ client). <p /> So in the message handler callbacks, declare an audit { } block and let! bind our message. Then we simply pass that bound message on to a handling function or object and return the resulting value, safe in the knowledge that our hosting program will have supplied an appropriate IErrorHandlerBuilder for our current purposes. The beauty of all of this is that the service object does not need to know what the error handling strategy is, and the objects/functions doing the work do not need to worry about error handling at all. <p /> This technique is especially useful in situations where you are making use of asynchronous programming techniques such as agents and you really don&#8217;t want a single failure taking out your whole agent or async expression. If for some reason it&#8217;s important to your code what the error is, as well as knowing it&#8217;s been handled, it would be easy to modify this technique to return a Choice or custom MaybeError discriminated union that you could pull the exception out of later. <p /> It would also be helpful for managing things like SQL connections with multiple retry attempts: for testing you may not want that kind of complexity and you could pass in a simpler strategy builder, while testing your robust, multiple retry computational builder for use in actual deployed environments (test or production). <p /> And, of course, just knowing that builder interfaces are possible raises up a whole new world of possibilities. <p /> As always, I tend to write about stuff that is fresh and new to me (i.e. not fully considered and maybe fatally flawed). Comments and suggestions welcome. <p /> * To avoid any confusion, I should note that the word audit is used loosely in this blog post, with a meaning more related to a namespace within our code than the normal meaning of the word &#8216;audit&#8217;.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/getting-started-with-fake-an-introduction-tag/index.html">Getting Started With Fake - an Introduction</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-01-09T00:00:00+00:00" pubdate data-updated="true"></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><blockquote><p>This is the first post in what will be a series about how we moved to
+using <a href="https://github.com/fsharp/FAKE">Fake</a> for our build and testing
+at <a href="http://15below.com">15below</a>. Feel free to follow along for the
+ride. It&rsquo;s partly there as a way of keeping the full development group
+within the company informed of what&rsquo;s going on, so it will get pretty
+detailed and gritty in the later sections, but we decided that there
+wasn&rsquo;t anything too company specific in here. So we&rsquo;re sharing it with
+you all&hellip;</p></blockquote>
+
+<p>At my current employer, we have a wide range of code all the way from
+automatically translated vb6 (to vb.net) to brand spanking new F# and
+C#. At the end of the day though, everything runs on .net 4.0
+(currently).</p>
+
+<p>With the newer components, we could in theory be building and testing
+them independently: messaging based and developed in a TDD style they
+tend to have an existing test harness around them and be easy to add
+further tests to if it proves necessary.</p>
+
+<p>The legacy code on the other hand, is a bit of a different matter.
+It&rsquo;s still in the code base because it works. We know it works,
+because customers are using it and getting value from it. The bits
+that didn&rsquo;t, or looked like they were getting flaky, are the bits that
+have been refactored as we went along. But they are old enough that
+what is now considered basic testing hygiene was still a little more
+than a twinkle in Kent Beck&rsquo;s eye. (Ok, ok, so the book had been
+released. But it wasn&rsquo;t exactly considered common best practice yet).
+So until the refactoring work is complete, we&rsquo;re stuck with a system
+where the only feasible way of testing some aspects of it is to
+actually deploy it somewhere and run some jobs through.</p>
+
+<p>So what does this all have to do with Fake?</p>
+
+<p>Well, basically our continuous integration was getting out of control.
+To get the level of functionality and control we needed, we were
+ending up with somewhere in the region of 500 lines of re-entrant,
+recursive MsBuild scripts. I seriously considered starting the
+alt.ms.build.die.die.die newsgroup. A full build on a developer&rsquo;s
+machine could take upwards of 45 minutes. Even more painfully, as the
+refactoring continued we ended up with TeamCity build configurations
+tightly coupled to specific versions of our software, and it was
+becoming clear that the whole CI system was going to rapidly collapse
+under it&rsquo;s own weight unless things changed.</p>
+
+<p>We needed a solution.</p>
+
+<p>It had to be:</p>
+
+<ul>
+<li>Powerful. Programming in MsBuild is&hellip; not fun. Xml is for data.</li>
+<li>Storable in git along with our source code.</li>
+<li>.net based. We&rsquo;re a .net shop, and our specialist knowledge is .net;
+rake wasn&rsquo;t going to cut it. We also didn&rsquo;t want the management
+overhead of even more tooling on the build agents.</li>
+<li>In active development.</li>
+<li>Preferably open source, so even if external development stopped we
+could continue to maintain it.</li>
+</ul>
+
+
+<p>As both the company F# evangelist and one of the two people doing most
+of the CI work, I was very interested to hear about Fake, especially
+after having a chance to chat to it&rsquo;s author (<a href="https://twitter.com/sforkmann">Steffen
+Forkmann</a>) and having it recommended by
+Don Syme (who wrote F#).</p>
+
+<p>It met all of the criteria above. It&rsquo;s scripts are full F# &ndash; a
+language fully supported by Microsoft within it&rsquo;s flagship Visual
+Studio product. The scripts can easily be stored in git. It&rsquo;s actively
+being worked on, and accepting contributions as a fully open source
+product.</p>
+
+<p>Time to give it a try.</p>
+
+<p>Next post: how to set up your &ldquo;HelloWorld.fsx&rdquo; Fake script with your
+source, with all the niceties like intellisense that you would want.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/st-lambda-and-the-t-shirt-of-extra-geek/index.html">St. Lambda and the T-shirt of Extra Geek</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-01-04T00:00:00+00:00" pubdate data-updated="true"></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Possibly my geekiest self Birthday present ever: the #NOOO! manifesto (<a href="http://notonlyoo.org">http://notonlyoo.org</a>) t-shirt, personalized with membership number (and a !).</p> <p>I&#39;m not exactly a fashion model, but I was asked for pictures, so there you go. My wife also appears to have decided I needed to be backlit for the St. Lambda effect&#8230;</p> <p>Given the nature of the manifesto (&#39;Options over nulls&#39;) I was especially amused to see note the fact that whatever software they&#39;re using for the packing skips handles blank lines incorrectly and print &#39;null&#39; instead. Check the back text confirmation in the third picture.</p> <p><img src="/images/IMAG0232-1.jpg" alt="St. Lambda and the T-shirt of Extra Geek" /></p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/losing-an-unborn-child/index.html">Dealing With Grief</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-12-23T00:00:00+00:00" pubdate data-updated="true"></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><div>About 2 weeks ago, our unborn child died. We found out on Thursday (20/12/2012).</div>
+<p />
+<div>I&#8217;ve written this as a blog post: I&#8217;m not sure why, as I&#8217;m not sure that I&#8217;ll ever publish it. But if I do, and you&#8217;re normally here to read the technobabble, and you don&#8217;t care about the emotional stuff, the sentence above is probably all you need to know. One of the reasons this might get published is that I really don&#8217;t want to have to tell everyone about it in person.</div>
+<p />
+<div>As of Thursday morning, all seemed to be going well with the pregnancy. &nbsp;That morning was the primary school play; the afternoon was the midwife &#8216;just in case&#8217; check.</div>
+<p />
+<div>Roll back one: there is a medical history here that meant this was considered a high risk pregnancy. Hence the regular checks. &nbsp;</div>
+<p />
+<div>School finished at lunch for the last day before the Christmas break, and we were out of the &#8216;danger zone&#8217; first 12 weeks, so older brother went along with Mamma to hear the heart beat. There wasn&#8217;t one. I&#8217;m working from home, and it&#8217;s nearly dinner time, so we grab some food and all 3 of us go to the hospital. There&#8217;s no one who can provide child care on such short notice even if we want it, and there is absolutely zero chance I&#8217;m sending my wife on her own.</div>
+<p />
+<div>Roll back two: we already knew that at this point (~15 weeks into the pregnancy) it&#8217;s not always possible to hear the heart beat with the equipment available to the midwife. But she had managed to hear the heartbeat 2 weeks earlier. So I&#8217;m worried, but still hoping that this is hassle rather than something actually having gone wrong.</div>
+<p />
+<div>Aside: Maternity triage is a strange place, directly attached to the maternity ward. So you sit and wait (not a massive amount of time in the grand scheme of things) watching the really heavily pregnant people right at the end of the process go past. This is a strange, and not especially comforting experience. For bonus points I suspect a lot of the people who&#8217;s pregnancies have gone smoothly don&#8217;t even know what the triage area is. You get some strange looks sitting there with someone who obviously isn&#8217;t ready to give birth; as if as a man you need the reason to be there of someone giving birth or else you&#8217;re some kind of weird alien invader into the space.</div>
+<p />
+<div>The doctor who saw us was thorough, sympathetic and direct. It&#8217;s pretty obvious from the ultra sound that things are not good; even as a layman I&#8217;ve seen enough scans that it&#8217;s immediately apparent the baby isn&#8217;t alive. The only thing the doctor can add is that it isn&#8217;t recent; there are signs that I wouldn&#8217;t have spotted that the baby had been dead for some time.</div>
+<p />
+<div>&#8212;&#8212;&#8212;&#8212;</div>
+<p />
+<div>We spent Friday in hospital dealing with the medical side of the process which was harrowing but complete. My wife&#8217;s physical health is fine apart from tiredness and soreness that seem to be steadily returning to normal. My family and my work were both fantastic: I work in the same office as my brother at the moment, and they had no problem with both of us just disappearing. He stayed with our son (along with my parents and niece for a good chunk of the day) while we were at hospital. I&#8217;m amazingly grateful for the flexibility and availability of people: it was brought home to me even further when my Dad at one point, as an aside, checked if I&#8217;d been able to get time off to be at the hospital and I realised that when my parents went through a very similar experience in the 70s that probably was not a given.</div>
+<p />
+<div>So&#8230; physically that&#8217;s it. Done. Of course, in reality, it&#8217;s not that simple. &nbsp;When my grandfather passed away, I learnt something pretty important about myself, that has stayed with me ever since: I can freely mix joy and sorrow in life in ways that most people seem to find hard, or even distasteful. I&#8217;m not sure if this is a gift, or a minor insanity, but it&#8217;s definitely very helpful as life doesn&#8217;t tend to come in nice discriminated good and bad packages. So here I am, in mourning while celebrating advent. Frequently in tears (lesson number 2 from grandfather passing away: I realised I needed to learn to cry. It took a long time to learn), yet genuinely looking forward to going to the candle lit carols with the family. Feeling the heart ache of this person I&#8217;ll never know while checking out my son&#8217;s Christmas present that just arrived in the post. &nbsp;Wondering how I&#8217;m ever going to put this stuff into words, whilst making fun of myself across the internet as I try to drink my espresso with salt instead of sugar (by mistake, obviously&#8230;). &nbsp;And it&#8217;s hard, because it&#8217;s all real; but it doesn&#8217;t feel it. In the same way that when you find out that there&#8217;s a child on the way, there&#8217;s always a bit of a feel of unreality to it (you don&#8217;t know what they&#8217;re going to be like, there&#8217;s no signs of the pregnancy yet, etc), when you find out that they&#8217;re not on the way that feels pretty unreal too. &nbsp;Except that it&#8217;s not: they&#8217;re really gone, and we really got to see them, and when the sadness comes it&#8217;s not unreal at all.</div>
+<p />
+<div>It&#8217;s a mix of bereavement and the opportunity not taken. The sadness of a missing loved one mixed with the &#8216;what if&#8217; of not pushing the open door. Because however much you know there&#8217;s nothing that you could have done, this is still someone you were the guardian of. Even if you couldn&#8217;t guard them yet: I don&#8217;t feel guilt, as if I should have saved them. But it does feel as if&#8230; something. &nbsp;As if there should have been an option I could have taken to protect them. I&#8217;m at peace that there wasn&#8217;t: but not that there shouldn&#8217;t have been. &nbsp;And there&#8217;s a whole medley of other things flying around as well: how awesome my immediate family have been, with my 5 year old doing everything he knows how to offer support and be as considerate as he knows how. My incredible wife, who somehow impossibly has managed to let herself start grieving without falling apart. My family who have stepped in and mostly just been available, and just done what we asked without trying to &#8216;save the day&#8217; or take over.</div>
+<p />
+<div>And a special shout out to the new church. They have been wonderful as a safe place, and a comfort and a source of peace. No one&#8217;s tried to fix it, or tell us it&#8217;s all ok. No one has tried to step in and be the hero. &nbsp;But they&#8217;ve been with us, and prayed with us. They dropped off flowers at the flat while we were still at the hospital. They took me off the rota I was due to be on for Sunday before I had to ask (I didn&#8217;t get the message in time so asked anyway, but hey ho!). &nbsp;They came and *actually spoke to us* about things. No prying, no pushing just the honest &#8220;how are you doing?&#8221; that actually expects an answer. With discretion, and care, but they made sure that as many people as possible who had known we were expecting knew the news without us having to go to everyone and tell them. And they came to both of us, not just my wife; just to make sure that I wasn&#8217;t being ignored just because I&#8217;m &#8216;the man&#8217;.</div>
+<p />
+<div>Two things in particular I&#8217;ll treasure for a long time out of all of this. One is my wife saying on the way to church that after the service she was going to seek out two particular ladies and ask them to pray with and support her: and at the end of the service the two of them being there before she had a chance to stand up. &nbsp;And the pastor, who had been ill in the morning and so hadn&#8217;t heard the news. We saw him before the evening carols, and he asked my wife how things were going. &nbsp;She told him, and with the service about to start, and about 400 people waiting for him he just stopped, grabbed us in a hug and cried (while praying for us). It was, I think, the single most therapeutic thing anyone has ever done for me.</div>
+<p />
+<div>So I cry, and smile. And I mean them both.</div>
+</div>
+  
+  
+
+
+    </article>
+  
+  <div class="pagination">
+    
+      <a class="prev" href="/blog/page/7/">&larr; Older</a>
+    
+    <a href="/blog/archives">Blog Archives</a>
+    
+    <a class="next" href="/blog/page/5/">Newer &rarr;</a>
+    
+  </div>
+</div>
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/deliberate-poster-fighting-imposter-syndrome/">Deliberate Poster: Fighting Imposter Syndrome</a>
+      </li>
+    
+      <li class="post">
+        <a href="/managing-mutable-state-with-computational-expressions/">Managing Mutable State With Computational Expressions</a>
+      </li>
+    
+      <li class="post">
+        <a href="/return-to-the-ivory-tower-video/">Return to the Ivory Tower Video</a>
+      </li>
+    
+      <li class="post">
+        <a href="/slides-for-f-number-exchange-2017/">Slides for F# Exchange 2017</a>
+      </li>
+    
+      <li class="post">
+        <a href="/level-up-your-f-number-skills/">Level Up Your F# Skills</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating&#8230;</li>
+  </ul>
+  
+  <a href="https://github.com/mavnn">@mavnn</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'mavnn',
+            count: 3,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+<section class="googleplus">
+  <h1>
+    <a href="https://plus.google.com/+MichaelNewtonmavnn?rel=author">
+      <img src="http://www.google.com/images/icons/ui/gprofile_button-32.png" width="32" height="32">
+      Google+
+    </a>
+  </h1>
+</section>
+
+
+
+  
+</aside>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2017 - mavnn -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'mavnn';
+      
+        
+        var disqus_script = 'count.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

@@ -9,7 +9,7 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="This post is part of the F# Advent Calendar 2014, which is stuffed full of other interesting posts. Go have a read! Note: This post is epic in &hellip;">
+  <meta name="description" content="Making Sure Your Developers Keep Developing Software development is a strange profession, mostly because it&#39;s so young and because the tools are &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -79,6 +79,58 @@ ga('send', 'pageview');
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/keeping-up-with-the-latest-hammer/">Keeping Up With the Latest Hammer</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-12-22T12:07:02+00:00" pubdate data-updated="true">Dec 22<span>nd</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h2>Making Sure Your Developers Keep Developing</h2>
+
+<p>Software development is a strange profession, mostly because it&#39;s so young and because the tools are changing so fast. I&#39;ve not been an established enough craftsman in any other trade to know whether other professions are moving as quickly these days, but at least in my imagination once a carpenter learns to use a hammer, it doesn&#39;t get discontinued after 2 years and the hammer taken off the market. Or a new hammer released that hammers nails ten times as fast, but has a different
+shaped handle and you have to hammer sideways instead of down.</p>
+
+<p>We don&#39;t even seem to be able to decide whether it&#39;s a craft or a science. You can earn Computer Science degrees - but then well known software professionals choose titles like <a href="https://twitter.com/unclebobmartin">Software Craftsman</a>.</p>
+
+<p>Despite all of our claims of best practice and shared knowledge, it largely boils down to: developers don&#39;t know what they&#39;re doing yet. We&#39;re a new profession, and we&#39;re still learning - not just as individuals, but as a profession.</p>
+
+<p>This means that both as an individual developers, and as software houses - if we stop learning, we sink. The competitive advantage of keeping up with what&#39;s happening in the industry so outweighs the cost of doing the research that it would be foolish not to. Because while we might not yet know the <em>right</em> way to do things, we&#39;re still definitely finding <em>better</em> ways to do things.</p>
+
+<p>So: how do we do keep up to date, as <a href="/keeping-up-with-the-latest-hammer/#individuals">individuals</a> and as <a href="/keeping-up-with-the-latest-hammer/#companies">companies</a>?</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/keeping-up-with-the-latest-hammer/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -543,222 +595,6 @@ ga('send', 'pageview');
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/single-file-websites-with-suave/">Single File Websites With Suave</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-02-28T09:54:46+00:00" pubdate data-updated="true">Feb 28<span>th</span>, 2014</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><blockquote>
-<p>As of a few days ago, the embedded module <a href="https://github.com/SuaveIO/suave/pull/100/files">was merged</a> into Suave master. Enjoy!</p>
-</blockquote>
-
-<p>I&#39;m a great fan of <a href="http://suave.io/">Suave</a> for simple web development in F#. I highly recommend checking out the site for details, but in the mean time I&#39;d like to share a little trick I&#39;ve been using for rapid prototyping that I&#39;m finding very useful.</p>
-
-<p>The Suave.Http module contains a few helpers for serving static files from disk. Unfortunately, depending on use case and deployment strategy, relying on the location of a bunch of files on disk can be problematic.</p>
-
-<p>So (open source to the rescue!) I cracked open the code and wrote a small alternative implementation that serves files from the current assembly&#39;s embedded resources. I&#39;m finding it especially useful for single page JavaScript apps where you have a small number of resources and then a lot of end points providing api functionality.</p>
-
-<p>Setting up your website looks something like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nc">Website</span>
-</span><span class='line'><span class="k">open</span> <span class="nc">System</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">Suave</span><span class="p">.</span><span class="nc">Http</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">Suave</span><span class="p">.</span><span class="nc">Types</span>
-</span><span class='line'><span class="k">open</span> <span class="nc">Embedded</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="n">app</span> <span class="o">=</span>
-</span><span class='line'>    <span class="n">choose</span> <span class="o">[</span>
-</span><span class='line'>        <span class="c1">// serve the embedded index.html for &quot;/&quot;</span>
-</span><span class='line'>        <span class="nc">GET</span> <span class="o">&gt;&gt;=</span> <span class="n">url</span> <span class="s2">&quot;/&quot;</span> <span class="o">&gt;&gt;=</span> <span class="n">resource</span> <span class="s2">&quot;index.html&quot;</span>
-</span><span class='line'>        <span class="c1">// check if the request matches the name of an embedded resource</span>
-</span><span class='line'>        <span class="c1">// if it does, serve it up with a reasonable cache</span>
-</span><span class='line'>        <span class="nc">GET</span> <span class="o">&gt;&gt;=</span> <span class="n">browse_embedded</span>
-</span><span class='line'>        <span class="c1">// If it doesn&#39;t, try and trigger your api end points</span>
-</span><span class='line'>        <span class="nc">GET</span> <span class="o">&gt;&gt;=</span> <span class="n">url</span> <span class="s2">&quot;/json&quot;</span> <span class="o">&gt;&gt;==</span> <span class="o">(</span><span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">serveJson</span> <span class="o">&lt;|</span> <span class="n">makeData</span><span class="bp">()</span><span class="o">)</span>
-</span><span class='line'>        <span class="nc">GET</span> <span class="o">&gt;&gt;=</span> <span class="n">url</span> <span class="s2">&quot;/carrier&quot;</span> <span class="o">&gt;&gt;==</span> <span class="o">(</span><span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="n">getCarrierCodes</span> <span class="bp">()</span><span class="o">)</span>
-</span><span class='line'>        <span class="c1">// Nothing else has worked - 404</span>
-</span><span class='line'>        <span class="nc">NOT_FOUND</span> <span class="s2">&quot;Sorry, couldn&#39;t find your page&quot;</span>
-</span><span class='line'>    <span class="o">]</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">web_server</span> <span class="n">default_config</span> <span class="n">app</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>And the embedded module looks like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-<span class='line-number'>41</span>
-<span class='line-number'>42</span>
-<span class='line-number'>43</span>
-<span class='line-number'>44</span>
-<span class='line-number'>45</span>
-<span class='line-number'>46</span>
-<span class='line-number'>47</span>
-<span class='line-number'>48</span>
-<span class='line-number'>49</span>
-<span class='line-number'>50</span>
-<span class='line-number'>51</span>
-<span class='line-number'>52</span>
-<span class='line-number'>53</span>
-<span class='line-number'>54</span>
-<span class='line-number'>55</span>
-<span class='line-number'>56</span>
-<span class='line-number'>57</span>
-<span class='line-number'>58</span>
-<span class='line-number'>59</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nc">Embedded</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">open</span> <span class="nc">System</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">IO</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Reflection</span>
-</span><span class='line'><span class="k">open</span> <span class="nc">Suave</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">Suave</span><span class="p">.</span><span class="nc">Http</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">Suave</span><span class="p">.</span><span class="nc">Types</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">Suave</span><span class="p">.</span><span class="nc">Socket</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">ass</span> <span class="o">=</span> <span class="nn">Assembly</span><span class="p">.</span><span class="nc">GetExecutingAssembly</span><span class="bp">()</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">resources</span> <span class="o">=</span>
-</span><span class='line'>    <span class="n">ass</span><span class="o">.</span><span class="nc">GetManifestResourceNames</span><span class="bp">()</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="nc">CACHE_CONTROL_MAX_AGE</span> <span class="o">=</span> <span class="mi">600</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">lastModified</span> <span class="o">=</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">UtcNow</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">send_embedded</span> <span class="n">resourceName</span> <span class="n">r</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">let</span> <span class="n">write_embedded</span> <span class="n">file</span> <span class="o">(</span><span class="n">r</span> <span class="o">:</span> <span class="nc">HttpRequest</span><span class="o">)</span> <span class="o">=</span> <span class="n">async</span> <span class="o">{</span>
-</span><span class='line'>      <span class="k">use</span> <span class="n">s</span> <span class="o">=</span> <span class="n">ass</span><span class="o">.</span><span class="nc">GetManifestResourceStream</span><span class="o">(</span><span class="n">resourceName</span><span class="o">)</span>
-</span><span class='line'>
-</span><span class='line'>      <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="nc">Length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="n">L</span> <span class="k">then</span>
-</span><span class='line'>        <span class="k">do</span><span class="o">!</span> <span class="n">async_writeln</span> <span class="n">r</span><span class="o">.</span><span class="n">connection</span> <span class="o">(</span><span class="n">sprintf</span> <span class="s2">&quot;Content-Length: %d&quot;</span> <span class="n">s</span><span class="o">.</span><span class="nc">Length</span><span class="o">)</span> <span class="n">r</span><span class="o">.</span><span class="n">line_buffer</span>
-</span><span class='line'>
-</span><span class='line'>      <span class="k">do</span><span class="o">!</span> <span class="n">async_writeln</span> <span class="n">r</span><span class="o">.</span><span class="n">connection</span> <span class="s2">&quot;&quot;</span> <span class="n">r</span><span class="o">.</span><span class="n">line_buffer</span>
-</span><span class='line'>
-</span><span class='line'>      <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="nc">Length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="n">L</span> <span class="k">then</span>
-</span><span class='line'>        <span class="k">do</span><span class="o">!</span> <span class="n">transfer_x</span> <span class="n">r</span><span class="o">.</span><span class="n">connection</span> <span class="n">s</span> <span class="o">}</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">async</span> <span class="o">{</span> <span class="k">do</span><span class="o">!</span> <span class="n">response_f</span> <span class="mi">200</span> <span class="s2">&quot;OK&quot;</span> <span class="o">(</span><span class="n">write_embedded</span> <span class="n">resourceName</span><span class="o">)</span> <span class="n">r</span> <span class="o">}</span> <span class="o">|&gt;</span> <span class="n">succeed</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="n">resource</span> <span class="n">resourceName</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">if</span> <span class="n">resources</span> <span class="o">|&gt;</span> <span class="nn">Array</span><span class="p">.</span><span class="n">exists</span> <span class="o">((=)</span> <span class="n">resourceName</span><span class="o">)</span> <span class="k">then</span>
-</span><span class='line'>      <span class="k">let</span> <span class="n">send_it</span> <span class="o">_</span> <span class="o">=</span>
-</span><span class='line'>        <span class="k">let</span> <span class="n">mimes</span> <span class="o">=</span> <span class="n">mime_type</span> <span class="o">&lt;|</span> <span class="nn">IO</span><span class="p">.</span><span class="nn">Path</span><span class="p">.</span><span class="nc">GetExtension</span> <span class="n">resourceName</span>
-</span><span class='line'>        <span class="o">#</span><span class="k">if</span> <span class="nc">DEBUG</span>
-</span><span class='line'>        <span class="n">set_mime_type</span> <span class="n">mimes</span>
-</span><span class='line'>        <span class="o">&gt;&gt;</span> <span class="n">send_embedded</span> <span class="o">(</span><span class="n">resourceName</span><span class="o">)</span>
-</span><span class='line'>        <span class="o">#</span><span class="k">else</span>
-</span><span class='line'>        <span class="n">set_header</span> <span class="s2">&quot;Cache-Control&quot;</span> <span class="o">(</span><span class="n">sprintf</span> <span class="s2">&quot;max-age=%d&quot;</span> <span class="nc">CACHE_CONTROL_MAX_AGE</span><span class="o">)</span>
-</span><span class='line'>        <span class="o">&gt;&gt;</span> <span class="n">set_header</span> <span class="s2">&quot;Last-Modified&quot;</span> <span class="o">(</span><span class="n">lastModified</span><span class="o">.</span><span class="nc">ToString</span><span class="o">(</span><span class="s2">&quot;R&quot;</span><span class="o">))</span>
-</span><span class='line'>        <span class="o">&gt;&gt;</span> <span class="n">set_header</span> <span class="s2">&quot;Expires&quot;</span> <span class="o">(</span><span class="nn">DateTime</span><span class="p">.</span><span class="nn">UtcNow</span><span class="p">.</span><span class="nc">AddSeconds</span><span class="o">(</span><span class="kt">float</span><span class="o">(</span><span class="nc">CACHE_CONTROL_MAX_AGE</span><span class="o">)).</span><span class="nc">ToString</span><span class="o">(</span><span class="s2">&quot;R&quot;</span><span class="o">))</span>
-</span><span class='line'>        <span class="o">&gt;&gt;</span> <span class="n">set_mime_type</span> <span class="n">mimes</span>
-</span><span class='line'>        <span class="o">&gt;&gt;</span> <span class="n">send_embedded</span> <span class="o">(</span><span class="n">resourceName</span><span class="o">)</span>
-</span><span class='line'>        <span class="o">#</span><span class="n">endif</span>
-</span><span class='line'>      <span class="n">warbler</span> <span class="o">(</span> <span class="k">fun</span> <span class="o">(</span><span class="n">r</span><span class="o">:</span><span class="nc">HttpRequest</span><span class="o">)</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="k">let</span> <span class="n">modified_since</span> <span class="o">=</span> <span class="o">(</span><span class="n">r</span><span class="o">.</span><span class="n">headers</span> <span class="o">?</span> <span class="o">``</span><span class="k">if</span><span class="o">-</span><span class="n">modified</span><span class="o">-</span><span class="n">since</span><span class="o">``</span> <span class="o">)</span>
-</span><span class='line'>        <span class="k">match</span> <span class="n">modified_since</span> <span class="k">with</span>
-</span><span class='line'>        <span class="o">|</span> <span class="nc">Some</span> <span class="n">v</span> <span class="o">-&gt;</span> <span class="k">let</span> <span class="n">date</span> <span class="o">=</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">Parse</span> <span class="n">v</span>
-</span><span class='line'>                    <span class="k">if</span> <span class="n">lastModified</span> <span class="o">&gt;</span> <span class="n">date</span> <span class="k">then</span> <span class="n">send_it</span> <span class="bp">()</span>
-</span><span class='line'>                    <span class="k">else</span> <span class="nc">NOT_MODIFIED</span>
-</span><span class='line'>        <span class="o">|</span> <span class="nc">None</span>   <span class="o">-&gt;</span> <span class="n">send_it</span> <span class="bp">()</span><span class="o">)</span>
-</span><span class='line'>    <span class="k">else</span>
-</span><span class='line'>      <span class="n">never</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="n">browse_embedded</span> <span class="o">:</span> <span class="nc">WebPart</span> <span class="o">=</span>
-</span><span class='line'>    <span class="n">warbler</span> <span class="o">(</span><span class="k">fun</span> <span class="n">req</span> <span class="o">-&gt;</span> <span class="n">resource</span> <span class="o">(</span><span class="n">req</span><span class="o">.</span><span class="n">url</span><span class="o">.</span><span class="nc">TrimStart</span><span class="o">([|</span> <span class="sc">&#39;/&#39;</span> <span class="o">|])))</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p><a href="https://twitter.com/ad3mar">@ad3mar</a> if you feel like rolling this into Suave, you can consider it licenced under what ever is most convenient. An official licence file would make me much happier using Suave in production, by the way (hint, hint).</p>
-
-<p>Edit: ad3mar has pointed out in the comments that Suave is already Apache2 licensed, I just failed to find the file last time I looked.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/5/">&larr; Older</a>
@@ -776,6 +612,10 @@ ga('send', 'pageview');
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/process-management-in-easynetq/">Process Management in EasyNetQ</a>
+      </li>
+    
+      <li class="post">
         <a href="/deliberate-poster-fighting-imposter-syndrome/">Deliberate Poster: Fighting Imposter Syndrome</a>
       </li>
     
@@ -789,10 +629,6 @@ ga('send', 'pageview');
     
       <li class="post">
         <a href="/slides-for-f-number-exchange-2017/">Slides for F# Exchange 2017</a>
-      </li>
-    
-      <li class="post">
-        <a href="/level-up-your-f-number-skills/">Level Up Your F# Skills</a>
       </li>
     
   </ul>

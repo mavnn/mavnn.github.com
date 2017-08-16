@@ -4,7 +4,7 @@
   <title><![CDATA[Mavnn's blog]]></title>
   <link href="https://blog.mavnn.co.uk/atom.xml" rel="self"/>
   <link href="https://blog.mavnn.co.uk/"/>
-  <updated>2017-08-08T15:06:32+01:00</updated>
+  <updated>2017-08-16T11:38:25+01:00</updated>
   <id>https://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,74 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Trying .NET Core 2.0 With F# Today]]></title>
+    <link href="https://blog.mavnn.co.uk/trying-dotnetcore-2-dot-0-with-f-number-today/"/>
+    <updated>2017-08-16T11:15:20+01:00</updated>
+    <id>https://blog.mavnn.co.uk/trying-dotnetcore-2-dot-0-with-f-number-today</id>
+    <content type="html"><![CDATA[<p>Yesterday, I tried to use .NET Core for F# on day zero. A bit <s>brave</s>foolish, I know, but v2 was supposed to be the one with all the bugs ironed out.</p>
+
+<p>Short version: it&#39;s a lot better, but it&#39;s still easy to hit rough edges.</p>
+
+<p>Longer version: be very careful that you don&#39;t hit issues with versions. On MacOSX, I hit a series of road blocks which made yesterday much more painful than it should have been.</p>
+
+<ul>
+<li>If you&#39;re on a Mac, you&#39;ll need to update All The Things&trade; to get a reliable experience. And I don&#39;t just mean all the .NET Core things - full system update and <code>brew upgrade</code> are your friends</li>
+<li>Don&#39;t use templates. Not many of them have been updated to 2.0 yet, you get no warnings about the ones which haven&#39;t, and enough has changed that it is very hard to update them manually unless you are a .NET Core expert already. (If you are, I suspect you&#39;re not reading this guide).</li>
+<li>Don&#39;t try and update projects unless you know what you&#39;re doing; it cost me a lot of pain yesterday including bizarre internal compiler errors. On the happy news front, just copying across your actual code files works just fine.</li>
+<li>Don&#39;t try and use Visual Studio (yet) - I&#39;m not going to go into this one as I&#39;m mainly talking to Mac users, but there has been issues there.</li>
+</ul>
+
+<p>With all that said and done, if I skipped using any templates and stuck exclusively to the bundled project options, the actual experience of using <code>dotnet</code> is very pleasant.</p>
+
+<p>For example, setting up a brand new solution with library and test project looks something like below:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'><span class="c"># Create solution file Project.New.sln in current directory</span>
+</span><span class='line'>dotnet new sln -n Project.New
+</span><span class='line'>
+</span><span class='line'><span class="c"># Create library project in directory Project.New.Library</span>
+</span><span class='line'><span class="c"># Default proj name is Project.New.Library.fsproj</span>
+</span><span class='line'>dotnet new classlib -o Project.New.Library --lang f#
+</span><span class='line'>
+</span><span class='line'><span class="c"># And again for test library</span>
+</span><span class='line'>dotnet new console -o Project.New.Library.Tests --lang f#
+</span><span class='line'>
+</span><span class='line'><span class="c"># Add projects to solution (can combine to a single line)</span>
+</span><span class='line'>dotnet sln add Project.New.Library/Project.New.Library.fsproj
+</span><span class='line'>dotnet sln add Project.New.Library.Tests/Project.New.Library.Tests.fsproj
+</span><span class='line'>
+</span><span class='line'><span class="c"># Set up test console app</span>
+</span><span class='line'><span class="nb">cd </span>Project.New.Library.Tests
+</span><span class='line'>dotnet add reference ../Project.New.Library/Project.New.Library.fsproj
+</span><span class='line'>dotnet add package Expecto
+</span><span class='line'><span class="c"># Update Program.fs to run tests (see https://github.com/haf/expecto#testing-hello-world)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>At this point, running <code>dotnet run</code> in the test directory should run your example test, and running <code>dotnet build</code> from the solution directory should successfully build your nice, portable, shiny, .NET Core 2.0 code.</p>
+
+<p>Enjoy, and remember this post has a shelf life: hopefully issues like the template woes I had should disappear quickly as the eco-system catches up with the latest release.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Process Management in EasyNetQ]]></title>
@@ -4297,47 +4365,6 @@ the videos are already up. It&#39;s a great place to talk from that point of vie
 <p>I was talking on being a &quot;Functional Programmer in an Imperative World&quot;; the slides are embedded below, but for the full experience check out the video at the link above.</p>
 
 <p><iframe src="https://blog.mavnn.co.uk//www.slideshare.net/slideshow/embed_code/key/cSlUuPevYKsSHL" width="425" height="355" frameborder="0" marginwidth="0" marginheight="0" scrolling="no" style="border:1px solid #CCC; border-width:1px; margin-bottom:5px; max-width: 100%;" allowfullscreen> </iframe> <div style="margin-bottom:5px"> <strong> <a href="https://blog.mavnn.co.uk//www.slideshare.net/mavnn/functional-programming-in-an-imperitive-world" title="Functional Programming in an Imperitive World" target="_blank">Functional Programming in an Imperitive World</a> </strong> from <strong><a href="https://blog.mavnn.co.uk//www.slideshare.net/mavnn" target="_blank">mavnn</a></strong> </div></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Property Based Testing at SDD Conf 2015]]></title>
-    <link href="https://blog.mavnn.co.uk/sdd-conf-2015/"/>
-    <updated>2015-06-08T10:21:44+01:00</updated>
-    <id>https://blog.mavnn.co.uk/sdd-conf-2015</id>
-    <content type="html"><![CDATA[<p>So, nearly a month back now I had the fantastic opportunity to speak at this year&#39;s
-<a href="http://sddconf.com/">Software, Design &amp; Development</a> at the Barbican on property based
-testing - or more specifically, FsCheck.</p>
-
-<!-- more -->
-
-<p>It was a fun experience and a very different type of conference to the smaller, generally
-open source community based events that I normally attend. There were a wide variety of
-expert speakers, covering the whole range from people like myself presenting on potentially
-useful but relatively unknown technology (in the enterprise world, at least -
-property based testing is pretty well known in functional programming circles) through to
-known industry names.</p>
-
-<p>I won&#39;t go into the details of all the talks I attended as I was there for 3 days. But there
-were a lot of good ideas on display ranging through sane naming (always worth watching
-anything by <a href="https://twitter.com/KevlinHenney">Kevlin Henney</a> if you get a chance) to
-project design (as opposed to project planning, probably more thoughts on that later) to
-practical DDD examples in .net to the &quot;Zen of Architecture&quot;.</p>
-
-<p>As a thank you
-to <a href="https://twitter.com/kurt2001">Kurt Schelfthout</a> who wrote FsCheck, to spread further what
-I think is an awesome concept and to give an idea
-of some of the kind of things we do at <a href="http://www.15below.com/">15below</a> to any interested
-developers I managed to arrange for the recording of my talk to be released publicly. It&#39;s
-an unmanned camera, so you have a pretty good view of the slides with out having to see my
-face at any point, which many people will see as an advantage! I strongly recommend full
-screen viewing; there&#39;s a fair amount of code in the presentation.</p>
-
-<iframe src="https://player.vimeo.com/video/129109178" width="100%" height="400" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
-
-<p>If you want to play with the code from the demo yourself, it&#39;s available <a href="https://github.com/mavnn/SddConf2015">on Github</a>. The slides are also available <a href="http://sddconf.com/brands/sdd/library/Breaking_Your_Code_In_New_Exciting_Ways.pdf">as a PDF</a>.</p>
-
-<p>Many thanks to the conference organisers <a href="http://www.yellowstonetechmedia.com/">Yellowstone TechMedia</a>, and I&#39;ll definitely be considering submitting talks/attending again next year.</p>
 ]]></content>
   </entry>
   

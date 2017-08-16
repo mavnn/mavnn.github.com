@@ -5,13 +5,11 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>API Design Workshop - Mavnn's blog</title>
+  <title>Trying .NET Core 2.0 With F# Today - Mavnn's blog</title>
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="Designing an API is hard. You want to actually apply the
-principle of least astonishment -
-but you&#39;re the person who wrote the code. You&#39;re &hellip;">
+  <meta name="description" content="Yesterday, I tried to use .NET Core for F# on day zero. A bit bravefoolish, I know, but v2 was supposed to be the one with all the bugs ironed out. &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -20,7 +18,7 @@ but you&#39;re the person who wrote the code. You&#39;re &hellip;">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
 
-  <link rel="canonical" href="https://blog.mavnn.co.uk/api-design-workshop/">
+  <link rel="canonical" href="https://blog.mavnn.co.uk/trying-dotnetcore-2-dot-0-with-f-number-today/">
   <link href="/favicon.ico" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="Mavnn's blog" type="application/atom+xml">
@@ -84,7 +82,7 @@ ga('send', 'pageview');
   
   <header>
     
-      <h1 class="entry-title">API Design Workshop</h1>
+      <h1 class="entry-title">Trying .NET Core 2.0 With F# Today</h1>
     
     
       <p class="meta">
@@ -100,72 +98,73 @@ ga('send', 'pageview');
   
 
 
-<time datetime="2015-05-07T15:35:51+01:00" pubdate data-updated="true">May 7<span>th</span>, 2015</time>
+<time datetime="2017-08-16T11:15:20+01:00" pubdate data-updated="true">Aug 16<span>th</span>, 2017</time>
         
       </p>
     
   </header>
 
 
-<div class="entry-content"><p>Designing an API is hard.</p>
+<div class="entry-content"><p>Yesterday, I tried to use .NET Core for F# on day zero. A bit <s>brave</s>foolish, I know, but v2 was supposed to be the one with all the bugs ironed out.</p>
 
-<p>You want to actually apply the
-<a href="https://en.wikipedia.org/wiki/Principle_of_least_astonishment">principle of least astonishment</a> -
-but you&#39;re the person who wrote the code. You&#39;re unlikely to be astonished. So
-you&#39;re trying to think how someone who didn&#39;t know what you know would think -
-which is never an easy starting point!</p>
+<p>Short version: it&#39;s a lot better, but it&#39;s still easy to hit rough edges.</p>
 
-<p>Similarly, you&#39;re trying to create the
-<a href="http://blog.codinghorror.com/falling-into-the-pit-of-success/">pit of success</a>
-for users. Which means trying to make it <em>very hard</em> to do the wrong thing with
-your API. Preferably, in strongly typed languages, this should include using the
-type system to
-<a href="http://fsharpforfunandprofit.com/posts/designing-with-types-making-illegal-states-unrepresentable/">make illegal states unrepresentable</a>
-so that code that compiles is very likely to work.</p>
+<p>Longer version: be very careful that you don&#39;t hit issues with versions. On MacOSX, I hit a series of road blocks which made yesterday much more painful than it should have been.</p>
 
-<p>In general, the core libraries for .net are not bad at API design, but there are
-a few places where this isn&#39;t true. As an exercise, we at
-<a href="http://www.15below.com/">15below</a> are going to take one of them, split into
-teams and spend an hour or so seeing what alternatives we can come up with. Feel
-free to follow along at home, and if you do give it a try ping me a code snippet
-and I&#39;ll post it up with our internal attempts in a week or so.</p>
+<ul>
+<li>If you&#39;re on a Mac, you&#39;ll need to update All The Things&trade; to get a reliable experience. And I don&#39;t just mean all the .NET Core things - full system update and <code>brew upgrade</code> are your friends</li>
+<li>Don&#39;t use templates. Not many of them have been updated to 2.0 yet, you get no warnings about the ones which haven&#39;t, and enough has changed that it is very hard to update them manually unless you are a .NET Core expert already. (If you are, I suspect you&#39;re not reading this guide).</li>
+<li>Don&#39;t try and update projects unless you know what you&#39;re doing; it cost me a lot of pain yesterday including bizarre internal compiler errors. On the happy news front, just copying across your actual code files works just fine.</li>
+<li>Don&#39;t try and use Visual Studio (yet) - I&#39;m not going to go into this one as I&#39;m mainly talking to Mac users, but there has been issues there.</li>
+</ul>
 
-<!-- more -->
+<p>With all that said and done, if I skipped using any templates and stuck exclusively to the bundled project options, the actual experience of using <code>dotnet</code> is very pleasant.</p>
 
-<h2>The API</h2>
+<p>For example, setting up a brand new solution with library and test project looks something like below:</p>
 
-<p>Lots of things can be represented as streams of data. Files, network
-connections, compressed archives, chunks of memory&#8230; the list goes on.</p>
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'><span class="c"># Create solution file Project.New.sln in current directory</span>
+</span><span class='line'>dotnet new sln -n Project.New
+</span><span class='line'>
+</span><span class='line'><span class="c"># Create library project in directory Project.New.Library</span>
+</span><span class='line'><span class="c"># Default proj name is Project.New.Library.fsproj</span>
+</span><span class='line'>dotnet new classlib -o Project.New.Library --lang f#
+</span><span class='line'>
+</span><span class='line'><span class="c"># And again for test library</span>
+</span><span class='line'>dotnet new console -o Project.New.Library.Tests --lang f#
+</span><span class='line'>
+</span><span class='line'><span class="c"># Add projects to solution (can combine to a single line)</span>
+</span><span class='line'>dotnet sln add Project.New.Library/Project.New.Library.fsproj
+</span><span class='line'>dotnet sln add Project.New.Library.Tests/Project.New.Library.Tests.fsproj
+</span><span class='line'>
+</span><span class='line'><span class="c"># Set up test console app</span>
+</span><span class='line'><span class="nb">cd </span>Project.New.Library.Tests
+</span><span class='line'>dotnet add reference ../Project.New.Library/Project.New.Library.fsproj
+</span><span class='line'>dotnet add package Expecto
+</span><span class='line'><span class="c"># Update Program.fs to run tests (see https://github.com/haf/expecto#testing-hello-world)</span>
+</span></code></pre></td></tr></table></div></figure>
 
-<p>So .net provides us with the <a href="https://msdn.microsoft.com/en-us/library/system.io.stream%28v=vs.110%29.aspx?f=255&amp;MSPPError=-2147217396"><code>System.IO.Stream</code> class</a>.</p>
+<p>At this point, running <code>dotnet run</code> in the test directory should run your example test, and running <code>dotnet build</code> from the solution directory should successfully build your nice, portable, shiny, .NET Core 2.0 code.</p>
 
-<p>Which is great and all&#8230; except that not all streams are equal. For example,
-your function might need write access to a stream, and not all streams are
-writable. You can check easily enough, but the only way of flagging to the user
-you need write access is via comments or naming conventions. The same is true
-for requiring the ability to read from the stream or seek to specific locations
-with in it.</p>
-
-<h2>The challenge</h2>
-
-<p>Have a look through the interface provided by <code>System.IO.Stream</code>. Create a
-skeleton of an API that could implement the same functionality, be reasonably
-easy to use and tries to make illegal states unrepresentable as much as
-possible. Note: this API does <em>not</em> have to be functional.</p>
-
-<p>Try adding a few example methods that make use of your API (hint: your design
-will probably be better if you write these first).</p>
-
-<p>Maybe you want to try using interfaces and
-<a href="http://stackoverflow.com/questions/3663739/method-parameter-with-multiple-interface-restrictions">multiple interface constraints</a>. Or
-you have some clever idea for representing things with
-<a href="http://fsharpforfunandprofit.com/posts/discriminated-unions/">discriminated unions</a>. Or
-maybe you just know that there&#39;s a better core library out there with a nicer
-representation you can rip off whole sale! Who knows?</p>
-
-<p>Post your work up somewhere it can be seen on the internet and ping me a link,
-and we&#39;ll go over the submissions and write up a commentary over the next week
-or two.</p>
+<p>Enjoy, and remember this post has a shelf life: hopefully issues like the template woes I had should disappear quickly as the eco-system catches up with the latest release.</p>
 </div>
 
 
@@ -188,12 +187,12 @@ or two.</p>
   
 
 
-<time datetime="2015-05-07T15:35:51+01:00" pubdate data-updated="true">May 7<span>th</span>, 2015</time>
+<time datetime="2017-08-16T11:15:20+01:00" pubdate data-updated="true">Aug 16<span>th</span>, 2017</time>
       
 
 <span class="categories">
   
-    <a class='category' href='/blog/categories/programming/'>programming</a>
+    <a class='category' href='/blog/categories/fsharp/'>fsharp</a>
   
 </span>
 
@@ -202,7 +201,7 @@ or two.</p>
     
       <div class="sharing">
   
-  <a href="//twitter.com/share" class="twitter-share-button" data-url="https://blog.mavnn.co.uk/api-design-workshop/" data-via="mavnn" data-counturl="https://blog.mavnn.co.uk/api-design-workshop/" >Tweet</a>
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="https://blog.mavnn.co.uk/trying-dotnetcore-2-dot-0-with-f-number-today/" data-via="mavnn" data-counturl="https://blog.mavnn.co.uk/trying-dotnetcore-2-dot-0-with-f-number-today/" >Tweet</a>
   
   
   <div class="g-plusone" data-size="medium"></div>
@@ -213,10 +212,8 @@ or two.</p>
     
     <p class="meta">
       
-        <a class="basic-alignment left" href="/ecumenical-apis/" title="Previous Post: Ecumenical APIs">&laquo; Ecumenical APIs</a>
+        <a class="basic-alignment left" href="/process-management-in-easynetq/" title="Previous Post: Process Management in EasyNetQ">&laquo; Process Management in EasyNetQ</a>
       
-      
-        <a class="basic-alignment right" href="/serialization-in-net/" title="Next Post: Serialization in .net">Serialization in .net &raquo;</a>
       
     </p>
   </footer>
@@ -318,8 +315,8 @@ or two.</p>
 <div id="disqus_thread"></div>
 <script>
     var disqus_config = function () {
-        this.page.url = 'https://blog.mavnn.co.uk/api-design-workshop/';
-        this.page.identifier = 'https://blog.mavnn.co.uk/api-design-workshop/';
+        this.page.url = 'https://blog.mavnn.co.uk/trying-dotnetcore-2-dot-0-with-f-number-today/';
+        this.page.identifier = 'https://blog.mavnn.co.uk/trying-dotnetcore-2-dot-0-with-f-number-today/';
     };
     (function() {  // DON'T EDIT BELOW THIS LINE
         var d = document, s = d.createElement('script');

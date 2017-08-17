@@ -4,7 +4,7 @@
   <title><![CDATA[Mavnn's blog]]></title>
   <link href="https://blog.mavnn.co.uk/atom.xml" rel="self"/>
   <link href="https://blog.mavnn.co.uk/"/>
-  <updated>2017-08-16T11:38:25+01:00</updated>
+  <updated>2017-08-17T15:56:33+01:00</updated>
   <id>https://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,393 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[An in Memory Message Bus in 100 Lines or Less]]></title>
+    <link href="https://blog.mavnn.co.uk/an-in-memory-message-bus-in-100-lines-or-less/"/>
+    <updated>2017-08-17T15:15:43+01:00</updated>
+    <id>https://blog.mavnn.co.uk/an-in-memory-message-bus-in-100-lines-or-less</id>
+    <content type="html"><![CDATA[<p>In reimplementing an <a href="https://blog.mavnn.co.uk/process-management-in-easynetq/">EasyNetQ process manager</a> one of the things I wanted to keep from the original project was an in memory message bus that could be used for testing without requiring a running RabbitMQ server. The code has ended up being pleasingly short and also uses a few techniques that seemed interesting, so I thought I&#39;d document it here as part of the design process.</p>
+
+<p>Please note we&#39;re not going for a full re-implementation of RabbitMQ in memory here, but this does give us enough to do some useful testing!</p>
+
+<!-- more -->
+
+<h2>What are we building?</h2>
+
+<p>In the main process manager library, I&#39;m starting to hash out the underlying types which will drive the various abstractions in play. As a consumer of the library, you&#39;ll probably never have cause to use these types directly.</p>
+
+<p>One of these is an interface class representing a message bus which routes on a combination of <a href="https://github.com/EasyNetQ/EasyNetQ/wiki/Topic-Based-Routing">topic</a> and .net type (i.e. how EasyNetQ routes by default). It looks like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">Topic</span> <span class="o">=</span> <span class="nc">Topic</span> <span class="k">of</span> <span class="kt">string</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">ProcessManagerBus</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">inherit</span> <span class="nc">IDisposable</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">Publish</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
+</span><span class='line'>        <span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="nc">TimeSpan</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">TopicPublish</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
+</span><span class='line'>        <span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="nc">Topic</span> <span class="o">-&gt;</span> <span class="nc">TimeSpan</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">Subscribe</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
+</span><span class='line'>        <span class="nc">SubscriptionId</span> <span class="o">-&gt;</span> <span class="o">(</span><span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="kt">unit</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">TopicSubscribe</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
+</span><span class='line'>        <span class="nc">SubscriptionId</span> <span class="o">-&gt;</span> <span class="nc">Topic</span> <span class="o">-&gt;</span> <span class="o">(</span><span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="kt">unit</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Production code will wrap an instance of an EasyNetQ <code>IBus</code> here, but for testing we&#39;re going to build an in memory version.</p>
+
+<h2>Underlying concepts</h2>
+
+<p>What concepts are we going to have in play here? Well, there&#39;s going to be subscribers, who should have an action called when a relevant message is published. And we&#39;re going to want to be able to actually publish the messages.</p>
+
+<p>It makes sense to model the message bus as an agent which can have commands sent to it (a <code>MailboxProcessor</code> in F# terms), so let&#39;s model the commands we want to be able to send first:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nc">MemoryBus</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nc">System</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nc">Types</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="k">private</span> <span class="nc">Subscriber</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Action</span> <span class="o">:</span> <span class="n">obj</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Type</span> <span class="o">:</span> <span class="nc">Type</span>
+</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Binding</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="k">private</span> <span class="nc">Subscriber</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span> <span class="nc">SubscriptionId</span> <span class="o">:</span> <span class="nc">SubscriptionId</span>
+</span><span class='line'>      <span class="nc">Binding</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>      <span class="nc">Action</span> <span class="o">:</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="kt">unit</span> <span class="o">}</span>
+</span><span class='line'>    <span class="k">interface</span> <span class="nc">Subscriber</span> <span class="k">with</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Action</span> <span class="n">o</span> <span class="o">=</span>
+</span><span class='line'>            <span class="n">o</span> <span class="o">|&gt;</span> <span class="n">unbox</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span> <span class="o">|&gt;</span> <span class="n">x</span><span class="o">.</span><span class="nc">Action</span>
+</span><span class='line'>        <span class="k">member</span> <span class="o">__.</span><span class="nc">Type</span> <span class="o">=</span>
+</span><span class='line'>            <span class="n">typeof</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span>
+</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Binding</span> <span class="o">=</span>
+</span><span class='line'>            <span class="n">x</span><span class="o">.</span><span class="nc">Binding</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="k">private</span> <span class="nc">BusMessage</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Publish</span> <span class="k">of</span> <span class="n">obj</span> <span class="o">*</span> <span class="nc">Type</span> <span class="o">*</span> <span class="nc">DateTime</span> <span class="o">*</span> <span class="nc">Topic</span> <span class="n">option</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Subscribe</span> <span class="k">of</span> <span class="nc">Subscriber</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Stop</span> <span class="k">of</span> <span class="nc">AsyncReplyChannel</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>So, a subscriber knows what topic it is binding to (which might include wildcards, we&#39;ll get there in a moment), which <code>type</code> it is listening for, and an action to call when that type arrives. The agent will need to store a list of subscribers, so we wrap our generic <code>Subscriber&lt;&#39;a&gt;</code> type in a non-generic interface (<code>Subscriber</code>).</p>
+
+<p>The <code>BusMessage</code> type then reflects the three things that we might ask the agent to do: publish a message to current subscribers, add a subscriber, or shut down and reply when shutting down is complete.</p>
+
+<h2>Add the logic</h2>
+
+<p>We&#39;ll also need some logic for determining whether a topic published to match a topic which has been bound to by a subscriber. Topics in RabbitMQ are multipart strings with <code>.</code> separators - &quot;one.two.three&quot;, and messages must be published to a specific topic. But when you bind a subscriber, you can bind with two types of wildcard. A <code>*</code> matches a &quot;section&quot; (so binding to &quot;*.two&quot; will receive messages published to &quot;one.two&quot; and &quot;1.two&quot;), while a <code>#</code> finishes a binding string and matches any number of sections (so binding to &quot;one.#&quot; will match &quot;one.two&quot;, &quot;one.2&quot; and &quot;one.two.three&quot;).</p>
+
+<p>Our logic ends up looking like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">compareSection</span> <span class="o">(</span><span class="n">topicSection</span> <span class="o">:</span> <span class="kt">string</span><span class="o">,</span> <span class="n">bindingSection</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">match</span> <span class="n">bindingSection</span> <span class="k">with</span>
+</span><span class='line'>    <span class="o">|</span> <span class="s2">&quot;#&quot;</span> <span class="o">|</span> <span class="s2">&quot;*&quot;</span> <span class="o">-&gt;</span> <span class="bp">true</span>
+</span><span class='line'>    <span class="o">|</span> <span class="o">_</span> <span class="k">when</span> <span class="n">bindingSection</span> <span class="o">=</span> <span class="n">topicSection</span> <span class="o">-&gt;</span> <span class="bp">true</span>
+</span><span class='line'>    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">false</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">topicBindingMatch</span> <span class="n">topicOpt</span> <span class="o">(</span><span class="n">binding</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">match</span> <span class="n">topicOpt</span> <span class="k">with</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Some</span> <span class="o">(</span><span class="nc">Topic</span> <span class="n">topic</span><span class="o">)</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">topicSections</span> <span class="o">=</span> <span class="n">topic</span><span class="o">.</span><span class="nc">Split</span> <span class="sc">&#39;.&#39;</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">bindingSections</span> <span class="o">=</span> <span class="n">binding</span><span class="o">.</span><span class="nc">Split</span> <span class="sc">&#39;.&#39;</span>
+</span><span class='line'>        <span class="k">if</span> <span class="n">bindingSections</span><span class="o">.[</span><span class="n">bindingSections</span><span class="o">.</span><span class="nc">Length</span> <span class="o">-</span> <span class="mi">1</span><span class="o">]</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span> <span class="k">then</span>
+</span><span class='line'>            <span class="c1">// Seq.zip truncates the longer sequence of the two</span>
+</span><span class='line'>            <span class="c1">// provided - so here we ignore any sections beyond</span>
+</span><span class='line'>            <span class="c1">// the &quot;#&quot;</span>
+</span><span class='line'>            <span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">topicSections</span> <span class="n">bindingSections</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">forall</span> <span class="n">compareSection</span>
+</span><span class='line'>        <span class="k">else</span>
+</span><span class='line'>            <span class="c1">// If there&#39;s no &quot;#&quot; at the end of the binding, there</span>
+</span><span class='line'>            <span class="c1">// can only be a match if there is exactly the same number</span>
+</span><span class='line'>            <span class="c1">// of sections; check that before zipping the sections</span>
+</span><span class='line'>            <span class="c1">// together to compare</span>
+</span><span class='line'>            <span class="k">if</span> <span class="n">bindingSections</span><span class="o">.</span><span class="nc">Length</span> <span class="o">=</span> <span class="n">topicSections</span><span class="o">.</span><span class="nc">Length</span> <span class="k">then</span>
+</span><span class='line'>                <span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">topicSections</span> <span class="n">bindingSections</span>
+</span><span class='line'>                <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">forall</span> <span class="n">compareSection</span>
+</span><span class='line'>            <span class="k">else</span>
+</span><span class='line'>                <span class="bp">false</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="c1">// If there is no publish topic, the only binding which can match</span>
+</span><span class='line'>        <span class="c1">// is &quot;#&quot; as there are no sections to compare.</span>
+</span><span class='line'>        <span class="n">binding</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<h2>Build the agent</h2>
+
+<p>We now have all of the logic our agent requires. Let&#39;s put into together into an <code>Async</code> recursive function listening for commands.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="k">rec</span> <span class="k">private</span> <span class="n">loop</span> <span class="n">subscribers</span> <span class="o">(</span><span class="n">agent</span> <span class="o">:</span> <span class="nc">MailboxProcessor</span><span class="o">&lt;</span><span class="nc">BusMessage</span><span class="o">&gt;)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">async</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">msg</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="nc">Receive</span><span class="bp">()</span>
+</span><span class='line'>        <span class="k">match</span> <span class="n">msg</span> <span class="k">with</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">Stop</span> <span class="n">chan</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="n">chan</span><span class="o">.</span><span class="nc">Reply</span> <span class="bp">()</span>
+</span><span class='line'>            <span class="k">return</span> <span class="bp">()</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">Subscribe</span> <span class="n">s</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="k">return</span><span class="o">!</span> <span class="n">loop</span> <span class="o">(</span><span class="n">s</span><span class="o">::</span><span class="n">subscribers</span><span class="o">)</span> <span class="n">agent</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">Publish</span> <span class="o">(</span><span class="n">message</span><span class="o">,</span> <span class="k">type&#39;</span><span class="o">,</span> <span class="n">expireTime</span><span class="o">,</span> <span class="n">topic</span><span class="o">)</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="k">if</span> <span class="n">expireTime</span> <span class="o">&gt;</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">UtcNow</span> <span class="k">then</span>
+</span><span class='line'>                <span class="n">subscribers</span>
+</span><span class='line'>                <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">filter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">x</span> <span class="o">-&gt;</span> <span class="k">type&#39;</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="nc">Type</span>
+</span><span class='line'>                                           <span class="o">&amp;&amp;</span> <span class="n">topicBindingMatch</span> <span class="n">topic</span> <span class="n">x</span><span class="o">.</span><span class="nc">Binding</span><span class="o">)</span>
+</span><span class='line'>                <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">iter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">x</span> <span class="o">-&gt;</span> <span class="n">x</span><span class="o">.</span><span class="nc">Action</span> <span class="n">message</span><span class="o">)</span>
+</span><span class='line'>            <span class="k">return</span><span class="o">!</span> <span class="n">loop</span> <span class="n">subscribers</span> <span class="n">agent</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>With the correct types to guide us, this function ends up almost trivial. If we receive a stop message, we reply to say we&#39;re stopped and then return <code>unit</code>, meaning we&#39;ll process no further messages.</p>
+
+<p>If we receive a subscriber, we just add it to the list of subscribers and call back into the loop.</p>
+
+<p>And finally, if there&#39;s a request to publish we check the message hasn&#39;t expired and then call of the subscribers that have the correct type and a matching binding (before calling back into the loop).</p>
+
+<h2>Wrap it all in the correct interface</h2>
+
+<p>Now we just need a type which implements the <code>ProcessManagerBus</code> interface and we&#39;re done. We want <code>Dispose</code> to stop the underlying agent, and the other methods are straight forward translations. The only real thing of note here is the line <code>do agent.Error.Add raise</code>. This is needed because by default exceptions thrown in <code>MailboxProcessor</code>s kill the background thread the agent loop is running on, but are not propagated up to the overall process. That&#39;s not the behaviour we want here: if a subscriber throws, we want to know about the error.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">MemoryBus</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">agent</span> <span class="o">=</span> <span class="nn">MailboxProcessor</span><span class="p">.</span><span class="nc">Start</span><span class="o">(</span><span class="n">loop</span> <span class="bp">[]</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">do</span> <span class="n">agent</span><span class="o">.</span><span class="nn">Error</span><span class="p">.</span><span class="nc">Add</span> <span class="n">raise</span>
+</span><span class='line'>    <span class="k">interface</span> <span class="nc">IDisposable</span> <span class="k">with</span>
+</span><span class='line'>        <span class="k">member</span> <span class="o">__.</span><span class="nc">Dispose</span><span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>            <span class="n">agent</span><span class="o">.</span><span class="nc">PostAndReply</span> <span class="nc">Stop</span>
+</span><span class='line'>    <span class="k">interface</span> <span class="nc">ProcessManagerBus</span> <span class="k">with</span>
+</span><span class='line'>        <span class="k">member</span> <span class="o">__.</span><span class="nc">Publish</span> <span class="o">(</span><span class="n">message</span> <span class="o">:</span> <span class="k">&#39;</span><span class="n">a</span><span class="o">)</span> <span class="n">expiry</span> <span class="o">=</span>
+</span><span class='line'>            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Publish</span> <span class="o">(</span><span class="n">box</span> <span class="n">message</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;,</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">UtcNow</span> <span class="o">+</span> <span class="n">expiry</span><span class="o">,</span> <span class="nc">None</span><span class="o">))</span>
+</span><span class='line'>        <span class="k">member</span> <span class="o">__.</span><span class="nc">TopicPublish</span> <span class="o">(</span><span class="n">message</span> <span class="o">:</span> <span class="k">&#39;</span><span class="n">a</span><span class="o">)</span> <span class="n">topic</span> <span class="n">expiry</span> <span class="o">=</span>
+</span><span class='line'>            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Publish</span> <span class="o">(</span><span class="n">box</span> <span class="n">message</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;,</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">UtcNow</span> <span class="o">+</span> <span class="n">expiry</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">topic</span><span class="o">))</span>
+</span><span class='line'>        <span class="k">member</span> <span class="o">__.</span><span class="nc">Subscribe</span> <span class="n">sid</span> <span class="n">action</span> <span class="o">=</span>
+</span><span class='line'>            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Subscribe</span> <span class="o">{</span> <span class="nc">SubscriptionId</span> <span class="o">=</span> <span class="n">sid</span><span class="o">;</span> <span class="nc">Binding</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span><span class="o">;</span> <span class="nc">Action</span> <span class="o">=</span> <span class="n">action</span> <span class="o">})</span>
+</span><span class='line'>        <span class="k">member</span> <span class="o">__.</span><span class="nc">TopicSubscribe</span> <span class="n">sid</span> <span class="o">(</span><span class="nc">Topic</span> <span class="n">binding</span><span class="o">)</span> <span class="n">action</span> <span class="o">=</span>
+</span><span class='line'>            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Subscribe</span> <span class="o">{</span> <span class="nc">SubscriptionId</span> <span class="o">=</span> <span class="n">sid</span><span class="o">;</span> <span class="nc">Binding</span> <span class="o">=</span> <span class="n">binding</span><span class="o">;</span> <span class="nc">Action</span> <span class="o">=</span> <span class="n">action</span> <span class="o">})</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<h2>Fin</h2>
+
+<p>And there you have it! An in memory message bus in 100 lines or less of F# code. For bonus points, here&#39;s a simple set of test cases for it so you can see what it looks like in action.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nn">Tests</span><span class="p">.</span><span class="nc">MemoryBus</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nc">System</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nc">Types</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nc">MemoryBus</span>
+</span><span class='line'><span class="k">open</span> <span class="nc">Expecto</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">T1</span> <span class="o">=</span> <span class="nc">T1</span> <span class="k">of</span> <span class="kt">string</span>
+</span><span class='line'><span class="k">type</span> <span class="nc">T2</span> <span class="o">=</span> <span class="nc">T2</span> <span class="k">of</span> <span class="kt">string</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="nc">Tests</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">let</span> <span class="n">memoryBusTests</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">testList</span> <span class="s2">&quot;memory bus tests&quot;</span> <span class="o">[</span>
+</span><span class='line'>        <span class="n">testCase</span> <span class="s2">&quot;Basic send/subscibe works&quot;</span> <span class="o">&lt;|</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">receivedMessage</span> <span class="o">=</span> <span class="n">ref</span> <span class="nc">None</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">bus</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">MemoryBus</span><span class="bp">()</span> <span class="o">:&gt;</span> <span class="nc">ProcessManagerBus</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">subId</span> <span class="o">=</span> <span class="nc">SubscriptionId</span> <span class="s2">&quot;t1&quot;</span>
+</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">Subscribe</span><span class="o">&lt;</span><span class="nc">T1</span><span class="o">&gt;</span> <span class="n">subId</span> <span class="o">(</span><span class="k">fun</span> <span class="o">(</span><span class="nc">T1</span> <span class="n">m</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="n">receivedMessage</span> <span class="o">:=</span> <span class="nc">Some</span> <span class="n">m</span><span class="o">)</span>
+</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">Publish</span> <span class="o">(</span><span class="nc">T1</span> <span class="s2">&quot;message&quot;</span><span class="o">)</span> <span class="o">(</span><span class="nn">TimeSpan</span><span class="p">.</span><span class="nc">FromMinutes</span> <span class="mi">1</span><span class="o">.)</span>
+</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
+</span><span class='line'>            <span class="nn">Expect</span><span class="p">.</span><span class="n">equal</span> <span class="o">(!</span><span class="n">receivedMessage</span><span class="o">)</span> <span class="o">(</span><span class="nc">Some</span> <span class="s2">&quot;message&quot;</span><span class="o">)</span> <span class="s2">&quot;Should match&quot;</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">testCase</span> <span class="s2">&quot;Subscribe filters correctly by type&quot;</span> <span class="o">&lt;|</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">receivedMessage</span> <span class="o">=</span> <span class="n">ref</span> <span class="nc">None</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">bus</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">MemoryBus</span><span class="bp">()</span> <span class="o">:&gt;</span> <span class="nc">ProcessManagerBus</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">subId</span> <span class="o">=</span> <span class="nc">SubscriptionId</span> <span class="s2">&quot;t1&quot;</span>
+</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">Subscribe</span><span class="o">&lt;</span><span class="nc">T2</span><span class="o">&gt;</span> <span class="n">subId</span> <span class="o">(</span><span class="k">fun</span> <span class="o">(</span><span class="nc">T2</span> <span class="n">m</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="n">receivedMessage</span> <span class="o">:=</span> <span class="nc">Some</span> <span class="n">m</span><span class="o">)</span>
+</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">Publish</span> <span class="o">(</span><span class="nc">T1</span> <span class="s2">&quot;message&quot;</span><span class="o">)</span> <span class="o">(</span><span class="nn">TimeSpan</span><span class="p">.</span><span class="nc">FromMinutes</span> <span class="mi">1</span><span class="o">.)</span>
+</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
+</span><span class='line'>            <span class="nn">Expect</span><span class="p">.</span><span class="n">equal</span> <span class="o">(!</span><span class="n">receivedMessage</span><span class="o">)</span> <span class="nc">None</span> <span class="s2">&quot;Should match&quot;</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">testCase</span> <span class="s2">&quot;Can publish to topic&quot;</span> <span class="o">&lt;|</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">receivedMessage</span> <span class="o">=</span> <span class="n">ref</span> <span class="nc">None</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">bus</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">MemoryBus</span><span class="bp">()</span> <span class="o">:&gt;</span> <span class="nc">ProcessManagerBus</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">subId</span> <span class="o">=</span> <span class="nc">SubscriptionId</span> <span class="s2">&quot;t1&quot;</span>
+</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">TopicSubscribe</span><span class="o">&lt;</span><span class="nc">T1</span><span class="o">&gt;</span> <span class="n">subId</span> <span class="o">(</span><span class="nc">Topic</span> <span class="s2">&quot;one.two&quot;</span><span class="o">)</span> <span class="o">(</span><span class="k">fun</span> <span class="o">(</span><span class="nc">T1</span> <span class="n">m</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="n">receivedMessage</span> <span class="o">:=</span> <span class="nc">Some</span> <span class="n">m</span><span class="o">)</span>
+</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">TopicPublish</span> <span class="o">(</span><span class="nc">T1</span> <span class="s2">&quot;message&quot;</span><span class="o">)</span> <span class="o">(</span><span class="nc">Topic</span> <span class="s2">&quot;one.two&quot;</span><span class="o">)</span> <span class="o">(</span><span class="nn">TimeSpan</span><span class="p">.</span><span class="nc">FromMinutes</span> <span class="mi">1</span><span class="o">.)</span>
+</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
+</span><span class='line'>            <span class="nn">Expect</span><span class="p">.</span><span class="n">equal</span> <span class="o">(!</span><span class="n">receivedMessage</span><span class="o">)</span> <span class="o">(</span><span class="nc">Some</span> <span class="s2">&quot;message&quot;</span><span class="o">)</span> <span class="s2">&quot;Should match&quot;</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">testCase</span> <span class="s2">&quot;Only receives from matching topic&quot;</span> <span class="o">&lt;|</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">receivedMessage</span> <span class="o">=</span> <span class="n">ref</span> <span class="nc">None</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">bus</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">MemoryBus</span><span class="bp">()</span> <span class="o">:&gt;</span> <span class="nc">ProcessManagerBus</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">subId</span> <span class="o">=</span> <span class="nc">SubscriptionId</span> <span class="s2">&quot;t1&quot;</span>
+</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">TopicSubscribe</span><span class="o">&lt;</span><span class="nc">T1</span><span class="o">&gt;</span> <span class="n">subId</span> <span class="o">(</span><span class="nc">Topic</span> <span class="s2">&quot;one.two&quot;</span><span class="o">)</span> <span class="o">(</span><span class="k">fun</span> <span class="o">(</span><span class="nc">T1</span> <span class="n">m</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="n">receivedMessage</span> <span class="o">:=</span> <span class="nc">Some</span> <span class="n">m</span><span class="o">)</span>
+</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">TopicPublish</span> <span class="o">(</span><span class="nc">T1</span> <span class="s2">&quot;message&quot;</span><span class="o">)</span> <span class="o">(</span><span class="nc">Topic</span> <span class="s2">&quot;two.one&quot;</span><span class="o">)</span> <span class="o">(</span><span class="nn">TimeSpan</span><span class="p">.</span><span class="nc">FromMinutes</span> <span class="mi">1</span><span class="o">.)</span>
+</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
+</span><span class='line'>            <span class="nn">Expect</span><span class="p">.</span><span class="n">equal</span> <span class="o">(!</span><span class="n">receivedMessage</span><span class="o">)</span> <span class="nc">None</span> <span class="s2">&quot;Should match&quot;</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">testCase</span> <span class="s2">&quot;Matching wildcard topic is matched&quot;</span> <span class="o">&lt;|</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">receivedMessage</span> <span class="o">=</span> <span class="n">ref</span> <span class="nc">None</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">bus</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">MemoryBus</span><span class="bp">()</span> <span class="o">:&gt;</span> <span class="nc">ProcessManagerBus</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">subId</span> <span class="o">=</span> <span class="nc">SubscriptionId</span> <span class="s2">&quot;t1&quot;</span>
+</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">TopicSubscribe</span><span class="o">&lt;</span><span class="nc">T1</span><span class="o">&gt;</span> <span class="n">subId</span> <span class="o">(</span><span class="nc">Topic</span> <span class="s2">&quot;*.two&quot;</span><span class="o">)</span> <span class="o">(</span><span class="k">fun</span> <span class="o">(</span><span class="nc">T1</span> <span class="n">m</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="n">receivedMessage</span> <span class="o">:=</span> <span class="nc">Some</span> <span class="n">m</span><span class="o">)</span>
+</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">TopicPublish</span> <span class="o">(</span><span class="nc">T1</span> <span class="s2">&quot;message&quot;</span><span class="o">)</span> <span class="o">(</span><span class="nc">Topic</span> <span class="s2">&quot;one.two&quot;</span><span class="o">)</span> <span class="o">(</span><span class="nn">TimeSpan</span><span class="p">.</span><span class="nc">FromMinutes</span> <span class="mi">1</span><span class="o">.)</span>
+</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
+</span><span class='line'>            <span class="nn">Expect</span><span class="p">.</span><span class="n">equal</span> <span class="o">(!</span><span class="n">receivedMessage</span><span class="o">)</span> <span class="o">(</span><span class="nc">Some</span> <span class="s2">&quot;message&quot;</span><span class="o">)</span> <span class="s2">&quot;Should match&quot;</span>
+</span><span class='line'>    <span class="o">]</span>
+</span></code></pre></td></tr></table></div></figure>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Trying .NET Core 2.0 With F# Today]]></title>
@@ -4351,20 +4738,6 @@ targets used within the MsBuild Common targets files (imported into every *proj 
 <p>And as you can see, whilst it&#39;s a bit ugly it generates a whole load of useful information for you about how <em>this</em> build with <em>these</em> properties will be built.</p>
 
 <p>That&#39;s all for now!</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Functional Programming in an Imperative World]]></title>
-    <link href="https://blog.mavnn.co.uk/functional-programming-in-an-imperitive-world/"/>
-    <updated>2015-06-12T10:54:20+01:00</updated>
-    <id>https://blog.mavnn.co.uk/functional-programming-in-an-imperitive-world</id>
-    <content type="html"><![CDATA[<p>Yesterday was the <a href="https://skillsmatter.com/conferences/7036-functional-programming-exchange-2015#skillscasts">Functional Programming Exchange 2015</a> and this being SkillsMatter,
-the videos are already up. It&#39;s a great place to talk from that point of view, with consistently excellent organisation.</p>
-
-<p>I was talking on being a &quot;Functional Programmer in an Imperative World&quot;; the slides are embedded below, but for the full experience check out the video at the link above.</p>
-
-<p><iframe src="https://blog.mavnn.co.uk//www.slideshare.net/slideshow/embed_code/key/cSlUuPevYKsSHL" width="425" height="355" frameborder="0" marginwidth="0" marginheight="0" scrolling="no" style="border:1px solid #CCC; border-width:1px; margin-bottom:5px; max-width: 100%;" allowfullscreen> </iframe> <div style="margin-bottom:5px"> <strong> <a href="https://blog.mavnn.co.uk//www.slideshare.net/mavnn/functional-programming-in-an-imperitive-world" title="Functional Programming in an Imperitive World" target="_blank">Functional Programming in an Imperitive World</a> </strong> from <strong><a href="https://blog.mavnn.co.uk//www.slideshare.net/mavnn" target="_blank">mavnn</a></strong> </div></p>
 ]]></content>
   </entry>
   

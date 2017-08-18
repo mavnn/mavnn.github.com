@@ -4,7 +4,7 @@
   <title><![CDATA[Category: easynetq | Mavnn's blog]]></title>
   <link href="https://blog.mavnn.co.uk/blog/categories/easynetq/atom.xml" rel="self"/>
   <link href="https://blog.mavnn.co.uk/"/>
-  <updated>2017-08-17T15:56:33+01:00</updated>
+  <updated>2017-08-18T13:58:09+01:00</updated>
   <id>https://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -225,6 +225,115 @@
             <span class="n">bus</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
             <span class="nn">Expect</span><span class="p">.</span><span class="n">equal</span> <span class="o">(!</span><span class="n">receivedMessage</span><span class="o">)</span> <span class="o">(</span><span class="nc">Some</span> <span class="s2">&quot;message&quot;</span><span class="o">)</span> <span class="s2">&quot;Should match&quot;</span>
     <span class="o">]</span>
+</code></pre></div>
+<h2>Appendix 1</h2>
+
+<p>Just to round everything off, here&#39;s a listing of the complete implementation from beginning to end.</p>
+
+<p>File 1:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">module</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nc">Types</span>
+
+<span class="k">open</span> <span class="nc">System</span>
+
+<span class="k">type</span> <span class="nc">SubscriptionId</span> <span class="o">=</span> <span class="nc">SubscriptionId</span> <span class="k">of</span> <span class="kt">string</span>
+<span class="k">type</span> <span class="nc">Topic</span> <span class="o">=</span> <span class="nc">Topic</span> <span class="k">of</span> <span class="kt">string</span>
+
+<span class="k">type</span> <span class="nc">ProcessManagerBus</span> <span class="o">=</span>
+    <span class="k">inherit</span> <span class="nc">IDisposable</span>
+
+    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">Publish</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
+        <span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="nc">TimeSpan</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
+    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">TopicPublish</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
+        <span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="nc">Topic</span> <span class="o">-&gt;</span> <span class="nc">TimeSpan</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
+    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">Subscribe</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
+        <span class="nc">SubscriptionId</span> <span class="o">-&gt;</span> <span class="o">(</span><span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="kt">unit</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
+    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">TopicSubscribe</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
+        <span class="nc">SubscriptionId</span> <span class="o">-&gt;</span> <span class="nc">Topic</span> <span class="o">-&gt;</span> <span class="o">(</span><span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="kt">unit</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
+</code></pre></div>
+<p>File 2:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">module</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nc">MemoryBus</span>
+
+<span class="k">open</span> <span class="nc">System</span>
+<span class="k">open</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nc">Types</span>
+
+<span class="k">type</span> <span class="k">private</span> <span class="nc">Subscriber</span> <span class="o">=</span>
+    <span class="k">abstract</span> <span class="nc">Action</span> <span class="o">:</span> <span class="n">obj</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
+    <span class="k">abstract</span> <span class="nc">Type</span> <span class="o">:</span> <span class="nc">Type</span>
+    <span class="k">abstract</span> <span class="nc">Binding</span> <span class="o">:</span> <span class="kt">string</span>
+
+<span class="k">type</span> <span class="k">private</span> <span class="nc">Subscriber</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span> <span class="o">=</span>
+    <span class="o">{</span> <span class="nc">SubscriptionId</span> <span class="o">:</span> <span class="nc">SubscriptionId</span>
+      <span class="nc">Binding</span> <span class="o">:</span> <span class="kt">string</span>
+      <span class="nc">Action</span> <span class="o">:</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="kt">unit</span> <span class="o">}</span>
+    <span class="k">interface</span> <span class="nc">Subscriber</span> <span class="k">with</span>
+        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Action</span> <span class="n">o</span> <span class="o">=</span>
+            <span class="n">o</span> <span class="o">|&gt;</span> <span class="n">unbox</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span> <span class="o">|&gt;</span> <span class="n">x</span><span class="o">.</span><span class="nc">Action</span>
+        <span class="k">member</span> <span class="o">__.</span><span class="nc">Type</span> <span class="o">=</span>
+            <span class="n">typeof</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span>
+        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Binding</span> <span class="o">=</span>
+            <span class="n">x</span><span class="o">.</span><span class="nc">Binding</span>
+
+<span class="k">type</span> <span class="k">private</span> <span class="nc">BusMessage</span> <span class="o">=</span>
+    <span class="o">|</span> <span class="nc">Publish</span> <span class="k">of</span> <span class="n">obj</span> <span class="o">*</span> <span class="nc">Type</span> <span class="o">*</span> <span class="nc">DateTime</span> <span class="o">*</span> <span class="nc">Topic</span> <span class="n">option</span>
+    <span class="o">|</span> <span class="nc">Subscribe</span> <span class="k">of</span> <span class="nc">Subscriber</span>
+    <span class="o">|</span> <span class="nc">Stop</span> <span class="k">of</span> <span class="nc">AsyncReplyChannel</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span>
+
+<span class="k">let</span> <span class="k">private</span> <span class="n">compareSection</span> <span class="o">(</span><span class="n">topicSection</span> <span class="o">:</span> <span class="kt">string</span><span class="o">,</span> <span class="n">bindingSection</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span>
+    <span class="k">match</span> <span class="n">bindingSection</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="s2">&quot;#&quot;</span> <span class="o">|</span> <span class="s2">&quot;*&quot;</span> <span class="o">-&gt;</span> <span class="bp">true</span>
+    <span class="o">|</span> <span class="o">_</span> <span class="k">when</span> <span class="n">bindingSection</span> <span class="o">=</span> <span class="n">topicSection</span> <span class="o">-&gt;</span> <span class="bp">true</span>
+    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">false</span>
+
+<span class="k">let</span> <span class="k">private</span> <span class="n">topicBindingMatch</span> <span class="n">topicOpt</span> <span class="o">(</span><span class="n">binding</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span>
+    <span class="k">match</span> <span class="n">topicOpt</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="nc">Some</span> <span class="o">(</span><span class="nc">Topic</span> <span class="n">topic</span><span class="o">)</span> <span class="o">-&gt;</span>
+        <span class="k">let</span> <span class="n">topicSections</span> <span class="o">=</span> <span class="n">topic</span><span class="o">.</span><span class="nc">Split</span> <span class="sc">&#39;.&#39;</span>
+        <span class="k">let</span> <span class="n">bindingSections</span> <span class="o">=</span> <span class="n">binding</span><span class="o">.</span><span class="nc">Split</span> <span class="sc">&#39;.&#39;</span>
+        <span class="k">if</span> <span class="n">bindingSections</span><span class="o">.[</span><span class="n">bindingSections</span><span class="o">.</span><span class="nc">Length</span> <span class="o">-</span> <span class="mi">1</span><span class="o">]</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span> <span class="k">then</span>
+            <span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">topicSections</span> <span class="n">bindingSections</span>
+            <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">forall</span> <span class="n">compareSection</span>
+        <span class="k">else</span>
+            <span class="k">if</span> <span class="n">bindingSections</span><span class="o">.</span><span class="nc">Length</span> <span class="o">=</span> <span class="n">topicSections</span><span class="o">.</span><span class="nc">Length</span> <span class="k">then</span>
+                <span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">topicSections</span> <span class="n">bindingSections</span>
+                <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">forall</span> <span class="n">compareSection</span>
+            <span class="k">else</span>
+                <span class="bp">false</span>
+    <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span>
+        <span class="n">binding</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span>
+
+<span class="k">let</span> <span class="k">rec</span> <span class="k">private</span> <span class="n">loop</span> <span class="n">subscribers</span> <span class="o">(</span><span class="n">agent</span> <span class="o">:</span> <span class="nc">MailboxProcessor</span><span class="o">&lt;</span><span class="nc">BusMessage</span><span class="o">&gt;)</span> <span class="o">=</span>
+    <span class="n">async</span> <span class="o">{</span>
+        <span class="k">let</span><span class="o">!</span> <span class="n">msg</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="nc">Receive</span><span class="bp">()</span>
+        <span class="k">match</span> <span class="n">msg</span> <span class="k">with</span>
+        <span class="o">|</span> <span class="nc">Stop</span> <span class="n">chan</span> <span class="o">-&gt;</span>
+            <span class="n">chan</span><span class="o">.</span><span class="nc">Reply</span> <span class="bp">()</span>
+            <span class="k">return</span> <span class="bp">()</span>
+        <span class="o">|</span> <span class="nc">Subscribe</span> <span class="n">s</span> <span class="o">-&gt;</span>
+            <span class="k">return</span><span class="o">!</span> <span class="n">loop</span> <span class="o">(</span><span class="n">s</span><span class="o">::</span><span class="n">subscribers</span><span class="o">)</span> <span class="n">agent</span>
+        <span class="o">|</span> <span class="nc">Publish</span> <span class="o">(</span><span class="n">message</span><span class="o">,</span> <span class="k">type&#39;</span><span class="o">,</span> <span class="n">expireTime</span><span class="o">,</span> <span class="n">topic</span><span class="o">)</span> <span class="o">-&gt;</span>
+            <span class="k">if</span> <span class="n">expireTime</span> <span class="o">&gt;</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">UtcNow</span> <span class="k">then</span>
+                <span class="n">subscribers</span>
+                <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">filter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">x</span> <span class="o">-&gt;</span> <span class="k">type&#39;</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="nc">Type</span>
+                                           <span class="o">&amp;&amp;</span> <span class="n">topicBindingMatch</span> <span class="n">topic</span> <span class="n">x</span><span class="o">.</span><span class="nc">Binding</span><span class="o">)</span>
+                <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">iter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">x</span> <span class="o">-&gt;</span> <span class="n">x</span><span class="o">.</span><span class="nc">Action</span> <span class="n">message</span><span class="o">)</span>
+            <span class="k">return</span><span class="o">!</span> <span class="n">loop</span> <span class="n">subscribers</span> <span class="n">agent</span>
+    <span class="o">}</span>
+
+<span class="k">type</span> <span class="nc">MemoryBus</span> <span class="bp">()</span> <span class="o">=</span>
+    <span class="k">let</span> <span class="n">agent</span> <span class="o">=</span> <span class="nn">MailboxProcessor</span><span class="p">.</span><span class="nc">Start</span><span class="o">(</span><span class="n">loop</span> <span class="bp">[]</span><span class="o">)</span>
+    <span class="k">do</span> <span class="n">agent</span><span class="o">.</span><span class="nn">Error</span><span class="p">.</span><span class="nc">Add</span> <span class="n">raise</span>
+    <span class="k">interface</span> <span class="nc">IDisposable</span> <span class="k">with</span>
+        <span class="k">member</span> <span class="o">__.</span><span class="nc">Dispose</span><span class="bp">()</span> <span class="o">=</span>
+            <span class="n">agent</span><span class="o">.</span><span class="nc">PostAndReply</span> <span class="nc">Stop</span>
+    <span class="k">interface</span> <span class="nc">ProcessManagerBus</span> <span class="k">with</span>
+        <span class="k">member</span> <span class="o">__.</span><span class="nc">Publish</span> <span class="o">(</span><span class="n">message</span> <span class="o">:</span> <span class="k">&#39;</span><span class="n">a</span><span class="o">)</span> <span class="n">expiry</span> <span class="o">=</span>
+            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Publish</span> <span class="o">(</span><span class="n">box</span> <span class="n">message</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;,</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">UtcNow</span> <span class="o">+</span> <span class="n">expiry</span><span class="o">,</span> <span class="nc">None</span><span class="o">))</span>
+        <span class="k">member</span> <span class="o">__.</span><span class="nc">TopicPublish</span> <span class="o">(</span><span class="n">message</span> <span class="o">:</span> <span class="k">&#39;</span><span class="n">a</span><span class="o">)</span> <span class="n">topic</span> <span class="n">expiry</span> <span class="o">=</span>
+            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Publish</span> <span class="o">(</span><span class="n">box</span> <span class="n">message</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;,</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">UtcNow</span> <span class="o">+</span> <span class="n">expiry</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">topic</span><span class="o">))</span>
+        <span class="k">member</span> <span class="o">__.</span><span class="nc">Subscribe</span> <span class="n">sid</span> <span class="n">action</span> <span class="o">=</span>
+            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Subscribe</span> <span class="o">{</span> <span class="nc">SubscriptionId</span> <span class="o">=</span> <span class="n">sid</span><span class="o">;</span> <span class="nc">Binding</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span><span class="o">;</span> <span class="nc">Action</span> <span class="o">=</span> <span class="n">action</span> <span class="o">})</span>
+        <span class="k">member</span> <span class="o">__.</span><span class="nc">TopicSubscribe</span> <span class="n">sid</span> <span class="o">(</span><span class="nc">Topic</span> <span class="n">binding</span><span class="o">)</span> <span class="n">action</span> <span class="o">=</span>
+            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Subscribe</span> <span class="o">{</span> <span class="nc">SubscriptionId</span> <span class="o">=</span> <span class="n">sid</span><span class="o">;</span> <span class="nc">Binding</span> <span class="o">=</span> <span class="n">binding</span><span class="o">;</span> <span class="nc">Action</span> <span class="o">=</span> <span class="n">action</span> <span class="o">})</span>
 </code></pre></div>]]></content>
   </entry>
   

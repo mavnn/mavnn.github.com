@@ -26,10 +26,10 @@ dotnet new sln -n Project.New
 
 # Create library project in directory Project.New.Library
 # Default proj name is Project.New.Library.fsproj
-dotnet new classlib -o Project.New.Library --lang f#
+dotnet new classlib -o Project.New.Library -lang f#
 
 # And again for test library
-dotnet new console -o Project.New.Library.Tests --lang f#
+dotnet new console -o Project.New.Library.Tests -lang f#
 
 # Add projects to solution (can combine to a single line)
 dotnet sln add Project.New.Library/Project.New.Library.fsproj
@@ -45,3 +45,5 @@ dotnet add package Expecto
 At this point, running ``dotnet run`` in the test directory should run your example test, and running ``dotnet build`` from the solution directory should successfully build your nice, portable, shiny, .NET Core 2.0 code.
 
 Enjoy, and remember this post has a shelf life: hopefully issues like the template woes I had should disappear quickly as the eco-system catches up with the latest release.
+
+> Thanks to Tim Preston for a minor correction to this post; our genius author had managed to copy and paste erroneous commands from his own command history...

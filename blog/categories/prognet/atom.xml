@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: prognet | Mavnn's blog]]></title>
+  <link href="https://blog.mavnn.co.uk/blog/categories/prognet/atom.xml" rel="self"/>
+  <link href="https://blog.mavnn.co.uk/"/>
+  <updated>2017-08-31T16:48:23+01:00</updated>
+  <id>https://blog.mavnn.co.uk/</id>
+  <author>
+    <name><![CDATA[mavnn]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[System.Console is why we can't have nice things]]></title>
+    <link href="https://blog.mavnn.co.uk/system-dot-console-is-why-we-cant-have-nice-things/"/>
+    <updated>2017-08-31T16:30:18+01:00</updated>
+    <id>https://blog.mavnn.co.uk/system-dot-console-is-why-we-cant-have-nice-things</id>
+    <content type="html"><![CDATA[<p>In writing a simple tutorial for this years <a href="https://skillsmatter.com/conferences/8268-progressive-dot-net-2017#program">Progressive .Net</a> I thought I&#39;d use the Console to allow some nice visual feedback with requiring a dependency.</p>
+
+<p>TD;LR: <code>System.Console</code> (at least on dotnet core 2.0) is not as threadsafe as you&#39;d hope, and means that writing any simple cross platform console UI is nearly impossible.</p>
+
+<!-- more -->
+
+<p>So, I started with a draw method like this:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">type</span> <span class="nc">Coord</span> <span class="o">=</span>
+    <span class="o">{</span> <span class="nc">X</span> <span class="o">:</span> <span class="kt">int</span>
+      <span class="nc">Y</span> <span class="o">:</span> <span class="kt">int</span> <span class="o">}</span>
+
+<span class="k">let</span> <span class="n">draw</span> <span class="n">changes</span> <span class="o">=</span>
+    <span class="n">changes</span>
+    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">iter</span> <span class="o">(</span><span class="k">fun</span> <span class="o">(</span><span class="n">coord</span><span class="o">,</span> <span class="n">item</span> <span class="o">:</span> <span class="kt">char</span><span class="o">)</span> <span class="o">-&gt;</span>
+        <span class="nn">Console</span><span class="p">.</span><span class="nc">CursorLeft</span> <span class="o">&lt;-</span> <span class="n">coord</span><span class="o">.</span><span class="nc">X</span>
+        <span class="nn">Console</span><span class="p">.</span><span class="nc">CursorTop</span> <span class="o">&lt;-</span> <span class="n">coord</span><span class="o">.</span><span class="nc">Y</span>
+        <span class="nn">Console</span><span class="p">.</span><span class="nc">Write</span> <span class="n">item</span><span class="o">)</span>
+</code></pre></div>
+<p>This method just takes a sequence of coordinates and characters to write in them, and then moves the cursor around the console to write your inputs. And it works fine.</p>
+
+<p>Then I wanted a sequence of keys pressed by the user:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">type</span> <span class="nc">Directions</span> <span class="o">=</span>
+    <span class="o">|</span> <span class="nc">Up</span>
+    <span class="o">|</span> <span class="nc">Down</span>
+    <span class="o">|</span> <span class="nc">Left</span>
+    <span class="o">|</span> <span class="nc">Right</span>
+    <span class="o">|</span> <span class="nc">Stay</span>
+
+<span class="k">let</span> <span class="n">inputUnfolder</span> <span class="n">prev</span> <span class="o">=</span>
+    <span class="k">let</span> <span class="n">read</span> <span class="o">=</span> <span class="nn">Console</span><span class="p">.</span><span class="nc">ReadKey</span><span class="o">(</span><span class="bp">true</span><span class="o">)</span>
+    <span class="k">match</span> <span class="n">read</span><span class="o">.</span><span class="nc">Key</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="nn">ConsoleKey</span><span class="p">.</span><span class="nc">UpArrow</span> <span class="o">-&gt;</span>
+        <span class="nc">Some</span> <span class="o">(</span><span class="nc">Up</span><span class="o">,</span> <span class="nc">Up</span><span class="o">)</span>
+    <span class="o">|</span> <span class="nn">ConsoleKey</span><span class="p">.</span><span class="nc">DownArrow</span> <span class="o">-&gt;</span>
+        <span class="nc">Some</span> <span class="o">(</span><span class="nc">Down</span><span class="o">,</span> <span class="nc">Down</span><span class="o">)</span>
+    <span class="o">|</span> <span class="nn">ConsoleKey</span><span class="p">.</span><span class="nc">LeftArrow</span> <span class="o">-&gt;</span>
+        <span class="nc">Some</span> <span class="o">(</span><span class="nc">Left</span><span class="o">,</span> <span class="nc">Down</span><span class="o">)</span>
+    <span class="o">|</span> <span class="nn">ConsoleKey</span><span class="p">.</span><span class="nc">RightArrow</span> <span class="o">-&gt;</span>
+        <span class="nc">Some</span> <span class="o">(</span><span class="nc">Right</span><span class="o">,</span> <span class="nc">Right</span><span class="o">)</span>
+    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
+        <span class="nc">Some</span> <span class="o">(</span><span class="n">prev</span><span class="o">,</span> <span class="n">prev</span><span class="o">)</span>
+
+<span class="k">let</span> <span class="n">keysPressed</span> <span class="o">=</span>
+    <span class="nn">Seq</span><span class="p">.</span><span class="n">unfold</span> <span class="n">inputUnfolder</span> <span class="nc">Stay</span>
+</code></pre></div>
+<p>Again, this works fine. And as long as you take one item from the input stream, do all your drawing and then take the next item everything continues to be good.</p>
+
+<p>But... this story doesn&#39;t end here. What I was really after was accepting key presses on one thread, and drawing on another.</p>
+
+<p>First problem: it turns out that calling <code>Console.ReadKey</code> on one thread, and setting <code>Console.CursorTop/Left</code> on another causes a deadlock.</p>
+
+<p>A bit of research led to the <code>Console.KeyAvailable</code> property, and rewriting <code>inputFolder</code>:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="k">rec</span> <span class="n">inputUnfolder</span> <span class="n">prev</span> <span class="o">=</span>
+    <span class="k">if</span> <span class="nn">Console</span><span class="p">.</span><span class="nc">KeyAvailable</span> <span class="k">then</span>
+        <span class="k">let</span> <span class="n">read</span> <span class="o">=</span> <span class="nn">Console</span><span class="p">.</span><span class="nc">ReadKey</span><span class="o">(</span><span class="bp">true</span><span class="o">)</span>
+        <span class="k">match</span> <span class="n">read</span><span class="o">.</span><span class="nc">Key</span> <span class="k">with</span>
+        <span class="o">|</span> <span class="nn">ConsoleKey</span><span class="p">.</span><span class="nc">UpArrow</span> <span class="o">-&gt;</span>
+            <span class="nc">Some</span> <span class="o">(</span><span class="nc">Up</span><span class="o">,</span> <span class="nc">Up</span><span class="o">)</span>
+        <span class="o">|</span> <span class="nn">ConsoleKey</span><span class="p">.</span><span class="nc">DownArrow</span> <span class="o">-&gt;</span>
+            <span class="nc">Some</span> <span class="o">(</span><span class="nc">Down</span><span class="o">,</span> <span class="nc">Down</span><span class="o">)</span>
+        <span class="o">|</span> <span class="nn">ConsoleKey</span><span class="p">.</span><span class="nc">LeftArrow</span> <span class="o">-&gt;</span>
+            <span class="nc">Some</span> <span class="o">(</span><span class="nc">Left</span><span class="o">,</span> <span class="nc">Down</span><span class="o">)</span>
+        <span class="o">|</span> <span class="nn">ConsoleKey</span><span class="p">.</span><span class="nc">RightArrow</span> <span class="o">-&gt;</span>
+            <span class="nc">Some</span> <span class="o">(</span><span class="nc">Right</span><span class="o">,</span> <span class="nc">Right</span><span class="o">)</span>
+        <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
+            <span class="nc">Some</span> <span class="o">(</span><span class="n">prev</span><span class="o">,</span> <span class="n">prev</span><span class="o">)</span>
+    <span class="k">else</span>
+        <span class="nn">Async</span><span class="p">.</span><span class="nc">Sleep</span> <span class="mi">1</span> <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">RunSynchronously</span>
+        <span class="n">inputUnfolder</span> <span class="n">prev</span>
+</code></pre></div>
+<p>Yeah! Spin loop. That looks totally healthy.</p>
+
+<p>Unfortunately, we now have the issue that because <code>Console.ReadKey</code> is not actively blocking at the moment the key is pressed, the input key is printed directly to the console. There doesn&#39;t appear to be anyway of blocking this.</p>
+
+<p>The real pity about all of this is not that it&#39;s just wasted a couple of hours of my life writing a &quot;simple&quot; tutorial (although that&#39;s pretty annoying!); it&#39;s the fact that with dotnet core being genuinely cross platform, I was hoping to use it to write a few nice console UI based applications. It turns out that apart from the well know performance issues of <code>System.Console</code>, it doesn&#39;t currently appear to be possible at all.</p>
+]]></content>
+  </entry>
+  
+</feed>

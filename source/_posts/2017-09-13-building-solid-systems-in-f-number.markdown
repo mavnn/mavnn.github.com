@@ -5,7 +5,7 @@ date: 2017-09-13 14:19:21 +0100
 comments: true
 categories: 
 ---
-We are running an other course! Read on for the details...
+We are running an other course, and I'm officially stoked! Read on for the details...
 
 <h2>Building Solid Systems in F#</h2>
 

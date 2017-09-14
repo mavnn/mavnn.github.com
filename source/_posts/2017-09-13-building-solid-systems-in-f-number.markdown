@@ -5,6 +5,10 @@ date: 2017-09-13 14:19:21 +0100
 comments: true
 categories: 
 ---
+We are running an other course! Read on for the details...
+
+<h2>Building Solid Systems in F#</h2>
+
 <p>
 Writing code is only the first part of putting a software system into production; some of these rules are universal across software development, some depend on your ecosystem and operating system, and some are unique to each programming language.
 </p>

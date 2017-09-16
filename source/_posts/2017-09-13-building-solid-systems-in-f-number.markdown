@@ -61,7 +61,7 @@ You need to bring laptop with:
 
 <ul class="org-ul">
 <li>a relatively recent F# development environment (you'll need to be able to build dotnet core 2.0 apps)</li>
-<li>minikube installed</li>
+<li>Minikube installed</li>
 </ul>
 
 <p>

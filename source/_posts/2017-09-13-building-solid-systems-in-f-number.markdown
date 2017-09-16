@@ -5,16 +5,16 @@ date: 2017-09-13 14:19:21 +0100
 comments: true
 categories: 
 ---
-We are running an other course, and I'm officially stoked! Read on for the details...
+We are running another course, and I'm officially stoked! Read on for the details...
 
 <h2>Building Solid Systems in F#</h2>
 
 <p>
-Writing code is only the first part of putting a software system into production - to run, maintain and scale these systems, you'll need to understand and design the overall system. Some of these rules of designing good software systems are universal across all of software development, some depend on your ecosystem and operating system, and some are unique to each programming language.
+Writing code is only the first part of putting software into production - to run, maintain and scale your product, you'll need to understand and design the overall system. Some of the rules of designing good software systems are universal across all of software development, some depend on your ecosystem and operating system, and some are unique to each programming language.
 </p>
 
 <p>
-This course will take you through best practice in both writing an F# based, distributed system and running it in production - including sensible inter-operation with components written in other languages.
+This 2 day course will take you through best practice in both writing an F# based, distributed system and running it in production - including sensible inter-operation with components written in other languages.
 </p>
 
 <p>

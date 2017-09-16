@@ -68,15 +68,15 @@ You need to bring laptop with:
 We'll also ask you to pre-download some code and containers in advance so that we can hit the ground running on the first day; we'll pass you the details of that before the event. 
 </p>
 
-_Is this a replacement for Level Up Your F#?_
+**Is this a replacement for Level Up Your F#?**
 
 No; [Level Up Your F#](https://blog.mavnn.co.uk/level-up-your-f-number-skills/) focussed on the details of the F# language, this course is focussed on building systems. We will be running Level Up Your F# again in the future.
 
-_Where will it happen?_
+**Where will it happen?**
 
 At the Wellcome Collection: https://wellcomecollection.org/
 
-_Where can I get tickets?_
+**Where can I get tickets?**
 
 Right here!
 
@@ -84,7 +84,7 @@ Right here!
 
 (Or go to [EventBrite](https://www.eventbrite.co.uk/e/writing-solid-systems-in-f-tickets-37887882677) if that form isn't working for you)
 
-_What have other people said about your courses?_
+**What have other people said about your courses?**
 
 Hassan Ezzahir, Lead developer (Contractor) at BNP Paribas
 

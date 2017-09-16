@@ -15,7 +15,7 @@ This 2 day course will take you through best practice in both writing an F# base
 
 To fit this into 2 days, we'll need to make some opinionated decisions (such as using F#!), but many of the ideas and concepts will be transferable. 
 
-**We'll cover:**
+## We'll cover:
 
 <ul class="org-ul">
 <li>Writing reliable code using F#'s unique language features</li>
@@ -31,7 +31,7 @@ To fit this into 2 days, we'll need to make some opinionated decisions (such as 
 <li>Good practice in dependency management and code organization</li>
 </ul>
 
-**You'll come away with:**
+## You'll come away with:
 
 <p>
 A git repository of your completed work, which will include:
@@ -44,7 +44,7 @@ A git repository of your completed work, which will include:
 <li>Zero down time continuous deployment for the overall system</li>
 </ul>
 
-**Prerequisites:**
+## Prerequisites:
 
 <p>
 You need to have:
@@ -68,15 +68,15 @@ You need to bring laptop with:
 We'll also ask you to pre-download some code and containers in advance so that we can hit the ground running on the first day; we'll pass you the details of that before the event. 
 </p>
 
-**Is this a replacement for Level Up Your F#?**
+## Is this a replacement for Level Up Your F#?
 
 No; [Level Up Your F#](https://blog.mavnn.co.uk/level-up-your-f-number-skills/) focussed on the details of the F# language, this course is focussed on building systems. We will be running Level Up Your F# again in the future.
 
-**Where will it happen?**
+## Where will it happen?
 
-At the Wellcome Collection: https://wellcomecollection.org/
+At the [Wellcome Collection](https://wellcomecollection.org/)
 
-**Where can I get tickets?**
+## Where can I get tickets?
 
 Right here!
 
@@ -84,7 +84,7 @@ Right here!
 
 (Or go to [EventBrite](https://www.eventbrite.co.uk/e/writing-solid-systems-in-f-tickets-37887882677) if that form isn't working for you)
 
-**What have other people said about your courses?**
+## What have other people said about your courses?
 
 Hassan Ezzahir, Lead developer (Contractor) at BNP Paribas
 

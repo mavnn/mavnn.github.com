@@ -9,13 +9,11 @@ We are running another course, and I'm officially stoked! Read on for the detail
 
 <h2>Building Solid Systems in F#</h2>
 
-<p>
-Writing code is only the first part of putting software into production - to run, maintain and scale your product, you'll need to understand and design the overall system. Some of the rules of designing good software systems are universal across all of software development, some depend on your ecosystem and operating system, and some are unique to each programming language.
-</p>
+Writing code is only the first part of putting software into production - to run, maintain and scale your product, you'll need to understand and design the overall system.
 
-<p>
 This 2 day course will take you through best practice in both writing an F# based, distributed system and running it in production - including sensible inter-operation with components written in other languages.
-</p>
+
+To fit this into a two day course, we'll need to make some opinionated decisions (such as using F#!), but many of the ideas and concepts will be transferable. 
 
 <p>
 <em>We'll cover:</em>
@@ -34,10 +32,6 @@ This 2 day course will take you through best practice in both writing an F# base
 <li>Deploying distributed systems to production</li>
 <li>Good practice in dependency management and code organization</li>
 </ul>
-
-<p>
-Obviously to fit this in to a two day course, we'll be making some opinionated decisions around libraries and technologies to use.
-</p>
 
 <p>
 <em>You'll come away with:</em>

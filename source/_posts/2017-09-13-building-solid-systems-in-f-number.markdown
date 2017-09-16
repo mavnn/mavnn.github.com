@@ -13,7 +13,7 @@ Writing code is only the first part of putting software into production - to run
 
 This 2 day course will take you through best practice in both writing an F# based, distributed system and running it in production - including sensible inter-operation with components written in other languages.
 
-To fit this into a two day course, we'll need to make some opinionated decisions (such as using F#!), but many of the ideas and concepts will be transferable. 
+To fit this into 2 days, we'll need to make some opinionated decisions (such as using F#!), but many of the ideas and concepts will be transferable. 
 
 <p>
 <em>We'll cover:</em>

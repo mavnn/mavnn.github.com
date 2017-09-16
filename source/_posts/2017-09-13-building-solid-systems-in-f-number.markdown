@@ -15,9 +15,7 @@ This 2 day course will take you through best practice in both writing an F# base
 
 To fit this into 2 days, we'll need to make some opinionated decisions (such as using F#!), but many of the ideas and concepts will be transferable. 
 
-<p>
-<em>We'll cover:</em>
-</p>
+**We'll cover:**
 
 <ul class="org-ul">
 <li>Writing reliable code using F#'s unique language features</li>
@@ -33,9 +31,7 @@ To fit this into 2 days, we'll need to make some opinionated decisions (such as 
 <li>Good practice in dependency management and code organization</li>
 </ul>
 
-<p>
-<em>You'll come away with:</em>
-</p>
+**You'll come away with:**
 
 <p>
 A git repository of your completed work, which will include:
@@ -48,9 +44,7 @@ A git repository of your completed work, which will include:
 <li>Zero down time continuous deployment for the overall system</li>
 </ul>
 
-<p>
-<em>Prerequisites:</em>
-</p>
+**Prerequisites:**
 
 <p>
 You need to have:

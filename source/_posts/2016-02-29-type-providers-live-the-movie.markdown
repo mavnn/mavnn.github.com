@@ -3,7 +3,7 @@ layout: post
 title: "Type Providers Live - the Movie"
 date: 2016-02-29 21:10:51 +0000
 comments: true
-categories: [fsharp,typeprovider]
+categories: [fsharp,typeprovider,talks]
 ---
 I recently gave a live streamed tutorial on building type providers, which I've embedded below. Apologies for the sound; apparently Google Hangouts added a feature I was unaware of until after the stream started which mutes your microphone whenever you type.
 

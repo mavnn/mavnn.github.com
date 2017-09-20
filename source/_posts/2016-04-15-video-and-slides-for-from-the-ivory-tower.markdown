@@ -3,7 +3,7 @@ layout: post
 title: "Video and slides for \"From the Ivory Tower\""
 date: 2016-04-15 14:14:17 +0100
 comments: true
-categories: [fsharp]
+categories: [fsharp, talks]
 ---
 I spoke this morning at [F# Exchange](https://skillsmatter.com/conferences/7145-f-exchange-2016#program) and this being SkillsMatter they've published the recording already.
 

@@ -3,7 +3,7 @@ layout: post
 title: "Functional Programming in the Wild"
 date: 2017-09-18 11:49:58 +0100
 comments: true
-categories: [fsharp, prognet]
+categories: [fsharp, prognet, talks]
 ---
 Last week was the annual [Progressive .Net](https://skillsmatter.com/conferences/8268-progressive-dot-net-2017) conference, hosted at [SkillsMatter](https://skillsmatter.com).
 

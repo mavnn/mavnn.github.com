@@ -3,7 +3,7 @@ layout: post
 title: "Return to the Ivory Tower Video"
 date: 2017-04-20 13:17:18 +0100
 comments: true
-categories: ["fsharp"]
+categories: ["fsharp", talks]
 ---
 As mentioned on the blog already, I had the opportunity to talk at this year's F# Exchange at [skillsmatter](https://skillsmatter.com/). As always, they've done an excellent job on the video production, so if you're interested in what makes F# different from other programming languages have a watch of [Fixing Real Life Problems From the Ivory Tower](https://skillsmatter.com/skillscasts/9883-fixing-real-life-problems-from-the-ivory-tower) (free log in required).
 

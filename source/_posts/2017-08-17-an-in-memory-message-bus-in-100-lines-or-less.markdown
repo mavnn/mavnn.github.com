@@ -11,6 +11,8 @@ Please note we're not going for a full re-implementation of RabbitMQ in memory h
 
 <!-- more -->
 
+> Author's note: since this post was written, this code was updated to be async. I've added the new version as appendix 2
+
 ## What are we building?
 
 In the main process manager library, I'm starting to hash out the underlying types which will drive the various abstractions in play. As a consumer of the library, you'll probably never have cause to use these types directly.
@@ -340,6 +342,128 @@ type MemoryBus () =
             agent.Post (Publish (box message, typeof<'a>, DateTime.UtcNow + expiry, None))
         member __.TopicPublish (message : 'a) topic expiry =
             agent.Post (Publish (box message, typeof<'a>, DateTime.UtcNow + expiry, Some topic))
+        member __.Subscribe sid action =
+            agent.Post (Subscribe { SubscriptionId = sid; Binding = "#"; Action = action })
+        member __.TopicSubscribe sid (Topic binding) action =
+            agent.Post (Subscribe { SubscriptionId = sid; Binding = binding; Action = action })
+```
+
+## Appendix 1
+
+The async version!
+
+File 1:
+
+``` fsharp
+module EasyNetQ.ProcessManager.Types
+
+open System
+
+type SubscriptionId = SubscriptionId of string
+type Topic = Topic of string
+
+type ProcessManagerBus =
+    inherit IDisposable
+
+    abstract member Publish<'a when 'a : not struct> :
+        'a -> TimeSpan -> Async<unit>
+    abstract member TopicPublish<'a when 'a : not struct> :
+        'a -> Topic -> TimeSpan -> Async<unit>
+    abstract member Subscribe<'a when 'a : not struct> :
+        SubscriptionId -> ('a -> Async<unit>) -> unit
+    abstract member TopicSubscribe<'a when 'a : not struct> :
+        SubscriptionId -> Topic -> ('a -> Async<unit>) -> unit
+```
+
+File 2:
+
+``` fsharp
+module EasyNetQ.ProcessManager.MemoryBus
+
+open System
+open EasyNetQ.ProcessManager.Types
+
+type private Subscriber =
+    abstract Action : obj -> Async<unit>
+    abstract Type : Type
+    abstract Binding : string
+
+type private Subscriber<'a> =
+    { SubscriptionId : SubscriptionId
+      Binding : string
+      Action : 'a -> Async<unit> }
+    interface Subscriber with
+        member x.Action o =
+            o |> unbox<'a> |> x.Action
+        member __.Type =
+            typeof<'a>
+        member x.Binding =
+            x.Binding
+
+type private BusMessage =
+    | Publish of obj * Type * DateTime * Topic option
+    | Subscribe of Subscriber
+    | Stop of AsyncReplyChannel<unit>
+
+let private compareSection (topicSection : string, bindingSection : string) =
+    match bindingSection with
+    | "#" | "*" -> true
+    | _ when bindingSection = topicSection -> true
+    | _ -> false
+
+let private topicBindingMatch topicOpt (binding : string) =
+    match topicOpt with
+    | Some (Topic topic) ->
+        let topicSections = topic.Split '.'
+        let bindingSections = binding.Split '.'
+        if bindingSections.[bindingSections.Length - 1] = "#" then
+            Seq.zip topicSections bindingSections
+            |> Seq.forall compareSection
+        else
+            if bindingSections.Length = topicSections.Length then
+                Seq.zip topicSections bindingSections
+                |> Seq.forall compareSection
+            else
+                false
+    | None ->
+        binding = "#"
+
+let rec private loop subscribers (exiting : AsyncReplyChannel<unit> option) (agent : MailboxProcessor<BusMessage>) =
+    async {
+        match exiting with
+        | Some chan when agent.CurrentQueueLength = 0 ->
+            return chan.Reply()
+        | _ ->
+            let! msg = agent.Receive()
+            match msg with
+            | Stop chan ->
+                return! loop subscribers (Some chan) agent
+            | Subscribe s ->
+                return! loop (s::subscribers) exiting agent
+            | Publish (message, type', expireTime, topic) ->
+                if expireTime > DateTime.UtcNow then
+                    let matchingSubs =
+                        subscribers
+                        |> List.filter (fun x -> type' = x.Type
+                                                  && topicBindingMatch topic x.Binding)
+                    for sub in matchingSubs do
+                        sub.Action message |> Async.StartImmediate
+                return! loop subscribers exiting agent
+    }
+
+type MemoryBus () =
+    let agent = MailboxProcessor.Start(loop [] None)
+    do agent.Error.Add raise
+    interface IDisposable with
+        member __.Dispose() =
+            agent.PostAndReply Stop
+    interface ProcessManagerBus with
+        member __.Publish (message : 'a) expiry =
+            agent.Post (Publish (box message, typeof<'a>, DateTime.UtcNow + expiry, None))
+            async.Zero()
+        member __.TopicPublish (message : 'a) topic expiry =
+            agent.Post (Publish (box message, typeof<'a>, DateTime.UtcNow + expiry, Some topic))
+            async.Zero()
         member __.Subscribe sid action =
             agent.Post (Subscribe { SubscriptionId = sid; Binding = "#"; Action = action })
         member __.TopicSubscribe sid (Topic binding) action =

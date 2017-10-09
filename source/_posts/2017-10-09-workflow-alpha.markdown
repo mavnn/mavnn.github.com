@@ -15,4 +15,4 @@ This is still at the underlying plumbing phase in many ways: the code to constru
 
 Next up: a nice sleek API for creating "pipeline" workflows more easily. Then the real fun starts - pleasant to use abstractions over fork/join semantics...
 
-*Interested in seeing faster progress on this project? Drop [us@mavnn.co.uk](mailto://us@mavnn.co.uk) a line to talk sponsership.*
+*Interested in seeing faster progress on this project? Drop [us@mavnn.co.uk](mailto://us@mavnn.co.uk) a line to talk sponsorship.*

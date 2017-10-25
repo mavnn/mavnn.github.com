@@ -9,7 +9,7 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="It&#39;s alive! The process manager code I&#39;ve been reconstructing (see Intro and the in memory test bus) is slowly starting to take some shape. &hellip;">
+  <meta name="description" content="I&#39;ve written about how nice Freya is as a library, but documentation is still a little light on the ground. So here&#39;s a minimal &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -80,6 +80,377 @@ ga('send', 'pageview');
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+
+  <header>
+    
+      <h1 class="entry-title"><a href="/posting-to-freya/">POSTing to Freya</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2017-10-25T15:52:57+01:00" pubdate data-updated="true">Oct 25<span>th</span>, 2017</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>I&#39;ve written about how nice Freya is as a library, but documentation is still a little light on the ground.</p>
+
+<p>So here&#39;s a minimal implementation of a &quot;microservice&quot; Freya API, starting from which dotnet commands to run to install the Freya template, through to a running web service.</p>
+
+<p>Make sure you have an up to date .NET Core SDK installed, and grab yourself the handy dandy Freya template:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>dotnet new -i <span class="s2">&quot;Freya.Template::*&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Then create yourself a directory and go into it. The following command will set up a brand new Freya project using kestrel as the underlying webserver, and Hopac (rather than F# Async) for concurrency. Alternatively, you can leave both the options off and you&#39;ll get Freya running on Suave with standard Async.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>dotnet new freya --framework kestrel --concurrency hopac
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Your project should run at this point; <code>dotnet run</code> will spin up a webserver on port 5000 which will give a 404 at the root and text responses on /hello and /hello/name paths.</p>
+
+<p>Api.fs is where all the magic of configuring Freya happens - KestrelInterop.fs contains boilerplate for making sure Routing information passes correctly between Kestrel and Freya, and Program.fs just starts Kestrel with our Freya API as an OWIN app.</p>
+
+<h3>Adding JSON</h3>
+
+<p>So, this is great and all, but we&#39;re building a microservice aren&#39;t we? That normally means JSON (or at least something more structured than plain text!).</p>
+
+<p>Let&#39;s change things up so that as well as supplying the name to greet in the route, we can POST JSON with a name field to the /hello end point.</p>
+
+<p>To respond in JSON, we need a Freya <code>Represent</code> record. We&#39;re sending a result with a fixed structure, so we don&#39;t need a serialization library or anything, we&#39;ll just construct the JSON by hand. Stick this near the top of Api.fs:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Text</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Text</span><span class="p">.</span><span class="nc">RegularExpressions</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">representGreeting</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">before</span> <span class="o">=</span>
+</span><span class='line'>        <span class="nn">Encoding</span><span class="p">.</span><span class="nn">UTF8</span><span class="p">.</span><span class="nc">GetBytes</span> <span class="s2">&quot;{ </span><span class="se">\&quot;</span><span class="s2">greeting</span><span class="se">\&quot;</span><span class="s2">: </span><span class="se">\&quot;</span><span class="s2">&quot;</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">after</span> <span class="o">=</span> <span class="nn">Encoding</span><span class="p">.</span><span class="nn">UTF8</span><span class="p">.</span><span class="nc">GetBytes</span> <span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2"> }&quot;</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">extremeSanifier</span> <span class="o">=</span>
+</span><span class='line'>        <span class="nn">RegularExpressions</span><span class="p">.</span><span class="nc">Regex</span><span class="o">(</span><span class="s2">&quot;[^a-z0-9 ]&quot;</span><span class="o">,</span> <span class="nn">RegexOptions</span><span class="p">.</span><span class="nc">Compiled</span> <span class="o">|||</span> <span class="nn">RegexOptions</span><span class="p">.</span><span class="nc">IgnoreCase</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">fun</span> <span class="n">name</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">safeNameBytes</span> <span class="o">=</span>
+</span><span class='line'>            <span class="n">extremeSanifier</span><span class="o">.</span><span class="nc">Replace</span><span class="o">(</span><span class="n">name</span><span class="o">,</span> <span class="s2">&quot;&quot;</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Encoding</span><span class="p">.</span><span class="nn">UTF8</span><span class="p">.</span><span class="nc">GetBytes</span>
+</span><span class='line'>        <span class="o">{</span> <span class="nc">Description</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">{</span> <span class="nc">Charset</span> <span class="o">=</span> <span class="nc">Some</span> <span class="nn">Charset</span><span class="p">.</span><span class="nc">Utf8</span>
+</span><span class='line'>              <span class="nc">Encodings</span> <span class="o">=</span> <span class="nc">None</span>
+</span><span class='line'>              <span class="nc">MediaType</span> <span class="o">=</span> <span class="nc">Some</span> <span class="nn">MediaType</span><span class="p">.</span><span class="nc">Json</span>
+</span><span class='line'>              <span class="nc">Languages</span> <span class="o">=</span> <span class="nc">None</span> <span class="o">}</span>
+</span><span class='line'>          <span class="nc">Data</span> <span class="o">=</span> <span class="nn">Array</span><span class="p">.</span><span class="n">concat</span> <span class="o">[</span><span class="n">before</span><span class="o">;</span><span class="n">safeNameBytes</span><span class="o">;</span><span class="n">after</span><span class="o">]</span> <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>So here we&#39;re defining an HTTP representation of a response, including media type and other important information.</p>
+
+<p>Aside: why do we return a lambda at the end rather than making representGreeting itself a function? That&#39;s so that we don&#39;t want to rebuild the two byte arrays and the regex every time we call the function.</p>
+
+<p>We also need to be able to read incoming JSON. Well, all we want is a string so lets just check that there&#39;s an &#39;&quot;&#39; at the beginning and end&#8230;</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">IO</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">grabString</span> <span class="o">(</span><span class="n">bodyStream</span> <span class="o">:</span> <span class="o">#</span><span class="nc">Stream</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">use</span> <span class="n">reader</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">StreamReader</span><span class="o">(</span><span class="n">bodyStream</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">match</span> <span class="n">reader</span><span class="o">.</span><span class="nc">ReadToEnd</span><span class="bp">()</span> <span class="k">with</span>
+</span><span class='line'>    <span class="o">|</span> <span class="n">str</span> <span class="k">when</span> <span class="n">str</span><span class="o">.[</span><span class="mi">0</span><span class="o">]</span> <span class="o">=</span> <span class="sc">&#39;&quot;&#39;</span> <span class="o">&amp;&amp;</span> <span class="n">str</span><span class="o">.[</span><span class="n">str</span><span class="o">.</span><span class="nc">Length</span> <span class="o">-</span> <span class="mi">1</span><span class="o">]</span> <span class="o">=</span> <span class="sc">&#39;&quot;&#39;</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="nc">Some</span> <span class="o">&lt;|</span> <span class="n">str</span><span class="o">.</span><span class="nc">Substring</span><span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="n">str</span><span class="o">.</span><span class="nc">Length</span> <span class="o">-</span> <span class="mi">2</span><span class="o">)</span>
+</span><span class='line'>    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="nc">None</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Now we can start hooking up the actual root that we want. We need to make some additions to <code>helloMachine</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">helloMachine</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">freyaMachine</span> <span class="o">{</span>
+</span><span class='line'>        <span class="c1">// methods [GET; HEAD; OPTIONS]</span>
+</span><span class='line'>        <span class="n">methods</span> <span class="o">[</span><span class="nc">GET</span><span class="o">;</span> <span class="nc">HEAD</span><span class="o">;</span> <span class="nc">OPTIONS</span><span class="o">;</span> <span class="nc">POST</span><span class="o">]</span>
+</span><span class='line'>        <span class="n">acceptableMediaTypes</span> <span class="o">[</span><span class="nn">MediaType</span><span class="p">.</span><span class="nc">Json</span><span class="o">]</span>
+</span><span class='line'>        <span class="n">handleOk</span> <span class="n">sayHello</span> <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Magically our endpoint now knows not only that we accept POSTs, but it will end the correct error code if the media type of the POST is not set to JSON.</p>
+
+<p>We also need to update <code>sayHello</code> and <code>name</code>; we&#39;ll extract the method of the request and choose logic for working out the name and creating the response respectively.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">name_</span> <span class="o">=</span> <span class="nn">Route</span><span class="p">.</span><span class="n">atom_</span> <span class="s2">&quot;name&quot;</span>
+</span><span class='line'><span class="k">let</span> <span class="n">method_</span> <span class="o">=</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optics</span><span class="p">.</span><span class="nn">Http</span><span class="p">.</span><span class="nn">Request</span><span class="p">.</span><span class="n">method_</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">name</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">freya</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">requestMethod</span> <span class="o">=</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optic</span><span class="p">.</span><span class="n">get</span> <span class="n">method_</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">nameO</span> <span class="o">=</span>
+</span><span class='line'>            <span class="k">match</span> <span class="n">requestMethod</span> <span class="k">with</span>
+</span><span class='line'>            <span class="o">|</span> <span class="nc">POST</span> <span class="o">-&gt;</span>
+</span><span class='line'>                <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optic</span><span class="p">.</span><span class="n">get</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optics</span><span class="p">.</span><span class="nn">Http</span><span class="p">.</span><span class="nn">Request</span><span class="p">.</span><span class="n">body_</span>
+</span><span class='line'>                <span class="o">|&gt;</span> <span class="nn">Freya</span><span class="p">.</span><span class="n">map</span> <span class="n">grabString</span>
+</span><span class='line'>            <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optic</span><span class="p">.</span><span class="n">get</span> <span class="n">name_</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">match</span> <span class="n">nameO</span> <span class="k">with</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">Some</span> <span class="n">name</span> <span class="o">-&gt;</span> <span class="k">return</span> <span class="n">name</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="k">return</span> <span class="s2">&quot;World&quot;</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">representResponse</span> <span class="n">greeting</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">freya</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">requestMethod</span> <span class="o">=</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optic</span><span class="p">.</span><span class="n">get</span> <span class="n">method_</span>
+</span><span class='line'>        <span class="k">match</span> <span class="n">requestMethod</span> <span class="k">with</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">POST</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="k">return</span> <span class="n">representGreeting</span> <span class="n">greeting</span>
+</span><span class='line'>        <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="k">return</span> <span class="nn">Represent</span><span class="p">.</span><span class="n">text</span> <span class="n">greeting</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>And that&#39;s everything we should need. Firing up <a href="https://www.getpostman.com/">PostMan</a> we can find out that posting an empty body gets a 500 (we should probably handle that, looks like the request stream can be null), firing in a string with no media type header gets back a &quot;415 Unsupported Media Type&quot; (did you know that off hand?) and a POST with a correct body (i.e., starts and ends with a &#39;&quot;&#39;) gets us back:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="p">{</span> <span class="nt">&quot;greeting&quot;</span><span class="p">:</span> <span class="s2">&quot;Hello michael&quot;</span> <span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>So there you have it. Adding a POST endpoint to Freya.</p>
+
+<h3>Appendix</h3>
+
+<p>Here is the complete Api.fs for you to follow along, with open statements moved to the top of the file:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nc">Api</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">IO</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Text</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Text</span><span class="p">.</span><span class="nc">RegularExpressions</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Freya</span><span class="p">.</span><span class="nc">Core</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Machines</span><span class="p">.</span><span class="nc">Http</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Types</span><span class="p">.</span><span class="nc">Http</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Routers</span><span class="p">.</span><span class="nn">Uri</span><span class="p">.</span><span class="nc">Template</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">representGreeting</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">before</span> <span class="o">=</span>
+</span><span class='line'>        <span class="nn">Encoding</span><span class="p">.</span><span class="nn">UTF8</span><span class="p">.</span><span class="nc">GetBytes</span> <span class="s2">&quot;{ </span><span class="se">\&quot;</span><span class="s2">greeting</span><span class="se">\&quot;</span><span class="s2">: </span><span class="se">\&quot;</span><span class="s2">&quot;</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">after</span> <span class="o">=</span> <span class="nn">Encoding</span><span class="p">.</span><span class="nn">UTF8</span><span class="p">.</span><span class="nc">GetBytes</span> <span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2"> }&quot;</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">extremeSanifier</span> <span class="o">=</span>
+</span><span class='line'>        <span class="nn">RegularExpressions</span><span class="p">.</span><span class="nc">Regex</span><span class="o">(</span><span class="s2">&quot;[^a-z0-9 ]&quot;</span><span class="o">,</span> <span class="nn">RegexOptions</span><span class="p">.</span><span class="nc">Compiled</span> <span class="o">|||</span> <span class="nn">RegexOptions</span><span class="p">.</span><span class="nc">IgnoreCase</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">fun</span> <span class="n">name</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">safeNameBytes</span> <span class="o">=</span>
+</span><span class='line'>            <span class="n">extremeSanifier</span><span class="o">.</span><span class="nc">Replace</span><span class="o">(</span><span class="n">name</span><span class="o">,</span> <span class="s2">&quot;&quot;</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Encoding</span><span class="p">.</span><span class="nn">UTF8</span><span class="p">.</span><span class="nc">GetBytes</span>
+</span><span class='line'>        <span class="o">{</span> <span class="nc">Description</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">{</span> <span class="nc">Charset</span> <span class="o">=</span> <span class="nc">Some</span> <span class="nn">Charset</span><span class="p">.</span><span class="nc">Utf8</span>
+</span><span class='line'>              <span class="nc">Encodings</span> <span class="o">=</span> <span class="nc">None</span>
+</span><span class='line'>              <span class="nc">MediaType</span> <span class="o">=</span> <span class="nc">Some</span> <span class="nn">MediaType</span><span class="p">.</span><span class="nc">Json</span>
+</span><span class='line'>              <span class="nc">Languages</span> <span class="o">=</span> <span class="nc">None</span> <span class="o">}</span>
+</span><span class='line'>          <span class="nc">Data</span> <span class="o">=</span> <span class="nn">Array</span><span class="p">.</span><span class="n">concat</span> <span class="o">[</span><span class="n">before</span><span class="o">;</span><span class="n">safeNameBytes</span><span class="o">;</span><span class="n">after</span><span class="o">]</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">grabString</span> <span class="o">(</span><span class="n">bodyStream</span> <span class="o">:</span> <span class="o">#</span><span class="nc">Stream</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">use</span> <span class="n">reader</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">StreamReader</span><span class="o">(</span><span class="n">bodyStream</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">match</span> <span class="n">reader</span><span class="o">.</span><span class="nc">ReadToEnd</span><span class="bp">()</span> <span class="k">with</span>
+</span><span class='line'>    <span class="o">|</span> <span class="n">str</span> <span class="k">when</span> <span class="n">str</span><span class="o">.[</span><span class="mi">0</span><span class="o">]</span> <span class="o">=</span> <span class="sc">&#39;&quot;&#39;</span> <span class="o">&amp;&amp;</span> <span class="n">str</span><span class="o">.[</span><span class="n">str</span><span class="o">.</span><span class="nc">Length</span> <span class="o">-</span> <span class="mi">1</span><span class="o">]</span> <span class="o">=</span> <span class="sc">&#39;&quot;&#39;</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="nc">Some</span> <span class="o">&lt;|</span> <span class="n">str</span><span class="o">.</span><span class="nc">Substring</span><span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="n">str</span><span class="o">.</span><span class="nc">Length</span> <span class="o">-</span> <span class="mi">2</span><span class="o">)</span>
+</span><span class='line'>    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="nc">None</span>
+</span><span class='line'>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">name_</span> <span class="o">=</span> <span class="nn">Route</span><span class="p">.</span><span class="n">atom_</span> <span class="s2">&quot;name&quot;</span>
+</span><span class='line'><span class="k">let</span> <span class="n">method_</span> <span class="o">=</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optics</span><span class="p">.</span><span class="nn">Http</span><span class="p">.</span><span class="nn">Request</span><span class="p">.</span><span class="n">method_</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">name</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">freya</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">requestMethod</span> <span class="o">=</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optic</span><span class="p">.</span><span class="n">get</span> <span class="n">method_</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">nameO</span> <span class="o">=</span>
+</span><span class='line'>            <span class="k">match</span> <span class="n">requestMethod</span> <span class="k">with</span>
+</span><span class='line'>            <span class="o">|</span> <span class="nc">POST</span> <span class="o">-&gt;</span>
+</span><span class='line'>                <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optic</span><span class="p">.</span><span class="n">get</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optics</span><span class="p">.</span><span class="nn">Http</span><span class="p">.</span><span class="nn">Request</span><span class="p">.</span><span class="n">body_</span>
+</span><span class='line'>                <span class="o">|&gt;</span> <span class="nn">Freya</span><span class="p">.</span><span class="n">map</span> <span class="n">grabString</span>
+</span><span class='line'>            <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optic</span><span class="p">.</span><span class="n">get</span> <span class="n">name_</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">match</span> <span class="n">nameO</span> <span class="k">with</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">Some</span> <span class="n">name</span> <span class="o">-&gt;</span> <span class="k">return</span> <span class="n">name</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="k">return</span> <span class="s2">&quot;World&quot;</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">representResponse</span> <span class="n">greeting</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">freya</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">requestMethod</span> <span class="o">=</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optic</span><span class="p">.</span><span class="n">get</span> <span class="n">method_</span>
+</span><span class='line'>        <span class="k">match</span> <span class="n">requestMethod</span> <span class="k">with</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">POST</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="k">return</span> <span class="n">representGreeting</span> <span class="n">greeting</span>
+</span><span class='line'>        <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="k">return</span> <span class="nn">Represent</span><span class="p">.</span><span class="n">text</span> <span class="n">greeting</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">sayHello</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">freya</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">return</span><span class="o">!</span> <span class="n">representResponse</span> <span class="o">(</span><span class="n">sprintf</span> <span class="s2">&quot;Hello, %s!&quot;</span> <span class="n">name</span><span class="o">)</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">helloMachine</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">freyaMachine</span> <span class="o">{</span>
+</span><span class='line'>        <span class="c1">// methods [GET; HEAD; OPTIONS]</span>
+</span><span class='line'>        <span class="n">methods</span> <span class="o">[</span><span class="nc">GET</span><span class="o">;</span> <span class="nc">HEAD</span><span class="o">;</span> <span class="nc">OPTIONS</span><span class="o">;</span> <span class="nc">POST</span><span class="o">]</span>
+</span><span class='line'>        <span class="n">acceptableMediaTypes</span> <span class="o">[</span><span class="nn">MediaType</span><span class="p">.</span><span class="nc">Json</span><span class="o">]</span>
+</span><span class='line'>        <span class="n">handleOk</span> <span class="n">sayHello</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">root</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">freyaRouter</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">resource</span> <span class="s2">&quot;/hello{/name}&quot;</span> <span class="n">helloMachine</span> <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -691,56 +1062,6 @@ generalities (even if they&#39;re true) - fight it with specifics.</p>
 
     </article>
   
-  
-    <article>
-      
-
-  <header>
-    
-      <h1 class="entry-title"><a href="/managing-mutable-state-with-computational-expressions/">Managing Mutable State With Computational Expressions</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2017-04-25T23:55:29+01:00" pubdate data-updated="true">Apr 25<span>th</span>, 2017</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>In mixed paradigm languages such as F# and Scala you frequently end up using
-mutable APIs in your &quot;nice&quot; pure functional code. It might be because you&#39;re using
-a 3rd party library, or it might be for performance reasons - but either way it&#39;s very
-easy to make mistakes with mutable constructs when you&#39;re in a functional mind space, especially if you want to compose operations on instances of a mutable type.</p>
-
-<p>Let&#39;s have a look at one way of handling this issue: custom operations on 
-computational expressions. We&#39;ll take the Provided Types API for building
-types within a type provider as an example of an API to
-use, and see what we can do to wrap it.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/managing-mutable-state-with-computational-expressions/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -764,6 +1085,10 @@ use, and see what we can do to wrap it.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/posting-to-freya/">POSTing to Freya</a>
+      </li>
+    
+      <li class="post">
         <a href="/workflow-alpha/">Workflow Alpha</a>
       </li>
     
@@ -777,10 +1102,6 @@ use, and see what we can do to wrap it.</p>
     
       <li class="post">
         <a href="/building-solid-systems-in-f-number/">Building Solid Systems in F#</a>
-      </li>
-    
-      <li class="post">
-        <a href="/system-dot-console-is-why-we-cant-have-nice-things/">System.Console Is Why We Can&#8217;t Have Nice Things</a>
       </li>
     
   </ul>

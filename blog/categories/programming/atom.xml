@@ -4,7 +4,7 @@
   <title><![CDATA[Category: programming | Mavnn's blog]]></title>
   <link href="https://blog.mavnn.co.uk/blog/categories/programming/atom.xml" rel="self"/>
   <link href="https://blog.mavnn.co.uk/"/>
-  <updated>2017-10-09T22:01:20+01:00</updated>
+  <updated>2017-10-25T15:57:54+01:00</updated>
   <id>https://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,193 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[POSTing to Freya]]></title>
+    <link href="https://blog.mavnn.co.uk/posting-to-freya/"/>
+    <updated>2017-10-25T15:52:57+01:00</updated>
+    <id>https://blog.mavnn.co.uk/posting-to-freya</id>
+    <content type="html"><![CDATA[<p>I&#39;ve written about how nice Freya is as a library, but documentation is still a little light on the ground.</p>
+
+<p>So here&#39;s a minimal implementation of a &quot;microservice&quot; Freya API, starting from which dotnet commands to run to install the Freya template, through to a running web service.</p>
+
+<p>Make sure you have an up to date .NET Core SDK installed, and grab yourself the handy dandy Freya template:</p>
+<div class="highlight"><pre><code class="bash">dotnet new -i <span class="s2">&quot;Freya.Template::*&quot;</span>
+</code></pre></div>
+<p>Then create yourself a directory and go into it. The following command will set up a brand new Freya project using kestrel as the underlying webserver, and Hopac (rather than F# Async) for concurrency. Alternatively, you can leave both the options off and you&#39;ll get Freya running on Suave with standard Async.</p>
+<div class="highlight"><pre><code class="bash">dotnet new freya --framework kestrel --concurrency hopac
+</code></pre></div>
+<p>Your project should run at this point; <code>dotnet run</code> will spin up a webserver on port 5000 which will give a 404 at the root and text responses on /hello and /hello/name paths.</p>
+
+<p>Api.fs is where all the magic of configuring Freya happens - KestrelInterop.fs contains boilerplate for making sure Routing information passes correctly between Kestrel and Freya, and Program.fs just starts Kestrel with our Freya API as an OWIN app.</p>
+
+<h3>Adding JSON</h3>
+
+<p>So, this is great and all, but we&#39;re building a microservice aren&#39;t we? That normally means JSON (or at least something more structured than plain text!).</p>
+
+<p>Let&#39;s change things up so that as well as supplying the name to greet in the route, we can POST JSON with a name field to the /hello end point.</p>
+
+<p>To respond in JSON, we need a Freya <code>Represent</code> record. We&#39;re sending a result with a fixed structure, so we don&#39;t need a serialization library or anything, we&#39;ll just construct the JSON by hand. Stick this near the top of Api.fs:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Text</span>
+<span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Text</span><span class="p">.</span><span class="nc">RegularExpressions</span>
+
+<span class="k">let</span> <span class="n">representGreeting</span> <span class="o">=</span>
+    <span class="k">let</span> <span class="n">before</span> <span class="o">=</span>
+        <span class="nn">Encoding</span><span class="p">.</span><span class="nn">UTF8</span><span class="p">.</span><span class="nc">GetBytes</span> <span class="s2">&quot;{ </span><span class="se">\&quot;</span><span class="s2">greeting</span><span class="se">\&quot;</span><span class="s2">: </span><span class="se">\&quot;</span><span class="s2">&quot;</span>
+    <span class="k">let</span> <span class="n">after</span> <span class="o">=</span> <span class="nn">Encoding</span><span class="p">.</span><span class="nn">UTF8</span><span class="p">.</span><span class="nc">GetBytes</span> <span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2"> }&quot;</span>
+    <span class="k">let</span> <span class="n">extremeSanifier</span> <span class="o">=</span>
+        <span class="nn">RegularExpressions</span><span class="p">.</span><span class="nc">Regex</span><span class="o">(</span><span class="s2">&quot;[^a-z0-9 ]&quot;</span><span class="o">,</span> <span class="nn">RegexOptions</span><span class="p">.</span><span class="nc">Compiled</span> <span class="o">|||</span> <span class="nn">RegexOptions</span><span class="p">.</span><span class="nc">IgnoreCase</span><span class="o">)</span>
+    <span class="k">fun</span> <span class="n">name</span> <span class="o">-&gt;</span>
+        <span class="k">let</span> <span class="n">safeNameBytes</span> <span class="o">=</span>
+            <span class="n">extremeSanifier</span><span class="o">.</span><span class="nc">Replace</span><span class="o">(</span><span class="n">name</span><span class="o">,</span> <span class="s2">&quot;&quot;</span><span class="o">)</span>
+            <span class="o">|&gt;</span> <span class="nn">Encoding</span><span class="p">.</span><span class="nn">UTF8</span><span class="p">.</span><span class="nc">GetBytes</span>
+        <span class="o">{</span> <span class="nc">Description</span> <span class="o">=</span>
+            <span class="o">{</span> <span class="nc">Charset</span> <span class="o">=</span> <span class="nc">Some</span> <span class="nn">Charset</span><span class="p">.</span><span class="nc">Utf8</span>
+              <span class="nc">Encodings</span> <span class="o">=</span> <span class="nc">None</span>
+              <span class="nc">MediaType</span> <span class="o">=</span> <span class="nc">Some</span> <span class="nn">MediaType</span><span class="p">.</span><span class="nc">Json</span>
+              <span class="nc">Languages</span> <span class="o">=</span> <span class="nc">None</span> <span class="o">}</span>
+          <span class="nc">Data</span> <span class="o">=</span> <span class="nn">Array</span><span class="p">.</span><span class="n">concat</span> <span class="o">[</span><span class="n">before</span><span class="o">;</span><span class="n">safeNameBytes</span><span class="o">;</span><span class="n">after</span><span class="o">]</span> <span class="o">}</span>
+</code></pre></div>
+<p>So here we&#39;re defining an HTTP representation of a response, including media type and other important information.</p>
+
+<p>Aside: why do we return a lambda at the end rather than making representGreeting itself a function? That&#39;s so that we don&#39;t want to rebuild the two byte arrays and the regex every time we call the function.</p>
+
+<p>We also need to be able to read incoming JSON. Well, all we want is a string so lets just check that there&#39;s an &#39;&quot;&#39; at the beginning and end...</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">IO</span>
+
+<span class="k">let</span> <span class="n">grabString</span> <span class="o">(</span><span class="n">bodyStream</span> <span class="o">:</span> <span class="o">#</span><span class="nc">Stream</span><span class="o">)</span> <span class="o">=</span>
+    <span class="k">use</span> <span class="n">reader</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">StreamReader</span><span class="o">(</span><span class="n">bodyStream</span><span class="o">)</span>
+    <span class="k">match</span> <span class="n">reader</span><span class="o">.</span><span class="nc">ReadToEnd</span><span class="bp">()</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="n">str</span> <span class="k">when</span> <span class="n">str</span><span class="o">.[</span><span class="mi">0</span><span class="o">]</span> <span class="o">=</span> <span class="sc">&#39;&quot;&#39;</span> <span class="o">&amp;&amp;</span> <span class="n">str</span><span class="o">.[</span><span class="n">str</span><span class="o">.</span><span class="nc">Length</span> <span class="o">-</span> <span class="mi">1</span><span class="o">]</span> <span class="o">=</span> <span class="sc">&#39;&quot;&#39;</span> <span class="o">-&gt;</span>
+        <span class="nc">Some</span> <span class="o">&lt;|</span> <span class="n">str</span><span class="o">.</span><span class="nc">Substring</span><span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="n">str</span><span class="o">.</span><span class="nc">Length</span> <span class="o">-</span> <span class="mi">2</span><span class="o">)</span>
+    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="nc">None</span>
+</code></pre></div>
+<p>Now we can start hooking up the actual root that we want. We need to make some additions to <code>helloMachine</code>:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="n">helloMachine</span> <span class="o">=</span>
+    <span class="n">freyaMachine</span> <span class="o">{</span>
+        <span class="c1">// methods [GET; HEAD; OPTIONS]</span>
+        <span class="n">methods</span> <span class="o">[</span><span class="nc">GET</span><span class="o">;</span> <span class="nc">HEAD</span><span class="o">;</span> <span class="nc">OPTIONS</span><span class="o">;</span> <span class="nc">POST</span><span class="o">]</span>
+        <span class="n">acceptableMediaTypes</span> <span class="o">[</span><span class="nn">MediaType</span><span class="p">.</span><span class="nc">Json</span><span class="o">]</span>
+        <span class="n">handleOk</span> <span class="n">sayHello</span> <span class="o">}</span>
+</code></pre></div>
+<p>Magically our endpoint now knows not only that we accept POSTs, but it will end the correct error code if the media type of the POST is not set to JSON.</p>
+
+<p>We also need to update <code>sayHello</code> and <code>name</code>; we&#39;ll extract the method of the request and choose logic for working out the name and creating the response respectively.</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="n">name_</span> <span class="o">=</span> <span class="nn">Route</span><span class="p">.</span><span class="n">atom_</span> <span class="s2">&quot;name&quot;</span>
+<span class="k">let</span> <span class="n">method_</span> <span class="o">=</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optics</span><span class="p">.</span><span class="nn">Http</span><span class="p">.</span><span class="nn">Request</span><span class="p">.</span><span class="n">method_</span>
+
+<span class="k">let</span> <span class="n">name</span> <span class="o">=</span>
+    <span class="n">freya</span> <span class="o">{</span>
+        <span class="k">let</span><span class="o">!</span> <span class="n">requestMethod</span> <span class="o">=</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optic</span><span class="p">.</span><span class="n">get</span> <span class="n">method_</span>
+        <span class="k">let</span><span class="o">!</span> <span class="n">nameO</span> <span class="o">=</span>
+            <span class="k">match</span> <span class="n">requestMethod</span> <span class="k">with</span>
+            <span class="o">|</span> <span class="nc">POST</span> <span class="o">-&gt;</span>
+                <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optic</span><span class="p">.</span><span class="n">get</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optics</span><span class="p">.</span><span class="nn">Http</span><span class="p">.</span><span class="nn">Request</span><span class="p">.</span><span class="n">body_</span>
+                <span class="o">|&gt;</span> <span class="nn">Freya</span><span class="p">.</span><span class="n">map</span> <span class="n">grabString</span>
+            <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optic</span><span class="p">.</span><span class="n">get</span> <span class="n">name_</span>
+
+        <span class="k">match</span> <span class="n">nameO</span> <span class="k">with</span>
+        <span class="o">|</span> <span class="nc">Some</span> <span class="n">name</span> <span class="o">-&gt;</span> <span class="k">return</span> <span class="n">name</span>
+        <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="k">return</span> <span class="s2">&quot;World&quot;</span> <span class="o">}</span>
+
+<span class="k">let</span> <span class="n">representResponse</span> <span class="n">greeting</span> <span class="o">=</span>
+    <span class="n">freya</span> <span class="o">{</span>
+        <span class="k">let</span><span class="o">!</span> <span class="n">requestMethod</span> <span class="o">=</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optic</span><span class="p">.</span><span class="n">get</span> <span class="n">method_</span>
+        <span class="k">match</span> <span class="n">requestMethod</span> <span class="k">with</span>
+        <span class="o">|</span> <span class="nc">POST</span> <span class="o">-&gt;</span>
+            <span class="k">return</span> <span class="n">representGreeting</span> <span class="n">greeting</span>
+        <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
+            <span class="k">return</span> <span class="nn">Represent</span><span class="p">.</span><span class="n">text</span> <span class="n">greeting</span>
+    <span class="o">}</span>
+</code></pre></div>
+<p>And that&#39;s everything we should need. Firing up <a href="https://www.getpostman.com/">PostMan</a> we can find out that posting an empty body gets a 500 (we should probably handle that, looks like the request stream can be null), firing in a string with no media type header gets back a &quot;415 Unsupported Media Type&quot; (did you know that off hand?) and a POST with a correct body (i.e., starts and ends with a &#39;&quot;&#39;) gets us back:</p>
+<div class="highlight"><pre><code class="json"><span class="p">{</span> <span class="nt">&quot;greeting&quot;</span><span class="p">:</span> <span class="s2">&quot;Hello michael&quot;</span> <span class="p">}</span>
+</code></pre></div>
+<p>So there you have it. Adding a POST endpoint to Freya.</p>
+
+<h3>Appendix</h3>
+
+<p>Here is the complete Api.fs for you to follow along, with open statements moved to the top of the file:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">module</span> <span class="nc">Api</span>
+
+<span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">IO</span>
+<span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Text</span>
+<span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Text</span><span class="p">.</span><span class="nc">RegularExpressions</span>
+<span class="k">open</span> <span class="nn">Freya</span><span class="p">.</span><span class="nc">Core</span>
+<span class="k">open</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Machines</span><span class="p">.</span><span class="nc">Http</span>
+<span class="k">open</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Types</span><span class="p">.</span><span class="nc">Http</span>
+<span class="k">open</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Routers</span><span class="p">.</span><span class="nn">Uri</span><span class="p">.</span><span class="nc">Template</span>
+
+<span class="k">let</span> <span class="n">representGreeting</span> <span class="o">=</span>
+    <span class="k">let</span> <span class="n">before</span> <span class="o">=</span>
+        <span class="nn">Encoding</span><span class="p">.</span><span class="nn">UTF8</span><span class="p">.</span><span class="nc">GetBytes</span> <span class="s2">&quot;{ </span><span class="se">\&quot;</span><span class="s2">greeting</span><span class="se">\&quot;</span><span class="s2">: </span><span class="se">\&quot;</span><span class="s2">&quot;</span>
+    <span class="k">let</span> <span class="n">after</span> <span class="o">=</span> <span class="nn">Encoding</span><span class="p">.</span><span class="nn">UTF8</span><span class="p">.</span><span class="nc">GetBytes</span> <span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2"> }&quot;</span>
+    <span class="k">let</span> <span class="n">extremeSanifier</span> <span class="o">=</span>
+        <span class="nn">RegularExpressions</span><span class="p">.</span><span class="nc">Regex</span><span class="o">(</span><span class="s2">&quot;[^a-z0-9 ]&quot;</span><span class="o">,</span> <span class="nn">RegexOptions</span><span class="p">.</span><span class="nc">Compiled</span> <span class="o">|||</span> <span class="nn">RegexOptions</span><span class="p">.</span><span class="nc">IgnoreCase</span><span class="o">)</span>
+    <span class="k">fun</span> <span class="n">name</span> <span class="o">-&gt;</span>
+        <span class="k">let</span> <span class="n">safeNameBytes</span> <span class="o">=</span>
+            <span class="n">extremeSanifier</span><span class="o">.</span><span class="nc">Replace</span><span class="o">(</span><span class="n">name</span><span class="o">,</span> <span class="s2">&quot;&quot;</span><span class="o">)</span>
+            <span class="o">|&gt;</span> <span class="nn">Encoding</span><span class="p">.</span><span class="nn">UTF8</span><span class="p">.</span><span class="nc">GetBytes</span>
+        <span class="o">{</span> <span class="nc">Description</span> <span class="o">=</span>
+            <span class="o">{</span> <span class="nc">Charset</span> <span class="o">=</span> <span class="nc">Some</span> <span class="nn">Charset</span><span class="p">.</span><span class="nc">Utf8</span>
+              <span class="nc">Encodings</span> <span class="o">=</span> <span class="nc">None</span>
+              <span class="nc">MediaType</span> <span class="o">=</span> <span class="nc">Some</span> <span class="nn">MediaType</span><span class="p">.</span><span class="nc">Json</span>
+              <span class="nc">Languages</span> <span class="o">=</span> <span class="nc">None</span> <span class="o">}</span>
+          <span class="nc">Data</span> <span class="o">=</span> <span class="nn">Array</span><span class="p">.</span><span class="n">concat</span> <span class="o">[</span><span class="n">before</span><span class="o">;</span><span class="n">safeNameBytes</span><span class="o">;</span><span class="n">after</span><span class="o">]</span> <span class="o">}</span>
+
+<span class="k">let</span> <span class="n">grabString</span> <span class="o">(</span><span class="n">bodyStream</span> <span class="o">:</span> <span class="o">#</span><span class="nc">Stream</span><span class="o">)</span> <span class="o">=</span>
+    <span class="k">use</span> <span class="n">reader</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">StreamReader</span><span class="o">(</span><span class="n">bodyStream</span><span class="o">)</span>
+    <span class="k">match</span> <span class="n">reader</span><span class="o">.</span><span class="nc">ReadToEnd</span><span class="bp">()</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="n">str</span> <span class="k">when</span> <span class="n">str</span><span class="o">.[</span><span class="mi">0</span><span class="o">]</span> <span class="o">=</span> <span class="sc">&#39;&quot;&#39;</span> <span class="o">&amp;&amp;</span> <span class="n">str</span><span class="o">.[</span><span class="n">str</span><span class="o">.</span><span class="nc">Length</span> <span class="o">-</span> <span class="mi">1</span><span class="o">]</span> <span class="o">=</span> <span class="sc">&#39;&quot;&#39;</span> <span class="o">-&gt;</span>
+        <span class="nc">Some</span> <span class="o">&lt;|</span> <span class="n">str</span><span class="o">.</span><span class="nc">Substring</span><span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="n">str</span><span class="o">.</span><span class="nc">Length</span> <span class="o">-</span> <span class="mi">2</span><span class="o">)</span>
+    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="nc">None</span>
+
+
+<span class="k">let</span> <span class="n">name_</span> <span class="o">=</span> <span class="nn">Route</span><span class="p">.</span><span class="n">atom_</span> <span class="s2">&quot;name&quot;</span>
+<span class="k">let</span> <span class="n">method_</span> <span class="o">=</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optics</span><span class="p">.</span><span class="nn">Http</span><span class="p">.</span><span class="nn">Request</span><span class="p">.</span><span class="n">method_</span>
+
+<span class="k">let</span> <span class="n">name</span> <span class="o">=</span>
+    <span class="n">freya</span> <span class="o">{</span>
+        <span class="k">let</span><span class="o">!</span> <span class="n">requestMethod</span> <span class="o">=</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optic</span><span class="p">.</span><span class="n">get</span> <span class="n">method_</span>
+        <span class="k">let</span><span class="o">!</span> <span class="n">nameO</span> <span class="o">=</span>
+            <span class="k">match</span> <span class="n">requestMethod</span> <span class="k">with</span>
+            <span class="o">|</span> <span class="nc">POST</span> <span class="o">-&gt;</span>
+                <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optic</span><span class="p">.</span><span class="n">get</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optics</span><span class="p">.</span><span class="nn">Http</span><span class="p">.</span><span class="nn">Request</span><span class="p">.</span><span class="n">body_</span>
+                <span class="o">|&gt;</span> <span class="nn">Freya</span><span class="p">.</span><span class="n">map</span> <span class="n">grabString</span>
+            <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optic</span><span class="p">.</span><span class="n">get</span> <span class="n">name_</span>
+
+        <span class="k">match</span> <span class="n">nameO</span> <span class="k">with</span>
+        <span class="o">|</span> <span class="nc">Some</span> <span class="n">name</span> <span class="o">-&gt;</span> <span class="k">return</span> <span class="n">name</span>
+        <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="k">return</span> <span class="s2">&quot;World&quot;</span> <span class="o">}</span>
+
+<span class="k">let</span> <span class="n">representResponse</span> <span class="n">greeting</span> <span class="o">=</span>
+    <span class="n">freya</span> <span class="o">{</span>
+        <span class="k">let</span><span class="o">!</span> <span class="n">requestMethod</span> <span class="o">=</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optic</span><span class="p">.</span><span class="n">get</span> <span class="n">method_</span>
+        <span class="k">match</span> <span class="n">requestMethod</span> <span class="k">with</span>
+        <span class="o">|</span> <span class="nc">POST</span> <span class="o">-&gt;</span>
+            <span class="k">return</span> <span class="n">representGreeting</span> <span class="n">greeting</span>
+        <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
+            <span class="k">return</span> <span class="nn">Represent</span><span class="p">.</span><span class="n">text</span> <span class="n">greeting</span>
+    <span class="o">}</span>
+
+<span class="k">let</span> <span class="n">sayHello</span> <span class="o">=</span>
+    <span class="n">freya</span> <span class="o">{</span>
+        <span class="k">let</span><span class="o">!</span> <span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+
+        <span class="k">return</span><span class="o">!</span> <span class="n">representResponse</span> <span class="o">(</span><span class="n">sprintf</span> <span class="s2">&quot;Hello, %s!&quot;</span> <span class="n">name</span><span class="o">)</span> <span class="o">}</span>
+
+<span class="k">let</span> <span class="n">helloMachine</span> <span class="o">=</span>
+    <span class="n">freyaMachine</span> <span class="o">{</span>
+        <span class="c1">// methods [GET; HEAD; OPTIONS]</span>
+        <span class="n">methods</span> <span class="o">[</span><span class="nc">GET</span><span class="o">;</span> <span class="nc">HEAD</span><span class="o">;</span> <span class="nc">OPTIONS</span><span class="o">;</span> <span class="nc">POST</span><span class="o">]</span>
+        <span class="n">acceptableMediaTypes</span> <span class="o">[</span><span class="nn">MediaType</span><span class="p">.</span><span class="nc">Json</span><span class="o">]</span>
+        <span class="n">handleOk</span> <span class="n">sayHello</span> <span class="o">}</span>
+
+<span class="k">let</span> <span class="n">root</span> <span class="o">=</span>
+    <span class="n">freyaRouter</span> <span class="o">{</span>
+        <span class="n">resource</span> <span class="s2">&quot;/hello{/name}&quot;</span> <span class="n">helloMachine</span> <span class="o">}</span>
+</code></pre></div>]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Workflow Alpha]]></title>
@@ -970,65 +1157,6 @@ who find that easier!</p>
 <span class="p">}</span>
 </code></pre></div>
 <p>Suggestions, additions and questions welcome.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Extracting Information from MsBuild]]></title>
-    <link href="https://blog.mavnn.co.uk/extracting-information-from-msbuild/"/>
-    <updated>2015-08-07T14:45:28+01:00</updated>
-    <id>https://blog.mavnn.co.uk/extracting-information-from-msbuild</id>
-    <content type="html"><![CDATA[<p>Recently as part of some research into making a large (very large) solution build more efficient, I started looking into whether there&#39;s anyway of getting MsBuild to do
-some of the donkey work for you. This is especially important in situations where you want to know what&#39;s being used/produced with this particular set of parameters.</p>
-
-<p>Obviously dealing with every possible custom build target is out of scope, but you can get a surprisingly long way by taking advantage of some of the intermediate build
-targets used within the MsBuild Common targets files (imported into every *proj file created by Visual Studio).</p>
-
-<p>Create yourself a little file called something like <code>Analyse.proj</code>, and put the following in it:</p>
-<div class="highlight"><pre><code class="xml"><span class="cp">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span>
-<span class="nt">&lt;Project</span> <span class="na">ToolsVersion=</span><span class="s">&quot;12.0&quot;</span> <span class="na">DefaultTargets=</span><span class="s">&quot;WriteStuff&quot;</span> <span class="na">xmlns=</span><span class="s">&quot;http://schemas.microsoft.com/developer/msbuild/2003&quot;</span><span class="nt">&gt;</span>
-  <span class="nt">&lt;Import</span> <span class="na">Project=</span><span class="s">&quot;$(TargetProject)&quot;</span><span class="nt">/&gt;</span>
-  <span class="nt">&lt;Target</span> <span class="na">Name=</span><span class="s">&quot;WriteStuff&quot;</span> <span class="na">DependsOnTargets=</span><span class="s">&quot;ResolveReferences&quot;</span><span class="nt">&gt;</span>
-    <span class="nt">&lt;Message</span> <span class="na">Importance=</span><span class="s">&quot;high&quot;</span> <span class="na">Text=</span><span class="s">&quot;References::@(ReferencePath)&quot;</span><span class="nt">/&gt;</span>
-    <span class="nt">&lt;Message</span> <span class="na">Importance=</span><span class="s">&quot;high&quot;</span> <span class="na">Text=</span><span class="s">&quot;Compiles::@(BeforeCompile);@(Compile);@(AfterCompile)&quot;</span><span class="nt">/&gt;</span>
-    <span class="nt">&lt;Message</span> <span class="na">Importance=</span><span class="s">&quot;high&quot;</span> <span class="na">Text=</span><span class="s">&quot;Output::$(OutputPath)&quot;</span><span class="nt">/&gt;</span>
-  <span class="nt">&lt;/Target&gt;</span>
-<span class="nt">&lt;/Project&gt;</span>
-</code></pre></div>
-<p>This is a mini-MsBuild project that imports an other project - the project you want to analyse. You can &quot;build&quot; this project like so:</p>
-<div class="highlight"><pre><code class="text">PS C:\DirectoryWithProj&gt; &amp; &#39;C:\Program Files (x86)\MSBuild\12.0\Bin\SBuild&#39; .\Analyse.proj /nologo /p:TargetProject=./Fake.Shake.fsproj
-Build started 07/08/2015 15:05:27.
-Project &quot;C:\DirectoryWithProj\Analyse.proj&quot; on node 1 (default targ ets).
-WriteStuff:
-  References::C:\rip\Fake.Shake\packages\FAKE.Lib\lib\net451\FakeLib.dll;C:\rip
-  \Fake.Shake\packages\FSharp.Core\lib\net40\FSharp.Core.dll;C:\rip\Fake.Shake\
-  packages\FsPickler\lib\net45\FsPickler.dll;C:\rip\Fake.Shake\packages\Hopac\l
-  ib\net45\Hopac.Core.dll;C:\rip\Fake.Shake\packages\Hopac\lib\net45\Hopac.dll;
-  C:\rip\Fake.Shake\packages\Hopac\lib\net45\Hopac.Platform.dll;C:\Program File
-  s (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5.1\mscorli
-  b.dll;C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFra
-  mework\v4.5.1\System.Core.dll;C:\Program Files (x86)\Reference Assemblies\Mic
-  rosoft\Framework\.NETFramework\v4.5.1\System.dll;C:\Program Files (x86)\Refer
-  ence Assemblies\Microsoft\Framework\.NETFramework\v4.5.1\System.Numerics.dll;
-  C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework
-  \v4.5.1\System.Runtime.Serialization.dll;C:\Program Files (x86)\Reference Ass
-  emblies\Microsoft\Framework\.NETFramework\v4.5.1\System.Xml.dll
-  Compiles::;Fake.Shake.Core.fs;Fake.Shake.Control.fs;Fake.Shake.DefaultRules.f
-  s;Fake.Shake.fs;
-  Output::bin\Debug\
-Done Building Project &quot;C:\DirectoryWithProj\Analyse.proj&quot; (default
-targets).
-
-
-Build succeeded.
-    0 Warning(s)
-    0 Error(s)
-
-Time Elapsed 00:00:00.12
-</code></pre></div>
-<p>And as you can see, whilst it&#39;s a bit ugly it generates a whole load of useful information for you about how <em>this</em> build with <em>these</em> properties will be built.</p>
-
-<p>That&#39;s all for now!</p>
 ]]></content>
   </entry>
   

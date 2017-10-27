@@ -9,7 +9,7 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="Apparently I should be able to do inline F# code using one of the Octopress plugins, rather than having to use gists every where. Let&#39;s try it: 1 &hellip;">
+  <meta name="description" content="While type providers are incredibly powerful, the ProvidedTypes api for creating them is sometimes a bit rough around the edges. And not always as &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -80,6 +80,61 @@ ga('send', 'pageview');
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+
+  <header>
+    
+      <h1 class="entry-title"><a href="/type-provider-protip/">Type Provider ProTip</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-01-10T12:15:15+00:00" pubdate data-updated="true">Jan 10<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>While type providers are incredibly powerful, the ProvidedTypes api for creating them is sometimes a bit rough around the edges. And not always as functional as you might hope.</p>
+
+<p>At some point I&#39;d like to do something about that, but for the moment I&#39;m just going to collect a few helpful tips and hints (mostly for own reference).</p>
+
+<p>Tip one is in the case where you have XmlDocs to add to ProvidedTypes, ProvidedMethods and ProvidedProperties; in our case we have an optional description field in our metadata and the boiler plate was getting tiresome.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="k">inline</span> <span class="n">addDoc</span> <span class="o">(</span><span class="n">desc</span> <span class="o">:</span> <span class="nc">Descriptor</span><span class="o">)</span> <span class="n">def</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">match</span> <span class="n">desc</span><span class="o">.</span><span class="nc">Description</span> <span class="k">with</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Some</span> <span class="n">d</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="o">(^</span><span class="nc">T</span> <span class="o">:</span> <span class="o">(</span><span class="k">member</span> <span class="nc">AddXmlDoc</span> <span class="o">:</span> <span class="kt">string</span> <span class="o">-&gt;</span> <span class="kt">unit</span><span class="o">)</span> <span class="o">(</span><span class="n">def</span><span class="o">,</span> <span class="n">d</span><span class="o">))</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>This function takes a <code>Descriptor</code> with a <code>string option</code> Description field and any <code>def</code> with an AddXmlDoc member with the noted signature - and adds description as the xml doc if it exists.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1100,214 +1155,6 @@ info - a actually decent Windows console called ConEmu.</p>
 
     </article>
   
-  
-    <article>
-      
-
-  <header>
-    
-      <h1 class="entry-title"><a href="/coding-hygiene-moving-from-project-references-to-nuget-dependencies/">Coding Hygiene: Moving From Project References to NuGet Dependencies</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-03-08T17:08:00+00:00" pubdate data-updated="true">Mar 8<span>th</span>, 2013</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>So, first post with the new blogging engine. Let&#39;s see how it goes.</p>
-
-<p>Our code base at <a href="http://15below.com">15below</a> started it&#39;s life a fair
-while ago, well before any form of .NET package management became
-practical. Because of that, we ended up building a lot of code in
-&#39;lockstep&#39; with project references in code as there was no sensible way
-of taking versioned binary dependencies.</p>
-
-<p>That&#39;s fine and all, but it encourages bad code hygiene: rather than
-having sharply defined contracts between components, if you&#39;ve got them
-all open in the same solution it becomes far too tempting to just nudge
-changes around as it&#39;s convenient at the time. Changes can infect other
-pieces of code, and the power of automatic refactoring across the entire
-solution becomes intoxicating.</p>
-
-<p>The result? It becomes very hard to do incremental builds (or
-deployments, for that matter). This in turn makes for a long feed back
-cycle between making a change, and being able to see it rolled out to a
-testing environment.</p>
-
-<p>So as part of the ongoing refactoring that any long lived code base needs to
-keep it maintainable and under control, we&#39;ve embarked on the process of
-splitting our code down into more logically separated repositories that
-reference each other via NuGet. This will require us to start being much
-more disciplined in our <a href="http://semver.org">semantic versioning</a> than we
-have been in the past, but will also allow us to build and deploy
-incrementally and massively reduce our feed back times.</p>
-
-<p>As part of splitting out the first logical division (I&#39;d like to say
-<a href="http://en.wikipedia.org/wiki/Domain-driven_design">domain</a> but we&#39;re
-not there yet!), I created the new repository and got the included
-assemblies up and building on TeamCity. It was only then (stupidly) that
-I realised that we had several hundred project references to these
-assemblies in our code. There was no way I was going to update them all
-by hand, so after a few hours development we now have a script for
-idempotently updating a project reference in a [cs|vb|fs]proj file to a
-NuGet reference. It does require you to do one update manually first;
-especially with assemblies that are strongly signed, I chickened out of
-trying to generate the reference nodes that needed to be added
-automatically. The script also makes sure that you end up with a
-packages.config file with the project that includes the new dependency.</p>
-
-<p>It should be noted that this script has only seen minimal testing, was
-coded up for one time use and does not come with a warranty of any kind!
-Use at your own risk, and once you understand what it&#39;s doing. But for
-all that, I hope you find it useful.</p>
-
-<div><script src='https://gist.githubusercontent.com/mavnn/5983379.js'></script>
-<noscript><pre><code>#r &quot;System.Xml.Linq&quot;
-#r &quot;tools\FAKE\FakeLib.dll&quot;
-open System.IO
-open System.Xml
-open System.Xml.Linq
-open System.Xml.XPath
-open Fake
-
-// You&#39;ll want to replace these values...
-let nugetId = &quot;my.package.id&quot;
-let refName = &quot;my.ref.name&quot;
-let packageNode = XElement.Parse &quot;&quot;&quot;&lt;package id=&quot;my.package.id&quot; version=&quot;1.0.0.6&quot; targetFramework=&quot;net40&quot; /&gt;&quot;&quot;&quot;
-let refXml =
-    &quot;&quot;&quot;
-    &lt;Reference Include=&quot;my.ref.name&quot;&gt;
-      &lt;HintPath&gt;..\..\packages\my.package.id.1.0.0.6\lib\net40\my.ref.name.dll&lt;/HintPath&gt;
-      &lt;Private&gt;True&lt;/Private&gt;
-    &lt;/Reference&gt;
-    &quot;&quot;&quot;
-let hintPathFromRoot =
-@&quot;packages\my.package.id.1.0.0.6\lib\net40\my.ref.name.dll&quot;
-let sourceRoot = &quot;C:\WhereIKeepMyRepo&quot;
-
-// You should be able to leave the rest alone
-let ns = &quot;http://schemas.microsoft.com/developer/msbuild/2003&quot;
-let nsm = new XmlNamespaceManager(new NameTable())
-nsm.AddNamespace(&quot;ns&quot;, ns)
-let nugetPath = sourceRoot @@ &quot;tools&quot; @@ &quot;NuGet&quot; @@ &quot;NuGet.exe&quot;
-
-let HasProjectReference (projDoc : XDocument) refName =
-    projDoc.Root.XPathSelectElements(&quot;//ns:ProjectReference[ns:Name=&#39;&quot; + refName + &quot;&#39;]&quot;, nsm)
-    |&gt; Seq.length
-    |&gt; (&lt;) 0
-
-let GetProjectReference (projDoc : XDocument) refName =
-    projDoc.Root.XPathSelectElement(&quot;//ns:ProjectReference[ns:Name=&#39;&quot; + refName + &quot;&#39;]&quot;, nsm)
-
-let DeleteProjectReference refName (projFile : string) =
-    let projDoc = XDocument.Load(projFile)
-    if HasProjectReference projDoc refName then
-        let ref = GetProjectReference projDoc refName
-        ref.Remove()
-        projDoc.Save(projFile)
-
-let HasReference (projDoc : XDocument) refName =
-    projDoc.Root.XPathSelectElements(&quot;//ns:Reference[@Include=&#39;&quot; + refName + &quot;&#39;]&quot;, nsm)
-    |&gt; Seq.append &lt;| projDoc.Root.XPathSelectElements(&quot;//ns:Reference[@Include[starts-with(., &#39;&quot; + refName + &quot;,&#39;)]]&quot;, nsm)
-    |&gt; Seq.tryPick (fun e -&gt; Some e)
-
-let FirstReference (projDoc : XDocument) =
-    projDoc.Root.XPathSelectElements(&quot;//ns:Reference&quot;, nsm)
-    |&gt; Seq.head
-
-let GetHintPath hintPathFromRoot root projFile =
-    let rootDir = DirectoryInfo(root)
-    let projDir = DirectoryInfo(Path.GetDirectoryName(projFile))
-    let rec dirDiff (rootDir : DirectoryInfo) (currentDir : DirectoryInfo) levels =
-        if rootDir.FullName = currentDir.FullName then
-            levels
-        else
-            dirDiff rootDir (currentDir.Parent) (levels + 1)
-    hintPathFromRoot::[for _ in 1..(dirDiff rootDir projDir 0) -&gt; &quot;..&quot;]
-    |&gt; List.rev
-    |&gt; List.fold (@@) &quot;.&quot;
-
-let UpdateHintPath projFile =
-    let ref = XElement.Parse(refXml)
-    let xs = XNamespace.Get(ns)
-    let el = ref.XPathSelectElement(&quot;//HintPath&quot;)
-    el.SetValue (GetHintPath hintPathFromRoot sourceRoot projFile)
-    for node in ref.DescendantsAndSelf() do
-        node.Name &lt;- xs + node.Name.LocalName
-    ref
-
-let EnsureReference refName (projFile : string) =
-    let doc = XDocument.Load(projFile)
-    match HasReference doc refName with
-    | Some el -&gt; el.Remove()
-    | None -&gt; ()
-    let el = FirstReference doc
-    el.AddBeforeSelf(UpdateHintPath projFile)
-    doc.Save(projFile)
-
-type PackageFile =
-    | Exists of string
-    | Missing of string
-
-let GetPackagesDotConfig projFile =
-    let dir = Path.GetDirectoryName(projFile)
-    let path = dir @@ &quot;packages.config&quot;
-    if File.Exists(path) then
-        Exists path
-    else
-        Missing path
-
-let HasPackageReference (doc : XDocument) nugetId =
-    doc.XPathSelectElements(&quot;//package[@id = &#39;&quot; + nugetId + &quot;&#39;]&quot;)
-    |&gt; Seq.length
-    |&gt; (&lt;) 0
-
-let EnsurePackagesDotConfigHasPackage nugetId projFile =
-    let doc, path =
-        match GetPackagesDotConfig projFile with
-        | Missing path -&gt;
-            XDocument.Parse(&quot;&lt;packages /&gt;&quot;), path
-        | Exists path -&gt;
-            XDocument.Load(path), path
-    if not &lt;| HasPackageReference doc nugetId then
-        doc.Root.XPathSelectElement(&quot;/packages&quot;).Add(packageNode)
-        doc.Save path
-
-let UpdateProj (projFile : string) =
-    if HasProjectReference (XDocument.Load(projFile)) refName then
-        DeleteProjectReference refName projFile
-        EnsureReference refName projFile
-        EnsurePackagesDotConfigHasPackage nugetId projFile
-
-!+ (@&quot;**\*.csproj&quot;)
-++ (@&quot;**\*.fsproj&quot;)
-++ (@&quot;**\*.vbproj&quot;)
-|&gt; Scan
-|&gt; Seq.map (fun proj -&gt; printfn &quot;Updating %s&quot; proj; proj)
-|&gt; Seq.iter UpdateProj
-</code></pre></noscript></div>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/7/">&larr; Older</a>
@@ -1333,6 +1180,10 @@ let UpdateProj (projFile : string) =
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/routemaster-master-your-messaging-routes/">RouteMaster : Master Your Messaging Routes</a>
+      </li>
+    
+      <li class="post">
         <a href="/posting-to-freya/">POSTing to Freya</a>
       </li>
     
@@ -1346,10 +1197,6 @@ let UpdateProj (projFile : string) =
     
       <li class="post">
         <a href="/functional-programming-in-the-wild/">Functional Programming in the Wild</a>
-      </li>
-    
-      <li class="post">
-        <a href="/building-solid-systems-in-f-number/">Building Solid Systems in F#</a>
       </li>
     
   </ul>

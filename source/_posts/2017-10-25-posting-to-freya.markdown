@@ -33,6 +33,8 @@ Let's change things up so that as well as supplying the name to greet in the rou
 
 To respond in JSON, we need a Freya ``Represent`` record. We're sending a result with a fixed structure, so we don't need a serialization library or anything, we'll just construct the JSON by hand. Stick this near the top of Api.fs:
 
+<!-- more -->
+
 ``` fsharp
 open System.Text
 open System.Text.RegularExpressions

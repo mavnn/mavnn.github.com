@@ -6,6 +6,12 @@ comments: true
 categories: [programming,easynetq]
 ---
 
+# Obsolete blog post warning!
+
+Since this blog post has been written, I've been working on [RouteMaster](/routemaster-master-your-messaging-routes/). It's much better than what's described here, and you should check it out.
+
+...and now, back to your original blog post.
+
 > TL;DR: I wrote a EasyNetQ aware process manager library. Read down for some examples, and leave feedback if you think anything should change before it's released.
 
 [EasyNetQ](http://easynetq.com/) is a nice little .net client library for RabbitMQ. Originally designed for introducing Rabbit (and the concepts of a bus based architecture)

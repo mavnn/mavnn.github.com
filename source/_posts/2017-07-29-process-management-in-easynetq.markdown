@@ -5,6 +5,9 @@ date: 2017-07-29 12:34:03 +0100
 comments: true
 categories: [easynetq]
 ---
+
+> Update! Check out [RouteMaster](/routemaster-master-your-messaging-routes/) for a progress update on this.
+
 Back in 2015, I wrote about a [process manager](https://blog.mavnn.co.uk/easynetq-process-management/) I'd written over
 the top of [EasyNetQ](http://easynetq.com/). At the time it was released as open
 source, and I was pretty pleased with it. It allowed you to fairly quickly string

@@ -4,7 +4,7 @@
   <title><![CDATA[Mavnn's blog]]></title>
   <link href="https://blog.mavnn.co.uk/atom.xml" rel="self"/>
   <link href="https://blog.mavnn.co.uk/"/>
-  <updated>2017-10-27T19:53:45+01:00</updated>
+  <updated>2017-11-01T09:07:48+00:00</updated>
   <id>https://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,21 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[All Saints' Day Sale]]></title>
+    <link href="https://blog.mavnn.co.uk/all-saints-day-sale/"/>
+    <updated>2017-11-01T09:01:10+00:00</updated>
+    <id>https://blog.mavnn.co.uk/all-saints-day-sale</id>
+    <content type="html"><![CDATA[<blockquote>
+<p>TL;DR: 10% off <a href="https://blog.mavnn.co.uk/building-solid-systems-in-f-number/">Building Solid Systems in F#</a> until 7th November 2017</p>
+</blockquote>
+
+<p>Lots of people these days seem to like giving Halloween sales, but historically and theologically, Halloween is really just the precursor to the real celebration: <a href="https://en.wikipedia.org/wiki/All_Saints%27_Day">All Saints&#39; Day</a>.</p>
+
+<p>So in the interest of getting the details right, we&#39;re having an All Saints&#39; Day sale, starting today for 7 days. It&#39;s already live, get your 10% off <a href="https://blog.mavnn.co.uk/building-solid-systems-in-f-number/">your tickets</a> now.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[RouteMaster : Master Your Messaging Routes]]></title>
@@ -58,7 +73,7 @@
 
 <h2>Ask not what your RouteMaster can do for you, but what you can do for your RouteMaster!</h2>
 
-<p>I&#39;d really like feedback, ideas, use cases and suggestions - leave comments here or ping an issue onto the repository. If you&#39;re feeling really brave you can try and actually experiment with it, but at the moment I&#39;m mostly hoping for concrete use cases and, well, funding.</p>
+<p>I&#39;d really like feedback, ideas, use cases and suggestions - leave comments here or ping an issue onto the repository. If you&#39;re feeling really brave and can try and actually experiment with it, but at the moment I&#39;m mostly hoping for concrete use cases and, well, funding.</p>
 
 <p>Quite a few people over the years have hit my website searching for an EasyNetQ process manager, and others have asked me if it&#39;s still available. I&#39;d like to hear from as many of you as possible to build the tightest, simplest solution which will do the job.</p>
 ]]></content>
@@ -3427,309 +3442,6 @@ quotations and type providers) have been used to solve real problems in the real
 <p>In case the custom operator is making you scratch your head, the way this one works is that a tuple of the currently bound values in the CE is passed into the operator as the first argument wrapped using the <code>Return</code> method of the CE (in this case, that means we get an Async&lt;&#39;a&gt; where &#39;a is a tuple). The <code>ProjectionParameter</code> is a function from the currently bound values to the expression that follows the custom operator. In my case, that&#39;s always a static string, but of course it could be an expression which used some of the already bound values. Once you&#39;ve done whatever you&#39;re doing within the custom operator, it&#39;s important that you pass back the bound values you received - again, wrapped in a type that the CE knows how to bind as it will use bind to include this code into the overall expression result. As a word of warning, the explanation above is only true for custom operators where <code>MaintainsVariableSpaceUsingBind</code> is set to true. If it is set to false, the CE must support yield and the expansion mechanism is quite different.</p>
 
 <p>I see all kinds of useful ways of bending the F# language here, and making libraries easier to use from within the built in CEs. Have fun, and remember to use these powers for good!</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Type Provider Pro-Tip: Using Dictionary]]></title>
-    <link href="https://blog.mavnn.co.uk/type-provider-pro-tip-using-dictionary/"/>
-    <updated>2016-03-05T15:38:45+00:00</updated>
-    <id>https://blog.mavnn.co.uk/type-provider-pro-tip-using-dictionary</id>
-    <content type="html"><![CDATA[<p>During the <a href="https//blog.mavnn.co.uk/type-providers-live-the-movie/">Type Provider Live</a> recording, <a href="https://twitter.com/panesofglass">Ryan</a> asked me about basing erased provided types on dictionary types, and then exposing nicely typed properties to access data stored within the dictionary.</p>
-
-<p>This will sound familiar to users of a number of dynamically typed languages as in many cases objects in these languages are just dictionaries under the hood.</p>
-
-<p>This is such a common thing to be doing in a type provider that I thought it was worth writing up a working example that can then be modified to your individual situation. I&#39;ve presented the entire listing below with comments, but there is one particular trick I&#39;ll explain in a bit more detail. Let&#39;s have a look at let bindings in quotations!</p>
-
-<!-- more -->
-
-<p>So, normally when you write a <code>let</code> binding in F#, and end up writing something like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">myFunction</span> <span class="bp">()</span> <span class="o">=</span>
-</span><span class='line'>  <span class="k">let</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">10</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="n">x</span> <span class="o">+</span> <span class="mi">10</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>Here, the body of function <code>myFunction</code> is an expression that evaluates to 20. But it turns out that this is actually syntax sugar for:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">myFunction</span> <span class="bp">()</span> <span class="o">=</span>
-</span><span class='line'>  <span class="k">let</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">10</span> <span class="k">in</span> <span class="n">x</span> <span class="o">+</span> <span class="mi">10</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>A quotation in F# always represents a single expression, so it shouldn&#39;t come as a surprise at this point that the <code>Expr.Let</code> class has a constructor this three arguments. The variable being bound, the value to bind to it, and the body in which it is used. So if you want to express the body of the function above you end up with something like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nn">FSharp</span><span class="p">.</span><span class="nc">Quotations</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="n">version1</span> <span class="o">=</span>
-</span><span class='line'>  <span class="o">&lt;@@</span> <span class="k">let</span> <span class="n">x</span> <span class="o">=</span> <span class="mi">10</span> <span class="k">in</span> <span class="n">x</span> <span class="o">+</span> <span class="mi">10</span> <span class="o">@@&gt;</span> <span class="c1">// cheat!</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="n">version2</span> <span class="o">=</span>
-</span><span class='line'>  <span class="k">let</span> <span class="n">xVar</span> <span class="o">=</span> <span class="nc">Var</span><span class="o">(</span><span class="s2">&quot;x&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;)</span>
-</span><span class='line'>  <span class="k">let</span> <span class="n">x</span> <span class="o">=</span> <span class="nn">Expr</span><span class="p">.</span><span class="nc">Var</span> <span class="n">xVar</span>
-</span><span class='line'>  <span class="nn">Expr</span><span class="p">.</span><span class="nc">Let</span><span class="o">(</span><span class="n">xVar</span><span class="o">,</span> <span class="o">&lt;@@</span> <span class="mi">10</span> <span class="o">@@&gt;,</span> <span class="o">&lt;@@</span> <span class="o">%%</span><span class="n">x</span> <span class="o">+</span> <span class="mi">10</span> <span class="o">@@&gt;)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>The trick you need to know is that <code>Expr.Var</code> produces an Expr that represents a place where a variable will be used. But it creates an untyped Expr, and this can (and does) cause issues with type inference. We can work around this by making use of typed expressions, represented by the generic <code>Expr&lt;&#39;a&gt;</code> class. The type provider API takes the untyped version, but you can convert back to the untyped version either by calling the <code>Raw</code> property on the typed expression or just by using it to help construct an expression which contains the typed expression but which is untyped itself using the <code>Expr</code> classes.</p>
-
-<p>In the code below, notice the use of <code>&lt;@ ... @&gt;</code> and <code>%</code> rather than <code>&lt;@@ ... @@&gt;</code> and <code>%%</code> to work with typed expressions rather than untyped.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nn">FSharp</span><span class="p">.</span><span class="nc">Quotations</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">type</span> <span class="nc">GD</span> <span class="o">=</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Collections</span><span class="p">.</span><span class="nn">Generic</span><span class="p">.</span><span class="nc">Dictionary</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">,</span><span class="kt">string</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="n">dictExpr</span> <span class="o">=</span>
-</span><span class='line'>  <span class="k">let</span> <span class="n">gdVar</span> <span class="o">=</span> <span class="nc">Var</span><span class="o">(</span><span class="s2">&quot;gd&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="nc">GD</span><span class="o">&gt;)</span>
-</span><span class='line'>  <span class="k">let</span> <span class="n">gdExpr</span> <span class="o">=</span>
-</span><span class='line'>    <span class="nn">Expr</span><span class="p">.</span><span class="nc">Var</span> <span class="n">gdVar</span> <span class="o">|&gt;</span> <span class="nn">Expr</span><span class="p">.</span><span class="nc">Cast</span><span class="o">&lt;</span><span class="nc">GD</span><span class="o">&gt;</span>
-</span><span class='line'>    <span class="c1">// Expr.Cast forces this to be a typed expression</span>
-</span><span class='line'>  <span class="k">let</span> <span class="n">addValue</span> <span class="o">=</span>
-</span><span class='line'>    <span class="nn">Expr</span><span class="p">.</span><span class="nc">Let</span><span class="o">(</span><span class="n">gdVar</span><span class="o">,</span> <span class="o">&lt;@</span> <span class="nc">GD</span><span class="bp">()</span> <span class="o">@&gt;,</span> <span class="o">&lt;@</span> <span class="o">%</span><span class="n">gdExpr</span><span class="o">.[</span><span class="s2">&quot;one&quot;</span><span class="o">]</span> <span class="o">&lt;-</span> <span class="s2">&quot;the number one&quot;</span> <span class="o">@&gt;)</span>
-</span><span class='line'>    <span class="c1">// the line above fails without typed expressions</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>With that out of the way, we&#39;re good to go. The type provider below is a simple wrapper around a string, string dictionary. It looks like this in use:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">MyType</span> <span class="o">=</span> <span class="nn">DictProvider</span><span class="p">.</span><span class="nc">ParaProvider</span><span class="o">&lt;</span><span class="s2">&quot;name1, name2&quot;</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="n">thing</span> <span class="o">=</span> <span class="nc">MyType</span><span class="o">(</span><span class="s2">&quot;1&quot;</span><span class="o">,</span><span class="s2">&quot;2&quot;</span><span class="o">)</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">thing</span><span class="o">.</span><span class="n">name1</span> <span class="c1">// &quot;1&quot;</span>
-</span><span class='line'><span class="n">thing</span><span class="o">.</span><span class="n">name2</span> <span class="c1">// &quot;2&quot;</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">thing</span><span class="o">.</span><span class="n">name1</span> <span class="o">&lt;-</span> <span class="s2">&quot;not one. Muhahahaha!&quot;</span>
-</span><span class='line'><span class="n">thing</span><span class="o">.</span><span class="n">name2</span> <span class="o">&lt;-</span> <span class="s2">&quot;that&#39;s why you shouldn&#39;t make things mutable&quot;</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">thing</span><span class="o">.</span><span class="n">name1</span> <span class="c1">// &quot;not one. Muhahahaha!&quot;</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>You&#39;ll get different properties depending which strings you supply as parameters.</p>
-
-<p>Here&#39;s the source:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-<span class='line-number'>41</span>
-<span class='line-number'>42</span>
-<span class='line-number'>43</span>
-<span class='line-number'>44</span>
-<span class='line-number'>45</span>
-<span class='line-number'>46</span>
-<span class='line-number'>47</span>
-<span class='line-number'>48</span>
-<span class='line-number'>49</span>
-<span class='line-number'>50</span>
-<span class='line-number'>51</span>
-<span class='line-number'>52</span>
-<span class='line-number'>53</span>
-<span class='line-number'>54</span>
-<span class='line-number'>55</span>
-<span class='line-number'>56</span>
-<span class='line-number'>57</span>
-<span class='line-number'>58</span>
-<span class='line-number'>59</span>
-<span class='line-number'>60</span>
-<span class='line-number'>61</span>
-<span class='line-number'>62</span>
-<span class='line-number'>63</span>
-<span class='line-number'>64</span>
-<span class='line-number'>65</span>
-<span class='line-number'>66</span>
-<span class='line-number'>67</span>
-<span class='line-number'>68</span>
-<span class='line-number'>69</span>
-<span class='line-number'>70</span>
-<span class='line-number'>71</span>
-<span class='line-number'>72</span>
-<span class='line-number'>73</span>
-<span class='line-number'>74</span>
-<span class='line-number'>75</span>
-<span class='line-number'>76</span>
-<span class='line-number'>77</span>
-<span class='line-number'>78</span>
-<span class='line-number'>79</span>
-<span class='line-number'>80</span>
-<span class='line-number'>81</span>
-<span class='line-number'>82</span>
-<span class='line-number'>83</span>
-<span class='line-number'>84</span>
-<span class='line-number'>85</span>
-<span class='line-number'>86</span>
-<span class='line-number'>87</span>
-<span class='line-number'>88</span>
-<span class='line-number'>89</span>
-<span class='line-number'>90</span>
-<span class='line-number'>91</span>
-<span class='line-number'>92</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nc">DictProvider</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">Reflection</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">FSharp</span><span class="p">.</span><span class="nn">Core</span><span class="p">.</span><span class="nc">CompilerServices</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">FSharp</span><span class="p">.</span><span class="nc">Quotations</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">ProviderImplementation</span><span class="p">.</span><span class="nc">ProvidedTypes</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">type</span> <span class="nc">GD</span> <span class="o">=</span> <span class="nn">System</span><span class="p">.</span><span class="nn">Collections</span><span class="p">.</span><span class="nn">Generic</span><span class="p">.</span><span class="nc">Dictionary</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">,</span> <span class="kt">string</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">[&lt;</span><span class="nc">TypeProvider</span><span class="o">&gt;]</span>
-</span><span class='line'><span class="k">type</span> <span class="nc">DictionaryProvider</span><span class="bp">()</span> <span class="k">as</span> <span class="n">this</span> <span class="o">=</span>
-</span><span class='line'>  <span class="k">inherit</span> <span class="nc">TypeProviderForNamespaces</span><span class="bp">()</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">let</span> <span class="n">ns</span> <span class="o">=</span> <span class="s2">&quot;DictProvider&quot;</span>
-</span><span class='line'>  <span class="k">let</span> <span class="n">asm</span> <span class="o">=</span> <span class="nn">Assembly</span><span class="p">.</span><span class="nc">GetExecutingAssembly</span><span class="bp">()</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">let</span> <span class="n">createType</span> <span class="n">typeName</span> <span class="o">(</span><span class="n">parameters</span> <span class="o">:</span> <span class="n">obj</span> <span class="bp">[]</span><span class="o">)</span> <span class="o">=</span>
-</span><span class='line'>    <span class="c1">// We&#39;ll get our property names by just splitting</span>
-</span><span class='line'>    <span class="c1">// our single parameter on commas</span>
-</span><span class='line'>    <span class="k">let</span> <span class="n">propNames</span> <span class="o">=</span>
-</span><span class='line'>      <span class="o">(</span><span class="n">parameters</span><span class="o">.[</span><span class="mi">0</span><span class="o">]</span> <span class="o">:?&gt;</span> <span class="kt">string</span><span class="o">).</span><span class="nc">Split</span> <span class="sc">&#39;,&#39;</span>
-</span><span class='line'>      <span class="o">|&gt;</span> <span class="nn">Array</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">s</span> <span class="o">-&gt;</span> <span class="n">s</span><span class="o">.</span><span class="nc">Trim</span><span class="bp">()</span><span class="o">)</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="c1">// Each of our properties has setter code to set the value in the dict with the</span>
-</span><span class='line'>    <span class="c1">// name of the property, and getter code with gets the same value</span>
-</span><span class='line'>    <span class="k">let</span> <span class="n">aProp</span> <span class="n">name</span> <span class="o">=</span>
-</span><span class='line'>      <span class="nc">ProvidedProperty</span><span class="o">(</span>
-</span><span class='line'>        <span class="n">name</span><span class="o">,</span>
-</span><span class='line'>        <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;,</span>
-</span><span class='line'>        <span class="nc">IsStatic</span> <span class="o">=</span> <span class="bp">false</span><span class="o">,</span>
-</span><span class='line'>        <span class="nc">GetterCode</span> <span class="o">=</span> <span class="o">(</span><span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="o">(%%</span><span class="n">args</span><span class="o">.[</span><span class="mi">0</span><span class="o">]:</span><span class="nc">GD</span><span class="o">).[</span><span class="n">name</span><span class="o">]</span> <span class="o">@@&gt;),</span>
-</span><span class='line'>        <span class="nc">SetterCode</span> <span class="o">=</span> <span class="o">(</span><span class="k">fun</span> <span class="n">args</span> <span class="o">-&gt;</span> <span class="o">&lt;@@</span> <span class="o">(%%</span><span class="n">args</span><span class="o">.[</span><span class="mi">0</span><span class="o">]:</span><span class="nc">GD</span><span class="o">).[</span><span class="n">name</span><span class="o">]</span> <span class="o">&lt;-</span> <span class="o">(%%</span><span class="n">args</span><span class="o">.[</span><span class="mi">1</span><span class="o">]:</span><span class="kt">string</span><span class="o">)</span> <span class="o">@@&gt;))</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="c1">// Here we set the type to be erased to as &quot;GD&quot; (our type alias for a dictionary)</span>
-</span><span class='line'>    <span class="c1">// If we want to hide the normal dictionary methods, we could use:</span>
-</span><span class='line'>    <span class="c1">// &#39;myType.HideObjectMethods &lt;- true&#39;</span>
-</span><span class='line'>    <span class="c1">// But here we&#39;ll just let people use the type as a dictionary as well.</span>
-</span><span class='line'>    <span class="k">let</span> <span class="n">myType</span> <span class="o">=</span>
-</span><span class='line'>      <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="n">typeName</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="nc">GD</span><span class="o">&gt;)</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="c1">// Make sure we add all the properties to the object.</span>
-</span><span class='line'>    <span class="n">propNames</span>
-</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Array</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">propName</span> <span class="o">-&gt;</span> <span class="n">aProp</span> <span class="n">propName</span><span class="o">)</span>
-</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">ofArray</span>
-</span><span class='line'>    <span class="o">|&gt;</span> <span class="n">myType</span><span class="o">.</span><span class="nc">AddMembers</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="c1">// We&#39;ll want a constructor that takes as many parameters as we have</span>
-</span><span class='line'>    <span class="c1">// properties, as we&#39;ll want to set the value in the dictionary of our</span>
-</span><span class='line'>    <span class="c1">// properties during construction. If we don&#39;t, trying to use the properties</span>
-</span><span class='line'>    <span class="c1">// will result in a key not found exception.</span>
-</span><span class='line'>    <span class="k">let</span> <span class="n">cstorParams</span> <span class="o">=</span>
-</span><span class='line'>      <span class="n">propNames</span>
-</span><span class='line'>      <span class="o">|&gt;</span> <span class="nn">Array</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">propName</span> <span class="o">-&gt;</span> <span class="nc">ProvidedParameter</span><span class="o">(</span><span class="n">propName</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;))</span>
-</span><span class='line'>      <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">ofArray</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="c1">// Here&#39;s the constructor code where we set each property in turn.</span>
-</span><span class='line'>    <span class="c1">// Notice how the fold keeps on building up a larger let expression,</span>
-</span><span class='line'>    <span class="c1">// adding a set value line at the top of the expression each time through.</span>
-</span><span class='line'>    <span class="c1">// Our initial state (a line with only the dictionary variable on) is always</span>
-</span><span class='line'>    <span class="c1">// left last, so this is what will be returned from the constructor.</span>
-</span><span class='line'>    <span class="k">let</span> <span class="n">cstorCode</span> <span class="o">=</span>
-</span><span class='line'>      <span class="k">fun</span> <span class="o">(</span><span class="n">args</span> <span class="o">:</span> <span class="nc">Expr</span> <span class="kt">list</span><span class="o">)</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="k">let</span> <span class="n">dictionaryVar</span> <span class="o">=</span> <span class="nc">Var</span><span class="o">(</span><span class="s2">&quot;dictionary&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="nc">GD</span><span class="o">&gt;)</span>
-</span><span class='line'>        <span class="k">let</span> <span class="n">dictionary</span> <span class="o">:</span> <span class="nc">Expr</span><span class="o">&lt;</span><span class="nc">GD</span><span class="o">&gt;</span> <span class="o">=</span> <span class="n">dictionaryVar</span> <span class="o">|&gt;</span> <span class="nn">Expr</span><span class="p">.</span><span class="nc">Var</span> <span class="o">|&gt;</span> <span class="nn">Expr</span><span class="p">.</span><span class="nc">Cast</span>
-</span><span class='line'>        <span class="k">let</span> <span class="n">setValues</span> <span class="o">=</span>
-</span><span class='line'>          <span class="n">args</span>
-</span><span class='line'>          <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">propNames</span>
-</span><span class='line'>          <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">fold</span> <span class="o">(</span><span class="k">fun</span> <span class="n">state</span> <span class="o">(</span><span class="n">name</span><span class="o">,</span> <span class="n">arg</span><span class="o">)</span> <span class="o">-&gt;</span>
-</span><span class='line'>            <span class="o">&lt;@</span> <span class="o">(%</span><span class="n">dictionary</span><span class="o">).[</span><span class="n">name</span><span class="o">]</span> <span class="o">&lt;-</span> <span class="o">(%%</span><span class="n">arg</span><span class="o">:</span><span class="kt">string</span><span class="o">)</span>
-</span><span class='line'>               <span class="o">%</span><span class="n">state</span> <span class="o">@&gt;)</span> <span class="o">&lt;@</span> <span class="o">%</span><span class="n">dictionary</span> <span class="o">@&gt;</span>
-</span><span class='line'>        <span class="nn">Expr</span><span class="p">.</span><span class="nc">Let</span><span class="o">(</span><span class="n">dictionaryVar</span><span class="o">,</span> <span class="o">&lt;@</span> <span class="nc">GD</span><span class="bp">()</span> <span class="o">@&gt;,</span> <span class="n">setValues</span><span class="o">)</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="c1">// Build the constructor out of our helpers</span>
-</span><span class='line'>    <span class="k">let</span> <span class="n">cstor</span> <span class="o">=</span>
-</span><span class='line'>      <span class="nc">ProvidedConstructor</span><span class="o">(</span><span class="n">cstorParams</span><span class="o">,</span> <span class="nc">InvokeCode</span> <span class="o">=</span> <span class="n">cstorCode</span><span class="o">)</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="c1">// And make sure you add it to the class!</span>
-</span><span class='line'>    <span class="n">myType</span><span class="o">.</span><span class="nc">AddMember</span> <span class="n">cstor</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">myType</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">let</span> <span class="n">provider</span> <span class="o">=</span>
-</span><span class='line'>    <span class="nc">ProvidedTypeDefinition</span><span class="o">(</span><span class="n">asm</span><span class="o">,</span> <span class="n">ns</span><span class="o">,</span> <span class="s2">&quot;ParaProvider&quot;</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="n">obj</span><span class="o">&gt;)</span>
-</span><span class='line'>  <span class="k">let</span> <span class="n">parameters</span> <span class="o">=</span>
-</span><span class='line'>    <span class="o">[</span><span class="nc">ProvidedStaticParameter</span><span class="o">(</span><span class="s2">&quot;PropNames&quot;</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;)]</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="k">do</span>
-</span><span class='line'>    <span class="n">provider</span><span class="o">.</span><span class="nc">DefineStaticParameters</span><span class="o">(</span><span class="n">parameters</span><span class="o">,</span> <span class="n">createType</span><span class="o">)</span>
-</span><span class='line'>    <span class="n">this</span><span class="o">.</span><span class="nc">AddNamespace</span><span class="o">(</span><span class="n">ns</span><span class="o">,</span> <span class="o">[</span><span class="n">provider</span><span class="o">])</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">[&lt;</span><span class="n">assembly</span><span class="o">:</span><span class="nc">TypeProviderAssembly</span><span class="o">&gt;]</span>
-</span><span class='line'><span class="k">do</span><span class="bp">()</span>
-</span></code></pre></td></tr></table></div></figure>
 ]]></content>
   </entry>
   

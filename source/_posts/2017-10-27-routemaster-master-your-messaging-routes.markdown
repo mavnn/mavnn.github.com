@@ -41,6 +41,6 @@ In some ways they fall in a similar space to RouteMaster, but with a different p
 
 ## Ask not what your RouteMaster can do for you, but what you can do for your RouteMaster!
 
-I'd really like feedback, ideas, use cases and suggestions - leave comments here or ping an issue onto the repository. If you're feeling really brave you can try and actually experiment with it, but at the moment I'm mostly hoping for concrete use cases and, well, funding.
+I'd really like feedback, ideas, use cases and suggestions - leave comments here or ping an issue onto the repository. If you're feeling really brave and can try and actually experiment with it, but at the moment I'm mostly hoping for concrete use cases and, well, funding.
 
 Quite a few people over the years have hit my website searching for an EasyNetQ process manager, and others have asked me if it's still available. I'd like to hear from as many of you as possible to build the tightest, simplest solution which will do the job.

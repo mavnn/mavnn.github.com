@@ -9,7 +9,7 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="Making Sure Your Developers Keep Developing Software development is a strange profession, mostly because it&#39;s so young and because the tools are &hellip;">
+  <meta name="description" content="Although programming is young and we often don&#39;t know much about the &quot;best&quot; way to do things, we&#39;re not totally shooting in the &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -80,6 +80,136 @@ ga('send', 'pageview');
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+
+  <header>
+    
+      <h1 class="entry-title"><a href="/difficult-vs-impossible/">Difficult vs Impossible</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-01-20T15:40:57+00:00" pubdate data-updated="true">Jan 20<span>th</span>, 2015</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Although <a href="/keeping-up-with-the-latest-hammer/">programming is young</a> and we often don&#39;t know much about the &quot;best&quot; way to do things, we&#39;re not totally shooting in the dark.</p>
+
+<p>Every so often, you come up against problems that people have investigated in detail, and given programming&#39;s mathematical roots this even leads on occasion to a proof about a certain type of system. It would be impossible to keep up with all of the research; but there are a few places where it&#39;s very helpful to know about general results.</p>
+
+<p>I&#39;m going to claim here that it makes a big difference to how you handle feature requests both as a developer, and as a business, when you&#39;re asked to produce systems which are actually impossible.</p>
+
+<p>Let&#39;s take the one that comes up most often in my experience&#8230; Consistency in distributed systems.</p>
+
+<p>So - this comes up the moment that somebody (customer, internal stakeholder, whatever) declares that having just a single service running on a single server is just not reliable enough. At some point, something will go wrong - and when it does, the service is a SPOF (single point of failure) and your processes which use it stop.</p>
+
+<blockquote>
+<p>Unacceptable!</p>
+
+<p><cite>Every product owner, ever</cite></p>
+</blockquote>
+
+<p>&quot;We must have a cluster!&quot; the service developer is told. &quot;Load balancing!&quot;</p>
+
+<p>&quot;Hmmmm.&quot; says the developer to themselves. &quot;Distributed computing. That can get a little tricky. Let&#39;s see if I can nail down the actual requirements a bit more.&quot;</p>
+
+<p>The Q&amp;A session goes something a bit like this:</p>
+
+<ul>
+<li>Dev: So&#8230; Let&#39;s start easy and assume two nodes for now. How important is it that <strong>every</strong> write is replicated to both nodes before it&#39;s readable?</li>
+<li>PO: Critical!</li>
+<li>Dev: And&#8230; How important is it that the system stays available when one node is down?</li>
+<li>PO: Critical!</li>
+<li>Dev <em>pausing</em>: Ah&#8230; We won&#39;t be able to replicate writes at that point - the second node is down.</li>
+<li>PO: Oh. Right, makes sense - read availability is critical though.</li>
+<li>Dev: It would make life easier if writes can only be made to one of the two nodes - let&#39;s call it master. That OK?</li>
+<li>PO <em>thinks for while</em>: OK. It&#39;s not ideal, but we&#39;ve got a deadline. Go for it.</li>
+<li>Dev: How about consistency - if Bob writes to the first node, and then immediately reads from the second, is it okay if he gets slightly out of date data?</li>
+<li>PO: Absolutely not.</li>
+<li>Dev: OK. Give me a moment.</li>
+<li>PO: Just a moment - one last thing! This has to be super user friendly to use. So make sure it&#39;s completely transparent to the client consumer that they&#39;re talking to a cluster.</li>
+<li>Dev: &#8230;right.</li>
+</ul>
+
+<p>Little known to our PO, their requirements are at this point strictly impossible. The impossibility here is a particular edge case; what happens if the &quot;master&quot; node receives a write, sends it to the &quot;slave&quot; to replicate, but then <strong>never gets a response</strong>. What does it do? Return an error to the client? Well - no. If the slave comes back up, and the replication had been successful before the slave became unavailable, then we&#39;d have an inconsistent history between slave and master.</p>
+
+<p>Does it return a success? Well - no. In that case, we&#39;re violating our restriction that every write is replicated before it&#39;s considered available to read.</p>
+
+<p>So it has to return something else - a &quot;pending&quot;, &quot;this write will probably be replicated some day&quot; response. But that violates the restriction that it shouldn&#39;t add any complexity to the consumer. We now have a corner case that the server can&#39;t handle, so it has to be passed back to the client.</p>
+
+<p>After this first write, we do have a little bit more flexibility - we can stop accepting new writes until we&#39;ve heard from the slave that it&#39;s back up and available and just throw an error. But we&#39;re still left with that first, awkward write to deal with. (Perceptive readers will also realise that this set up actually leaves us less reliable for writes than a single node solution - proofs left as an exercise to the reader).</p>
+
+<p>In reality, this impossibility is a subset of the more widely know CAP theorem: a distributed system cannot be always &quot;Consistent&quot; and always &quot;Available&quot; and still behave predictably under network &quot;Partitions&quot;. The three terms in CAP have pretty specific meanings - check out a nice introduction at <a href="http://codahale.com/you-cant-sacrifice-partition-tolerance/">You Can&#39;t Sacrifice Partition Tolerance</a>.</p>
+
+<p>This is the point where reality diverges, Sliding Doors style, depending on what the developer does next. The branches are numerous, but let&#39;s have a look at some of the most common. As an aside, I&#39;ve fallen into pretty much all of these categories at different points.</p>
+
+<h3>Option 1: The developer doesn&#39;t know this is impossible either</h3>
+
+<p>At this point, we end up with a response that goes something along the lines of: &quot;Well - I can do you a temporary solution where we return a pending result in situation x. Bit of a pain; put it on the technical debt register, and we&#39;ll sort it out when we have a bit more time.&quot;</p>
+
+<p>Or: &quot;I can&#39;t think of a completely fool proof solution right now; how about in situation x we return a failure for now. It&#39;ll be a bit confusing when a user gets told the write failed, and then it shows up later - but we&#39;ll get it sorted before the final release.&quot;</p>
+
+<p>Neither of these solutions are wrong, as such: but the building of impossible expectations will inevitably sour the relationship between product owner and developer, and can cause serious business issues if an external customer has been promised impossible results. There may even be direct financial penalty clauses involved.</p>
+
+<h3>Option 2: The developer knows it&#39;s impossible, and thinks the product owner does too</h3>
+
+<p>Here the developer <strong>says</strong> &quot;Well, I can return a pending result&#8230;&quot; and the PO adds mentally &quot;&#8230;which is a OK stop gap measure, I&#39;ll schedule some time to clean it up later.&quot;</p>
+
+<p>This leads to pretty much the same outcomes as &quot;Option 1&quot;, except the developer gets an unhealthy injection of smug self-righteousness for knowing that he never promised the impossible. In general, this is not helpful.</p>
+
+<h3>Option 3: The developer knows it&#39;s impossible, tries to explain&#8230; And fails</h3>
+
+<p>This is very similar in outcome to Options 1 &amp; 2. Just more frustrating to the developer, especially if the product owner then claims the developer is &quot;negative&quot; or &quot;incompetent&quot;.</p>
+
+<h3>Option 4: The developer knows it&#39;s impossible and explains to the product owner how and why</h3>
+
+<p>This is hard on two levels. On the first: the proof of why something can&#39;t be done might be genuinely difficult to understand.  On the second: it can be hard to work out if you&#39;ve avoided Option 3, or if people are just nodding and smiling.</p>
+
+<p>We nearly hit one of these scenarios this week; fortunately our QA department spotted the mismatch in expectations (yay QA!). Where things got a bit strange is that it was raised as Option 3: &quot;hey! Can we put a bit more effort in, and make this nicer to use?&quot; At the QAT phase this much easier to deal with though - you don&#39;t have angry customers, commercial agreements and these other bits hanging over your heads (well - not if you&#39;re writing an internal service anyway).</p>
+
+<h2>What can we take away from all of this?</h2>
+
+<p>A few things.</p>
+
+<h3>Developers</h3>
+
+<ol>
+<li>As a developer, you must know the basics of the domain you&#39;re working in. Keep on learning, folks.</li>
+<li>You must be able to communicate as a developer. A lot of developers are introverts, myself included. This is not an excuse. Introvert means that you can&#39;t recharge around other people, not that you can&#39;t talk to them.</li>
+<li>You cannot remove your developers from your customer communications, or completely separate commercial proposals and technical evaluation. You must have technical input into your business process, because sometimes its isn&#39;t a question of how much time you spend, how well you design or how skilled a developer you assign to the problem: it might just be impossible.</li>
+</ol>
+
+<h3>&quot;Product Owners&quot; (whatever your actual job title is)</h3>
+
+<ol>
+<li>Listen to your developers, and pay attention to the wording. If they say something is impossible (not hard, not delayed) check you understand why.</li>
+<li>Be careful how you define the business problem to your developers. You may end up specifying a problem that is unsolvable if you end up layering up too many technical restrictions - while your developer may be able to suggest something that meets the business criteria without falling foul of technical (or more importantly mathematical) limitations to what is possible.</li>
+<li>If you place a technical requirement (&quot;it must be clustered - no single points of failure!&quot;) make sure you understand the technical trade offs that you are imposing. This may take a long time. Alternatively, and preferably, rephrase your requirement to be your actual business requirement (&quot;We promised 98% uptime - what&#39;s your design to make sure it happens?&quot;).</li>
+<li>You must be able and willing to say &quot;no&quot; to a customer when they ask for something impossible. You can offer alternatives, work arounds - but don&#39;t promise the impossible. It will come back, and it will hurt you.</li>
+</ol>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -554,58 +684,6 @@ shaped handle and you have to hammer sideways instead of down.</p>
 
     </article>
   
-  
-    <article>
-      
-
-  <header>
-    
-      <h1 class="entry-title"><a href="/type-providers-from-the-first-floor/">Type Providers From the First Floor</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-03-19T21:06:05+00:00" pubdate data-updated="true">Mar 19<span>th</span>, 2014</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p><em>This post follows on directly from my previous post <a href="https//blog.mavnn.co.uk/type-providers-from-the-ground-up/">Type Providers from the Ground Up</a>. I highly recommend that you read that first, and check out the relevant example code from GitHub.</em></p>
-
-<p><em>It&#39;s also a bit epic&#8230; grab yourself a coffee before you start.</em></p>
-
-<p>So we have a working type provider now. Unfortunately, we&#39;re missing out on at least two major features that your new type provider will almost certainly want to make use of.</p>
-
-<p>The first is that in our example, we&#39;re reading the metadata that defines our types from a fixed file location. In almost every real life case, you will want to be able to parametrize your provider to specify where this instance is getting it&#39;s metadata from.</p>
-
-<p>The second is that in many cases getting the metadata will be slow, and the number of types available to generate may be very large. In these situations, you really want to be able to only generate the types that are required as they are requested, especially because this will reduce the size of the final compiled output. This is particularly important for type providers that read from large network based data sources like the Freebase provider.</p>
-
-<p>We&#39;ll take the second first, because it&#39;s easy - and we like easy&#8230;</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/type-providers-from-the-first-floor/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/6/">&larr; Older</a>
@@ -631,6 +709,10 @@ shaped handle and you have to hammer sideways instead of down.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/going-down-the-property-based-testing-rabbit-hole/">Going Down the Property Based Testing Rabbit Hole</a>
+      </li>
+    
+      <li class="post">
         <a href="/all-saints-day-sale/">All Saints&#8217; Day Sale</a>
       </li>
     
@@ -644,10 +726,6 @@ shaped handle and you have to hammer sideways instead of down.</p>
     
       <li class="post">
         <a href="/workflow-alpha/">Workflow Alpha</a>
-      </li>
-    
-      <li class="post">
-        <a href="/kubernetes-for-the-masses/">Kubernetes for the Masses</a>
       </li>
     
   </ul>

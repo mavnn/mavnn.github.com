@@ -4,7 +4,7 @@
   <title><![CDATA[Mavnn's blog]]></title>
   <link href="https://blog.mavnn.co.uk/atom.xml" rel="self"/>
   <link href="https://blog.mavnn.co.uk/"/>
-  <updated>2017-11-01T09:07:48+00:00</updated>
+  <updated>2017-11-10T16:20:14+00:00</updated>
   <id>https://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,690 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Going Down the Property Based Testing Rabbit Hole]]></title>
+    <link href="https://blog.mavnn.co.uk/going-down-the-property-based-testing-rabbit-hole/"/>
+    <updated>2017-11-10T15:28:47+00:00</updated>
+    <id>https://blog.mavnn.co.uk/going-down-the-property-based-testing-rabbit-hole</id>
+    <content type="html"><![CDATA[<p>Image, if you will, a card game.</p>
+
+<p>(Don&#39;t worry, there&#39;s code later. Lots of code.)</p>
+
+<p>It&#39;s not a complex card game; it&#39;s a quick and fun game designed to represent over the top martial arts combat in the style of Hong Kong cinema or a beat &#39;em up game.</p>
+
+<p>Each player has a deck of cards which represent their martial art; different arts are differently weighted in their card distribution. These cards come in four main types:</p>
+
+<h3>1 Normal cards</h3>
+
+<p>A &quot;normal&quot; card comes in one of four suits:</p>
+
+<ul>
+<li>Punch</li>
+<li>Kick</li>
+<li>Throw</li>
+<li>Defend</li>
+</ul>
+
+<p>They also carry a numerical value between 1 and 10, which represents both how &quot;fast&quot; they are and (except for defend cards) how much damage they do. A Defend card can never determine damage.</p>
+
+<h3>2 Special Attack cards</h3>
+
+<p>The fireballs, whirling hurricane kicks and mighty mega throws of the game. A special attack card lists two suits: one to use for the speed of the final attack, and one for the damage. This allows you to play 3 cards together to create an attack which is fast yet damaging.</p>
+
+<h3>3 Combo Attack cards</h3>
+
+<p>A flurry of blows! Combo cards also list two suits: one for speed, and one for the &quot;follow up&quot; flurry. This allows you to play 3 cards together, one of which determines the speed of the attack while the other adds to the total damage. For example, if you play a Punch/Kick Combo with a Punch 3 and a Kick 7 you end up with a speed 3, damage 10 attack.</p>
+
+<h3>4 Knockdown cards</h3>
+
+<p>You can combine a knockdown card with any other valid play to create an action that will &quot;knockdown&quot; your opponent.</p>
+
+<h2>The code</h2>
+
+<p>(This is an <em>example</em> of property based testing; if you need an <em>introduction</em> first, check out <a href="https://blog.mavnn.co.uk/fscheck-breaking-your-code-in-new-and-exciting-ways/">Breaking Your Code in New and Exciting Ways</a> or the <a href="https://blog.mavnn.co.uk/sdd-conf-2015/">the video version</a>)</p>
+
+<p>There are of course other rules to the game; but let&#39;s assume for a moment we&#39;re coding this game up in F#. We&#39;ve defined a nice domain model:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nn">BlackBelt</span><span class="p">.</span><span class="nn">Domain</span><span class="p">.</span><span class="nc">Types</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nc">System</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">Suit</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Punch</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Kick</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Throw</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Defend</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">NormalCard</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span> <span class="nc">Suit</span> <span class="o">:</span> <span class="nc">Suit</span>
+</span><span class='line'>      <span class="nc">Value</span> <span class="o">:</span> <span class="kt">int</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">ComboCard</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span> <span class="nc">SpeedSuit</span> <span class="o">:</span> <span class="nc">Suit</span>
+</span><span class='line'>      <span class="nc">FollowUpSuit</span> <span class="o">:</span> <span class="nc">Suit</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">SpecialAttackCard</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span> <span class="nc">SpeedSuit</span> <span class="o">:</span> <span class="nc">Suit</span>
+</span><span class='line'>      <span class="nc">DamageSuit</span> <span class="o">:</span> <span class="nc">Suit</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">Card</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Normal</span> <span class="k">of</span> <span class="nc">NormalCard</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Combo</span> <span class="k">of</span> <span class="nc">ComboCard</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Special</span> <span class="k">of</span> <span class="nc">SpecialAttackCard</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Knockdown</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">Action</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span> <span class="nc">Speed</span> <span class="o">:</span> <span class="kt">int</span>
+</span><span class='line'>      <span class="nc">Damage</span> <span class="o">:</span> <span class="kt">int</span>
+</span><span class='line'>      <span class="nc">Suit</span> <span class="o">:</span> <span class="nc">Suit</span>
+</span><span class='line'>      <span class="nc">Knockdown</span> <span class="o">:</span> <span class="kt">bool</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">PlayerId</span> <span class="o">=</span> <span class="nc">PlayerId</span> <span class="k">of</span> <span class="kt">string</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">Player</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span> <span class="nc">Name</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>      <span class="nc">Id</span> <span class="o">:</span> <span class="nc">PlayerId</span>
+</span><span class='line'>      <span class="nc">Deck</span> <span class="o">:</span> <span class="nc">Card</span> <span class="kt">list</span>
+</span><span class='line'>      <span class="nc">Stance</span> <span class="o">:</span> <span class="nc">Card</span> <span class="kt">list</span>
+</span><span class='line'>      <span class="nc">Health</span> <span class="o">:</span> <span class="kt">int</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">WaitingFor</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Attack</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Counter</span> <span class="k">of</span> <span class="nc">PlayerId</span> <span class="o">*</span> <span class="nc">Action</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">StanceCard</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">Game</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span> <span class="nc">GameId</span> <span class="o">:</span> <span class="nc">Guid</span>
+</span><span class='line'>      <span class="nc">Player1</span> <span class="o">:</span> <span class="nc">Player</span>
+</span><span class='line'>      <span class="nc">Player2</span> <span class="o">:</span> <span class="nc">Player</span>
+</span><span class='line'>      <span class="nc">TurnOf</span> <span class="o">:</span> <span class="nc">PlayerId</span>
+</span><span class='line'>      <span class="nc">WaitingFor</span> <span class="o">:</span> <span class="nc">WaitingFor</span> <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>And now we want to write a function that takes the rules for playing cards above, and turns a <code>Card list</code> into an <code>Action option</code> (telling you if the list is a valid play, and what action will result if it is).</p>
+
+<p>This function is pretty critical to the overall game play, and may well also be used for validating input in the UI so getting it right will make a big difference to the experience of playing the game.</p>
+
+<p>So we&#39;re going to property test our implementation in every which way we can think of&#8230;</p>
+
+<p>First step: make yourself a placeholder version of the function to reference in your tests:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nn">BlackBelt</span><span class="p">.</span><span class="nn">Domain</span><span class="p">.</span><span class="nc">Logic</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">toAction</span> <span class="n">cards</span> <span class="o">=</span> <span class="nc">None</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Now, let&#39;s start adding properties. All of the rest goes in a single file, but I&#39;m going to split it up with some commentary as we go.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nn">BlackBelt</span><span class="p">.</span><span class="nn">Tests</span><span class="p">.</span><span class="nc">Logic</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nc">Expecto</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Expecto</span><span class="p">.</span><span class="nc">ExpectoFsCheck</span>
+</span><span class='line'><span class="k">open</span> <span class="nc">FsCheck</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">BlackBelt</span><span class="p">.</span><span class="nn">Domain</span><span class="p">.</span><span class="nc">Logic</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">BlackBelt</span><span class="p">.</span><span class="nn">Domain</span><span class="p">.</span><span class="nc">Types</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">allSuitsBut</span> <span class="n">suit</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">[</span><span class="nc">Punch</span><span class="o">;</span><span class="nc">Kick</span><span class="o">;</span><span class="nc">Throw</span><span class="o">;</span><span class="nc">Defend</span><span class="o">]</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">filter</span> <span class="o">((&lt;&gt;)</span> <span class="n">suit</span><span class="o">)</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Gen</span><span class="p">.</span><span class="n">elements</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// We need a custom generator here as only some</span>
+</span><span class='line'><span class="c1">// values are valid</span>
+</span><span class='line'><span class="k">type</span> <span class="nc">DomainArbs</span><span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">static</span> <span class="k">member</span> <span class="nc">NormalCard</span><span class="bp">()</span> <span class="o">:</span> <span class="nc">Arbitrary</span><span class="o">&lt;</span><span class="nc">NormalCard</span><span class="o">&gt;</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">gen</span> <span class="o">{</span>
+</span><span class='line'>            <span class="k">let</span><span class="o">!</span> <span class="n">suit</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">Suit</span><span class="o">&gt;</span>
+</span><span class='line'>            <span class="k">let</span><span class="o">!</span> <span class="n">value</span> <span class="o">=</span> <span class="nn">Gen</span><span class="p">.</span><span class="n">choose</span><span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="mi">10</span><span class="o">)</span>
+</span><span class='line'>            <span class="k">return</span>
+</span><span class='line'>                <span class="o">{</span> <span class="nc">Suit</span> <span class="o">=</span> <span class="n">suit</span>
+</span><span class='line'>                  <span class="nc">Value</span> <span class="o">=</span> <span class="n">value</span> <span class="o">}</span>
+</span><span class='line'>        <span class="o">}</span> <span class="o">|&gt;</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">fromGen</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">static</span> <span class="k">member</span> <span class="nc">SpecialAttackCard</span><span class="bp">()</span> <span class="o">:</span> <span class="nc">Arbitrary</span><span class="o">&lt;</span><span class="nc">SpecialAttackCard</span><span class="o">&gt;</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">gen</span> <span class="o">{</span>
+</span><span class='line'>            <span class="k">let</span><span class="o">!</span> <span class="n">damageSuit</span> <span class="o">=</span> <span class="n">allSuitsBut</span> <span class="nc">Defend</span>
+</span><span class='line'>            <span class="k">let</span><span class="o">!</span> <span class="n">speedSuit</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">Suit</span><span class="o">&gt;</span>
+</span><span class='line'>            <span class="k">return</span>
+</span><span class='line'>                <span class="o">{</span> <span class="nc">SpeedSuit</span> <span class="o">=</span> <span class="n">speedSuit</span>
+</span><span class='line'>                  <span class="nc">DamageSuit</span> <span class="o">=</span> <span class="n">damageSuit</span> <span class="o">}</span>
+</span><span class='line'>        <span class="o">}</span> <span class="o">|&gt;</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">fromGen</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">static</span> <span class="k">member</span> <span class="nc">ComboCard</span><span class="bp">()</span> <span class="o">:</span> <span class="nc">Arbitrary</span><span class="o">&lt;</span><span class="nc">ComboCard</span><span class="o">&gt;</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">gen</span> <span class="o">{</span>
+</span><span class='line'>            <span class="k">let</span><span class="o">!</span> <span class="n">speedSuit</span> <span class="o">=</span> <span class="n">allSuitsBut</span> <span class="nc">Defend</span>
+</span><span class='line'>            <span class="k">let</span><span class="o">!</span> <span class="n">followupSuit</span> <span class="o">=</span> <span class="n">allSuitsBut</span> <span class="nc">Defend</span>
+</span><span class='line'>            <span class="k">return</span>
+</span><span class='line'>                <span class="o">{</span> <span class="nc">SpeedSuit</span> <span class="o">=</span> <span class="n">speedSuit</span>
+</span><span class='line'>                  <span class="nc">FollowUpSuit</span> <span class="o">=</span> <span class="n">followupSuit</span> <span class="o">}</span>
+</span><span class='line'>        <span class="o">}</span> <span class="o">|&gt;</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">fromGen</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>We&#39;ll start off with a few general purpose bits for generating random types in our domain. I haven&#39;t gone the whole hog in making illegal states unrepresentable here, so we need to constrain a few things (like the fact that cards only have values from 1 to 10, and that you can&#39;t combo into a defend card for extra damage).</p>
+
+<p>Now: let&#39;s start generating potential plays of cards. Our properties will be interested in whether a particular play is valid or invalid, and we will want to know what the resulting <code>Action</code> should be for valid plays.</p>
+
+<p>So we define a union to create instances of:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">GeneratedAction</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">ValidAction</span> <span class="k">of</span> <span class="nc">Card</span> <span class="kt">list</span> <span class="o">*</span> <span class="nc">Action</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">InvalidAction</span> <span class="k">of</span> <span class="nc">Card</span> <span class="kt">list</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Now let&#39;s add all of the valid actions we can think of.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">makeNormalAction</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">gen</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">normal</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">NormalCard</span><span class="o">&gt;</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">cards</span> <span class="o">=</span> <span class="o">[</span><span class="nc">Normal</span> <span class="n">normal</span><span class="o">]</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">action</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">{</span> <span class="nc">Speed</span> <span class="o">=</span> <span class="n">normal</span><span class="o">.</span><span class="nc">Value</span>
+</span><span class='line'>              <span class="nc">Damage</span> <span class="o">=</span>
+</span><span class='line'>                  <span class="k">if</span> <span class="n">normal</span><span class="o">.</span><span class="nc">Suit</span> <span class="o">=</span> <span class="nc">Defend</span> <span class="k">then</span>
+</span><span class='line'>                      <span class="mi">0</span>
+</span><span class='line'>                  <span class="k">else</span>
+</span><span class='line'>                      <span class="n">normal</span><span class="o">.</span><span class="nc">Value</span>
+</span><span class='line'>              <span class="nc">Suit</span> <span class="o">=</span> <span class="n">normal</span><span class="o">.</span><span class="nc">Suit</span>
+</span><span class='line'>              <span class="nc">Knockdown</span> <span class="o">=</span> <span class="bp">false</span> <span class="o">}</span>
+</span><span class='line'>        <span class="k">return</span> <span class="n">cards</span><span class="o">,</span> <span class="n">action</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>So; a normal card on it&#39;s own is always a valid play, the only thing we need to watch out for is that a Defend card causes no damage.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">makeComboAttack</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">gen</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">comboCard</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">ComboCard</span><span class="o">&gt;</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">normal1</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">NormalCard</span><span class="o">&gt;</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">normal2</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">NormalCard</span><span class="o">&gt;</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">cards</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">[</span> <span class="nc">Normal</span> <span class="o">{</span> <span class="n">normal1</span> <span class="k">with</span> <span class="nc">Suit</span> <span class="o">=</span> <span class="n">comboCard</span><span class="o">.</span><span class="nc">SpeedSuit</span> <span class="o">}</span>
+</span><span class='line'>              <span class="nc">Normal</span> <span class="o">{</span> <span class="n">normal2</span> <span class="k">with</span> <span class="nc">Suit</span> <span class="o">=</span> <span class="n">comboCard</span><span class="o">.</span><span class="nc">FollowUpSuit</span> <span class="o">}</span>
+</span><span class='line'>              <span class="nc">Combo</span> <span class="n">comboCard</span> <span class="o">]</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">attack</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">{</span> <span class="nc">Speed</span> <span class="o">=</span>
+</span><span class='line'>                  <span class="k">if</span> <span class="n">comboCard</span><span class="o">.</span><span class="nc">SpeedSuit</span> <span class="o">=</span> <span class="n">comboCard</span><span class="o">.</span><span class="nc">FollowUpSuit</span> <span class="k">then</span>
+</span><span class='line'>                      <span class="n">min</span> <span class="n">normal1</span><span class="o">.</span><span class="nc">Value</span> <span class="n">normal2</span><span class="o">.</span><span class="nc">Value</span>
+</span><span class='line'>                  <span class="k">else</span>
+</span><span class='line'>                      <span class="n">normal1</span><span class="o">.</span><span class="nc">Value</span>
+</span><span class='line'>              <span class="nc">Damage</span> <span class="o">=</span> <span class="n">normal1</span><span class="o">.</span><span class="nc">Value</span> <span class="o">+</span> <span class="n">normal2</span><span class="o">.</span><span class="nc">Value</span>
+</span><span class='line'>              <span class="nc">Suit</span> <span class="o">=</span> <span class="n">comboCard</span><span class="o">.</span><span class="nc">SpeedSuit</span>
+</span><span class='line'>              <span class="nc">Knockdown</span> <span class="o">=</span> <span class="bp">false</span> <span class="o">}</span>
+</span><span class='line'>        <span class="k">return</span> <span class="n">cards</span><span class="o">,</span> <span class="n">attack</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Here we&#39;ll generate the combo card and two other cards, and then we&#39;ll override the suit of the two normal cards to ensure they&#39;re legal to be played with the combo card.</p>
+
+<p>There&#39;s a quirk here (which in reality I noticed after trying to run these tests). If the two suits are the same, the fast card should determine the speed regardless of &quot;order&quot;.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">makeSpecialAttack</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">gen</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">specialCard</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">SpecialAttackCard</span><span class="o">&gt;</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">damageValue</span> <span class="o">=</span> <span class="nn">Gen</span><span class="p">.</span><span class="n">choose</span><span class="o">(</span><span class="mi">2</span><span class="o">,</span> <span class="mi">10</span><span class="o">)</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">speedValue</span> <span class="o">=</span> <span class="nn">Gen</span><span class="p">.</span><span class="n">choose</span><span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="n">damageValue</span> <span class="o">-</span> <span class="mi">1</span><span class="o">)</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">cards</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">[</span> <span class="nc">Normal</span> <span class="o">{</span> <span class="nc">Suit</span> <span class="o">=</span> <span class="n">specialCard</span><span class="o">.</span><span class="nc">SpeedSuit</span><span class="o">;</span> <span class="nc">Value</span> <span class="o">=</span> <span class="n">speedValue</span> <span class="o">}</span>
+</span><span class='line'>              <span class="nc">Normal</span> <span class="o">{</span> <span class="nc">Suit</span> <span class="o">=</span> <span class="n">specialCard</span><span class="o">.</span><span class="nc">DamageSuit</span><span class="o">;</span> <span class="nc">Value</span> <span class="o">=</span> <span class="n">damageValue</span> <span class="o">}</span>
+</span><span class='line'>              <span class="nc">Special</span> <span class="n">specialCard</span> <span class="o">]</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">attack</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">{</span> <span class="nc">Speed</span> <span class="o">=</span> <span class="n">speedValue</span>
+</span><span class='line'>              <span class="nc">Damage</span> <span class="o">=</span> <span class="n">damageValue</span>
+</span><span class='line'>              <span class="nc">Suit</span> <span class="o">=</span> <span class="n">specialCard</span><span class="o">.</span><span class="nc">SpeedSuit</span>
+</span><span class='line'>              <span class="nc">Knockdown</span> <span class="o">=</span> <span class="bp">false</span> <span class="o">}</span>
+</span><span class='line'>        <span class="k">return</span> <span class="n">cards</span><span class="o">,</span> <span class="n">attack</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Special attack cards have an additional constraint: playing a high value speed card with a low value damage card would actually <em>disadvantage</em> the player, and so is not considered a valid play.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">makeKnockdownAttack</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">gen</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">cards</span><span class="o">,</span> <span class="n">baseAttack</span> <span class="o">=</span>
+</span><span class='line'>            <span class="nn">Gen</span><span class="p">.</span><span class="n">oneof</span> <span class="o">[</span> <span class="n">makeNormalAction</span>
+</span><span class='line'>                        <span class="n">makeComboAttack</span>
+</span><span class='line'>                        <span class="n">makeSpecialAttack</span> <span class="o">]</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">cards</span> <span class="o">=</span> <span class="nc">Knockdown</span><span class="o">::</span><span class="n">cards</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">attack</span> <span class="o">=</span> <span class="o">{</span> <span class="n">baseAttack</span> <span class="k">with</span> <span class="nc">Knockdown</span> <span class="o">=</span> <span class="bp">true</span> <span class="o">}</span>
+</span><span class='line'>        <span class="k">return</span> <span class="n">cards</span><span class="o">,</span> <span class="n">attack</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Here we make use of the generators we&#39;ve constructed above to create a Knockdown action.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">makeValidAction</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">gen</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">validAction</span> <span class="o">=</span>
+</span><span class='line'>            <span class="nn">Gen</span><span class="p">.</span><span class="n">oneof</span> <span class="o">[</span> <span class="n">makeNormalAction</span>
+</span><span class='line'>                        <span class="n">makeComboAttack</span>
+</span><span class='line'>                        <span class="n">makeSpecialAttack</span>
+</span><span class='line'>                        <span class="n">makeKnockdownAttack</span> <span class="o">]</span>
+</span><span class='line'>        <span class="k">return</span> <span class="nc">ValidAction</span> <span class="n">validAction</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Which allows us to write a <code>ValidAction</code> generator.</p>
+
+<p>Now, more interesting is trying to generate plays which are not valid. We&#39;re not trusting the UI to do any validation here, so let&#39;s just come up with everything we can think of&#8230;</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">multipleNormal</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">gen</span> <span class="o">{</span>
+</span><span class='line'>       <span class="k">let</span><span class="o">!</span> <span class="n">first</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">NormalCard</span><span class="o">&gt;</span>
+</span><span class='line'>       <span class="k">let</span><span class="o">!</span> <span class="n">normals</span> <span class="o">=</span> <span class="nn">Gen</span><span class="p">.</span><span class="n">nonEmptyListOf</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">NormalCard</span><span class="o">&gt;</span>
+</span><span class='line'>       <span class="k">return</span> <span class="n">first</span><span class="o">::</span><span class="n">normals</span> <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">map</span> <span class="nc">Normal</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>More than one normal card with out an other card to combine them is out.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">incompleteComboOrSpecial</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">gen</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">special</span> <span class="o">=</span>
+</span><span class='line'>            <span class="nn">Gen</span><span class="p">.</span><span class="n">oneof</span> <span class="o">[</span> <span class="nn">Gen</span><span class="p">.</span><span class="n">map</span> <span class="nc">Combo</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">ComboCard</span><span class="o">&gt;</span>
+</span><span class='line'>                        <span class="nn">Gen</span><span class="p">.</span><span class="n">map</span> <span class="nc">Special</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">SpecialAttackCard</span><span class="o">&gt;</span> <span class="o">]</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">other</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">Card</span><span class="o">&gt;</span>
+</span><span class='line'>        <span class="k">return</span> <span class="o">[</span><span class="n">special</span><span class="o">;</span> <span class="n">other</span><span class="o">]</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>A combo or special card always requires precisely two normal cards to be a valid play; so here, we only generate one.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">onlyKnockdown</span> <span class="o">=</span>
+</span><span class='line'>    <span class="nn">Gen</span><span class="p">.</span><span class="n">constant</span> <span class="o">[</span><span class="nc">Knockdown</span><span class="o">]</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>A combo card can only be played as part of an otherwise valid play, and isn&#39;t allowed on it&#39;s own.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">unmatchedSpeedCombo</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">gen</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">combo</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">ComboCard</span><span class="o">&gt;</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">normal1</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">NormalCard</span><span class="o">&gt;</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">unmatched</span> <span class="o">=</span> <span class="n">allSuitsBut</span> <span class="n">combo</span><span class="o">.</span><span class="nc">SpeedSuit</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">normal2</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">NormalCard</span><span class="o">&gt;</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">n1</span> <span class="o">=</span> <span class="o">{</span> <span class="n">normal1</span> <span class="k">with</span> <span class="nc">Suit</span> <span class="o">=</span> <span class="n">unmatched</span> <span class="o">}</span>
+</span><span class='line'>        <span class="k">return</span> <span class="o">[</span><span class="nc">Combo</span> <span class="n">combo</span><span class="o">;</span> <span class="nc">Normal</span> <span class="n">n1</span><span class="o">;</span> <span class="nc">Normal</span> <span class="n">normal2</span><span class="o">]</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">unmatchedSpeedSpecial</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">gen</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">special</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">SpecialAttackCard</span><span class="o">&gt;</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">normal1</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">NormalCard</span><span class="o">&gt;</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">unmatched</span> <span class="o">=</span> <span class="n">allSuitsBut</span> <span class="n">special</span><span class="o">.</span><span class="nc">SpeedSuit</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">normal2</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">NormalCard</span><span class="o">&gt;</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">n1</span> <span class="o">=</span> <span class="o">{</span> <span class="n">normal1</span> <span class="k">with</span> <span class="nc">Suit</span> <span class="o">=</span> <span class="n">unmatched</span> <span class="o">}</span>
+</span><span class='line'>        <span class="k">return</span> <span class="o">[</span><span class="nc">Special</span> <span class="n">special</span><span class="o">;</span> <span class="nc">Normal</span> <span class="n">n1</span><span class="o">;</span> <span class="nc">Normal</span> <span class="n">normal2</span><span class="o">]</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">unmatchedDamageCombo</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">gen</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">combo</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">ComboCard</span><span class="o">&gt;</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">normal1</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">NormalCard</span><span class="o">&gt;</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">unmatched</span> <span class="o">=</span> <span class="n">allSuitsBut</span> <span class="n">combo</span><span class="o">.</span><span class="nc">FollowUpSuit</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">normal2</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">NormalCard</span><span class="o">&gt;</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">n2</span> <span class="o">=</span> <span class="o">{</span> <span class="n">normal2</span> <span class="k">with</span> <span class="nc">Suit</span> <span class="o">=</span> <span class="n">unmatched</span> <span class="o">}</span>
+</span><span class='line'>        <span class="k">return</span> <span class="o">[</span><span class="nc">Combo</span> <span class="n">combo</span><span class="o">;</span> <span class="nc">Normal</span> <span class="n">normal1</span><span class="o">;</span> <span class="nc">Normal</span> <span class="n">n2</span><span class="o">]</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">unmatchedDamageSpecial</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">gen</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">special</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">SpecialAttackCard</span><span class="o">&gt;</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">normal1</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">NormalCard</span><span class="o">&gt;</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">unmatched</span> <span class="o">=</span> <span class="n">allSuitsBut</span> <span class="n">special</span><span class="o">.</span><span class="nc">DamageSuit</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">normal2</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">NormalCard</span><span class="o">&gt;</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">n2</span> <span class="o">=</span> <span class="o">{</span> <span class="n">normal2</span> <span class="k">with</span> <span class="nc">Suit</span> <span class="o">=</span> <span class="n">unmatched</span> <span class="o">}</span>
+</span><span class='line'>        <span class="k">return</span> <span class="o">[</span><span class="nc">Special</span> <span class="n">special</span><span class="o">;</span> <span class="nc">Normal</span> <span class="n">normal1</span><span class="o">;</span> <span class="nc">Normal</span> <span class="n">n2</span><span class="o">]</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>There&#39;s lots of ways to combine three cards which are not valid combos or specials. Here we use are <code>allSuitsBut</code> helper function to always play just the wrong card compared to what&#39;s needed.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">swappedSpecial</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">gen</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">specialCard</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">SpecialAttackCard</span><span class="o">&gt;</span>
+</span><span class='line'>        <span class="k">if</span> <span class="n">specialCard</span><span class="o">.</span><span class="nc">SpeedSuit</span> <span class="o">=</span> <span class="n">specialCard</span><span class="o">.</span><span class="nc">DamageSuit</span> <span class="k">then</span>
+</span><span class='line'>            <span class="k">return</span> <span class="o">[</span><span class="nc">Special</span> <span class="n">specialCard</span><span class="o">]</span>
+</span><span class='line'>        <span class="k">else</span>
+</span><span class='line'>            <span class="k">let</span><span class="o">!</span> <span class="n">speedValue</span> <span class="o">=</span> <span class="nn">Gen</span><span class="p">.</span><span class="n">choose</span><span class="o">(</span><span class="mi">2</span><span class="o">,</span> <span class="mi">10</span><span class="o">)</span>
+</span><span class='line'>            <span class="k">let</span><span class="o">!</span> <span class="n">damageValue</span> <span class="o">=</span> <span class="nn">Gen</span><span class="p">.</span><span class="n">choose</span><span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="n">speedValue</span><span class="o">)</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">cards</span> <span class="o">=</span>
+</span><span class='line'>                <span class="o">[</span> <span class="nc">Normal</span> <span class="o">{</span> <span class="nc">Suit</span> <span class="o">=</span> <span class="n">specialCard</span><span class="o">.</span><span class="nc">SpeedSuit</span><span class="o">;</span> <span class="nc">Value</span> <span class="o">=</span> <span class="n">speedValue</span> <span class="o">}</span>
+</span><span class='line'>                  <span class="nc">Normal</span> <span class="o">{</span> <span class="nc">Suit</span> <span class="o">=</span> <span class="n">specialCard</span><span class="o">.</span><span class="nc">DamageSuit</span><span class="o">;</span> <span class="nc">Value</span> <span class="o">=</span> <span class="n">damageValue</span> <span class="o">}</span>
+</span><span class='line'>                  <span class="nc">Special</span> <span class="n">specialCard</span> <span class="o">]</span>
+</span><span class='line'>            <span class="k">return</span> <span class="n">cards</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>And here we create special attacks which are slower than they are damaging. If the speed and damage suit are the same, the cards could be used either way around to create a valid action, so instead we just return the Special card on it&#39;s own without companions to form a different invalid play.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">makeInvalidAction</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">gen</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">invalidAction</span> <span class="o">=</span>
+</span><span class='line'>            <span class="nn">Gen</span><span class="p">.</span><span class="n">oneof</span> <span class="o">[</span> <span class="n">multipleNormal</span>
+</span><span class='line'>                        <span class="n">incompleteComboOrSpecial</span>
+</span><span class='line'>                        <span class="n">onlyKnockdown</span>
+</span><span class='line'>                        <span class="n">unmatchedSpeedCombo</span>
+</span><span class='line'>                        <span class="n">unmatchedSpeedSpecial</span>
+</span><span class='line'>                        <span class="n">unmatchedDamageCombo</span>
+</span><span class='line'>                        <span class="n">unmatchedDamageSpecial</span>
+</span><span class='line'>                        <span class="n">swappedSpecial</span> <span class="o">]</span>
+</span><span class='line'>        <span class="k">return</span> <span class="nc">InvalidAction</span> <span class="n">invalidAction</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>There&#39;s more that could be added here, but I decided that was enough to keep me going for the moment and so added my invalid action generator here.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">ActionArbs</span><span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">static</span> <span class="k">member</span> <span class="nc">GeneratedAction</span><span class="bp">()</span> <span class="o">:</span> <span class="nc">Arbitrary</span><span class="o">&lt;</span><span class="nc">GeneratedAction</span><span class="o">&gt;</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">gen</span> <span class="o">{</span>
+</span><span class='line'>            <span class="k">return</span><span class="o">!</span> <span class="nn">Gen</span><span class="p">.</span><span class="n">oneof</span> <span class="o">[</span>
+</span><span class='line'>                        <span class="n">makeValidAction</span>
+</span><span class='line'>                        <span class="n">makeInvalidAction</span>
+</span><span class='line'>                    <span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="o">}</span> <span class="o">|&gt;</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">fromGen</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">actionConfig</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span> <span class="nn">FsCheckConfig</span><span class="p">.</span><span class="n">defaultConfig</span> <span class="k">with</span>
+</span><span class='line'>        <span class="n">arbitrary</span> <span class="o">=</span> <span class="o">[</span><span class="n">typeof</span><span class="o">&lt;</span><span class="nc">DomainArbs</span><span class="o">&gt;</span>
+</span><span class='line'>                     <span class="n">typeof</span><span class="o">&lt;</span><span class="nc">ActionArbs</span><span class="o">&gt;]</span> <span class="o">}</span>
+</span><span class='line'><span class="o">[&lt;</span><span class="nc">Tests</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">let</span> <span class="n">toAction</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">testPropertyWithConfig</span> <span class="n">actionConfig</span> <span class="s2">&quot;toAction function&quot;</span> <span class="o">&lt;|</span> <span class="k">fun</span> <span class="n">action</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="k">match</span> <span class="n">action</span> <span class="k">with</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">ValidAction</span> <span class="o">(</span><span class="n">cards</span><span class="o">,</span> <span class="n">action</span><span class="o">)</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="nn">Expect</span><span class="p">.</span><span class="n">equal</span> <span class="o">(</span><span class="n">toAction</span> <span class="n">cards</span><span class="o">)</span> <span class="o">(</span><span class="nc">Some</span> <span class="n">action</span><span class="o">)</span> <span class="s2">&quot;Is an action&quot;</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">InvalidAction</span> <span class="n">cards</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="nn">Expect</span><span class="p">.</span><span class="n">isNone</span> <span class="o">(</span><span class="n">toAction</span> <span class="n">cards</span><span class="o">)</span> <span class="s2">&quot;Is not an attack&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Finally, I wired up the generators and defined the single property this function should obey: it should return the correct action for a valid play, or <code>None</code> if the play is erroneous.</p>
+
+<h2>The wrap</h2>
+
+<p>Hopefully this is a useful example for those of you using property based tests of how you can encode business logic into them: although this looks like a lot of code, creating even single examples of each of these cases would have been nearly as long and fair less effective in testing.</p>
+
+<p>It does tend to lead to a rather iterative approach to development, where as your code starts working for some of the use cases, you begin to notice errors in or missing cases you need to generate, which helps you find more edges cases in your code and round the circle you go again.</p>
+
+<p>If you want, you&#39;re very welcome to take this code to use as a coding Kata - but be warned, it&#39;s not as simple a challenge as you might expect from the few paragraphs at the top of the post!</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[All Saints' Day Sale]]></title>
@@ -3331,117 +4015,6 @@ quotations and type providers) have been used to solve real problems in the real
 <p>Video here: https://skillsmatter.com/skillscasts/7735-fixing-real-life-problems-from-the-ivory-tower</p>
 
 <p>Slides here: https//blog.mavnn.co.uk/FromTheIvoryTower/</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Expanding Existing Computational Expressions]]></title>
-    <link href="https://blog.mavnn.co.uk/expanding-existing-computational-expressions/"/>
-    <updated>2016-03-29T19:15:20+01:00</updated>
-    <id>https://blog.mavnn.co.uk/expanding-existing-computational-expressions</id>
-    <content type="html"><![CDATA[<p>This is a &quot;just because you can&quot; post, although frankly bizarrely I have a genuine use case for this.</p>
-
-<p>Let the mind melting commence!</p>
-
-<p>Computational expressions in F# provide nice sugared syntax for monadic data structures such as <code>seq</code> and <code>async</code>; but the specific expressions are not built in language features. You can <a href="http://fsharpforfunandprofit.com/series/computation-expressions.html">build your own</a>.</p>
-
-<p>Which is fun and all, but you know what&#39;s even more fun? Well, it turns out that there&#39;s no requirements for computational expressions to be actual monads. Even more fun than that is that the bind operation (used when you invoke <code>let!</code> syntax) is a member on a class - and it is valid both for it to be an extension method, and for it to be overloaded. You can even add custom operators to computational expressions using the extension method trick.</p>
-
-<p>Which means you can do some very interesting things indeed to existing computational expressions. Let&#39;s try it out!</p>
-
-<!-- more -->
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-<span class='line-number'>41</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">MyThing</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span> <span class="o">=</span> <span class="nc">MyThing</span> <span class="k">of</span> <span class="k">&#39;</span><span class="n">a</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="n">testFunc</span> <span class="n">str</span> <span class="o">=</span>
-</span><span class='line'>  <span class="nc">MyThing</span> <span class="o">(</span><span class="nn">Seq</span><span class="p">.</span><span class="n">length</span> <span class="n">str</span><span class="o">)</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">type</span> <span class="nc">AsyncBuilder</span> <span class="k">with</span>
-</span><span class='line'>  <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Bind</span><span class="o">(</span><span class="n">value</span> <span class="o">:</span> <span class="nc">MyThing</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;,</span> <span class="n">f</span> <span class="o">:</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="nc">Async</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">b</span><span class="o">&gt;)</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">let</span> <span class="o">(</span><span class="nc">MyThing</span> <span class="n">inner</span><span class="o">)</span> <span class="o">=</span> <span class="n">value</span>
-</span><span class='line'>    <span class="n">f</span> <span class="n">inner</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="o">[&lt;</span><span class="nc">CustomOperation</span><span class="o">(</span><span class="s2">&quot;log&quot;</span><span class="o">,</span> <span class="nc">MaintainsVariableSpaceUsingBind</span> <span class="o">=</span> <span class="bp">true</span><span class="o">)&gt;]</span>
-</span><span class='line'>  <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Log</span><span class="o">(</span><span class="n">boundValues</span> <span class="o">:</span> <span class="nc">Async</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;,</span> <span class="o">[&lt;</span><span class="nc">ProjectionParameter</span><span class="o">&gt;]</span> <span class="n">messageFunc</span><span class="o">)</span> <span class="o">=</span>
-</span><span class='line'>    <span class="n">async</span> <span class="o">{</span>
-</span><span class='line'>      <span class="k">let</span><span class="o">!</span> <span class="n">b</span> <span class="o">=</span> <span class="n">boundValues</span>
-</span><span class='line'>      <span class="n">printfn</span> <span class="s2">&quot;Log message: %s&quot;</span> <span class="o">&lt;|</span> <span class="n">messageFunc</span> <span class="n">b</span>
-</span><span class='line'>      <span class="n">printfn</span> <span class="s2">&quot;Currently let bound things: %A&quot;</span> <span class="n">b</span>
-</span><span class='line'>      <span class="k">return</span> <span class="n">b</span>
-</span><span class='line'>    <span class="o">}</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="n">workflow</span> <span class="o">=</span>
-</span><span class='line'>  <span class="n">async</span> <span class="o">{</span>
-</span><span class='line'>    <span class="n">log</span> <span class="s2">&quot;a string&quot;</span>
-</span><span class='line'>    <span class="k">let</span><span class="o">!</span> <span class="n">c</span> <span class="o">=</span> <span class="n">testFunc</span> <span class="s2">&quot;Count the letters&quot;</span>
-</span><span class='line'>    <span class="k">let</span><span class="o">!</span> <span class="n">result</span> <span class="o">=</span> <span class="n">async</span> <span class="o">{</span> <span class="k">return</span> <span class="o">(</span><span class="n">c</span> <span class="o">*</span> <span class="mi">10</span><span class="o">)</span> <span class="o">}</span>
-</span><span class='line'>    <span class="k">do</span><span class="o">!</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">Sleep</span> <span class="mi">100</span>
-</span><span class='line'>    <span class="n">log</span> <span class="s2">&quot;more string&quot;</span>
-</span><span class='line'>    <span class="k">let</span><span class="o">!</span> <span class="n">a</span> <span class="o">=</span> <span class="nc">MyThing</span> <span class="s2">&quot;A prefix here: &quot;</span>
-</span><span class='line'>    <span class="n">log</span> <span class="s2">&quot;a different string&quot;</span>
-</span><span class='line'>    <span class="k">return</span> <span class="n">sprintf</span> <span class="s2">&quot;%s %d&quot;</span> <span class="n">a</span> <span class="n">result</span>
-</span><span class='line'>  <span class="o">}</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">printfn</span> <span class="s2">&quot;%A&quot;</span> <span class="o">&lt;|</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">RunSynchronously</span> <span class="n">workflow</span>
-</span><span class='line'>
-</span><span class='line'><span class="c1">// Program outputs:</span>
-</span><span class='line'><span class="c1">// Log message: a string</span>
-</span><span class='line'><span class="c1">// Currently let bound things: &lt;null&gt;</span>
-</span><span class='line'><span class="c1">// Log message: more string</span>
-</span><span class='line'><span class="c1">// Currently let bound things: (17, 170)</span>
-</span><span class='line'><span class="c1">// Log message: a different string</span>
-</span><span class='line'><span class="c1">// Currently let bound things: (17, 170, &quot;A prefix here: &quot;)</span>
-</span><span class='line'><span class="c1">// &quot;A prefix here:  170&quot;</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>This is a full code example that compiles, runs and builds. Oh yes, and it&#39;s an example of a bind based custom operator in case you&#39;ve been looking for one.</p>
-
-<p>As you can see we can now <code>let!</code> both <code>MyThing</code> and <code>Async</code> results and both will be handled correctly - and we can also add logging statements using the custom operator which will get placed correctly into the async workflow. For even more fun and profit, the log custom operator has access to all currently bound values (which it logs in our example).</p>
-
-<p>In case the custom operator is making you scratch your head, the way this one works is that a tuple of the currently bound values in the CE is passed into the operator as the first argument wrapped using the <code>Return</code> method of the CE (in this case, that means we get an Async&lt;&#39;a&gt; where &#39;a is a tuple). The <code>ProjectionParameter</code> is a function from the currently bound values to the expression that follows the custom operator. In my case, that&#39;s always a static string, but of course it could be an expression which used some of the already bound values. Once you&#39;ve done whatever you&#39;re doing within the custom operator, it&#39;s important that you pass back the bound values you received - again, wrapped in a type that the CE knows how to bind as it will use bind to include this code into the overall expression result. As a word of warning, the explanation above is only true for custom operators where <code>MaintainsVariableSpaceUsingBind</code> is set to true. If it is set to false, the CE must support yield and the expansion mechanism is quite different.</p>
-
-<p>I see all kinds of useful ways of bending the F# language here, and making libraries easier to use from within the built in CEs. Have fun, and remember to use these powers for good!</p>
 ]]></content>
   </entry>
   

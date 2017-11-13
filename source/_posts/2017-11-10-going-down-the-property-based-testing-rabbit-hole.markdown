@@ -282,7 +282,7 @@ let multipleNormal =
     }
 ```
 
-More than one normal card with out an other card to combine them is out.
+More than one normal card with out another card to combine them is out.
 
 ``` fsharp
 let incompleteComboOrSpecial =
@@ -414,7 +414,7 @@ Finally, I wired up the generators and defined the single property this function
 
 ## The wrap
 
-Hopefully this is a useful example for those of you using property based tests of how you can encode business logic into them: although this looks like a lot of code, creating even single examples of each of these cases would have been nearly as long and fair less effective in testing.
+Hopefully this is a useful example for those of you using property based tests of how you can encode business logic into them: although this looks like a lot of code, creating even single examples of each of these cases would have been nearly as long and far less effective in testing.
 
 It does tend to lead to a rather iterative approach to development, where as your code starts working for some of the use cases, you begin to notice errors in or missing cases you need to generate, which helps you find more edges cases in your code and round the circle you go again.
 

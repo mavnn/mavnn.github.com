@@ -4,7 +4,7 @@
   <title><![CDATA[Mavnn's blog]]></title>
   <link href="https://blog.mavnn.co.uk/atom.xml" rel="self"/>
   <link href="https://blog.mavnn.co.uk/"/>
-  <updated>2017-11-13T17:04:49+00:00</updated>
+  <updated>2017-11-14T13:05:45+00:00</updated>
   <id>https://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -534,48 +534,64 @@
 <span class='line-number'>37</span>
 <span class='line-number'>38</span>
 <span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
 </pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">unmatchedSpeedCombo</span> <span class="o">=</span>
 </span><span class='line'>    <span class="n">gen</span> <span class="o">{</span>
 </span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">combo</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">ComboCard</span><span class="o">&gt;</span>
 </span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">normal1</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">NormalCard</span><span class="o">&gt;</span>
-</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">unmatched</span> <span class="o">=</span> <span class="n">allSuitsBut</span> <span class="n">combo</span><span class="o">.</span><span class="nc">SpeedSuit</span>
 </span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">normal2</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">NormalCard</span><span class="o">&gt;</span>
-</span><span class='line'>        <span class="k">let</span> <span class="n">n1</span> <span class="o">=</span> <span class="o">{</span> <span class="n">normal1</span> <span class="k">with</span> <span class="nc">Suit</span> <span class="o">=</span> <span class="n">unmatched</span> <span class="o">}</span>
-</span><span class='line'>        <span class="k">return</span> <span class="o">[</span><span class="nc">Combo</span> <span class="n">combo</span><span class="o">;</span> <span class="nc">Normal</span> <span class="n">n1</span><span class="o">;</span> <span class="nc">Normal</span> <span class="n">normal2</span><span class="o">]</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">unmatched1</span> <span class="o">=</span> <span class="n">allSuitsBut</span> <span class="n">combo</span><span class="o">.</span><span class="nc">SpeedSuit</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">unmatched2</span> <span class="o">=</span> <span class="n">allSuitsBut</span> <span class="n">combo</span><span class="o">.</span><span class="nc">SpeedSuit</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">n1</span> <span class="o">=</span> <span class="o">{</span> <span class="n">normal1</span> <span class="k">with</span> <span class="nc">Suit</span> <span class="o">=</span> <span class="n">unmatched1</span> <span class="o">}</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">n2</span> <span class="o">=</span> <span class="o">{</span> <span class="n">normal2</span> <span class="k">with</span> <span class="nc">Suit</span> <span class="o">=</span> <span class="n">unmatched2</span> <span class="o">}</span>
+</span><span class='line'>        <span class="k">return</span> <span class="o">[</span><span class="nc">Combo</span> <span class="n">combo</span><span class="o">;</span> <span class="nc">Normal</span> <span class="n">n1</span><span class="o">;</span> <span class="nc">Normal</span> <span class="n">n2</span><span class="o">]</span>
 </span><span class='line'>    <span class="o">}</span>
 </span><span class='line'>
 </span><span class='line'><span class="k">let</span> <span class="n">unmatchedSpeedSpecial</span> <span class="o">=</span>
 </span><span class='line'>    <span class="n">gen</span> <span class="o">{</span>
 </span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">special</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">SpecialAttackCard</span><span class="o">&gt;</span>
 </span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">normal1</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">NormalCard</span><span class="o">&gt;</span>
-</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">unmatched</span> <span class="o">=</span> <span class="n">allSuitsBut</span> <span class="n">special</span><span class="o">.</span><span class="nc">SpeedSuit</span>
 </span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">normal2</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">NormalCard</span><span class="o">&gt;</span>
-</span><span class='line'>        <span class="k">let</span> <span class="n">n1</span> <span class="o">=</span> <span class="o">{</span> <span class="n">normal1</span> <span class="k">with</span> <span class="nc">Suit</span> <span class="o">=</span> <span class="n">unmatched</span> <span class="o">}</span>
-</span><span class='line'>        <span class="k">return</span> <span class="o">[</span><span class="nc">Special</span> <span class="n">special</span><span class="o">;</span> <span class="nc">Normal</span> <span class="n">n1</span><span class="o">;</span> <span class="nc">Normal</span> <span class="n">normal2</span><span class="o">]</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">unmatched1</span> <span class="o">=</span> <span class="n">allSuitsBut</span> <span class="n">special</span><span class="o">.</span><span class="nc">SpeedSuit</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">unmatched2</span> <span class="o">=</span> <span class="n">allSuitsBut</span> <span class="n">special</span><span class="o">.</span><span class="nc">SpeedSuit</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">n1</span> <span class="o">=</span> <span class="o">{</span> <span class="n">normal1</span> <span class="k">with</span> <span class="nc">Suit</span> <span class="o">=</span> <span class="n">unmatched1</span> <span class="o">}</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">n2</span> <span class="o">=</span> <span class="o">{</span> <span class="n">normal2</span> <span class="k">with</span> <span class="nc">Suit</span> <span class="o">=</span> <span class="n">unmatched2</span> <span class="o">}</span>
+</span><span class='line'>        <span class="k">return</span> <span class="o">[</span><span class="nc">Special</span> <span class="n">special</span><span class="o">;</span> <span class="nc">Normal</span> <span class="n">n1</span><span class="o">;</span> <span class="nc">Normal</span> <span class="n">n2</span><span class="o">]</span>
 </span><span class='line'>    <span class="o">}</span>
 </span><span class='line'>
 </span><span class='line'><span class="k">let</span> <span class="n">unmatchedDamageCombo</span> <span class="o">=</span>
 </span><span class='line'>    <span class="n">gen</span> <span class="o">{</span>
 </span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">combo</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">ComboCard</span><span class="o">&gt;</span>
 </span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">normal1</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">NormalCard</span><span class="o">&gt;</span>
-</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">unmatched</span> <span class="o">=</span> <span class="n">allSuitsBut</span> <span class="n">combo</span><span class="o">.</span><span class="nc">FollowUpSuit</span>
 </span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">normal2</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">NormalCard</span><span class="o">&gt;</span>
-</span><span class='line'>        <span class="k">let</span> <span class="n">n2</span> <span class="o">=</span> <span class="o">{</span> <span class="n">normal2</span> <span class="k">with</span> <span class="nc">Suit</span> <span class="o">=</span> <span class="n">unmatched</span> <span class="o">}</span>
-</span><span class='line'>        <span class="k">return</span> <span class="o">[</span><span class="nc">Combo</span> <span class="n">combo</span><span class="o">;</span> <span class="nc">Normal</span> <span class="n">normal1</span><span class="o">;</span> <span class="nc">Normal</span> <span class="n">n2</span><span class="o">]</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">unmatched1</span> <span class="o">=</span> <span class="n">allSuitsBut</span> <span class="n">combo</span><span class="o">.</span><span class="nc">FollowUpSuit</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">unmatched2</span> <span class="o">=</span> <span class="n">allSuitsBut</span> <span class="n">combo</span><span class="o">.</span><span class="nc">FollowUpSuit</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">n1</span> <span class="o">=</span> <span class="o">{</span> <span class="n">normal1</span> <span class="k">with</span> <span class="nc">Suit</span> <span class="o">=</span> <span class="n">unmatched1</span> <span class="o">}</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">n2</span> <span class="o">=</span> <span class="o">{</span> <span class="n">normal2</span> <span class="k">with</span> <span class="nc">Suit</span> <span class="o">=</span> <span class="n">unmatched2</span> <span class="o">}</span>
+</span><span class='line'>        <span class="k">return</span> <span class="o">[</span><span class="nc">Combo</span> <span class="n">combo</span><span class="o">;</span> <span class="nc">Normal</span> <span class="n">n1</span><span class="o">;</span> <span class="nc">Normal</span> <span class="n">n2</span><span class="o">]</span>
 </span><span class='line'>    <span class="o">}</span>
 </span><span class='line'>
 </span><span class='line'><span class="k">let</span> <span class="n">unmatchedDamageSpecial</span> <span class="o">=</span>
 </span><span class='line'>    <span class="n">gen</span> <span class="o">{</span>
 </span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">special</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">SpecialAttackCard</span><span class="o">&gt;</span>
 </span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">normal1</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">NormalCard</span><span class="o">&gt;</span>
-</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">unmatched</span> <span class="o">=</span> <span class="n">allSuitsBut</span> <span class="n">special</span><span class="o">.</span><span class="nc">DamageSuit</span>
 </span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">normal2</span> <span class="o">=</span> <span class="nn">Arb</span><span class="p">.</span><span class="n">generate</span><span class="o">&lt;</span><span class="nc">NormalCard</span><span class="o">&gt;</span>
-</span><span class='line'>        <span class="k">let</span> <span class="n">n2</span> <span class="o">=</span> <span class="o">{</span> <span class="n">normal2</span> <span class="k">with</span> <span class="nc">Suit</span> <span class="o">=</span> <span class="n">unmatched</span> <span class="o">}</span>
-</span><span class='line'>        <span class="k">return</span> <span class="o">[</span><span class="nc">Special</span> <span class="n">special</span><span class="o">;</span> <span class="nc">Normal</span> <span class="n">normal1</span><span class="o">;</span> <span class="nc">Normal</span> <span class="n">n2</span><span class="o">]</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">unmatched1</span> <span class="o">=</span> <span class="n">allSuitsBut</span> <span class="n">special</span><span class="o">.</span><span class="nc">DamageSuit</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">unmatched2</span> <span class="o">=</span> <span class="n">allSuitsBut</span> <span class="n">special</span><span class="o">.</span><span class="nc">DamageSuit</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">n1</span> <span class="o">=</span> <span class="o">{</span> <span class="n">normal1</span> <span class="k">with</span> <span class="nc">Suit</span> <span class="o">=</span> <span class="n">unmatched1</span> <span class="o">}</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">n2</span> <span class="o">=</span> <span class="o">{</span> <span class="n">normal2</span> <span class="k">with</span> <span class="nc">Suit</span> <span class="o">=</span> <span class="n">unmatched2</span> <span class="o">}</span>
+</span><span class='line'>        <span class="k">return</span> <span class="o">[</span><span class="nc">Special</span> <span class="n">special</span><span class="o">;</span> <span class="nc">Normal</span> <span class="n">n1</span><span class="o">;</span> <span class="nc">Normal</span> <span class="n">n2</span><span class="o">]</span>
 </span><span class='line'>    <span class="o">}</span>
 </span></code></pre></td></tr></table></div></figure>
 
-<p>There&#39;s lots of ways to combine three cards which are not valid combos or specials. Here we use are <code>allSuitsBut</code> helper function to always play just the wrong card compared to what&#39;s needed.</p>
+<p>There&#39;s lots of ways to combine three cards which are not valid combos or specials. Here we use are <code>allSuitsBut</code> helper function to always play just the wrong cards compared to what&#39;s needed.</p>
 
 <figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
 <span class='line-number'>2</span>

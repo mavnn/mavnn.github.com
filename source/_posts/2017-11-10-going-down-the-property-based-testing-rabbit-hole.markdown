@@ -309,44 +309,52 @@ let unmatchedSpeedCombo =
     gen {
         let! combo = Arb.generate<ComboCard>
         let! normal1 = Arb.generate<NormalCard>
-        let! unmatched = allSuitsBut combo.SpeedSuit
         let! normal2 = Arb.generate<NormalCard>
-        let n1 = { normal1 with Suit = unmatched }
-        return [Combo combo; Normal n1; Normal normal2]
+        let! unmatched1 = allSuitsBut combo.SpeedSuit
+        let! unmatched2 = allSuitsBut combo.SpeedSuit
+        let n1 = { normal1 with Suit = unmatched1 }
+        let n2 = { normal2 with Suit = unmatched2 }
+        return [Combo combo; Normal n1; Normal n2]
     }
 
 let unmatchedSpeedSpecial =
     gen {
         let! special = Arb.generate<SpecialAttackCard>
         let! normal1 = Arb.generate<NormalCard>
-        let! unmatched = allSuitsBut special.SpeedSuit
         let! normal2 = Arb.generate<NormalCard>
-        let n1 = { normal1 with Suit = unmatched }
-        return [Special special; Normal n1; Normal normal2]
+        let! unmatched1 = allSuitsBut special.SpeedSuit
+        let! unmatched2 = allSuitsBut special.SpeedSuit
+        let n1 = { normal1 with Suit = unmatched1 }
+        let n2 = { normal2 with Suit = unmatched2 }
+        return [Special special; Normal n1; Normal n2]
     }
 
 let unmatchedDamageCombo =
     gen {
         let! combo = Arb.generate<ComboCard>
         let! normal1 = Arb.generate<NormalCard>
-        let! unmatched = allSuitsBut combo.FollowUpSuit
         let! normal2 = Arb.generate<NormalCard>
-        let n2 = { normal2 with Suit = unmatched }
-        return [Combo combo; Normal normal1; Normal n2]
+        let! unmatched1 = allSuitsBut combo.FollowUpSuit
+        let! unmatched2 = allSuitsBut combo.FollowUpSuit
+        let n1 = { normal1 with Suit = unmatched1 }
+        let n2 = { normal2 with Suit = unmatched2 }
+        return [Combo combo; Normal n1; Normal n2]
     }
 
 let unmatchedDamageSpecial =
     gen {
         let! special = Arb.generate<SpecialAttackCard>
         let! normal1 = Arb.generate<NormalCard>
-        let! unmatched = allSuitsBut special.DamageSuit
         let! normal2 = Arb.generate<NormalCard>
-        let n2 = { normal2 with Suit = unmatched }
-        return [Special special; Normal normal1; Normal n2]
+        let! unmatched1 = allSuitsBut special.DamageSuit
+        let! unmatched2 = allSuitsBut special.DamageSuit
+        let n1 = { normal1 with Suit = unmatched1 }
+        let n2 = { normal2 with Suit = unmatched2 }
+        return [Special special; Normal n1; Normal n2]
     }
 ```
 
-There's lots of ways to combine three cards which are not valid combos or specials. Here we use are `allSuitsBut` helper function to always play just the wrong card compared to what's needed.
+There's lots of ways to combine three cards which are not valid combos or specials. Here we use are `allSuitsBut` helper function to always play just the wrong cards compared to what's needed.
 
 ``` fsharp
 let swappedSpecial =

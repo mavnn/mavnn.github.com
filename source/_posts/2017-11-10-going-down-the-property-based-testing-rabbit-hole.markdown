@@ -5,7 +5,7 @@ date: 2017-11-10 15:28:47 +0000
 comments: true
 categories: [fsharp, fscheck]
 ---
-Image, if you will, a card game.
+Imagine, if you will, a card game.
 
 (Don't worry, there's code later. Lots of code.)
 

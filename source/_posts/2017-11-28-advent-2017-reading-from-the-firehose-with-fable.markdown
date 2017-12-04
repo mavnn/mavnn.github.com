@@ -13,7 +13,7 @@ Below is this year's post.
 
 # The plan: speed read Christmas
 
-So; you want to find out what Christmas is about, where it really came... but you don't have much time.
+So; you want to find out what Christmas is about, where it really came from... but you don't have much time.
 
 The solution is obvious: take the famous bible passages that churches read every year, and speed read them!
 

@@ -3,7 +3,6 @@ layout: post
 title: "Advent 2017 - Reading from the Firehose with Fable"
 date: 2017-12-04 14:00:00 +0100
 comments: true
-published: false
 categories: [fable, fsharp, fsadvent]
 ---
 Each year, the F# programming community creates an advent calendar of blog posts, coordinated by Sergey Tihon [his blog](https://sergeytihon.com/2017/10/22/f-advent-calendar-in-english-2017/).

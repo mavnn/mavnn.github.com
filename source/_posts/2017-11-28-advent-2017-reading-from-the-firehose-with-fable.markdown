@@ -23,7 +23,7 @@ Let's build an app to help us with that.
 
 ## The tools: Fable and Elmish
 
-Fable is a F# to JavaScript compiler, and Elmish is a library for it designed to provide a Elm/Redux style workflow around it.
+[Fable](https://fable-elmish.github.io/elmish/) is a F# to JavaScript compiler, and [Elmish](https://fable-elmish.github.io/elmish/) is a library for it designed to provide a Elm/Redux style workflow around it.
 
 If you haven't used Elm or Redux before, the basic idea is that our application will be based around three things:
 
@@ -36,6 +36,8 @@ These three things are all we need to manage the state of the application, but t
 Subscribers can take the current state, but more importantly they are passed a "dispatch" function that allows them to dispatch messages to the applications message queue. This is how we deal with all inputs in an Elmish application, whether from a user or whether it's things like network requests completing and delivering information our application needs.
 
 The main, most important subscriber is the "view" (i.e. how we're going to show things to the user). In our app, our view will be displayed via a Fable wrapper for React, creating a single page web application. The view is nearly always capable of also dispatching messages - this is how we model things like buttons the user can click on.
+
+You can find more about this, with pretty diagrams, on the Fable Elmish website linked above.
 
 ## Getting started
 

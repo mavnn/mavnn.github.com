@@ -398,7 +398,7 @@ let requestUri =
       "&include-headings=false"
       ] |> String.concat ""
 
-let authToken = "1835f44e7a76468e1de1de8ebd3b7a095bf8f98d"
+let authToken = "TEST"
 
 let toText (res : Response) =
     res.text()

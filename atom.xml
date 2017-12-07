@@ -4,7 +4,7 @@
   <title><![CDATA[Mavnn's blog]]></title>
   <link href="https://blog.mavnn.co.uk/atom.xml" rel="self"/>
   <link href="https://blog.mavnn.co.uk/"/>
-  <updated>2017-12-04T15:25:30+00:00</updated>
+  <updated>2017-12-07T20:56:59+00:00</updated>
   <id>https://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,135 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[F# Through a Ruby Lens]]></title>
+    <link href="https://blog.mavnn.co.uk/f-number-through-a-ruby-lens/"/>
+    <updated>2017-12-07T21:00:00+00:00</updated>
+    <id>https://blog.mavnn.co.uk/f-number-through-a-ruby-lens</id>
+    <content type="html"><![CDATA[<p>I spent last week delivering a five day deep dive into F# for a group of (mostly) Ruby developers in Munich, and wanted to capture some of my thoughts before I lost them as well as give people an idea of the types of things internal training can give you.</p>
+
+<p>I won&#39;t be mentioning personal, company or exact team names here as I&#39;ve not been given explicit permission to do so; if the people who were on the course want to chime in I&#39;ll add their comments.</p>
+
+<h2>The background</h2>
+
+<p>Although mostly a Ruby on Rails shop, this company also relies on machine learning and expert systems to deliver some of its core services. The R&amp;D department (who build the models) settled on F# for development as a good balance between:</p>
+
+<ul>
+<li>familiarity of syntax (most have a background in Python and/or a ML language)</li>
+<li>performance (Ruby had struggled here)</li>
+<li>type safety</li>
+<li>good &quot;production&quot; library support (logging, etc)</li>
+</ul>
+
+<p>Having examined the available options in depth, they decided on a standard stack for creating F# microservices of:</p>
+
+<ul>
+<li>Freya on Kestrel via .NET Core</li>
+<li>Chiron for type safe JSON serialization/deserialization</li>
+</ul>
+
+<p>They wanted to investigate the use of Hephaestus as a rules engine (Freya uses Hephaestus to process HTTP requests). Many of their machine learning models only work with quite constrained ranges of input values, and Hephaestus as a rules engine looked an effective way of routing decisions to the &quot;correct&quot; machine learning algorithm for a particular input range. This in turn would allow for the models to stay reasonably simple and testable.</p>
+
+<h2>The brief</h2>
+
+<p>Having made these decisions, the company needed to bring the production services team up to speed on what R&amp;D were going to produce, especially because production had expressed an interest in having F# as an extra potential tool for their own projects.</p>
+
+<p>My brief was to create 5 days of training, after which production needed to know enough about the F# libraries in use that they could work out what R&amp;D&#39;s code was doing, and enough about running .NET code in production to feel confident adding error handling, logging, metrics, tests and all the rest of the &quot;engineering&quot; side of development which is not about the programming language but the surrounding ecosystem.</p>
+
+<h2>What we did</h2>
+
+<p>I knew that I had a lot of ground to cover in just 5 days, so there was no way that the team was going to come away with all of the new knowledge absorbed and at their finger tips. At the same time, it couldn&#39;t be an overwhelming flood of information.</p>
+
+<p>I decided to split the training time between a deep dive in understanding a few key areas in depth (Freya&#39;s design, optics and testing), and providing worked examples for the rest which could be referred back to when they became needed. Although I had relevant training material on several of the areas already, it was all tailored in this course to fit a single theme: over the course of a week, we were going to build a microservice that did just one thing, and we were going to test the heck out of it.</p>
+
+<p>The timetable ended up looking like this:</p>
+
+<ul>
+<li>Monday AM: Introductions
+
+<ul>
+<li>high level microservice design</li>
+<li>check everyone had all the software they needed installed</li>
+</ul></li>
+<li>Monday PM: Freya overview
+
+<ul>
+<li>install the template</li>
+<li>modify the hello world service to accept POSTs with a name</li>
+</ul></li>
+<li>Tuesday AM: Optics
+
+<ul>
+<li>Chiron, Freya and Hephaestus all make heavy use of &quot;Optics&quot;</li>
+<li>What are they?</li>
+<li>Building our own</li>
+</ul></li>
+<li>Tuesday PM: Handling external data
+
+<ul>
+<li>Using Chiron for translation, version handling and API design (using our new found knowledge of optics)</li>
+</ul></li>
+<li>Wednesday AM: Start our actual microservice as a real project
+
+<ul>
+<li>how .NET solutions are (normally) laid out</li>
+<li>using Paket for package management</li>
+<li>add a test project with <a href="https://blog.mavnn.co.uk/going-down-the-property-based-testing-rabbit-hole/">this set of property based tests</a></li>
+<li>write our first bit of domain logic to pass these tests, and plug it into the Freya API</li>
+</ul></li>
+<li>Wednesday PM: Start making our service production worthy
+
+<ul>
+<li>Spin up a docker &quot;infrastructure&quot; with Kibana and ElasticSearch</li>
+<li>Adding logging to our service, plugged into Freya to automatically capture context like request IDs</li>
+<li>Health endpoint</li>
+<li>How to capture metrics</li>
+</ul></li>
+<li>Thursday AM: interesting bits &amp; answers to questions asked
+
+<ul>
+<li>How do computational expressions work?</li>
+<li>How would I structure a functional UI?</li>
+</ul></li>
+<li>Thursday PM: flexible rules engines with Hephaestus
+
+<ul>
+<li>rebuilt the logic from Wednesday AM reusing the same property tests</li>
+<li>looked at how we can splice Hephaestus rules graphs together</li>
+</ul></li>
+<li>Friday AM: BenchmarkDotNet
+
+<ul>
+<li>now we know it&#39;s correct - is it fast?</li>
+<li>benchmarked our two implementations of the same logic together</li>
+</ul></li>
+<li>Friday PM: Using it all in real life
+
+<ul>
+<li>code review of pieces of the existing code base, looking at adding what we&#39;d learned</li>
+</ul></li>
+</ul>
+
+<h2>How it went</h2>
+
+<p>Overall the course seemed to go really well. At the end of it, the delegates were confident about the basics of building HTTP resources with Freya and Chiron, and happily building benchmarks and tests for their existing code base. For other areas (the boiler plate for plugging logging into Kestrel and Freya, for example) they understood the concepts and felt the course notes were sufficiently detailed they that could make use of them in other situations as needed. That was incredibly pleasing to hear from my point of view, as the course notes for these sessions are by far the most time consuming part of the process to create.</p>
+
+<p>Although they missed some of the features of Ruby when writing F#, pattern matching with discriminated unions was a big hit and they liked the enforced discipline of Freya that required separating the logic of the various stages of handling an HTTP request - and how reusable that made components for handling concerns such as authentication.</p>
+
+<p>Finally, all 3 of the core participants (there were other people around for certain parts of the course) came away saying that they&#39;d really enjoyed it and found it interesting throughout - so that&#39;s a big win right there!</p>
+
+<h2>Can you do this for us?</h2>
+
+<p>Yes; this particular course was tailored for the specific circumstances, but I&#39;ve also provided training on the more conceptual side (functional programming concepts) through to the gritty detail of DevOps (with both new and existing code bases).</p>
+
+<p>We can also tailor delivery to match your availability; for this course I traveled to Munich to deliver it, and so it was delivered in a single 5 day unit. For other clients we can arrange regular shorter sessions or even remote workshops (group or individual) with tools such as Zoom.</p>
+
+<p>And if you just want to turn up at a venue and get trained, check out <a href="https://blog.mavnn.co.uk/building-solid-systems-in-f-number/">Building Solid Systems in F#</a> happening 31st Jan-1st Feb 2018 in London.</p>
+
+<p>Get in touch with us at <a href="us@mavnn.co.uk">us@mavnn.co.uk</a> if you have any ideas.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Advent 2017 - Reading From the Firehose With Fable]]></title>
@@ -652,7 +781,7 @@
 </span><span class='line'>      <span class="s2">&quot;&amp;include-headings=false&quot;</span>
 </span><span class='line'>      <span class="o">]</span> <span class="o">|&gt;</span> <span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot;&quot;</span>
 </span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="n">authToken</span> <span class="o">=</span> <span class="s2">&quot;1835f44e7a76468e1de1de8ebd3b7a095bf8f98d&quot;</span>
+</span><span class='line'><span class="k">let</span> <span class="n">authToken</span> <span class="o">=</span> <span class="s2">&quot;TEST&quot;</span>
 </span><span class='line'>
 </span><span class='line'><span class="k">let</span> <span class="n">toText</span> <span class="o">(</span><span class="n">res</span> <span class="o">:</span> <span class="nc">Response</span><span class="o">)</span> <span class="o">=</span>
 </span><span class='line'>    <span class="n">res</span><span class="o">.</span><span class="n">text</span><span class="bp">()</span>
@@ -3589,1122 +3718,6 @@ for a while like me, there&#39;s always new things going on; Puritas looks fasci
 has been pretty intense, but I&#39;m hoping to make some announcements of interest to the F# community over the next couple of months.</p>
 
 <p><em>Is this where I&#39;m supposed to say &quot;watch this space&quot;?</em></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Advent 2016]]></title>
-    <link href="https://blog.mavnn.co.uk/advent-2016/"/>
-    <updated>2016-12-18T00:30:00+00:00</updated>
-    <id>https://blog.mavnn.co.uk/advent-2016</id>
-    <content type="html"><![CDATA[<style>
-table.jup, .jup th, .jup td {
-  border: 1px solid #e7e3e7;
-  padding: 0.5em;
-  margin: 0.5em;
-}
-table.jup  {
-  margin-bottom: 1.5em;
-}
-</style>
-
-<p>Each year I like to make my F# advent post centered around an aspect of the actual Christmas story, so this year I decided to look at the actual text of the Christmas story.</p>
-
-<p>There are a couple of direct historical accounts recorded in the bible, in the Gospels of Mark and Luke. But Jesus&#39;s birth is a central point of the overall biblical story, with links to the Old Testiment books written before and referenced in places through the New Testiment.</p>
-
-<p>Sounds like a graph to me, so lets see how far we can take some analysis.</p>
-
-<p>Fortunately, someone has already produced a <a href="https://www.openbible.info/labs/cross-references/">text file with a whole bunch of cross references</a> in a nice regular format. So all we need to get started is a nice parser. We&#39;ll also want to pull in some metadata about the structure of the bible as a book in JSON format from the people at <a href="http://bibles.org/pages/api/documentation">bibles.org</a>.</p>
-
-<p>Time to reference some dependencies to do our heavy lifting for us: FParsec for parsing, and FSharp.Data for the JSON type provider.</p>
-
-<p>I&#39;m writing this in the excellent Jupyter F# notebook (and then exporting it as markdown), so I&#39;ll use their Paket helpers to grab my dependencies (this should work on the Azure notebooks as well, although I&#39;ve only tried it locally).</p>
-
-<!-- more -->
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="o">#</span><span class="n">load</span> <span class="s2">&quot;Paket.fsx&quot;</span>
-</span><span class='line'>
-</span><span class='line'><span class="nn">Paket</span><span class="p">.</span><span class="nc">Package</span> <span class="o">[</span><span class="s2">&quot;FParsec&quot;</span><span class="o">;</span> <span class="s2">&quot;FSharp.Data&quot;</span><span class="o">]</span>
-</span></code></pre></td></tr></table></div></figure>
-<div class="highlight"><pre><code class="text">&lt;null&gt;
-</code></pre></div>
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="o">#</span><span class="n">r</span> <span class="o">@</span><span class="s2">&quot;packages/FParsec/lib/net40-client/FParsecCS.dll&quot;</span>
-</span><span class='line'><span class="o">#</span><span class="n">r</span> <span class="o">@</span><span class="s2">&quot;packages/FParsec/lib/net40-client/FParsec.dll&quot;</span>
-</span><span class='line'><span class="o">#</span><span class="n">r</span> <span class="o">@</span><span class="s2">&quot;packages/FSharp.Data/lib/net40/FSharp.Data.dll&quot;</span>
-</span><span class='line'><span class="o">#</span><span class="n">r</span> <span class="o">@</span><span class="s2">&quot;packages/FSharp.Data/lib/net40/FSharp.Data.DesignTime.dll&quot;</span>
-</span><span class='line'><span class="o">#</span><span class="n">r</span> <span class="o">@</span><span class="s2">&quot;packages/Zlib.Portable/lib/portable-net4+sl5+wp8+win8+wpa81+MonoTouch+MonoAndroid/Zlib.Portable.dll&quot;</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>So. This is F#, so the first thing we&#39;ll be wanting is our domain model. What do we need to represent our data in the type system?</p>
-
-<p>Well, there is a standardized system for referencing locations in biblical text; we give a book of the bible (the bible is actually a mini-library of sub-books written at different times), the chapter (in theory a thematic block within a book) and a verse (a fairly arbitrary devision of a sentence or two of text). The chapter and verse devisions were not added by the authors, but by monks and scholars well after the fact, but they do give us an accurate way of pointing to a small defined chunk of biblical text between different printings and translations.</p>
-
-<p>It&#39;s also frequently useful to refer to a range of verses with in a book.</p>
-
-<p>So we&#39;re going to define three main types: <code>ChapterAndVerse</code> (what it sounds like), <code>Location</code> (book name and <code>ChapterAndVerse</code>) and <code>Range</code> (book name, start <code>ChapterAndVerse</code> and end <code>ChapterAndVerse</code>).</p>
-
-<p>We&#39;ll use units of measure to make sure we can&#39;t swap chapters for verses by mistake, and add some helper methods to give nice string representations of the types and a concise syntax for creating instances of the types.</p>
-
-<p>As an aside: the ordering of the books within the bible is fairly arbitrary, so a range that crosses between two books is meaningless. This is why a range is between to <code>ChapterAndVerse</code>s, not between two <code>Location</code>s - remember folks, make illegal states unrepresentable.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-<span class='line-number'>41</span>
-<span class='line-number'>42</span>
-<span class='line-number'>43</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="o">[&lt;</span><span class="nc">Measure</span><span class="o">&gt;]</span> <span class="k">type</span> <span class="nc">Chapter</span>
-</span><span class='line'><span class="o">[&lt;</span><span class="nc">Measure</span><span class="o">&gt;]</span> <span class="k">type</span> <span class="nc">Verse</span>
-</span><span class='line'><span class="o">[&lt;</span><span class="nc">Measure</span><span class="o">&gt;]</span> <span class="k">type</span> <span class="n">c</span> <span class="o">=</span> <span class="nc">Chapter</span>
-</span><span class='line'><span class="o">[&lt;</span><span class="nc">Measure</span><span class="o">&gt;]</span> <span class="k">type</span> <span class="n">v</span> <span class="o">=</span> <span class="nc">Verse</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">type</span> <span class="nc">ChapterAndVerse</span> <span class="o">=</span>
-</span><span class='line'>  <span class="o">{</span> <span class="nc">Chapter</span> <span class="o">:</span> <span class="kt">int</span><span class="o">&lt;</span><span class="nc">Chapter</span><span class="o">&gt;</span>
-</span><span class='line'>    <span class="nc">Verse</span> <span class="o">:</span> <span class="kt">int</span><span class="o">&lt;</span><span class="nc">Verse</span><span class="o">&gt;</span> <span class="o">}</span>
-</span><span class='line'>  <span class="k">static</span> <span class="k">member</span> <span class="nc">Make</span> <span class="n">c</span> <span class="n">v</span> <span class="o">=</span>
-</span><span class='line'>    <span class="o">{</span> <span class="nc">Chapter</span> <span class="o">=</span> <span class="n">c</span>
-</span><span class='line'>      <span class="nc">Verse</span> <span class="o">=</span> <span class="n">v</span> <span class="o">}</span>
-</span><span class='line'>  <span class="k">override</span> <span class="n">x</span><span class="o">.</span><span class="nc">ToString</span> <span class="bp">()</span> <span class="o">=</span>
-</span><span class='line'>    <span class="n">sprintf</span> <span class="s2">&quot;%d.%d&quot;</span> <span class="o">(</span><span class="n">x</span><span class="o">.</span><span class="nc">Chapter</span> <span class="o">/</span> <span class="mi">1</span><span class="o">&lt;</span><span class="n">c</span><span class="o">&gt;)</span> <span class="o">(</span><span class="n">x</span><span class="o">.</span><span class="nc">Verse</span> <span class="o">/</span> <span class="mi">1</span><span class="o">&lt;</span><span class="n">v</span><span class="o">&gt;)</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="n">cv</span> <span class="o">=</span>
-</span><span class='line'>  <span class="nn">ChapterAndVerse</span><span class="p">.</span><span class="nc">Make</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">type</span> <span class="nc">Location</span> <span class="o">=</span>
-</span><span class='line'>  <span class="o">{</span> <span class="nc">Book</span> <span class="o">:</span> <span class="kt">string</span>
-</span><span class='line'>    <span class="nc">ChapterAndVerse</span> <span class="o">:</span> <span class="nc">ChapterAndVerse</span> <span class="o">}</span>
-</span><span class='line'>  <span class="k">static</span> <span class="k">member</span> <span class="nc">Make</span> <span class="n">b</span> <span class="n">c</span> <span class="n">v</span> <span class="o">=</span>
-</span><span class='line'>    <span class="o">{</span> <span class="nc">Book</span> <span class="o">=</span> <span class="n">b</span>
-</span><span class='line'>      <span class="nc">ChapterAndVerse</span> <span class="o">=</span> <span class="o">{</span> <span class="nc">Chapter</span> <span class="o">=</span> <span class="n">c</span><span class="o">;</span> <span class="nc">Verse</span> <span class="o">=</span> <span class="n">v</span> <span class="o">}</span> <span class="o">}</span>
-</span><span class='line'>  <span class="k">override</span> <span class="n">x</span><span class="o">.</span><span class="nc">ToString</span> <span class="bp">()</span> <span class="o">=</span>
-</span><span class='line'>     <span class="n">sprintf</span> <span class="s2">&quot;%s.%O&quot;</span> <span class="n">x</span><span class="o">.</span><span class="nc">Book</span> <span class="n">x</span><span class="o">.</span><span class="nc">ChapterAndVerse</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="n">loc</span> <span class="o">=</span>
-</span><span class='line'>  <span class="nn">Location</span><span class="p">.</span><span class="nc">Make</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">type</span> <span class="nc">Range</span> <span class="o">=</span>
-</span><span class='line'>  <span class="o">{</span> <span class="nc">Book</span> <span class="o">:</span> <span class="kt">string</span>
-</span><span class='line'>    <span class="nc">Start</span> <span class="o">:</span> <span class="nc">ChapterAndVerse</span>
-</span><span class='line'>    <span class="nc">End</span> <span class="o">:</span> <span class="nc">ChapterAndVerse</span> <span class="o">}</span>
-</span><span class='line'>  <span class="k">static</span> <span class="k">member</span> <span class="nc">Make</span> <span class="n">b</span> <span class="n">s</span> <span class="n">e</span> <span class="o">=</span>
-</span><span class='line'>    <span class="o">{</span> <span class="nc">Book</span> <span class="o">=</span> <span class="n">b</span>
-</span><span class='line'>      <span class="nc">Start</span> <span class="o">=</span> <span class="n">s</span>
-</span><span class='line'>      <span class="nc">End</span> <span class="o">=</span> <span class="n">e</span> <span class="o">}</span>
-</span><span class='line'>  <span class="k">override</span> <span class="n">x</span><span class="o">.</span><span class="nc">ToString</span> <span class="bp">()</span> <span class="o">=</span>
-</span><span class='line'>    <span class="n">sprintf</span> <span class="s2">&quot;%s.%O-%s.%O&quot;</span> <span class="n">x</span><span class="o">.</span><span class="nc">Book</span> <span class="n">x</span><span class="o">.</span><span class="nc">Start</span> <span class="n">x</span><span class="o">.</span><span class="nc">Book</span> <span class="n">x</span><span class="o">.</span><span class="nc">End</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="n">r</span> <span class="o">=</span>
-</span><span class='line'>  <span class="nn">Range</span><span class="p">.</span><span class="nc">Make</span>
-</span><span class='line'>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>We&#39;ll also need to be able to test if a location is within a range:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">contains</span> <span class="o">(</span><span class="n">range</span> <span class="o">:</span> <span class="nc">Range</span><span class="o">)</span> <span class="n">location</span> <span class="o">=</span>
-</span><span class='line'>  <span class="k">let</span> <span class="n">lower</span> <span class="o">=</span> <span class="o">{</span> <span class="nn">Location</span><span class="p">.</span><span class="nc">Book</span> <span class="o">=</span> <span class="n">range</span><span class="o">.</span><span class="nc">Book</span><span class="o">;</span> <span class="nc">ChapterAndVerse</span> <span class="o">=</span> <span class="n">range</span><span class="o">.</span><span class="nc">Start</span> <span class="o">}</span>
-</span><span class='line'>  <span class="k">let</span> <span class="n">upper</span> <span class="o">=</span> <span class="o">{</span> <span class="nn">Location</span><span class="p">.</span><span class="nc">Book</span> <span class="o">=</span> <span class="n">range</span><span class="o">.</span><span class="nc">Book</span><span class="o">;</span> <span class="nc">ChapterAndVerse</span> <span class="o">=</span> <span class="n">range</span><span class="o">.</span><span class="nc">End</span> <span class="o">}</span>
-</span><span class='line'>  <span class="n">location</span> <span class="o">&gt;=</span> <span class="n">lower</span> <span class="o">&amp;&amp;</span> <span class="n">location</span> <span class="o">&lt;=</span> <span class="n">upper</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>And get a feel of how this all works.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="n">contains</span> <span class="o">(</span><span class="n">r</span> <span class="s2">&quot;Gen&quot;</span> <span class="o">(</span><span class="n">cv</span> <span class="mi">1</span><span class="o">&lt;</span><span class="n">c</span><span class="o">&gt;</span> <span class="mi">1</span><span class="o">&lt;</span><span class="n">v</span><span class="o">&gt;)</span> <span class="o">(</span><span class="n">cv</span> <span class="mi">2</span><span class="o">&lt;</span><span class="n">c</span><span class="o">&gt;</span> <span class="mi">10</span><span class="o">&lt;</span><span class="n">v</span><span class="o">&gt;))</span> <span class="o">(</span><span class="n">loc</span> <span class="s2">&quot;Gen&quot;</span> <span class="mi">1</span><span class="o">&lt;</span><span class="n">c</span><span class="o">&gt;</span> <span class="mi">2</span><span class="o">&lt;</span><span class="n">v</span><span class="o">&gt;)</span>
-</span></code></pre></td></tr></table></div></figure>
-<div class="highlight"><pre><code class="text">true
-</code></pre></div>
-<p>Genesis 1:2 (verse 2 of chapter 1 of the book of Genesis) is indeed within the range Genesis 1:1-2:10.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="n">contains</span> <span class="o">(</span><span class="n">r</span> <span class="s2">&quot;Gen&quot;</span> <span class="o">(</span><span class="n">cv</span> <span class="mi">1</span><span class="o">&lt;</span><span class="n">c</span><span class="o">&gt;</span> <span class="mi">1</span><span class="o">&lt;</span><span class="n">v</span><span class="o">&gt;)</span> <span class="o">(</span><span class="n">cv</span> <span class="mi">2</span><span class="o">&lt;</span><span class="n">c</span><span class="o">&gt;</span> <span class="mi">10</span><span class="o">&lt;</span><span class="n">v</span><span class="o">&gt;))</span> <span class="o">(</span><span class="n">loc</span> <span class="s2">&quot;Gen&quot;</span> <span class="mi">3</span><span class="o">&lt;</span><span class="n">c</span><span class="o">&gt;</span> <span class="mi">2</span><span class="o">&lt;</span><span class="n">v</span><span class="o">&gt;)</span>
-</span></code></pre></td></tr></table></div></figure>
-<div class="highlight"><pre><code class="text">false
-</code></pre></div>
-<p>While Genesis 3:2 is not. Good stuff.</p>
-
-<p>We have a working domain now, let&#39;s have a look at the input data.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">IO</span>
-</span><span class='line'><span class="k">let</span> <span class="n">input</span> <span class="o">=</span>
-</span><span class='line'>  <span class="nn">File</span><span class="p">.</span><span class="nc">ReadAllLines</span> <span class="o">&lt;|</span> <span class="nn">Path</span><span class="p">.</span><span class="nc">Combine</span><span class="o">(__</span><span class="n">SOURCE_DIRECTORY__</span><span class="o">,</span> <span class="s2">&quot;cross_references.txt&quot;</span><span class="o">)</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">input</span>
-</span></code></pre></td></tr></table></div></figure>
-<div class="highlight"><pre><code class="text">[|&quot;From Verse   To Verse    Votes   #www.openbible.info CC-BY 2016-12-05&quot;;
-  &quot;Gen.1.1  Heb.11.3    67&quot;; &quot;Gen.1.1   1Chr.16.26  11&quot;; &quot;Gen.1.1   Eccl.12.1   4&quot;;
-  &quot;Gen.1.1  Prov.3.19   19&quot;; &quot;Gen.1.1   Ps.124.8    16&quot;; &quot;Gen.1.1   Isa.65.17   8&quot;;
-  &quot;Gen.1.1  Ps.104.24   17&quot;; &quot;Gen.1.1   Ps.121.2    14&quot;; &quot;Gen.1.1   Rev.14.7    23&quot;;
-  &quot;Gen.1.1  Isa.40.26   18&quot;; &quot;Gen.1.1   Rev.3.14    9&quot;; &quot;Gen.1.1    Job.38.4    43&quot;;
-  &quot;Gen.1.1  Exod.20.11  34&quot;; &quot;Gen.1.1   Isa.37.16   17&quot;; &quot;Gen.1.1   Prov.16.4   14&quot;;
-  &quot;Gen.1.1  Ps.104.30   14&quot;; &quot;Gen.1.1   Col.1.16-Col.1.17   36&quot;; &quot;Gen.1.1   1John.1.1   14&quot;;
-  &quot;Gen.1.1  Isa.45.18   53&quot;; &quot;Gen.1.1   2Pet.3.5    26&quot;; &quot;Gen.1.1   Rom.1.19-Rom.1.20   15&quot;;
-  &quot;Gen.1.1  Isa.44.24   26&quot;; &quot;Gen.1.1   Ps.115.15   21&quot;; &quot;Gen.1.1   Mark.13.19  14&quot;;
-  &quot;Gen.1.1  Isa.42.5    42&quot;; &quot;Gen.1.1   Ps.134.3    14&quot;; &quot;Gen.1.1   Rev.21.6    3&quot;;
-  &quot;Gen.1.1  Jer.51.15   21&quot;; &quot;Gen.1.1   Rev.22.13   4&quot;; &quot;Gen.1.1    Ps.33.6 15&quot;;
-  &quot;Gen.1.1  Isa.51.13   17&quot;; &quot;Gen.1.1   Isa.40.28   17&quot;; &quot;Gen.1.1   John.1.1-John.1.3   56&quot;;
-  &quot;Gen.1.1  Ps.89.11-Ps.89.12   16&quot;; &quot;Gen.1.1   Ps.90.2 18&quot;; &quot;Gen.1.1   Matt.11.25  2&quot;;
-  &quot;Gen.1.1  Jer.32.17   21&quot;; &quot;Gen.1.1   Ps.148.4-Ps.148.5   16&quot;; &quot;Gen.1.1   Rev.10.6    18&quot;;
-  &quot;Gen.1.1  Ps.96.5 13&quot;; &quot;Gen.1.1   Isa.51.16   17&quot;; &quot;Gen.1.1   Jer.10.12   21&quot;;
-  &quot;Gen.1.1  Ps.102.25   18&quot;; &quot;Gen.1.1   Rom.11.36   14&quot;; &quot;Gen.1.1   Acts.14.15  21&quot;;
-  &quot;Gen.1.1  Job.26.13   9&quot;; &quot;Gen.1.1    Eph.3.9 14&quot;; &quot;Gen.1.1   Rev.4.11    44&quot;;
-  &quot;Gen.1.1  Ps.33.9 17&quot;; &quot;Gen.1.1   Neh.9.6 28&quot;; &quot;Gen.1.1   Ps.146.6    17&quot;;
-  &quot;Gen.1.1  Heb.3.4 15&quot;; &quot;Gen.1.1   Heb.1.2 19&quot;; &quot;Gen.1.1   Heb.1.10    41&quot;;
-  &quot;Gen.1.1  Ps.136.5    24&quot;; &quot;Gen.1.1   Zech.12.1   16&quot;; &quot;Gen.1.1   Exod.31.18  -11&quot;;
-  &quot;Gen.1.1  Prov.8.22-Prov.8.30 19&quot;; &quot;Gen.1.1   Acts.17.24  39&quot;;
-  &quot;Gen.1.1  Acts.4.24   16&quot;; &quot;Gen.1.1   1Cor.8.6    18&quot;; &quot;Gen.1.1   Ps.8.3  17&quot;;
-  &quot;Gen.1.2  Jer.4.23    17&quot;; &quot;Gen.1.2   Ps.33.6 1&quot;; &quot;Gen.1.2    Job.26.14   0&quot;;
-  &quot;Gen.1.2  Nah.2.10    -5&quot;; &quot;Gen.1.2   Job.26.7    0&quot;; &quot;Gen.1.2    Isa.40.12-Isa.40.14 -2&quot;;
-  &quot;Gen.1.2  Isa.45.18   7&quot;; &quot;Gen.1.2    Ps.104.30   9&quot;; &quot;Gen.1.3    1John.2.8   3&quot;;
-  &quot;Gen.1.3  Job.36.30   1&quot;; &quot;Gen.1.3    Ps.33.9 4&quot;; &quot;Gen.1.3    Eph.5.8 1&quot;;
-  &quot;Gen.1.3  Isa.60.19   7&quot;; &quot;Gen.1.3    2Cor.4.6    14&quot;; &quot;Gen.1.3   Isa.45.7    7&quot;;
-  &quot;Gen.1.3  Ps.97.11    4&quot;; &quot;Gen.1.3    John.11.43  -1&quot;; &quot;Gen.1.3   1John.1.5   8&quot;;
-  &quot;Gen.1.3  John.1.9    2&quot;; &quot;Gen.1.3    Job.38.19   3&quot;; &quot;Gen.1.3    John.3.19   3&quot;;
-  &quot;Gen.1.3  Ps.33.6 6&quot;; &quot;Gen.1.3    John.1.5    9&quot;; &quot;Gen.1.3    Matt.8.3    -2&quot;;
-  &quot;Gen.1.3  Ps.148.5    5&quot;; &quot;Gen.1.3    Eph.5.14    2&quot;; &quot;Gen.1.3    Ps.104.2    2&quot;;
-  &quot;Gen.1.3  Ps.118.27   1&quot;; &quot;Gen.1.3    1Tim.6.16   1&quot;; &quot;Gen.1.4    Gen.1.18    4&quot;;
-  &quot;Gen.1.4  Gen.1.10    1&quot;; &quot;Gen.1.4    Eccl.11.7   1&quot;; &quot;Gen.1.4    Gen.1.25    1&quot;;
-  &quot;Gen.1.4  Gen.1.31    1&quot;; &quot;Gen.1.4    Eccl.2.13   2&quot;; &quot;Gen.1.4    Gen.1.12    2&quot;;
-  &quot;Gen.1.5  Gen.1.23    2&quot;; ...|]
-</code></pre></div>
-<p>Looking fairly straight forward here; in fact, after a brief search I realised the format versed here is actually based on a standard called <a href="http://www.crosswire.org/osis/">OSIS</a>, although without all of the unneeded XML bits. Good call.</p>
-
-<p>&quot;Votes&quot; is taken from the original source of these cross references, a context in which it was possible for people to agree or disagree on whether the verses in question are actually linked. For this post I&#39;m just going to ignore the votes, although they&#39;d make an interesting weighting for future investigations.</p>
-
-<p>Time to build a parser to turn this text format into our nice domain types.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-<span class='line-number'>41</span>
-<span class='line-number'>42</span>
-<span class='line-number'>43</span>
-<span class='line-number'>44</span>
-<span class='line-number'>45</span>
-<span class='line-number'>46</span>
-<span class='line-number'>47</span>
-<span class='line-number'>48</span>
-<span class='line-number'>49</span>
-<span class='line-number'>50</span>
-<span class='line-number'>51</span>
-<span class='line-number'>52</span>
-<span class='line-number'>53</span>
-<span class='line-number'>54</span>
-<span class='line-number'>55</span>
-<span class='line-number'>56</span>
-<span class='line-number'>57</span>
-<span class='line-number'>58</span>
-<span class='line-number'>59</span>
-<span class='line-number'>60</span>
-<span class='line-number'>61</span>
-<span class='line-number'>62</span>
-<span class='line-number'>63</span>
-<span class='line-number'>64</span>
-<span class='line-number'>65</span>
-<span class='line-number'>66</span>
-<span class='line-number'>67</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nc">FParsec</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="n">makeString</span> <span class="n">chars</span> <span class="o">=</span>
-</span><span class='line'>  <span class="n">chars</span> <span class="o">|&gt;</span> <span class="nn">Array</span><span class="p">.</span><span class="n">ofList</span> <span class="o">|&gt;</span> <span class="nn">System</span><span class="p">.</span><span class="nc">String</span>
-</span><span class='line'>
-</span><span class='line'><span class="c1">// parse a location</span>
-</span><span class='line'><span class="k">let</span> <span class="n">plocation</span> <span class="o">=</span>
-</span><span class='line'>  <span class="k">let</span> <span class="n">dot</span> <span class="o">=</span> <span class="n">pchar</span> <span class="sc">&#39;.&#39;</span>
-</span><span class='line'>  <span class="k">let</span> <span class="n">notDot</span> <span class="o">=</span> <span class="n">satisfy</span> <span class="o">(</span><span class="k">fun</span> <span class="n">c</span> <span class="o">-&gt;</span> <span class="n">c</span> <span class="o">&lt;&gt;</span> <span class="sc">&#39;.&#39;</span><span class="o">)</span>
-</span><span class='line'>  <span class="c1">// Take at least one non-dot character.</span>
-</span><span class='line'>  <span class="c1">// Build a string from the characters taken.</span>
-</span><span class='line'>  <span class="c1">// This is the book name.</span>
-</span><span class='line'>  <span class="o">(</span><span class="n">many1</span> <span class="n">notDot</span> <span class="o">|&gt;&gt;</span> <span class="n">makeString</span><span class="o">)</span>
-</span><span class='line'>  <span class="c1">// Check the book name is followed by a dot and</span>
-</span><span class='line'>  <span class="c1">// then throw it away (.&gt;&gt; only keeps the result</span>
-</span><span class='line'>  <span class="c1">// from the left)</span>
-</span><span class='line'>  <span class="o">.&gt;&gt;</span> <span class="n">dot</span>
-</span><span class='line'>  <span class="c1">// Parse a int; keep both the book and the int.</span>
-</span><span class='line'>  <span class="c1">// This is the chapter (.&gt;&gt;. keeps left and right</span>
-</span><span class='line'>  <span class="c1">// results, puts them in a tuple)</span>
-</span><span class='line'>  <span class="o">.&gt;&gt;.</span> <span class="n">pint32</span>
-</span><span class='line'>  <span class="c1">// As above.</span>
-</span><span class='line'>  <span class="o">.&gt;&gt;</span> <span class="n">dot</span>
-</span><span class='line'>  <span class="c1">// Capture the verse int; we now have a tuple on</span>
-</span><span class='line'>  <span class="c1">// the left so we end up with a tuple containing</span>
-</span><span class='line'>  <span class="c1">// a tuple and an int</span>
-</span><span class='line'>  <span class="o">.&gt;&gt;.</span> <span class="n">pint32</span>
-</span><span class='line'>  <span class="c1">// Map the awkward tuple structure into our nice</span>
-</span><span class='line'>  <span class="c1">// domain type ``Location`` if we&#39;ve found all of</span>
-</span><span class='line'>  <span class="c1">// the required data</span>
-</span><span class='line'>  <span class="o">|&gt;&gt;</span> <span class="o">(</span><span class="k">fun</span> <span class="o">((</span><span class="n">book</span><span class="o">,</span> <span class="n">chapter</span><span class="o">),</span> <span class="n">verse</span><span class="o">)</span> <span class="o">-&gt;</span>
-</span><span class='line'>       <span class="n">loc</span> <span class="n">book</span> <span class="o">(</span><span class="n">chapter</span> <span class="o">*</span> <span class="mi">1</span><span class="o">&lt;</span><span class="n">c</span><span class="o">&gt;)</span> <span class="o">(</span><span class="n">verse</span> <span class="o">*</span> <span class="mi">1</span><span class="o">&lt;</span><span class="n">v</span><span class="o">&gt;))</span>
-</span><span class='line'>
-</span><span class='line'><span class="c1">// Parse a range</span>
-</span><span class='line'><span class="k">let</span> <span class="n">prange</span> <span class="o">=</span>
-</span><span class='line'>  <span class="c1">// In the format above, a range is either a single</span>
-</span><span class='line'>  <span class="c1">// verse (representation same as a location) or as</span>
-</span><span class='line'>  <span class="c1">// a start and an end location separated by &quot;-&quot;.</span>
-</span><span class='line'>  <span class="c1">// We&#39;ll create a parser for the optional second half</span>
-</span><span class='line'>  <span class="c1">// first...</span>
-</span><span class='line'>  <span class="k">let</span> <span class="n">endOfRange</span> <span class="o">=</span>
-</span><span class='line'>    <span class="n">pchar</span> <span class="sc">&#39;-&#39;</span>
-</span><span class='line'>    <span class="c1">// &gt;&gt;. throws away the result from the left</span>
-</span><span class='line'>    <span class="o">&gt;&gt;.</span> <span class="n">plocation</span>
-</span><span class='line'>  <span class="c1">// Here we take the start and optional end location</span>
-</span><span class='line'>  <span class="c1">// and then map them to our domain type.</span>
-</span><span class='line'>  <span class="n">plocation</span> <span class="o">.&gt;&gt;.</span> <span class="o">(</span><span class="n">opt</span> <span class="n">endOfRange</span><span class="o">)</span>
-</span><span class='line'>  <span class="o">&gt;&gt;=</span> <span class="o">(</span><span class="k">fun</span> <span class="o">(</span><span class="n">starting</span><span class="o">,</span> <span class="n">ending</span><span class="o">)</span> <span class="o">-&gt;</span>
-</span><span class='line'>  <span class="k">fun</span> <span class="n">stream</span> <span class="o">-&gt;</span>
-</span><span class='line'>    <span class="k">let</span> <span class="n">ending</span> <span class="o">=</span> <span class="n">defaultArg</span> <span class="n">ending</span> <span class="n">starting</span>
-</span><span class='line'>    <span class="k">if</span> <span class="n">starting</span><span class="o">.</span><span class="nc">Book</span> <span class="o">&lt;&gt;</span> <span class="n">ending</span><span class="o">.</span><span class="nc">Book</span> <span class="k">then</span>
-</span><span class='line'>      <span class="nc">Reply</span><span class="o">(</span><span class="nc">Error</span><span class="o">,</span> <span class="n">expectedString</span> <span class="s2">&quot;Both ends of range should be in the same book&quot;</span><span class="o">)</span>
-</span><span class='line'>    <span class="k">else</span>
-</span><span class='line'>      <span class="n">r</span> <span class="n">starting</span><span class="o">.</span><span class="nc">Book</span> <span class="n">starting</span><span class="o">.</span><span class="nc">ChapterAndVerse</span> <span class="n">ending</span><span class="o">.</span><span class="nc">ChapterAndVerse</span>
-</span><span class='line'>      <span class="o">|&gt;</span> <span class="nc">Reply</span><span class="o">)</span>
-</span><span class='line'>
-</span><span class='line'><span class="c1">// Finally, a row from the text file is just a location</span>
-</span><span class='line'><span class="c1">// followed by space, followed by a range, then a space</span>
-</span><span class='line'><span class="c1">// and the votes. Spaces and votes are ignored by careful</span>
-</span><span class='line'><span class="c1">// use of discarding operators.</span>
-</span><span class='line'><span class="k">let</span> <span class="n">row</span> <span class="o">:</span> <span class="nc">Parser</span><span class="o">&lt;_,</span> <span class="kt">unit</span><span class="o">&gt;</span> <span class="o">=</span>
-</span><span class='line'>  <span class="n">plocation</span>
-</span><span class='line'>  <span class="o">.&gt;&gt;</span> <span class="n">spaces1</span>
-</span><span class='line'>  <span class="o">.&gt;&gt;.</span> <span class="n">prange</span>
-</span><span class='line'>  <span class="o">.&gt;&gt;</span> <span class="n">spaces1</span>
-</span><span class='line'>  <span class="o">.&gt;&gt;</span> <span class="n">pint32</span>
-</span><span class='line'>  <span class="o">.&gt;&gt;</span> <span class="n">eof</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>A few trials (of correct and incorrect inputs) suggest that our parser is working nicely.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="s2">&quot;Gen.1.1&quot;</span> <span class="o">|&gt;</span> <span class="n">run</span> <span class="n">plocation</span>
-</span></code></pre></td></tr></table></div></figure>
-<div class="highlight"><pre><code class="text">Success: {Book = &quot;Gen&quot;;
- ChapterAndVerse = {Chapter = 1;
-                    Verse = 1;};}
-</code></pre></div>
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="s2">&quot;Gen.1.1-Gen.3.10&quot;</span> <span class="o">|&gt;</span> <span class="n">run</span> <span class="n">prange</span>
-</span></code></pre></td></tr></table></div></figure>
-<div class="highlight"><pre><code class="text">Success: {Book = &quot;Gen&quot;;
- Start = {Chapter = 1;
-          Verse = 1;};
- End = {Chapter = 3;
-        Verse = 10;};}
-</code></pre></div>
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="s2">&quot;Gen.1.1-Heb.11.3&quot;</span> <span class="o">|&gt;</span> <span class="n">run</span> <span class="n">prange</span>
-</span></code></pre></td></tr></table></div></figure>
-<div class="highlight"><pre><code class="text">Failure:
-Error in Ln: 1 Col: 17
-Gen.1.1-Heb.11.3
-                ^
-Note: The error occurred at the end of the input stream.
-Expecting: &#39;Both ends of range should be in the same book&#39;
-</code></pre></div>
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="s2">&quot;Gen.1.1 Heb.11.3    67&quot;</span> <span class="o">|&gt;</span> <span class="n">run</span> <span class="n">row</span>
-</span></code></pre></td></tr></table></div></figure>
-<div class="highlight"><pre><code class="text">Success: ({Book = &quot;Gen&quot;;
-  ChapterAndVerse = {Chapter = 1;
-                     Verse = 1;};}, {Book = &quot;Heb&quot;;
-                                     Start = {Chapter = 11;
-                                              Verse = 3;};
-                                     End = {Chapter = 11;
-                                            Verse = 3;};})
-</code></pre></div>
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="s2">&quot;Gen.1.1.22  Heb.11.3    67&quot;</span> <span class="o">|&gt;</span> <span class="n">run</span> <span class="n">row</span>
-</span></code></pre></td></tr></table></div></figure>
-<div class="highlight"><pre><code class="text">Failure:
-Error in Ln: 1 Col: 8
-Gen.1.1.22      Heb.11.3        67
-       ^
-Expecting: whitespace
-</code></pre></div>
-<p>Now let&#39;s run our parser over the input file, and get ourselves a list of cross references.</p>
-
-<p>There&#39;s quite a few of them, so we&#39;ll only display the first 10.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">crossReferences</span> <span class="o">=</span>
-</span><span class='line'>  <span class="n">input</span>
-</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">skip</span> <span class="mi">1</span> <span class="c1">// skip the row titles</span>
-</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="n">run</span> <span class="n">row</span><span class="o">)</span>
-</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">choose</span> <span class="o">(</span><span class="k">function</span>
-</span><span class='line'>                 <span class="o">|</span> <span class="nc">Success</span> <span class="o">(</span><span class="n">reference</span><span class="o">,</span> <span class="o">_,</span> <span class="o">_)</span> <span class="o">-&gt;</span> <span class="nc">Some</span> <span class="n">reference</span>
-</span><span class='line'>                 <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="nc">None</span><span class="o">)</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">crossReferences</span>
-</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">take</span> <span class="mi">10</span>
-</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Util</span><span class="p">.</span><span class="nc">Table</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<table class="jup"><thead><tr><th>Item1</th><th>Item2</th></tr></thead><tbody><tr><td>Gen.1.1</td><td>Heb.11.3-Heb.11.3</td></tr><tr><td>Gen.1.1</td><td>1Chr.16.26-1Chr.16.26</td></tr><tr><td>Gen.1.1</td><td>Eccl.12.1-Eccl.12.1</td></tr><tr><td>Gen.1.1</td><td>Prov.3.19-Prov.3.19</td></tr><tr><td>Gen.1.1</td><td>Ps.124.8-Ps.124.8</td></tr><tr><td>Gen.1.1</td><td>Isa.65.17-Isa.65.17</td></tr><tr><td>Gen.1.1</td><td>Ps.104.24-Ps.104.24</td></tr><tr><td>Gen.1.1</td><td>Ps.121.2-Ps.121.2</td></tr><tr><td>Gen.1.1</td><td>Rev.14.7-Rev.14.7</td></tr><tr><td>Gen.1.1</td><td>Isa.40.26-Isa.40.26</td></tr><tbody></tbody></table>
-
-<p>This is all great and everything, but I&#39;d also like to have some way of mapping out where these verses are in the Bible and using the full names of the books. I didn&#39;t feel like entering all the data by hand, but fortunately <a href="http://bibles.org">bibles.org</a> have done it for me. Time to break out that json type provider&#8230;</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">BibleInfo</span> <span class="o">=</span> <span class="nn">FSharp</span><span class="p">.</span><span class="nn">Data</span><span class="p">.</span><span class="nc">JsonProvider</span><span class="o">&lt;</span><span class="s2">&quot;./books.js&quot;</span><span class="o">&gt;</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">bibleInfo</span> <span class="o">=</span> <span class="nn">BibleInfo</span><span class="p">.</span><span class="nc">Load</span><span class="o">(</span><span class="s2">&quot;./books.js&quot;</span><span class="o">)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>And create a map from short to full names.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">bookMap</span> <span class="o">=</span>
-</span><span class='line'>  <span class="n">bibleInfo</span><span class="o">.</span><span class="nn">Response</span><span class="p">.</span><span class="nc">Books</span>
-</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">b</span> <span class="o">-&gt;</span> <span class="n">b</span><span class="o">.</span><span class="nc">Abbr</span><span class="o">,</span> <span class="n">b</span><span class="o">.</span><span class="nc">Name</span><span class="o">)</span>
-</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Map</span><span class="p">.</span><span class="n">ofSeq</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">bookMap</span>
-</span></code></pre></td></tr></table></div></figure>
-<div class="highlight"><pre><code class="text">map
-  [(&quot;1Chr&quot;, &quot;1 Chronicles&quot;); (&quot;1Cor&quot;, &quot;1 Corinthians&quot;); (&quot;1Esd&quot;, &quot;1 Esdras&quot;);
-   (&quot;1John&quot;, &quot;1 John&quot;); (&quot;1Kgs&quot;, &quot;1 Kings&quot;); (&quot;1Macc&quot;, &quot;1 Maccabees&quot;);
-   (&quot;1Pet&quot;, &quot;1 Peter&quot;); (&quot;1Sam&quot;, &quot;1 Samuel&quot;); (&quot;1Thess&quot;, &quot;1 Thessalonians&quot;); ...]
-</code></pre></div>
-<p>Now we have all of the actual data we need.</p>
-
-<p>We&#39;ll start from the historical accounts of Jesus&#39;s actual birth&#8230;</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">story</span> <span class="o">=</span> <span class="o">[</span>
-</span><span class='line'>    <span class="c1">// Matthew&#39;s account</span>
-</span><span class='line'>    <span class="n">r</span> <span class="s2">&quot;Matt&quot;</span> <span class="o">(</span><span class="n">cv</span> <span class="mi">1</span><span class="o">&lt;</span><span class="n">c</span><span class="o">&gt;</span> <span class="mi">18</span><span class="o">&lt;</span><span class="n">v</span><span class="o">&gt;)</span> <span class="o">(</span><span class="n">cv</span> <span class="mi">2</span><span class="o">&lt;</span><span class="n">c</span><span class="o">&gt;</span> <span class="mi">18</span><span class="o">&lt;</span><span class="n">v</span><span class="o">&gt;)</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="c1">// Luke&#39;s account part 1</span>
-</span><span class='line'>    <span class="n">r</span> <span class="s2">&quot;Luke&quot;</span> <span class="o">(</span><span class="n">cv</span> <span class="mi">1</span><span class="o">&lt;</span><span class="n">c</span><span class="o">&gt;</span> <span class="mi">26</span><span class="o">&lt;</span><span class="n">v</span><span class="o">&gt;)</span> <span class="o">(</span><span class="n">cv</span> <span class="mi">1</span><span class="o">&lt;</span><span class="n">c</span><span class="o">&gt;</span> <span class="mi">56</span><span class="o">&lt;</span><span class="n">v</span><span class="o">&gt;)</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="c1">// Luke&#39;s account part 2</span>
-</span><span class='line'>    <span class="n">r</span> <span class="s2">&quot;Luke&quot;</span> <span class="o">(</span><span class="n">cv</span> <span class="mi">2</span><span class="o">&lt;</span><span class="n">c</span><span class="o">&gt;</span> <span class="mi">1</span><span class="o">&lt;</span><span class="n">v</span><span class="o">&gt;)</span> <span class="o">(</span><span class="n">cv</span> <span class="mi">2</span><span class="o">&lt;</span><span class="n">c</span><span class="o">&gt;</span> <span class="mi">21</span><span class="o">&lt;</span><span class="n">v</span><span class="o">&gt;)</span>
-</span><span class='line'>  <span class="o">]</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>&#8230;and then find all of the cross references which come <em>from</em> a verse in these ranges&#8230;</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">findCrossReferencesOfRange</span> <span class="n">references</span> <span class="n">range</span> <span class="o">=</span>
-</span><span class='line'>  <span class="n">references</span>
-</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">filter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">reference</span> <span class="o">-&gt;</span> <span class="n">contains</span> <span class="n">range</span> <span class="o">&lt;|</span> <span class="n">fst</span> <span class="n">reference</span><span class="o">)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">allCrossReferences</span> <span class="n">references</span> <span class="n">ranges</span> <span class="o">=</span>
-</span><span class='line'>  <span class="n">ranges</span>
-</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">fold</span> <span class="o">(</span><span class="k">fun</span> <span class="n">found</span> <span class="n">range</span> <span class="o">-&gt;</span>
-</span><span class='line'>    <span class="nn">Seq</span><span class="p">.</span><span class="n">concat</span> <span class="o">[</span><span class="n">findCrossReferencesOfRange</span> <span class="n">references</span> <span class="n">range</span><span class="o">;</span><span class="n">found</span><span class="o">])</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">empty</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>&#8230;giving us a sequence of every range cross referenced from the Christmas story.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">christmasRefs</span> <span class="o">=</span>
-</span><span class='line'>  <span class="n">allCrossReferences</span> <span class="n">crossReferences</span> <span class="n">story</span>
-</span><span class='line'>
-</span></code></pre></td></tr></table></div></figure>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="n">christmasRefs</span> <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">length</span>
-</span></code></pre></td></tr></table></div></figure>
-<div class="highlight"><pre><code class="text">1042
-</code></pre></div>
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="n">christmasRefs</span>
-</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">take</span> <span class="mi">10</span>
-</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Util</span><span class="p">.</span><span class="nc">Table</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<table class="jup"><thead><tr><th>Item1</th><th>Item2</th></tr></thead><tbody><tr><td>Luke.2.1</td><td>Acts.11.28-Acts.11.28</td></tr><tr><td>Luke.2.1</td><td>Matt.24.14-Matt.24.14</td></tr><tr><td>Luke.2.1</td><td>Acts.25.21-Acts.25.21</td></tr><tr><td>Luke.2.1</td><td>Acts.25.11-Acts.25.11</td></tr><tr><td>Luke.2.1</td><td>Rom.1.8-Rom.1.8</td></tr><tr><td>Luke.2.1</td><td>Luke.3.1-Luke.3.1</td></tr><tr><td>Luke.2.1</td><td>Phil.4.22-Phil.4.22</td></tr><tr><td>Luke.2.1</td><td>Mark.16.15-Mark.16.15</td></tr><tr><td>Luke.2.1</td><td>Matt.22.17-Matt.22.17</td></tr><tr><td>Luke.2.1</td><td>Mark.14.9-Mark.14.9</td></tr><tbody></tbody></table>
-
-<p>We&#39;re getting closer. Before we dive into the graph, we&#39;ll have a quick poke around the data.</p>
-
-<p>Like, which are the top 10 books most commonly cross referenced to?</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="c1">// count per book, sort by descending</span>
-</span><span class='line'><span class="k">let</span> <span class="n">byBook</span> <span class="o">=</span>
-</span><span class='line'>  <span class="n">christmasRefs</span>
-</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">r</span> <span class="o">-&gt;</span> <span class="n">bookMap</span><span class="o">.[(</span><span class="n">snd</span> <span class="n">r</span><span class="o">).</span><span class="nc">Book</span><span class="o">])</span>
-</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">countBy</span> <span class="n">id</span>
-</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">sortByDescending</span> <span class="n">snd</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">byBook</span> <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">take</span> <span class="mi">10</span> <span class="o">|&gt;</span> <span class="nn">Util</span><span class="p">.</span><span class="nc">Table</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<table class="jup"><thead><tr><th>Item1</th><th>Item2</th></tr></thead><tbody><tr><td>Luke</td><td>129</td></tr><tr><td>Matthew</td><td>115</td></tr><tr><td>Psalm</td><td>101</td></tr><tr><td>Isaiah</td><td>74</td></tr><tr><td>Acts</td><td>68</td></tr><tr><td>John</td><td>66</td></tr><tr><td>Genesis</td><td>52</td></tr><tr><td>Revelation</td><td>33</td></tr><tr><td>Exodus</td><td>27</td></tr><tr><td>Jeremiah</td><td>26</td></tr><tbody></tbody></table>
-
-<p>Getting closer to the data we want to create an edge and node graph from, let&#39;s look at the links between books.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="c1">// Count how many times a book is referenced from each of our</span>
-</span><span class='line'><span class="c1">// source books</span>
-</span><span class='line'><span class="k">let</span> <span class="n">fromBookToBook</span> <span class="o">=</span>
-</span><span class='line'>  <span class="n">christmasRefs</span>
-</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="o">(</span><span class="n">from</span><span class="o">,</span> <span class="k">to&#39;</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="n">bookMap</span><span class="o">.[</span><span class="n">from</span><span class="o">.</span><span class="nc">Book</span><span class="o">],</span> <span class="n">bookMap</span><span class="o">.[</span><span class="k">to&#39;</span><span class="o">.</span><span class="nc">Book</span><span class="o">])</span>
-</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">countBy</span> <span class="n">id</span>
-</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">sortByDescending</span> <span class="n">snd</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">fromBookToBook</span>
-</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">take</span> <span class="mi">10</span>
-</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Util</span><span class="p">.</span><span class="nc">Table</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<table class="jup"><thead><tr><th>Item1</th><th>Item2</th></tr></thead><tbody><tr><td>(Luke, Luke)</td><td>94</td></tr><tr><td>(Luke, Psalm)</td><td>72</td></tr><tr><td>(Matthew, Matthew)</td><td>63</td></tr><tr><td>(Luke, Matthew)</td><td>52</td></tr><tr><td>(Luke, Isaiah)</td><td>52</td></tr><tr><td>(Luke, Acts)</td><td>37</td></tr><tr><td>(Luke, John)</td><td>35</td></tr><tr><td>(Matthew, Luke)</td><td>35</td></tr><tr><td>(Matthew, Acts)</td><td>31</td></tr><tr><td>(Matthew, John)</td><td>31</td></tr><tbody></tbody></table>
-
-<p>And now we&#39;ve arrived. I&#39;ve not found a nice simple way of generating graph images in .net, so we&#39;ll turn to the well used d3 javascript library to help us out, given we&#39;re running in a web page.</p>
-
-<p>We need to also to have a way of turning our data into a valid javascript representation. We&#39;ll need to feed d3 an array of nodes (just the names of the books of the Bible). Then we&#39;ll have an array of &quot;links&quot;, which we&#39;ll also give a &quot;strength&quot; field to represent the number of cross references. The links need to use the index of the source and target in the node list.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">names</span> <span class="o">=</span>
-</span><span class='line'>  <span class="n">bibleInfo</span><span class="o">.</span><span class="nn">Response</span><span class="p">.</span><span class="nc">Books</span>
-</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">b</span> <span class="o">-&gt;</span> <span class="n">b</span><span class="o">.</span><span class="nc">Name</span><span class="o">)</span>
-</span><span class='line'>
-</span><span class='line'><span class="c1">// Simple string concatination will do the job here,</span>
-</span><span class='line'><span class="c1">// for more complex data we could use an actual JSON</span>
-</span><span class='line'><span class="c1">// serialization library</span>
-</span><span class='line'><span class="k">let</span> <span class="n">nodes</span> <span class="o">=</span>
-</span><span class='line'>  <span class="n">names</span>
-</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">name</span> <span class="o">-&gt;</span> <span class="n">sprintf</span> <span class="s2">&quot;{ id: %A, x: 0, y: 0 }&quot;</span> <span class="n">name</span><span class="o">)</span>
-</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot;,</span><span class="se">\n</span><span class="s2">&quot;</span>
-</span><span class='line'>  <span class="o">|&gt;</span> <span class="n">sprintf</span> <span class="s2">&quot;[%s]&quot;</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="n">links</span> <span class="o">=</span>
-</span><span class='line'>  <span class="n">fromBookToBook</span>
-</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="o">((</span><span class="n">source</span><span class="o">,</span> <span class="n">target</span><span class="o">),</span> <span class="n">strength</span><span class="o">)</span> <span class="o">-&gt;</span>
-</span><span class='line'>    <span class="k">let</span> <span class="n">sourceI</span> <span class="o">=</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">findIndex</span> <span class="o">((=)</span> <span class="n">source</span><span class="o">)</span> <span class="n">names</span>
-</span><span class='line'>    <span class="k">let</span> <span class="n">targetI</span> <span class="o">=</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">findIndex</span> <span class="o">((=)</span> <span class="n">target</span><span class="o">)</span> <span class="n">names</span>
-</span><span class='line'>    <span class="n">sprintf</span> <span class="s2">&quot;{ source: %d, target: %d, strength: %d }&quot;</span> <span class="n">sourceI</span> <span class="n">targetI</span> <span class="n">strength</span><span class="o">)</span>
-</span><span class='line'>  <span class="o">|&gt;</span> <span class="nn">String</span><span class="p">.</span><span class="n">concat</span> <span class="s2">&quot;,</span><span class="se">\n</span><span class="s2">&quot;</span>
-</span><span class='line'>  <span class="o">|&gt;</span> <span class="n">sprintf</span> <span class="s2">&quot;[%s]&quot;</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>Now we need some javascript and html to get this all up and running. Let&#39;s make sure we have d3 loaded on the page.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="s2">&quot;&quot;&quot;&lt;script src=&#39;http://d3js.org/d3.v3.min.js&#39;&gt;&lt;/script&gt;&quot;&quot;&quot;</span> <span class="o">|&gt;</span> <span class="nn">Util</span><span class="p">.</span><span class="nc">Html</span> <span class="o">|&gt;</span> <span class="nc">Display</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<script src='http://d3js.org/d3.v3.min.js'></script>
-<div class="highlight"><pre><code class="text">&lt;null&gt;
-</code></pre></div>
-<p>And now we can just enter our raw javascript to create the graph, with the node and link data from above. Hopefully most of this will make some sense on a read through but the basic flow is:</p>
-
-<ol>
-<li>Inject an svg element into our page</li>
-<li>Create a force layout with some standard properties (gravity to keep everything near the middle, charge to keep nodes from overlapping)</li>
-<li>Make the desired distance between linked nodes shorter the &quot;stronger&quot; the link is.</li>
-<li>Add lines for links, and circles and text for nodes.</li>
-<li>Fire a call back to reposition the links and nodes as the force simualtion runs</li>
-</ol>
-
-<p>If you&#39;ve read down here from the beginning, the graph has probably settled into a steady state, but feel free to reload the page and watch the nodes bounce around.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-<span class='line-number'>41</span>
-<span class='line-number'>42</span>
-<span class='line-number'>43</span>
-<span class='line-number'>44</span>
-<span class='line-number'>45</span>
-<span class='line-number'>46</span>
-<span class='line-number'>47</span>
-<span class='line-number'>48</span>
-<span class='line-number'>49</span>
-<span class='line-number'>50</span>
-<span class='line-number'>51</span>
-<span class='line-number'>52</span>
-<span class='line-number'>53</span>
-<span class='line-number'>54</span>
-<span class='line-number'>55</span>
-<span class='line-number'>56</span>
-<span class='line-number'>57</span>
-<span class='line-number'>58</span>
-<span class='line-number'>59</span>
-<span class='line-number'>60</span>
-<span class='line-number'>61</span>
-<span class='line-number'>62</span>
-<span class='line-number'>63</span>
-<span class='line-number'>64</span>
-<span class='line-number'>65</span>
-<span class='line-number'>66</span>
-<span class='line-number'>67</span>
-<span class='line-number'>68</span>
-<span class='line-number'>69</span>
-<span class='line-number'>70</span>
-<span class='line-number'>71</span>
-<span class='line-number'>72</span>
-<span class='line-number'>73</span>
-<span class='line-number'>74</span>
-<span class='line-number'>75</span>
-<span class='line-number'>76</span>
-<span class='line-number'>77</span>
-<span class='line-number'>78</span>
-<span class='line-number'>79</span>
-<span class='line-number'>80</span>
-<span class='line-number'>81</span>
-<span class='line-number'>82</span>
-<span class='line-number'>83</span>
-<span class='line-number'>84</span>
-<span class='line-number'>85</span>
-<span class='line-number'>86</span>
-<span class='line-number'>87</span>
-<span class='line-number'>88</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="n">sprintf</span> <span class="s2">&quot;&quot;&quot;</span>
-</span><span class='line'><span class="s2">&lt;style&gt;</span>
-</span><span class='line'><span class="s2">.node {</span>
-</span><span class='line'><span class="s2">    fill: #5cc;</span>
-</span><span class='line'><span class="s2">    stroke: #2aa;</span>
-</span><span class='line'><span class="s2">    stroke-width: 2px;</span>
-</span><span class='line'><span class="s2">}</span>
-</span><span class='line'>
-</span><span class='line'><span class="s2">.link {</span>
-</span><span class='line'><span class="s2">    stroke: #777;</span>
-</span><span class='line'><span class="s2">    stroke-width: 2px;</span>
-</span><span class='line'><span class="s2">}</span>
-</span><span class='line'><span class="s2">&lt;/style&gt;</span>
-</span><span class='line'>
-</span><span class='line'>
-</span><span class='line'><span class="s2">&lt;div id=&quot;</span><span class="n">viz</span><span class="s2">&quot;&gt;&lt;/div&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="s2">&lt;script&gt;</span>
-</span><span class='line'><span class="s2">var width = 800;</span>
-</span><span class='line'><span class="s2">var height = 800;</span>
-</span><span class='line'>
-</span><span class='line'><span class="s2">var nodeData = %s;</span>
-</span><span class='line'>
-</span><span class='line'><span class="s2">var linkData = %s;</span>
-</span><span class='line'>
-</span><span class='line'><span class="s2">var force = null,</span>
-</span><span class='line'><span class="s2">    nodes = null,</span>
-</span><span class='line'><span class="s2">    nodeTitles = null,</span>
-</span><span class='line'><span class="s2">    links = null;</span>
-</span><span class='line'>
-</span><span class='line'><span class="s2">var svg = d3.select(&#39;#viz&#39;).append(&#39;svg&#39;)</span>
-</span><span class='line'><span class="s2">    .attr(&#39;width&#39;, width)</span>
-</span><span class='line'><span class="s2">    .attr(&#39;height&#39;, height);</span>
-</span><span class='line'><span class="s2">    </span>
-</span><span class='line'><span class="s2">var initForce = function() {</span>
-</span><span class='line'><span class="s2">    svg.selectAll(&#39;*&#39;).remove();</span>
-</span><span class='line'>
-</span><span class='line'><span class="s2">    force = d3.layout.force()</span>
-</span><span class='line'><span class="s2">        .size([width, height])</span>
-</span><span class='line'><span class="s2">        .nodes(nodeData)</span>
-</span><span class='line'><span class="s2">        .links(linkData)</span>
-</span><span class='line'><span class="s2">        .gravity(0.5)</span>
-</span><span class='line'><span class="s2">        .charge([-1000]);</span>
-</span><span class='line'><span class="s2">        </span>
-</span><span class='line'><span class="s2">    force.linkDistance(function (link) { return 400 / link.strength });</span>
-</span><span class='line'>
-</span><span class='line'><span class="s2">    links = svg.selectAll(&#39;.link&#39;)</span>
-</span><span class='line'><span class="s2">        .data(linkData)</span>
-</span><span class='line'><span class="s2">        .enter().append(&#39;line&#39;)</span>
-</span><span class='line'><span class="s2">        .attr(&#39;class&#39;, &#39;link&#39;);</span>
-</span><span class='line'><span class="s2">    </span>
-</span><span class='line'><span class="s2">    nodes = svg.selectAll(&#39;.node&#39;)</span>
-</span><span class='line'><span class="s2">        .data(nodeData)</span>
-</span><span class='line'><span class="s2">        .enter().append(&#39;circle&#39;)</span>
-</span><span class='line'><span class="s2">        .attr(&#39;class&#39;, &#39;node&#39;)</span>
-</span><span class='line'><span class="s2">        .attr(&#39;r&#39;, width / 50);</span>
-</span><span class='line'><span class="s2">        </span>
-</span><span class='line'><span class="s2">    nodeTitles = svg.selectAll(&#39;text&#39;)</span>
-</span><span class='line'><span class="s2">        .data(nodeData)</span>
-</span><span class='line'><span class="s2">        .enter().append(&#39;text&#39;)</span>
-</span><span class='line'><span class="s2">        .attr(&#39;text-anchor&#39;, &#39;middle&#39;)</span>
-</span><span class='line'><span class="s2">        .text(function (d) { return d.id })</span>
-</span><span class='line'><span class="s2">        .attr(&#39;font-family&#39;, &#39;sans&#39;)</span>
-</span><span class='line'><span class="s2">        .attr(&#39;font-size&#39;, 16)</span>
-</span><span class='line'><span class="s2">        .attr(&#39;fill&#39;, &#39;black&#39;);</span>
-</span><span class='line'><span class="s2">    </span>
-</span><span class='line'><span class="s2">    force.on(&#39;tick&#39;, stepForce);</span>
-</span><span class='line'><span class="s2">};</span>
-</span><span class='line'>
-</span><span class='line'><span class="s2">var stepForce = function() {</span>
-</span><span class='line'>
-</span><span class='line'><span class="s2">    nodes.attr(&#39;cx&#39;, function(d) { return d.x; })</span>
-</span><span class='line'><span class="s2">        .attr(&#39;cy&#39;, function(d) { return d.y; });</span>
-</span><span class='line'>
-</span><span class='line'><span class="s2">    nodeTitles.attr(&#39;x&#39;, function(d) { return d.x; })</span>
-</span><span class='line'><span class="s2">        .attr(&#39;y&#39;, function(d) { return d.y; });</span>
-</span><span class='line'>
-</span><span class='line'><span class="s2">    links.attr(&#39;x1&#39;, function(d) { return d.source.x; })</span>
-</span><span class='line'><span class="s2">        .attr(&#39;y1&#39;, function(d) { return d.source.y; })</span>
-</span><span class='line'><span class="s2">        .attr(&#39;x2&#39;, function(d) { return d.target.x; })</span>
-</span><span class='line'><span class="s2">        .attr(&#39;y2&#39;, function(d) { return d.target.y; });</span>
-</span><span class='line'><span class="s2">};</span>
-</span><span class='line'>
-</span><span class='line'><span class="s2">initForce();</span>
-</span><span class='line'><span class="s2">force.start();</span>
-</span><span class='line'><span class="s2">&lt;/script&gt;</span>
-</span><span class='line'><span class="s2">&quot;&quot;&quot;</span> <span class="n">nodes</span> <span class="n">links</span>
-</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Util</span><span class="p">.</span><span class="nc">Html</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<style>
-.node {
-    fill: #5cc;
-    stroke: #2aa;
-    stroke-width: 2px;
-}
-
-.link {
-    stroke: #777;
-    stroke-width: 2px;
-}
-</style>
-
-<div id="viz"></div>
-
-<script>
-var width = 800;
-var height = 800;
-
-var nodeData = [{ id: "Genesis", x: 0, y: 0 },
-{ id: "Exodus", x: 0, y: 0 },
-{ id: "Leviticus", x: 0, y: 0 },
-{ id: "Numbers", x: 0, y: 0 },
-{ id: "Deuteronomy", x: 0, y: 0 },
-{ id: "Joshua", x: 0, y: 0 },
-{ id: "Judges", x: 0, y: 0 },
-{ id: "Ruth", x: 0, y: 0 },
-{ id: "1 Samuel", x: 0, y: 0 },
-{ id: "2 Samuel", x: 0, y: 0 },
-{ id: "1 Kings", x: 0, y: 0 },
-{ id: "2 Kings", x: 0, y: 0 },
-{ id: "1 Chronicles", x: 0, y: 0 },
-{ id: "2 Chronicles", x: 0, y: 0 },
-{ id: "Ezra", x: 0, y: 0 },
-{ id: "Nehemiah", x: 0, y: 0 },
-{ id: "Esther", x: 0, y: 0 },
-{ id: "Job", x: 0, y: 0 },
-{ id: "Psalm", x: 0, y: 0 },
-{ id: "Proverbs", x: 0, y: 0 },
-{ id: "Ecclesiastes", x: 0, y: 0 },
-{ id: "Song of Songs", x: 0, y: 0 },
-{ id: "Isaiah", x: 0, y: 0 },
-{ id: "Jeremiah", x: 0, y: 0 },
-{ id: "Lamentations", x: 0, y: 0 },
-{ id: "Ezekiel", x: 0, y: 0 },
-{ id: "Daniel", x: 0, y: 0 },
-{ id: "Hosea", x: 0, y: 0 },
-{ id: "Joel", x: 0, y: 0 },
-{ id: "Amos", x: 0, y: 0 },
-{ id: "Obadiah", x: 0, y: 0 },
-{ id: "Jonah", x: 0, y: 0 },
-{ id: "Micah", x: 0, y: 0 },
-{ id: "Nahum", x: 0, y: 0 },
-{ id: "Habakkuk", x: 0, y: 0 },
-{ id: "Zephaniah", x: 0, y: 0 },
-{ id: "Haggai", x: 0, y: 0 },
-{ id: "Zechariah", x: 0, y: 0 },
-{ id: "Malachi", x: 0, y: 0 },
-{ id: "Tobit", x: 0, y: 0 },
-{ id: "Judith", x: 0, y: 0 },
-{ id: "Esther (Greek)", x: 0, y: 0 },
-{ id: "The Wisdom of Solomon", x: 0, y: 0 },
-{ id: "Sirach", x: 0, y: 0 },
-{ id: "Baruch", x: 0, y: 0 },
-{ id: "Letter of Jeremiah", x: 0, y: 0 },
-{ id: "1 Maccabees", x: 0, y: 0 },
-{ id: "2 Maccabees", x: 0, y: 0 },
-{ id: "1 Esdras", x: 0, y: 0 },
-{ id: "2 Esdras", x: 0, y: 0 },
-{ id: "The Prayer of Manasseh", x: 0, y: 0 },
-{ id: "Matthew", x: 0, y: 0 },
-{ id: "Mark", x: 0, y: 0 },
-{ id: "Luke", x: 0, y: 0 },
-{ id: "John", x: 0, y: 0 },
-{ id: "Acts", x: 0, y: 0 },
-{ id: "Romans", x: 0, y: 0 },
-{ id: "1 Corinthians", x: 0, y: 0 },
-{ id: "2 Corinthians", x: 0, y: 0 },
-{ id: "Galatians", x: 0, y: 0 },
-{ id: "Ephesians", x: 0, y: 0 },
-{ id: "Philippians", x: 0, y: 0 },
-{ id: "Colossians", x: 0, y: 0 },
-{ id: "1 Thessalonians", x: 0, y: 0 },
-{ id: "2 Thessalonians", x: 0, y: 0 },
-{ id: "1 Timothy", x: 0, y: 0 },
-{ id: "2 Timothy", x: 0, y: 0 },
-{ id: "Titus", x: 0, y: 0 },
-{ id: "Philemon", x: 0, y: 0 },
-{ id: "Hebrews", x: 0, y: 0 },
-{ id: "James", x: 0, y: 0 },
-{ id: "1 Peter", x: 0, y: 0 },
-{ id: "2 Peter", x: 0, y: 0 },
-{ id: "1 John", x: 0, y: 0 },
-{ id: "2 John", x: 0, y: 0 },
-{ id: "3 John", x: 0, y: 0 },
-{ id: "Jude", x: 0, y: 0 },
-{ id: "Revelation", x: 0, y: 0 }];
-
-var linkData = [{ source: 53, target: 53, strength: 94 },
-{ source: 53, target: 18, strength: 72 },
-{ source: 51, target: 51, strength: 63 },
-{ source: 53, target: 51, strength: 52 },
-{ source: 53, target: 22, strength: 52 },
-{ source: 53, target: 55, strength: 37 },
-{ source: 53, target: 54, strength: 35 },
-{ source: 51, target: 53, strength: 35 },
-{ source: 51, target: 55, strength: 31 },
-{ source: 51, target: 54, strength: 31 },
-{ source: 51, target: 18, strength: 29 },
-{ source: 53, target: 0, strength: 26 },
-{ source: 51, target: 0, strength: 26 },
-{ source: 51, target: 22, strength: 22 },
-{ source: 53, target: 8, strength: 20 },
-{ source: 53, target: 77, strength: 17 },
-{ source: 51, target: 77, strength: 16 },
-{ source: 51, target: 1, strength: 14 },
-{ source: 53, target: 56, strength: 13 },
-{ source: 53, target: 61, strength: 13 },
-{ source: 53, target: 52, strength: 13 },
-{ source: 53, target: 1, strength: 13 },
-{ source: 53, target: 60, strength: 13 },
-{ source: 53, target: 23, strength: 13 },
-{ source: 51, target: 23, strength: 13 },
-{ source: 53, target: 26, strength: 12 },
-{ source: 51, target: 17, strength: 11 },
-{ source: 53, target: 69, strength: 9 },
-{ source: 51, target: 19, strength: 9 },
-{ source: 53, target: 59, strength: 8 },
-{ source: 53, target: 25, strength: 8 },
-{ source: 53, target: 17, strength: 8 },
-{ source: 51, target: 69, strength: 8 },
-{ source: 51, target: 10, strength: 8 },
-{ source: 51, target: 3, strength: 8 },
-{ source: 53, target: 67, strength: 7 },
-{ source: 53, target: 7, strength: 6 },
-{ source: 53, target: 58, strength: 6 },
-{ source: 53, target: 6, strength: 6 },
-{ source: 53, target: 57, strength: 6 },
-{ source: 53, target: 9, strength: 6 },
-{ source: 51, target: 26, strength: 6 },
-{ source: 53, target: 32, strength: 5 },
-{ source: 53, target: 37, strength: 5 },
-{ source: 53, target: 70, strength: 5 },
-{ source: 51, target: 25, strength: 5 },
-{ source: 51, target: 14, strength: 5 },
-{ source: 51, target: 5, strength: 5 },
-{ source: 53, target: 11, strength: 4 },
-{ source: 53, target: 71, strength: 4 },
-{ source: 53, target: 5, strength: 4 },
-{ source: 51, target: 2, strength: 4 },
-{ source: 51, target: 6, strength: 4 },
-{ source: 51, target: 11, strength: 4 },
-{ source: 51, target: 56, strength: 4 },
-{ source: 51, target: 7, strength: 4 },
-{ source: 51, target: 8, strength: 4 },
-{ source: 53, target: 4, strength: 3 },
-{ source: 53, target: 19, strength: 3 },
-{ source: 53, target: 65, strength: 3 },
-{ source: 53, target: 62, strength: 3 },
-{ source: 53, target: 73, strength: 3 },
-{ source: 53, target: 38, strength: 3 },
-{ source: 51, target: 4, strength: 3 },
-{ source: 51, target: 52, strength: 3 },
-{ source: 51, target: 73, strength: 3 },
-{ source: 51, target: 13, strength: 3 },
-{ source: 51, target: 9, strength: 3 },
-{ source: 53, target: 10, strength: 2 },
-{ source: 53, target: 20, strength: 2 },
-{ source: 53, target: 27, strength: 2 },
-{ source: 53, target: 29, strength: 2 },
-{ source: 53, target: 34, strength: 2 },
-{ source: 53, target: 35, strength: 2 },
-{ source: 51, target: 62, strength: 2 },
-{ source: 51, target: 60, strength: 2 },
-{ source: 51, target: 37, strength: 2 },
-{ source: 51, target: 66, strength: 2 },
-{ source: 51, target: 32, strength: 2 },
-{ source: 51, target: 38, strength: 2 },
-{ source: 51, target: 12, strength: 2 },
-{ source: 51, target: 57, strength: 2 },
-{ source: 51, target: 27, strength: 2 },
-{ source: 53, target: 66, strength: 1 },
-{ source: 53, target: 64, strength: 1 },
-{ source: 53, target: 12, strength: 1 },
-{ source: 53, target: 2, strength: 1 },
-{ source: 53, target: 30, strength: 1 },
-{ source: 53, target: 3, strength: 1 },
-{ source: 53, target: 13, strength: 1 },
-{ source: 53, target: 76, strength: 1 },
-{ source: 51, target: 59, strength: 1 },
-{ source: 51, target: 28, strength: 1 },
-{ source: 51, target: 67, strength: 1 },
-{ source: 51, target: 58, strength: 1 },
-{ source: 51, target: 65, strength: 1 },
-{ source: 51, target: 70, strength: 1 },
-{ source: 51, target: 36, strength: 1 },
-{ source: 51, target: 15, strength: 1 },
-{ source: 51, target: 24, strength: 1 },
-{ source: 51, target: 72, strength: 1 }];
-
-var force = null,
-    nodes = null,
-    nodeTitles = null,
-    links = null;
-
-var svg = d3.select('#viz').append('svg')
-    .attr('width', width)
-    .attr('height', height);
-    
-var initForce = function() {
-    svg.selectAll('*').remove();
-
-    force = d3.layout.force()
-        .size([width, height])
-        .nodes(nodeData)
-        .links(linkData)
-        .gravity(0.5)
-        .charge([-1000]);
-        
-    force.linkDistance(function (link) { return 400 / link.strength });
-
-    links = svg.selectAll('.link')
-        .data(linkData)
-        .enter().append('line')
-        .attr('class', 'link');
-    
-    nodes = svg.selectAll('.node')
-        .data(nodeData)
-        .enter().append('circle')
-        .attr('class', 'node')
-        .attr('r', width / 50);
-        
-    nodeTitles = svg.selectAll('text')
-        .data(nodeData)
-        .enter().append('text')
-        .attr('text-anchor', 'middle')
-        .text(function (d) { return d.id })
-        .attr('font-family', 'sans')
-        .attr('font-size', 16)
-        .attr('fill', 'black');
-    
-    force.on('tick', stepForce);
-};
-
-var stepForce = function() {
-
-    nodes.attr('cx', function(d) { return d.x; })
-        .attr('cy', function(d) { return d.y; });
-
-    nodeTitles.attr('x', function(d) { return d.x; })
-        .attr('y', function(d) { return d.y; });
-
-    links.attr('x1', function(d) { return d.source.x; })
-        .attr('y1', function(d) { return d.source.y; })
-        .attr('x2', function(d) { return d.target.x; })
-        .attr('y2', function(d) { return d.target.y; });
-};
-
-initForce();
-force.start();
-</script>
-
-<p>And there it is. A nice force layout graph based on our F# data, displaying the properties you would expect. Matthew and Luke as the &quot;source&quot; nodes have settled somewhere near the centre, with books commonly referenced from both squeezed inbetween. An outer ring of books referenced infrequently or from only one of the other form the next ring, and then around the edges we have the books not referenced at all during the Christmas story.</p>
-
-<p>I hope you enjoyed this magical mystery tour of Jupyter, d3 and the Christmas story!</p>
 ]]></content>
   </entry>
   

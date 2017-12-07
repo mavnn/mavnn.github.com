@@ -1,0 +1,439 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>F# Through a Ruby Lens - Mavnn's blog</title>
+  <meta name="author" content="mavnn">
+
+  
+  <meta name="description" content="I spent last week delivering a five day deep dive into F# for a group of (mostly) Ruby developers in Munich, and wanted to capture some of my &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+  <link rel="canonical" href="https://blog.mavnn.co.uk/f-number-through-a-ruby-lens/">
+  <link href="/favicon.ico" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Mavnn's blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="https://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="https://fonts.googleapis.com/css?family=Fira+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="https://fonts.googleapis.com/css?family=Fira+Mono:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+<!-- Google Analytics -->
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-37561687-1', 'auto');
+ga('send', 'pageview');
+
+</script>
+<!-- End Google Analytics -->
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <a href="https://mavnn.co.uk"><img class="swirl-logo" src="/images/swirl.svg"/></a>
+  <h1><a href="/">Mavnn's blog</a></h1>
+  
+    <h2>Stuff from my brain</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="#" method="get" id="searchbox" >
+  <fieldset role="search">
+    <input type="hidden" id="site_query" value="site:blog.mavnn.co.uk" />
+    <input class="search" type="text" name="q" results="0" id="search_query" placeholder="Search"/>
+  </fieldset>
+</form>
+<ul class="main-navigation">
+  <li><a href="https://mavnn.co.uk">Main Site</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+
+<!-- for the course -->
+    <h5>We're running <a href="/building-solid-systems-in-f-number/">Building Solid Systems in F#</a> in London, 31 Jan - 1 Feb 2018. High quality training for building .NET Core, F#, distributed production ready systems.</h5>
+<!-- take it out up to here... -->
+
+
+
+  <header>
+    
+      <h1 class="entry-title">F# Through a Ruby Lens</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2017-12-07T21:00:00+00:00" pubdate data-updated="true">Dec 7<span>th</span>, 2017</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>I spent last week delivering a five day deep dive into F# for a group of (mostly) Ruby developers in Munich, and wanted to capture some of my thoughts before I lost them as well as give people an idea of the types of things internal training can give you.</p>
+
+<p>I won&#39;t be mentioning personal, company or exact team names here as I&#39;ve not been given explicit permission to do so; if the people who were on the course want to chime in I&#39;ll add their comments.</p>
+
+<h2>The background</h2>
+
+<p>Although mostly a Ruby on Rails shop, this company also relies on machine learning and expert systems to deliver some of its core services. The R&amp;D department (who build the models) settled on F# for development as a good balance between:</p>
+
+<ul>
+<li>familiarity of syntax (most have a background in Python and/or a ML language)</li>
+<li>performance (Ruby had struggled here)</li>
+<li>type safety</li>
+<li>good &quot;production&quot; library support (logging, etc)</li>
+</ul>
+
+<p>Having examined the available options in depth, they decided on a standard stack for creating F# microservices of:</p>
+
+<ul>
+<li>Freya on Kestrel via .NET Core</li>
+<li>Chiron for type safe JSON serialization/deserialization</li>
+</ul>
+
+<p>They wanted to investigate the use of Hephaestus as a rules engine (Freya uses Hephaestus to process HTTP requests). Many of their machine learning models only work with quite constrained ranges of input values, and Hephaestus as a rules engine looked an effective way of routing decisions to the &quot;correct&quot; machine learning algorithm for a particular input range. This in turn would allow for the models to stay reasonably simple and testable.</p>
+
+<h2>The brief</h2>
+
+<p>Having made these decisions, the company needed to bring the production services team up to speed on what R&amp;D were going to produce, especially because production had expressed an interest in having F# as an extra potential tool for their own projects.</p>
+
+<p>My brief was to create 5 days of training, after which production needed to know enough about the F# libraries in use that they could work out what R&amp;D&#39;s code was doing, and enough about running .NET code in production to feel confident adding error handling, logging, metrics, tests and all the rest of the &quot;engineering&quot; side of development which is not about the programming language but the surrounding ecosystem.</p>
+
+<h2>What we did</h2>
+
+<p>I knew that I had a lot of ground to cover in just 5 days, so there was no way that the team was going to come away with all of the new knowledge absorbed and at their finger tips. At the same time, it couldn&#39;t be an overwhelming flood of information.</p>
+
+<p>I decided to split the training time between a deep dive in understanding a few key areas in depth (Freya&#39;s design, optics and testing), and providing worked examples for the rest which could be referred back to when they became needed. Although I had relevant training material on several of the areas already, it was all tailored in this course to fit a single theme: over the course of a week, we were going to build a microservice that did just one thing, and we were going to test the heck out of it.</p>
+
+<p>The timetable ended up looking like this:</p>
+
+<ul>
+<li>Monday AM: Introductions
+
+<ul>
+<li>high level microservice design</li>
+<li>check everyone had all the software they needed installed</li>
+</ul></li>
+<li>Monday PM: Freya overview
+
+<ul>
+<li>install the template</li>
+<li>modify the hello world service to accept POSTs with a name</li>
+</ul></li>
+<li>Tuesday AM: Optics
+
+<ul>
+<li>Chiron, Freya and Hephaestus all make heavy use of &quot;Optics&quot;</li>
+<li>What are they?</li>
+<li>Building our own</li>
+</ul></li>
+<li>Tuesday PM: Handling external data
+
+<ul>
+<li>Using Chiron for translation, version handling and API design (using our new found knowledge of optics)</li>
+</ul></li>
+<li>Wednesday AM: Start our actual microservice as a real project
+
+<ul>
+<li>how .NET solutions are (normally) laid out</li>
+<li>using Paket for package management</li>
+<li>add a test project with <a href="/going-down-the-property-based-testing-rabbit-hole/">this set of property based tests</a></li>
+<li>write our first bit of domain logic to pass these tests, and plug it into the Freya API</li>
+</ul></li>
+<li>Wednesday PM: Start making our service production worthy
+
+<ul>
+<li>Spin up a docker &quot;infrastructure&quot; with Kibana and ElasticSearch</li>
+<li>Adding logging to our service, plugged into Freya to automatically capture context like request IDs</li>
+<li>Health endpoint</li>
+<li>How to capture metrics</li>
+</ul></li>
+<li>Thursday AM: interesting bits &amp; answers to questions asked
+
+<ul>
+<li>How do computational expressions work?</li>
+<li>How would I structure a functional UI?</li>
+</ul></li>
+<li>Thursday PM: flexible rules engines with Hephaestus
+
+<ul>
+<li>rebuilt the logic from Wednesday AM reusing the same property tests</li>
+<li>looked at how we can splice Hephaestus rules graphs together</li>
+</ul></li>
+<li>Friday AM: BenchmarkDotNet
+
+<ul>
+<li>now we know it&#39;s correct - is it fast?</li>
+<li>benchmarked our two implementations of the same logic together</li>
+</ul></li>
+<li>Friday PM: Using it all in real life
+
+<ul>
+<li>code review of pieces of the existing code base, looking at adding what we&#39;d learned</li>
+</ul></li>
+</ul>
+
+<h2>How it went</h2>
+
+<p>Overall the course seemed to go really well. At the end of it, the delegates were confident about the basics of building HTTP resources with Freya and Chiron, and happily building benchmarks and tests for their existing code base. For other areas (the boiler plate for plugging logging into Kestrel and Freya, for example) they understood the concepts and felt the course notes were sufficiently detailed they that could make use of them in other situations as needed. That was incredibly pleasing to hear from my point of view, as the course notes for these sessions are by far the most time consuming part of the process to create.</p>
+
+<p>Although they missed some of the features of Ruby when writing F#, pattern matching with discriminated unions was a big hit and they liked the enforced discipline of Freya that required separating the logic of the various stages of handling an HTTP request - and how reusable that made components for handling concerns such as authentication.</p>
+
+<p>Finally, all 3 of the core participants (there were other people around for certain parts of the course) came away saying that they&#39;d really enjoyed it and found it interesting throughout - so that&#39;s a big win right there!</p>
+
+<h2>Can you do this for us?</h2>
+
+<p>Yes; this particular course was tailored for the specific circumstances, but I&#39;ve also provided training on the more conceptual side (functional programming concepts) through to the gritty detail of DevOps (with both new and existing code bases).</p>
+
+<p>We can also tailor delivery to match your availability; for this course I traveled to Munich to deliver it, and so it was delivered in a single 5 day unit. For other clients we can arrange regular shorter sessions or even remote workshops (group or individual) with tools such as Zoom.</p>
+
+<p>And if you just want to turn up at a venue and get trained, check out <a href="/building-solid-systems-in-f-number/">Building Solid Systems in F#</a> happening 31st Jan-1st Feb 2018 in London.</p>
+
+<p>Get in touch with us at <a href="us@mavnn.co.uk">us@mavnn.co.uk</a> if you have any ideas.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">mavnn</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2017-12-07T21:00:00+00:00" pubdate data-updated="true">Dec 7<span>th</span>, 2017</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/fsharp/'>fsharp</a>, <a class='category' href='/blog/categories/training/'>training</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="https://blog.mavnn.co.uk/f-number-through-a-ruby-lens/" data-via="mavnn" data-counturl="https://blog.mavnn.co.uk/f-number-through-a-ruby-lens/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/advent-2017-reading-from-the-firehose-with-fable/" title="Previous Post: Advent 2017 - Reading from the Firehose with Fable">&laquo; Advent 2017 - Reading from the Firehose with Fable</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Hire the Author</h1>
+  <p>
+    Want some help in any of the areas you've read about? Hop across to
+    <a href="https://mavnn.co.uk">mavnn.co.uk</a> where you can hire the
+    author.
+  </p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/f-number-through-a-ruby-lens/">F# Through a Ruby Lens</a>
+      </li>
+    
+      <li class="post">
+        <a href="/advent-2017-reading-from-the-firehose-with-fable/">Advent 2017 - Reading From the Firehose With Fable</a>
+      </li>
+    
+      <li class="post">
+        <a href="/going-down-the-property-based-testing-rabbit-hole/">Going Down the Property Based Testing Rabbit Hole</a>
+      </li>
+    
+      <li class="post">
+        <a href="/all-saints-day-sale/">All Saints' Day Sale</a>
+      </li>
+    
+      <li class="post">
+        <a href="/routemaster-master-your-messaging-routes/">RouteMaster : Master Your Messaging Routes</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/mavnn">@mavnn</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'mavnn',
+            count: 3,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2017 - mavnn -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<div id="disqus_thread"></div>
+<script>
+    var disqus_config = function () {
+        this.page.url = 'https://blog.mavnn.co.uk/f-number-through-a-ruby-lens/';
+        this.page.identifier = 'https://blog.mavnn.co.uk/f-number-through-a-ruby-lens/';
+    };
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+        s.src = 'https://mavnn.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+<script type="text/javascript">
+ (function() {
+   const searchbox = document.getElementById("searchbox");
+   const site_query = document.getElementById("site_query").value;
+   const search_query = document.getElementById("search_query");
+
+   searchbox.onsubmit = function() {
+     const q = encodeURIComponent(search_query.value);
+     document.location.assign("https://google.com/search?q=" + site_query + "+" + q);
+     return false;
+   };
+ })()
+</script>
+
+
+</body>
+</html>

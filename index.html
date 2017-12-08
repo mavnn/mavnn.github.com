@@ -9,7 +9,7 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="I spent last week delivering a five day deep dive into F# for a group of (mostly) Ruby developers in Munich, and wanted to capture some of my &hellip;">
+  <meta name="description" content="Eugene Tolmachev asked in a comment on a previous post how I handle dependency injection with Freya. So&#8230; my first, slightly annoying answer is &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -80,6 +80,319 @@ ga('send', 'pageview');
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+
+  <header>
+    
+      <h1 class="entry-title"><a href="/logging-freya/">Logging Freya</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2017-12-08T15:43:57+00:00" pubdate data-updated="true">Dec 8<span>th</span>, 2017</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Eugene Tolmachev asked in a comment on a previous post <a href="http://disq.us/p/1oeml1a">how I handle dependency injection</a> with <a href="https://freya.io/">Freya</a>.</p>
+
+<p>So&#8230; my first, slightly annoying answer is that I try not to. Mark Seeman has written about this in a <a href="http://blog.ploeh.dk/2017/01/27/from-dependency-injection-to-dependency-rejection/">great series of blog posts</a> which I won&#39;t try and repeat here.</p>
+
+<p>Still, there are occasions where you want to quickly and easily do&#8230; something.. with a dependency making use of the context that being inside a Freya workflow provides. Let&#39;s quickly walk through how I inject a logger into a Freya workflow which &quot;knows&quot; about things like the request ID Kestrel has assigned to the current request.</p>
+
+<p>I&#39;m going to use Serilog as an example below, but you could also use any other structured logging library (I like Logary, but there isn&#39;t a .NET Core release at time of writing).</p>
+
+<p>I&#39;ll annotate the code inline to give you an idea what it&#39;s doing.</p>
+
+<p>So; our first module is shared code which you&#39;ll probably want to reuse across all of your Freya services. Put it in a separate .fs file (it assumes Serilog has been taken as a dependency).</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+<span class='line-number'>85</span>
+<span class='line-number'>86</span>
+<span class='line-number'>87</span>
+<span class='line-number'>88</span>
+<span class='line-number'>89</span>
+<span class='line-number'>90</span>
+<span class='line-number'>91</span>
+<span class='line-number'>92</span>
+<span class='line-number'>93</span>
+<span class='line-number'>94</span>
+<span class='line-number'>95</span>
+<span class='line-number'>96</span>
+<span class='line-number'>97</span>
+<span class='line-number'>98</span>
+<span class='line-number'>99</span>
+<span class='line-number'>100</span>
+<span class='line-number'>101</span>
+<span class='line-number'>102</span>
+<span class='line-number'>103</span>
+<span class='line-number'>104</span>
+<span class='line-number'>105</span>
+<span class='line-number'>106</span>
+<span class='line-number'>107</span>
+<span class='line-number'>108</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nc">Logging</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nn">Aether</span><span class="p">.</span><span class="nc">Operators</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Freya</span><span class="p">.</span><span class="nc">Core</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Freya</span><span class="p">.</span><span class="nc">Optics</span>
+</span><span class='line'><span class="k">open</span> <span class="nc">Serilog</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Serilog</span><span class="p">.</span><span class="nc">Context</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Serilog</span><span class="p">.</span><span class="nc">Configuration</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// We&#39;ll expand the Request module with two news Optics;</span>
+</span><span class='line'><span class="c1">// one uses the &quot;RequestId&quot; constant defined by the Owin</span>
+</span><span class='line'><span class="c1">// specification to extract the ID assigned to this request.</span>
+</span><span class='line'><span class="c1">// The other we&#39;ll define in the &quot;serilog&quot; name space in the</span>
+</span><span class='line'><span class="c1">// Freya context Dictionary (all owin keys start &quot;owin.&quot;)</span>
+</span><span class='line'><span class="o">[&lt;</span><span class="nc">RequireQualifiedAccess</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">module</span> <span class="nc">Request</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">requestId_</span> <span class="o">=</span>
+</span><span class='line'>            <span class="nn">State</span><span class="p">.</span><span class="n">value_</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span> <span class="nn">Constants</span><span class="p">.</span><span class="nc">RequestId</span>
+</span><span class='line'>        <span class="o">&gt;-&gt;</span> <span class="nn">Option</span><span class="p">.</span><span class="n">unsafe_</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// An optic for focussing on an ILogger in the Freya</span>
+</span><span class='line'>    <span class="c1">// state. That&#39;s great, but how does the ILogger get</span>
+</span><span class='line'>    <span class="c1">// there? Read on...</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">logger_</span> <span class="o">=</span>
+</span><span class='line'>            <span class="nn">State</span><span class="p">.</span><span class="n">value_</span><span class="o">&lt;</span><span class="nc">ILogger</span><span class="o">&gt;</span> <span class="s2">&quot;serilog.logger&quot;</span>
+</span><span class='line'>        <span class="o">&gt;-&gt;</span> <span class="nn">Option</span><span class="p">.</span><span class="n">unsafe_</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// As a structured logging library, you can attach an</span>
+</span><span class='line'><span class="c1">// array of &quot;values&quot; to a Serilog event - we&#39;ll use this</span>
+</span><span class='line'><span class="c1">// helper to give us a more &quot;F#ish&quot; API</span>
+</span><span class='line'><span class="k">type</span> <span class="nc">SerilogContext</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span> <span class="nc">Template</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>      <span class="nc">Values</span> <span class="o">:</span> <span class="n">obj</span> <span class="kt">list</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">[&lt;</span><span class="nc">RequireQualifiedAccess</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">module</span> <span class="nc">Log</span> <span class="o">=</span>
+</span><span class='line'>    <span class="c1">// Extract the request ID once per request</span>
+</span><span class='line'>    <span class="k">let</span> <span class="k">private</span> <span class="n">rid</span> <span class="o">=</span>
+</span><span class='line'>        <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optic</span><span class="p">.</span><span class="n">get</span> <span class="nn">Request</span><span class="p">.</span><span class="n">requestId_</span>
+</span><span class='line'>        <span class="o">|&gt;</span> <span class="nn">Freya</span><span class="p">.</span><span class="n">memo</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// Extract the ILogger once per request</span>
+</span><span class='line'>    <span class="k">let</span> <span class="k">private</span> <span class="n">ilogger</span> <span class="o">=</span>
+</span><span class='line'>        <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optic</span><span class="p">.</span><span class="n">get</span> <span class="nn">Request</span><span class="p">.</span><span class="n">logger_</span>
+</span><span class='line'>        <span class="o">|&gt;</span> <span class="nn">Freya</span><span class="p">.</span><span class="n">memo</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// A method to inject an ILogger *into* the Freya</span>
+</span><span class='line'>    <span class="c1">// state</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">injectLogger</span> <span class="o">(</span><span class="n">config</span> <span class="o">:</span> <span class="nc">LoggerConfiguration</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">logger</span> <span class="o">=</span>
+</span><span class='line'>            <span class="n">config</span>
+</span><span class='line'>                <span class="o">.</span><span class="nn">Enrich</span><span class="p">.</span><span class="nc">FromLogContext</span><span class="bp">()</span>
+</span><span class='line'>                <span class="o">.</span><span class="nc">CreateLogger</span><span class="bp">()</span>
+</span><span class='line'>            <span class="o">:&gt;</span> <span class="nc">ILogger</span>
+</span><span class='line'>        <span class="n">freya</span> <span class="o">{</span>
+</span><span class='line'>            <span class="k">do</span><span class="o">!</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optic</span><span class="p">.</span><span class="n">set</span> <span class="nn">Request</span><span class="p">.</span><span class="n">logger_</span> <span class="n">logger</span>
+</span><span class='line'>            <span class="k">return</span> <span class="nc">Next</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// From here on in is just an F# friendly wrapper</span>
+</span><span class='line'>    <span class="c1">// around Serilog.</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// Start building up a new log message with a</span>
+</span><span class='line'>    <span class="c1">// message template</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">message</span> <span class="n">template</span> <span class="o">=</span>
+</span><span class='line'>        <span class="o">{</span> <span class="nc">Template</span> <span class="o">=</span> <span class="n">template</span>
+</span><span class='line'>          <span class="nc">Values</span> <span class="o">=</span> <span class="bp">[]</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// Add a value to the message context</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">add</span> <span class="n">value</span> <span class="n">context</span> <span class="o">=</span>
+</span><span class='line'>        <span class="o">{</span> <span class="n">context</span> <span class="k">with</span> <span class="nc">Values</span> <span class="o">=</span> <span class="o">(</span><span class="n">box</span> <span class="n">value</span><span class="o">)::</span><span class="n">context</span><span class="o">.</span><span class="nc">Values</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// Function that knows how to send a message with all of the</span>
+</span><span class='line'>    <span class="c1">// values correctly associated, and the requestId set</span>
+</span><span class='line'>    <span class="k">let</span> <span class="k">private</span> <span class="n">send</span> <span class="n">f</span> <span class="n">context</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">freya</span> <span class="o">{</span>
+</span><span class='line'>            <span class="k">let</span><span class="o">!</span> <span class="n">requestId</span> <span class="o">=</span> <span class="n">rid</span>
+</span><span class='line'>            <span class="k">let</span><span class="o">!</span> <span class="n">logger</span> <span class="o">=</span> <span class="n">ilogger</span>
+</span><span class='line'>            <span class="n">using</span>
+</span><span class='line'>                <span class="o">(</span><span class="nn">LogContext</span><span class="p">.</span><span class="nc">PushProperty</span><span class="o">(</span><span class="s2">&quot;RequestId&quot;</span><span class="o">,</span> <span class="n">requestId</span><span class="o">))</span>
+</span><span class='line'>                <span class="o">(</span><span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span>
+</span><span class='line'>                     <span class="k">let</span> <span class="n">values</span> <span class="o">=</span>
+</span><span class='line'>                         <span class="n">context</span><span class="o">.</span><span class="nc">Values</span>
+</span><span class='line'>                         <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">toArray</span>
+</span><span class='line'>                         <span class="o">|&gt;</span> <span class="nn">Array</span><span class="p">.</span><span class="n">rev</span>
+</span><span class='line'>                     <span class="n">f</span> <span class="n">logger</span> <span class="n">context</span><span class="o">.</span><span class="nc">Template</span> <span class="n">values</span><span class="o">)</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// The four standard log levels</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">debug</span> <span class="n">context</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">f</span> <span class="o">(</span><span class="n">logger</span> <span class="o">:</span> <span class="nc">ILogger</span><span class="o">)</span> <span class="n">template</span> <span class="o">(</span><span class="n">values</span> <span class="o">:</span> <span class="n">obj</span> <span class="bp">[]</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>            <span class="n">logger</span><span class="o">.</span><span class="nc">Debug</span><span class="o">(</span><span class="n">template</span><span class="o">,</span> <span class="n">values</span><span class="o">)</span>
+</span><span class='line'>        <span class="n">send</span> <span class="n">f</span> <span class="n">context</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">info</span> <span class="n">context</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">f</span> <span class="o">(</span><span class="n">logger</span> <span class="o">:</span> <span class="nc">ILogger</span><span class="o">)</span> <span class="n">template</span> <span class="o">(</span><span class="n">values</span> <span class="o">:</span> <span class="n">obj</span> <span class="bp">[]</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>            <span class="n">logger</span><span class="o">.</span><span class="nc">Information</span><span class="o">(</span><span class="n">template</span><span class="o">,</span> <span class="n">values</span><span class="o">)</span>
+</span><span class='line'>        <span class="n">send</span> <span class="n">f</span> <span class="n">context</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">warn</span> <span class="n">context</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">f</span> <span class="o">(</span><span class="n">logger</span> <span class="o">:</span> <span class="nc">ILogger</span><span class="o">)</span> <span class="n">template</span> <span class="o">(</span><span class="n">values</span> <span class="o">:</span> <span class="n">obj</span> <span class="bp">[]</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>            <span class="n">logger</span><span class="o">.</span><span class="nc">Warning</span><span class="o">(</span><span class="n">template</span><span class="o">,</span> <span class="n">values</span><span class="o">)</span>
+</span><span class='line'>        <span class="n">send</span> <span class="n">f</span> <span class="n">context</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">let</span> <span class="n">error</span> <span class="n">context</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">f</span> <span class="o">(</span><span class="n">logger</span> <span class="o">:</span> <span class="nc">ILogger</span><span class="o">)</span> <span class="n">template</span> <span class="o">(</span><span class="n">values</span> <span class="o">:</span> <span class="n">obj</span> <span class="bp">[]</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>            <span class="n">logger</span><span class="o">.</span><span class="nc">Error</span><span class="o">(</span><span class="n">template</span><span class="o">,</span> <span class="n">values</span><span class="o">)</span>
+</span><span class='line'>        <span class="n">send</span> <span class="n">f</span> <span class="n">context</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>So that&#39;s great and all&#8230; but how and where do we actually call that <code>injectLogger</code> function?</p>
+
+<p>Well, that goes in your application root where you build your final Freya app.</p>
+
+<p>Mine normally ends up looking something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">root</span> <span class="n">logConfig</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">routes</span> <span class="o">=</span>
+</span><span class='line'>        <span class="n">freyaRouter</span> <span class="o">{</span> <span class="c">(* My resources here *)</span> <span class="o">}</span>
+</span><span class='line'>    <span class="nn">Log</span><span class="p">.</span><span class="n">injectLogger</span> <span class="n">logConfig</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="o">(</span><span class="n">flip</span> <span class="nn">Pipeline</span><span class="p">.</span><span class="n">compose</span><span class="o">)</span> <span class="n">routes</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="o">(</span><span class="n">flip</span> <span class="nn">Pipeline</span><span class="p">.</span><span class="n">compose</span><span class="o">)</span> <span class="n">notFound</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Because <code>injectLogger</code> returns a Freya <code>Pipeline</code> type which <em>always</em> passes handling onto the next step in the pipeline, all that first step does is add in a newly initialized ILogger to the Freya state, and then passes things on down the chain as normal.</p>
+
+<p>In your Freya code, logging looks like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">notFoundResponse</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">freya</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">path</span> <span class="o">=</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optic</span><span class="p">.</span><span class="n">get</span> <span class="nn">Request</span><span class="p">.</span><span class="n">path_</span>
+</span><span class='line'>        <span class="k">do</span><span class="o">!</span> <span class="nn">Log</span><span class="p">.</span><span class="n">message</span> <span class="s2">&quot;Why am I logging a GUID like this one {guid} on requests to {path}?&quot;</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Log</span><span class="p">.</span><span class="n">add</span> <span class="o">(</span><span class="nn">Guid</span><span class="p">.</span><span class="nc">NewGuid</span><span class="bp">()</span><span class="o">)</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Log</span><span class="p">.</span><span class="n">add</span> <span class="n">path</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Log</span><span class="p">.</span><span class="n">info</span>
+</span><span class='line'>        <span class="k">return</span> <span class="n">representJson</span> <span class="s2">&quot;We couldn&#39;t find that&quot;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Notice that <code>do!</code> is required for logging now, as our log methods have type <code>Freya&lt;unit&gt;</code>. This is what allows us to add the request specific context to our logs without explicitly having to append it ourselves every time.</p>
+
+<p>I&#39;m not sure if this strictly answers Eugene&#39;s question, but I hope all you (potential) Freya users out there find it helpful regardless.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1354,149 +1667,6 @@ ga('send', 'pageview');
 
     </article>
   
-  
-    <article>
-      
-
-  <header>
-    
-      <h1 class="entry-title"><a href="/building-solid-systems-in-f-number/">Building Solid Systems in F#</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2017-09-13T14:19:21+01:00" pubdate data-updated="true">Sep 13<span>th</span>, 2017</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>We are running another course, and I&#39;m officially stoked! Read on for the details&#8230;</p>
-
-<h2>Building Solid Systems in F#</h2>
-
-<p>Writing code is only the first part of putting software into production - to run, maintain and scale your product, you&#39;ll need to understand and design the overall system.</p>
-
-<p>This 2 day course will take you through best practice in both writing an F# based, distributed system and running it in production - including sensible inter-operation with components written in other languages.</p>
-
-<p>To fit this into 2 days, we&#39;ll need to make some opinionated decisions (such as using F#!), but many of the ideas and concepts will be transferable. </p>
-
-<h2>We&#39;ll cover:</h2>
-
-<ul class="org-ul">
-<li>Writing reliable code using F#&#8217;s unique language features</li>
-<li>Learn how to apply SOLID (like) principles in a functional style</li>
-<li>How to instrument distributed services</li>
-<li>Continuous Improvement: 
-<ul class="org-ul">
-<li>Unit testing</li>
-<li>Performance measurement</li>
-</ul></li>
-<li>Running distributed systems in development</li>
-<li>Deploying distributed systems to production</li>
-<li>Good practice in dependency management and code organization</li>
-</ul>
-
-<h2>You&#39;ll come away with:</h2>
-
-<p>
-A git repository of your completed work, which will include:
-</p>
-
-<ul class="org-ul">
-<li>Nicely instrumented, benchmarked and unit tested F# services</li>
-<li>A scripted, deterministic deployment process for the overall distributed system</li>
-<li>Real time centralized logging, metrics and health feedback from the system, whether running on the dev machine or in production</li>
-<li>Zero down time continuous deployment for the overall system</li>
-</ul>
-
-<h2>Prerequisites:</h2>
-
-<p>
-You need to have:
-</p>
-
-<ul class="org-ul">
-<li>a basic knowledge of F# syntax</li>
-<li>a reasonable background knowledge of software development</li>
-</ul>
-
-<p>
-You need to bring laptop with:
-</p>
-
-<ul class="org-ul">
-<li>a relatively recent F# development environment (you&#8217;ll need to be able to build dotnet core 2.0 apps)</li>
-<li>Minikube installed</li>
-</ul>
-
-<p>
-We&#8217;ll also ask you to pre-download some code and containers in advance so that we can hit the ground running on the first day; we&#8217;ll pass you the details of that before the event. 
-</p>
-
-<h2>Is this a replacement for Level Up Your F#?</h2>
-
-<p>No; <a href="https://blog.mavnn.co.uk/level-up-your-f-number-skills/">Level Up Your F#</a> focussed on the details of the F# language, this course is focussed on building systems. We will be running Level Up Your F# again in the future.</p>
-
-<h2>Where will it happen?</h2>
-
-<p>At the <a href="https://wellcomecollection.org/">Wellcome Collection</a></p>
-
-<h2>Where can I get tickets?</h2>
-
-<p>Right here!</p>
-
-<div style="width:100%; text-align:left;"><iframe src="//eventbrite.co.uk/tickets-external?eid=37887882677&ref=etckt" frameborder="0" height="648" width="100%" vspace="0" hspace="0" marginheight="5" marginwidth="5" scrolling="auto" allowtransparency="true"></iframe><div style="font-family:Helvetica, Arial; font-size:12px; padding:10px 0 5px; margin:2px; width:100%; text-align:left;" ><a class="powered-by-eb" style="color: #ADB0B6; text-decoration: none;" target="_blank" href="http://www.eventbrite.co.uk/">Powered by Eventbrite</a></div></div>
-
-<p>(Or go to <a href="https://www.eventbrite.co.uk/e/writing-solid-systems-in-f-tickets-37887882677">EventBrite</a> if that form isn&#39;t working for you)</p>
-
-<h2>What have other people said about your courses?</h2>
-
-<p>Hassan Ezzahir, Lead developer (Contractor) at BNP Paribas</p>
-
-<blockquote>
-<p>I’ve been trying to learn F# for several years now and got almost all
-the existing books on the subjects.</p>
-
-<p>Yet, I felt there was a gap between my good understanding of the
-language and actually applying it on bigger “real” projects.</p>
-
-<p>Michael’s great training skills has enabled me to quickly practice some
-advanced topics I was less familiar with.</p>
-
-<p>With my newly acquired knowledge, I’m confident I will be able achieve
-some great (and fun) developments with F#</p>
-</blockquote>
-
-<p>Alexander Battisti, Senior Software Developer (Machine Learning) at Freeletics GmbH</p>
-
-<blockquote>
-<p>I found &quot;Level Up your F#&quot; a good course teaching advanced topics in
-F# that are commonly ignored or glossed over when you are on your own,
-but are useful enough so you shouldn&#39;t ignore them. The exercises were
-difficult in a good way and engaging. I definitely recommend the
-course for anybody after they took their first serious steps in
-learning F#.</p>
-</blockquote>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -1520,6 +1690,10 @@ learning F#.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/logging-freya/">Logging Freya</a>
+      </li>
+    
+      <li class="post">
         <a href="/f-number-through-a-ruby-lens/">F# Through a Ruby Lens</a>
       </li>
     
@@ -1533,10 +1707,6 @@ learning F#.</p>
     
       <li class="post">
         <a href="/all-saints-day-sale/">All Saints&#8217; Day Sale</a>
-      </li>
-    
-      <li class="post">
-        <a href="/routemaster-master-your-messaging-routes/">RouteMaster : Master Your Messaging Routes</a>
       </li>
     
   </ul>

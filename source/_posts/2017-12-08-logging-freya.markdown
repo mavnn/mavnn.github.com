@@ -13,6 +13,8 @@ Still, there are occasions where you want to quickly and easily do... something.
 
 I'm going to use Serilog as an example below, but you could also use any other structured logging library (I like Logary, but there isn't a .NET Core release at time of writing).
 
+<!-- more -->
+
 I'll annotate the code inline to give you an idea what it's doing.
 
 So; our first module is shared code which you'll probably want to reuse across all of your Freya services. Put it in a separate .fs file (it assumes Serilog has been taken as a dependency).

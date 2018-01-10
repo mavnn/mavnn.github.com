@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
 
-  <title><![CDATA[Category: EasyNetQ | Mavnn's blog]]></title>
+  <title><![CDATA[Category: easynetq | Mavnn's blog]]></title>
   <link href="https://blog.mavnn.co.uk/blog/categories/easynetq/atom.xml" rel="self"/>
   <link href="https://blog.mavnn.co.uk/"/>
-  <updated>2017-12-08T16:11:37+00:00</updated>
+  <updated>2018-01-10T14:55:40+00:00</updated>
   <id>https://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -14,53 +14,1082 @@
 
   
   <entry>
-    <title type="html"><![CDATA[RouteMaster : Master Your Messaging Routes]]></title>
-    <link href="https://blog.mavnn.co.uk/routemaster-master-your-messaging-routes/"/>
-    <updated>2017-10-27T16:25:53+01:00</updated>
-    <id>https://blog.mavnn.co.uk/routemaster-master-your-messaging-routes</id>
-    <content type="html"><![CDATA[<p>I&#39;m very pleased to announce the release of an initial alpha of <a href="https://github.com/RouteMasterIntegration/RouteMaster">RouteMaster</a>.</p>
+    <title type="html"><![CDATA[Workflow Alpha]]></title>
+    <link href="https://blog.mavnn.co.uk/workflow-alpha/"/>
+    <updated>2017-10-09T21:33:36+01:00</updated>
+    <id>https://blog.mavnn.co.uk/workflow-alpha</id>
+    <content type="html"><![CDATA[<p><img src="/images/WorkflowAlpha.png" alt="Log of workflow test running"></p>
 
-<p>What is it? Well, I&#39;ll let the README speak for itself:</p>
+<p><strong>It&#39;s alive!</strong> The process manager code I&#39;ve been reconstructing (see <a href="/process-management-in-easynetq/">Intro</a> and the <a href="/an-in-memory-message-bus-in-100-lines-or-less/">in memory test bus</a>) is slowly starting to take some shape.</p>
+
+<p>As you can see, it comes with nice (<a href="https://github.com/logary/logary#using-logary-in-a-library">no dependency</a>) logging out of the box and it is async all the way down to the underlying transport.</p>
+
+<p>This is still at the underlying plumbing phase in many ways: the code to construct a workflow like this is currently a boilerplate covered ugly mess - but it&#39;s all boilerplate which has been deliberately designed to allow powerful APIs to be built over the top.</p>
+
+<p>Next up: a nice sleek API for creating &quot;pipeline&quot; workflows more easily. Then the real fun starts - pleasant to use abstractions over fork/join semantics...</p>
+
+<p><em>Interested in seeing faster progress on this project? Drop <a href="mailto://us@mavnn.co.uk">us@mavnn.co.uk</a> a line to talk sponsorship.</em></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[An In Memory Message Bus in 100 Lines or Less]]></title>
+    <link href="https://blog.mavnn.co.uk/an-in-memory-message-bus-in-100-lines-or-less/"/>
+    <updated>2017-08-17T15:15:43+01:00</updated>
+    <id>https://blog.mavnn.co.uk/an-in-memory-message-bus-in-100-lines-or-less</id>
+    <content type="html"><![CDATA[<p>In reimplementing an <a href="/process-management-in-easynetq/">EasyNetQ process manager</a> one of the things I wanted to keep from the original project was an in memory message bus that could be used for testing without requiring a running RabbitMQ server. The code has ended up being pleasingly short and also uses a few techniques that seemed interesting, so I thought I&#39;d document it here as part of the design process.</p>
+
+<p>Please note we&#39;re not going for a full re-implementation of RabbitMQ in memory here, but this does give us enough to do some useful testing!</p>
+
+<!-- more -->
 
 <blockquote>
-<p>RouteMaster is a .NET library for writing stateful workflows on top of a message bus. It exists to make the implementation of long running business processes easy in event driven systems.</p>
+<p>Author&#39;s note: since this post was written, this code was updated to be async. I&#39;ve added the new version as appendix 2</p>
 </blockquote>
 
-<p>There is also example code in the repository so you can see what things are starting to look like.</p>
+<h2>What are we building?</h2>
 
-<p>For those of you following along, this will sound awfully familiar; that&#39;s because RouteMaster is the outcome of my decision to rebuild a <a href="/process-management-in-easynetq/">Process Manager</a> for EasyNetQ. The first cut of that was imaginatively called &quot;EasyNetQ.ProcessManager&quot;, but I decided to rename it for three main reasons:</p>
+<p>In the main process manager library, I&#39;m starting to hash out the underlying types which will drive the various abstractions in play. As a consumer of the library, you&#39;ll probably never have cause to use these types directly.</p>
 
-<ul>
-<li>On re-reading <a href="http://www.enterpriseintegrationpatterns.com/">Enterprise Integration Patterns</a>, it occurred to me that RouteMaster was an enabler for many of the other patterns as well as the &quot;Process Manager&quot;</li>
-<li>The message bus RouteMaster uses is provided as an interface; the main dll has no dependency on EasyNetQ at all</li>
-<li>The previous EasyNetQ.ProcessManager is still available as a Nuget package supplied by my previous employer, and they have both the moral and legal rights to the package given I wrote the original on their time</li>
-</ul>
+<p>One of these is an interface class representing a message bus which routes on a combination of <a href="https://github.com/EasyNetQ/EasyNetQ/wiki/Topic-Based-Routing">topic</a> and .net type (i.e. how EasyNetQ routes by default). It looks like this:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">type</span> <span class="nc">Topic</span> <span class="o">=</span> <span class="nc">Topic</span> <span class="k">of</span> <span class="kt">string</span>
 
-<p>A pre-emptive few FAQs:</p>
+<span class="k">type</span> <span class="nc">ProcessManagerBus</span> <span class="o">=</span>
+    <span class="k">inherit</span> <span class="nc">IDisposable</span>
 
-<h3>Is this ready to use?</h3>
+    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">Publish</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
+        <span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="nc">TimeSpan</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
+    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">TopicPublish</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
+        <span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="nc">Topic</span> <span class="o">-&gt;</span> <span class="nc">TimeSpan</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
+    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">Subscribe</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
+        <span class="nc">SubscriptionId</span> <span class="o">-&gt;</span> <span class="o">(</span><span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="kt">unit</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
+    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">TopicSubscribe</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
+        <span class="nc">SubscriptionId</span> <span class="o">-&gt;</span> <span class="nc">Topic</span> <span class="o">-&gt;</span> <span class="o">(</span><span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="kt">unit</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
+</code></pre></div>
+<p>Production code will wrap an instance of an EasyNetQ <code>IBus</code> here, but for testing we&#39;re going to build an in memory version.</p>
 
-<p>No, not yet. I&#39;m out of time I can afford to spend on it right now, get in touch if you can/want to fund future development.</p>
+<h2>Underlying concepts</h2>
 
-<p>If you want to play, the code as provided does run and all of the process tests pass.</p>
+<p>What concepts are we going to have in play here? Well, there&#39;s going to be subscribers, who should have an action called when a relevant message is published. And we&#39;re going to want to be able to actually publish the messages.</p>
 
-<h3>Urgh! All the examples are F#!?</h3>
+<p>It makes sense to model the message bus as an agent which can have commands sent to it (a <code>MailboxProcessor</code> in F# terms), so let&#39;s model the commands we want to be able to send first:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">module</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nc">MemoryBus</span>
 
-<p>Yes, but there is a C# friendly API in the works. See the first question :)</p>
+<span class="k">open</span> <span class="nc">System</span>
+<span class="k">open</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nc">Types</span>
 
-<h3>What infrastructure do I need to run this?</h3>
+<span class="k">type</span> <span class="k">private</span> <span class="nc">Subscriber</span> <span class="o">=</span>
+    <span class="k">abstract</span> <span class="nc">Action</span> <span class="o">:</span> <span class="n">obj</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
+    <span class="k">abstract</span> <span class="nc">Type</span> <span class="o">:</span> <span class="nc">Type</span>
+    <span class="k">abstract</span> <span class="nc">Binding</span> <span class="o">:</span> <span class="kt">string</span>
 
-<p>At the moment, I&#39;m using EasyNetQ (over RabbitMQ) and PostgreSQL (via Marten) for transport and storage respectively.</p>
+<span class="k">type</span> <span class="k">private</span> <span class="nc">Subscriber</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span> <span class="o">=</span>
+    <span class="o">{</span> <span class="nc">SubscriptionId</span> <span class="o">:</span> <span class="nc">SubscriptionId</span>
+      <span class="nc">Binding</span> <span class="o">:</span> <span class="kt">string</span>
+      <span class="nc">Action</span> <span class="o">:</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="kt">unit</span> <span class="o">}</span>
+    <span class="k">interface</span> <span class="nc">Subscriber</span> <span class="k">with</span>
+        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Action</span> <span class="n">o</span> <span class="o">=</span>
+            <span class="n">o</span> <span class="o">|&gt;</span> <span class="n">unbox</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span> <span class="o">|&gt;</span> <span class="n">x</span><span class="o">.</span><span class="nc">Action</span>
+        <span class="k">member</span> <span class="o">__.</span><span class="nc">Type</span> <span class="o">=</span>
+            <span class="n">typeof</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span>
+        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Binding</span> <span class="o">=</span>
+            <span class="n">x</span><span class="o">.</span><span class="nc">Binding</span>
 
-<h3>What about things like NServiceBus and MassTransit?</h3>
+<span class="k">type</span> <span class="k">private</span> <span class="nc">BusMessage</span> <span class="o">=</span>
+    <span class="o">|</span> <span class="nc">Publish</span> <span class="k">of</span> <span class="n">obj</span> <span class="o">*</span> <span class="nc">Type</span> <span class="o">*</span> <span class="nc">DateTime</span> <span class="o">*</span> <span class="nc">Topic</span> <span class="n">option</span>
+    <span class="o">|</span> <span class="nc">Subscribe</span> <span class="k">of</span> <span class="nc">Subscriber</span>
+    <span class="o">|</span> <span class="nc">Stop</span> <span class="k">of</span> <span class="nc">AsyncReplyChannel</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span>
+</code></pre></div>
+<p>So, a subscriber knows what topic it is binding to (which might include wildcards, we&#39;ll get there in a moment), which <code>type</code> it is listening for, and an action to call when that type arrives. The agent will need to store a list of subscribers, so we wrap our generic <code>Subscriber&lt;&#39;a&gt;</code> type in a non-generic interface (<code>Subscriber</code>).</p>
 
-<p>In some ways they fall in a similar space to RouteMaster, but with a different philosophy. Just as EasyNetQ is a focused library that supplies only part of the functionality you&#39;d find in these larger solutions, RouteMaster is designed to work with your chosen transport abstraction not replace it.</p>
+<p>The <code>BusMessage</code> type then reflects the three things that we might ask the agent to do: publish a message to current subscribers, add a subscriber, or shut down and reply when shutting down is complete.</p>
 
-<h2>Ask not what your RouteMaster can do for you, but what you can do for your RouteMaster!</h2>
+<h2>Add the logic</h2>
 
-<p>I&#39;d really like feedback, ideas, use cases and suggestions - leave comments here or ping an issue onto the repository. If you&#39;re feeling really brave and can try and actually experiment with it, but at the moment I&#39;m mostly hoping for concrete use cases and, well, funding.</p>
+<p>We&#39;ll also need some logic for determining whether a topic published to match a topic which has been bound to by a subscriber. Topics in RabbitMQ are multipart strings with <code>.</code> separators - &quot;one.two.three&quot;, and messages must be published to a specific topic. But when you bind a subscriber, you can bind with two types of wildcard. A <code>*</code> matches a &quot;section&quot; (so binding to &quot;*.two&quot; will receive messages published to &quot;one.two&quot; and &quot;1.two&quot;), while a <code>#</code> finishes a binding string and matches any number of sections (so binding to &quot;one.#&quot; will match &quot;one.two&quot;, &quot;one.2&quot; and &quot;one.two.three&quot;).</p>
 
-<p>Quite a few people over the years have hit my website searching for an EasyNetQ process manager, and others have asked me if it&#39;s still available. I&#39;d like to hear from as many of you as possible to build the tightest, simplest solution which will do the job.</p>
+<p>Our logic ends up looking like this:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="k">private</span> <span class="n">compareSection</span> <span class="o">(</span><span class="n">topicSection</span> <span class="o">:</span> <span class="kt">string</span><span class="o">,</span> <span class="n">bindingSection</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span>
+    <span class="k">match</span> <span class="n">bindingSection</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="s2">&quot;#&quot;</span> <span class="o">|</span> <span class="s2">&quot;*&quot;</span> <span class="o">-&gt;</span> <span class="bp">true</span>
+    <span class="o">|</span> <span class="o">_</span> <span class="k">when</span> <span class="n">bindingSection</span> <span class="o">=</span> <span class="n">topicSection</span> <span class="o">-&gt;</span> <span class="bp">true</span>
+    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">false</span>
+
+<span class="k">let</span> <span class="k">private</span> <span class="n">topicBindingMatch</span> <span class="n">topicOpt</span> <span class="o">(</span><span class="n">binding</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span>
+    <span class="k">match</span> <span class="n">topicOpt</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="nc">Some</span> <span class="o">(</span><span class="nc">Topic</span> <span class="n">topic</span><span class="o">)</span> <span class="o">-&gt;</span>
+        <span class="k">let</span> <span class="n">topicSections</span> <span class="o">=</span> <span class="n">topic</span><span class="o">.</span><span class="nc">Split</span> <span class="sc">&#39;.&#39;</span>
+        <span class="k">let</span> <span class="n">bindingSections</span> <span class="o">=</span> <span class="n">binding</span><span class="o">.</span><span class="nc">Split</span> <span class="sc">&#39;.&#39;</span>
+        <span class="k">if</span> <span class="n">bindingSections</span><span class="o">.[</span><span class="n">bindingSections</span><span class="o">.</span><span class="nc">Length</span> <span class="o">-</span> <span class="mi">1</span><span class="o">]</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span> <span class="k">then</span>
+            <span class="c1">// Seq.zip truncates the longer sequence of the two</span>
+            <span class="c1">// provided - so here we ignore any sections beyond</span>
+            <span class="c1">// the &quot;#&quot;</span>
+            <span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">topicSections</span> <span class="n">bindingSections</span>
+            <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">forall</span> <span class="n">compareSection</span>
+        <span class="k">else</span>
+            <span class="c1">// If there&#39;s no &quot;#&quot; at the end of the binding, there</span>
+            <span class="c1">// can only be a match if there is exactly the same number</span>
+            <span class="c1">// of sections; check that before zipping the sections</span>
+            <span class="c1">// together to compare</span>
+            <span class="k">if</span> <span class="n">bindingSections</span><span class="o">.</span><span class="nc">Length</span> <span class="o">=</span> <span class="n">topicSections</span><span class="o">.</span><span class="nc">Length</span> <span class="k">then</span>
+                <span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">topicSections</span> <span class="n">bindingSections</span>
+                <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">forall</span> <span class="n">compareSection</span>
+            <span class="k">else</span>
+                <span class="bp">false</span>
+    <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span>
+        <span class="c1">// If there is no publish topic, the only binding which can match</span>
+        <span class="c1">// is &quot;#&quot; as there are no sections to compare.</span>
+        <span class="n">binding</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span>
+</code></pre></div>
+<h2>Build the agent</h2>
+
+<p>We now have all of the logic our agent requires. Let&#39;s put into together into an <code>Async</code> recursive function listening for commands.</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">let</span> <span class="k">rec</span> <span class="k">private</span> <span class="n">loop</span> <span class="n">subscribers</span> <span class="o">(</span><span class="n">agent</span> <span class="o">:</span> <span class="nc">MailboxProcessor</span><span class="o">&lt;</span><span class="nc">BusMessage</span><span class="o">&gt;)</span> <span class="o">=</span>
+    <span class="n">async</span> <span class="o">{</span>
+        <span class="k">let</span><span class="o">!</span> <span class="n">msg</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="nc">Receive</span><span class="bp">()</span>
+        <span class="k">match</span> <span class="n">msg</span> <span class="k">with</span>
+        <span class="o">|</span> <span class="nc">Stop</span> <span class="n">chan</span> <span class="o">-&gt;</span>
+            <span class="n">chan</span><span class="o">.</span><span class="nc">Reply</span> <span class="bp">()</span>
+            <span class="k">return</span> <span class="bp">()</span>
+        <span class="o">|</span> <span class="nc">Subscribe</span> <span class="n">s</span> <span class="o">-&gt;</span>
+            <span class="k">return</span><span class="o">!</span> <span class="n">loop</span> <span class="o">(</span><span class="n">s</span><span class="o">::</span><span class="n">subscribers</span><span class="o">)</span> <span class="n">agent</span>
+        <span class="o">|</span> <span class="nc">Publish</span> <span class="o">(</span><span class="n">message</span><span class="o">,</span> <span class="k">type&#39;</span><span class="o">,</span> <span class="n">expireTime</span><span class="o">,</span> <span class="n">topic</span><span class="o">)</span> <span class="o">-&gt;</span>
+            <span class="k">if</span> <span class="n">expireTime</span> <span class="o">&gt;</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">UtcNow</span> <span class="k">then</span>
+                <span class="n">subscribers</span>
+                <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">filter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">x</span> <span class="o">-&gt;</span> <span class="k">type&#39;</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="nc">Type</span>
+                                           <span class="o">&amp;&amp;</span> <span class="n">topicBindingMatch</span> <span class="n">topic</span> <span class="n">x</span><span class="o">.</span><span class="nc">Binding</span><span class="o">)</span>
+                <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">iter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">x</span> <span class="o">-&gt;</span> <span class="n">x</span><span class="o">.</span><span class="nc">Action</span> <span class="n">message</span><span class="o">)</span>
+            <span class="k">return</span><span class="o">!</span> <span class="n">loop</span> <span class="n">subscribers</span> <span class="n">agent</span>
+    <span class="o">}</span>
+</code></pre></div>
+<p>With the correct types to guide us, this function ends up almost trivial. If we receive a stop message, we reply to say we&#39;re stopped and then return <code>unit</code>, meaning we&#39;ll process no further messages.</p>
+
+<p>If we receive a subscriber, we just add it to the list of subscribers and call back into the loop.</p>
+
+<p>And finally, if there&#39;s a request to publish we check the message hasn&#39;t expired and then call of the subscribers that have the correct type and a matching binding (before calling back into the loop).</p>
+
+<h2>Wrap it all in the correct interface</h2>
+
+<p>Now we just need a type which implements the <code>ProcessManagerBus</code> interface and we&#39;re done. We want <code>Dispose</code> to stop the underlying agent, and the other methods are straight forward translations. The only real thing of note here is the line <code>do agent.Error.Add raise</code>. This is needed because by default exceptions thrown in <code>MailboxProcessor</code>s kill the background thread the agent loop is running on, but are not propagated up to the overall process. That&#39;s not the behaviour we want here: if a subscriber throws, we want to know about the error.</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">type</span> <span class="nc">MemoryBus</span> <span class="bp">()</span> <span class="o">=</span>
+    <span class="k">let</span> <span class="n">agent</span> <span class="o">=</span> <span class="nn">MailboxProcessor</span><span class="p">.</span><span class="nc">Start</span><span class="o">(</span><span class="n">loop</span> <span class="bp">[]</span><span class="o">)</span>
+    <span class="k">do</span> <span class="n">agent</span><span class="o">.</span><span class="nn">Error</span><span class="p">.</span><span class="nc">Add</span> <span class="n">raise</span>
+    <span class="k">interface</span> <span class="nc">IDisposable</span> <span class="k">with</span>
+        <span class="k">member</span> <span class="o">__.</span><span class="nc">Dispose</span><span class="bp">()</span> <span class="o">=</span>
+            <span class="n">agent</span><span class="o">.</span><span class="nc">PostAndReply</span> <span class="nc">Stop</span>
+    <span class="k">interface</span> <span class="nc">ProcessManagerBus</span> <span class="k">with</span>
+        <span class="k">member</span> <span class="o">__.</span><span class="nc">Publish</span> <span class="o">(</span><span class="n">message</span> <span class="o">:</span> <span class="k">&#39;</span><span class="n">a</span><span class="o">)</span> <span class="n">expiry</span> <span class="o">=</span>
+            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Publish</span> <span class="o">(</span><span class="n">box</span> <span class="n">message</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;,</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">UtcNow</span> <span class="o">+</span> <span class="n">expiry</span><span class="o">,</span> <span class="nc">None</span><span class="o">))</span>
+        <span class="k">member</span> <span class="o">__.</span><span class="nc">TopicPublish</span> <span class="o">(</span><span class="n">message</span> <span class="o">:</span> <span class="k">&#39;</span><span class="n">a</span><span class="o">)</span> <span class="n">topic</span> <span class="n">expiry</span> <span class="o">=</span>
+            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Publish</span> <span class="o">(</span><span class="n">box</span> <span class="n">message</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;,</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">UtcNow</span> <span class="o">+</span> <span class="n">expiry</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">topic</span><span class="o">))</span>
+        <span class="k">member</span> <span class="o">__.</span><span class="nc">Subscribe</span> <span class="n">sid</span> <span class="n">action</span> <span class="o">=</span>
+            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Subscribe</span> <span class="o">{</span> <span class="nc">SubscriptionId</span> <span class="o">=</span> <span class="n">sid</span><span class="o">;</span> <span class="nc">Binding</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span><span class="o">;</span> <span class="nc">Action</span> <span class="o">=</span> <span class="n">action</span> <span class="o">})</span>
+        <span class="k">member</span> <span class="o">__.</span><span class="nc">TopicSubscribe</span> <span class="n">sid</span> <span class="o">(</span><span class="nc">Topic</span> <span class="n">binding</span><span class="o">)</span> <span class="n">action</span> <span class="o">=</span>
+            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Subscribe</span> <span class="o">{</span> <span class="nc">SubscriptionId</span> <span class="o">=</span> <span class="n">sid</span><span class="o">;</span> <span class="nc">Binding</span> <span class="o">=</span> <span class="n">binding</span><span class="o">;</span> <span class="nc">Action</span> <span class="o">=</span> <span class="n">action</span> <span class="o">})</span>
+</code></pre></div>
+<h2>Fin</h2>
+
+<p>And there you have it! An in memory message bus in 100 lines or less of F# code. For bonus points, here&#39;s a simple set of test cases for it so you can see what it looks like in action.</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">module</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nn">Tests</span><span class="p">.</span><span class="nc">MemoryBus</span>
+
+<span class="k">open</span> <span class="nc">System</span>
+<span class="k">open</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nc">Types</span>
+<span class="k">open</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nc">MemoryBus</span>
+<span class="k">open</span> <span class="nc">Expecto</span>
+
+<span class="k">type</span> <span class="nc">T1</span> <span class="o">=</span> <span class="nc">T1</span> <span class="k">of</span> <span class="kt">string</span>
+<span class="k">type</span> <span class="nc">T2</span> <span class="o">=</span> <span class="nc">T2</span> <span class="k">of</span> <span class="kt">string</span>
+
+<span class="o">[&lt;</span><span class="nc">Tests</span><span class="o">&gt;]</span>
+<span class="k">let</span> <span class="n">memoryBusTests</span> <span class="o">=</span>
+    <span class="n">testList</span> <span class="s2">&quot;memory bus tests&quot;</span> <span class="o">[</span>
+        <span class="n">testCase</span> <span class="s2">&quot;Basic send/subscibe works&quot;</span> <span class="o">&lt;|</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span>
+            <span class="k">let</span> <span class="n">receivedMessage</span> <span class="o">=</span> <span class="n">ref</span> <span class="nc">None</span>
+            <span class="k">let</span> <span class="n">bus</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">MemoryBus</span><span class="bp">()</span> <span class="o">:&gt;</span> <span class="nc">ProcessManagerBus</span>
+            <span class="k">let</span> <span class="n">subId</span> <span class="o">=</span> <span class="nc">SubscriptionId</span> <span class="s2">&quot;t1&quot;</span>
+            <span class="n">bus</span><span class="o">.</span><span class="nc">Subscribe</span><span class="o">&lt;</span><span class="nc">T1</span><span class="o">&gt;</span> <span class="n">subId</span> <span class="o">(</span><span class="k">fun</span> <span class="o">(</span><span class="nc">T1</span> <span class="n">m</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="n">receivedMessage</span> <span class="o">:=</span> <span class="nc">Some</span> <span class="n">m</span><span class="o">)</span>
+            <span class="n">bus</span><span class="o">.</span><span class="nc">Publish</span> <span class="o">(</span><span class="nc">T1</span> <span class="s2">&quot;message&quot;</span><span class="o">)</span> <span class="o">(</span><span class="nn">TimeSpan</span><span class="p">.</span><span class="nc">FromMinutes</span> <span class="mi">1</span><span class="o">.)</span>
+            <span class="n">bus</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
+            <span class="nn">Expect</span><span class="p">.</span><span class="n">equal</span> <span class="o">(!</span><span class="n">receivedMessage</span><span class="o">)</span> <span class="o">(</span><span class="nc">Some</span> <span class="s2">&quot;message&quot;</span><span class="o">)</span> <span class="s2">&quot;Should match&quot;</span>
+
+        <span class="n">testCase</span> <span class="s2">&quot;Subscribe filters correctly by type&quot;</span> <span class="o">&lt;|</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span>
+            <span class="k">let</span> <span class="n">receivedMessage</span> <span class="o">=</span> <span class="n">ref</span> <span class="nc">None</span>
+            <span class="k">let</span> <span class="n">bus</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">MemoryBus</span><span class="bp">()</span> <span class="o">:&gt;</span> <span class="nc">ProcessManagerBus</span>
+            <span class="k">let</span> <span class="n">subId</span> <span class="o">=</span> <span class="nc">SubscriptionId</span> <span class="s2">&quot;t1&quot;</span>
+            <span class="n">bus</span><span class="o">.</span><span class="nc">Subscribe</span><span class="o">&lt;</span><span class="nc">T2</span><span class="o">&gt;</span> <span class="n">subId</span> <span class="o">(</span><span class="k">fun</span> <span class="o">(</span><span class="nc">T2</span> <span class="n">m</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="n">receivedMessage</span> <span class="o">:=</span> <span class="nc">Some</span> <span class="n">m</span><span class="o">)</span>
+            <span class="n">bus</span><span class="o">.</span><span class="nc">Publish</span> <span class="o">(</span><span class="nc">T1</span> <span class="s2">&quot;message&quot;</span><span class="o">)</span> <span class="o">(</span><span class="nn">TimeSpan</span><span class="p">.</span><span class="nc">FromMinutes</span> <span class="mi">1</span><span class="o">.)</span>
+            <span class="n">bus</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
+            <span class="nn">Expect</span><span class="p">.</span><span class="n">equal</span> <span class="o">(!</span><span class="n">receivedMessage</span><span class="o">)</span> <span class="nc">None</span> <span class="s2">&quot;Should match&quot;</span>
+
+        <span class="n">testCase</span> <span class="s2">&quot;Can publish to topic&quot;</span> <span class="o">&lt;|</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span>
+            <span class="k">let</span> <span class="n">receivedMessage</span> <span class="o">=</span> <span class="n">ref</span> <span class="nc">None</span>
+            <span class="k">let</span> <span class="n">bus</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">MemoryBus</span><span class="bp">()</span> <span class="o">:&gt;</span> <span class="nc">ProcessManagerBus</span>
+            <span class="k">let</span> <span class="n">subId</span> <span class="o">=</span> <span class="nc">SubscriptionId</span> <span class="s2">&quot;t1&quot;</span>
+            <span class="n">bus</span><span class="o">.</span><span class="nc">TopicSubscribe</span><span class="o">&lt;</span><span class="nc">T1</span><span class="o">&gt;</span> <span class="n">subId</span> <span class="o">(</span><span class="nc">Topic</span> <span class="s2">&quot;one.two&quot;</span><span class="o">)</span> <span class="o">(</span><span class="k">fun</span> <span class="o">(</span><span class="nc">T1</span> <span class="n">m</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="n">receivedMessage</span> <span class="o">:=</span> <span class="nc">Some</span> <span class="n">m</span><span class="o">)</span>
+            <span class="n">bus</span><span class="o">.</span><span class="nc">TopicPublish</span> <span class="o">(</span><span class="nc">T1</span> <span class="s2">&quot;message&quot;</span><span class="o">)</span> <span class="o">(</span><span class="nc">Topic</span> <span class="s2">&quot;one.two&quot;</span><span class="o">)</span> <span class="o">(</span><span class="nn">TimeSpan</span><span class="p">.</span><span class="nc">FromMinutes</span> <span class="mi">1</span><span class="o">.)</span>
+            <span class="n">bus</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
+            <span class="nn">Expect</span><span class="p">.</span><span class="n">equal</span> <span class="o">(!</span><span class="n">receivedMessage</span><span class="o">)</span> <span class="o">(</span><span class="nc">Some</span> <span class="s2">&quot;message&quot;</span><span class="o">)</span> <span class="s2">&quot;Should match&quot;</span>
+
+        <span class="n">testCase</span> <span class="s2">&quot;Only receives from matching topic&quot;</span> <span class="o">&lt;|</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span>
+            <span class="k">let</span> <span class="n">receivedMessage</span> <span class="o">=</span> <span class="n">ref</span> <span class="nc">None</span>
+            <span class="k">let</span> <span class="n">bus</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">MemoryBus</span><span class="bp">()</span> <span class="o">:&gt;</span> <span class="nc">ProcessManagerBus</span>
+            <span class="k">let</span> <span class="n">subId</span> <span class="o">=</span> <span class="nc">SubscriptionId</span> <span class="s2">&quot;t1&quot;</span>
+            <span class="n">bus</span><span class="o">.</span><span class="nc">TopicSubscribe</span><span class="o">&lt;</span><span class="nc">T1</span><span class="o">&gt;</span> <span class="n">subId</span> <span class="o">(</span><span class="nc">Topic</span> <span class="s2">&quot;one.two&quot;</span><span class="o">)</span> <span class="o">(</span><span class="k">fun</span> <span class="o">(</span><span class="nc">T1</span> <span class="n">m</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="n">receivedMessage</span> <span class="o">:=</span> <span class="nc">Some</span> <span class="n">m</span><span class="o">)</span>
+            <span class="n">bus</span><span class="o">.</span><span class="nc">TopicPublish</span> <span class="o">(</span><span class="nc">T1</span> <span class="s2">&quot;message&quot;</span><span class="o">)</span> <span class="o">(</span><span class="nc">Topic</span> <span class="s2">&quot;two.one&quot;</span><span class="o">)</span> <span class="o">(</span><span class="nn">TimeSpan</span><span class="p">.</span><span class="nc">FromMinutes</span> <span class="mi">1</span><span class="o">.)</span>
+            <span class="n">bus</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
+            <span class="nn">Expect</span><span class="p">.</span><span class="n">equal</span> <span class="o">(!</span><span class="n">receivedMessage</span><span class="o">)</span> <span class="nc">None</span> <span class="s2">&quot;Should match&quot;</span>
+
+        <span class="n">testCase</span> <span class="s2">&quot;Matching wildcard topic is matched&quot;</span> <span class="o">&lt;|</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span>
+            <span class="k">let</span> <span class="n">receivedMessage</span> <span class="o">=</span> <span class="n">ref</span> <span class="nc">None</span>
+            <span class="k">let</span> <span class="n">bus</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">MemoryBus</span><span class="bp">()</span> <span class="o">:&gt;</span> <span class="nc">ProcessManagerBus</span>
+            <span class="k">let</span> <span class="n">subId</span> <span class="o">=</span> <span class="nc">SubscriptionId</span> <span class="s2">&quot;t1&quot;</span>
+            <span class="n">bus</span><span class="o">.</span><span class="nc">TopicSubscribe</span><span class="o">&lt;</span><span class="nc">T1</span><span class="o">&gt;</span> <span class="n">subId</span> <span class="o">(</span><span class="nc">Topic</span> <span class="s2">&quot;*.two&quot;</span><span class="o">)</span> <span class="o">(</span><span class="k">fun</span> <span class="o">(</span><span class="nc">T1</span> <span class="n">m</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="n">receivedMessage</span> <span class="o">:=</span> <span class="nc">Some</span> <span class="n">m</span><span class="o">)</span>
+            <span class="n">bus</span><span class="o">.</span><span class="nc">TopicPublish</span> <span class="o">(</span><span class="nc">T1</span> <span class="s2">&quot;message&quot;</span><span class="o">)</span> <span class="o">(</span><span class="nc">Topic</span> <span class="s2">&quot;one.two&quot;</span><span class="o">)</span> <span class="o">(</span><span class="nn">TimeSpan</span><span class="p">.</span><span class="nc">FromMinutes</span> <span class="mi">1</span><span class="o">.)</span>
+            <span class="n">bus</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
+            <span class="nn">Expect</span><span class="p">.</span><span class="n">equal</span> <span class="o">(!</span><span class="n">receivedMessage</span><span class="o">)</span> <span class="o">(</span><span class="nc">Some</span> <span class="s2">&quot;message&quot;</span><span class="o">)</span> <span class="s2">&quot;Should match&quot;</span>
+    <span class="o">]</span>
+</code></pre></div>
+<h2>Appendix 1</h2>
+
+<p>Just to round everything off, here&#39;s a listing of the complete implementation from beginning to end.</p>
+
+<p>File 1:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">module</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nc">Types</span>
+
+<span class="k">open</span> <span class="nc">System</span>
+
+<span class="k">type</span> <span class="nc">SubscriptionId</span> <span class="o">=</span> <span class="nc">SubscriptionId</span> <span class="k">of</span> <span class="kt">string</span>
+<span class="k">type</span> <span class="nc">Topic</span> <span class="o">=</span> <span class="nc">Topic</span> <span class="k">of</span> <span class="kt">string</span>
+
+<span class="k">type</span> <span class="nc">ProcessManagerBus</span> <span class="o">=</span>
+    <span class="k">inherit</span> <span class="nc">IDisposable</span>
+
+    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">Publish</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
+        <span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="nc">TimeSpan</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
+    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">TopicPublish</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
+        <span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="nc">Topic</span> <span class="o">-&gt;</span> <span class="nc">TimeSpan</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
+    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">Subscribe</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
+        <span class="nc">SubscriptionId</span> <span class="o">-&gt;</span> <span class="o">(</span><span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="kt">unit</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
+    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">TopicSubscribe</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
+        <span class="nc">SubscriptionId</span> <span class="o">-&gt;</span> <span class="nc">Topic</span> <span class="o">-&gt;</span> <span class="o">(</span><span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="kt">unit</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
+</code></pre></div>
+<p>File 2:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">module</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nc">MemoryBus</span>
+
+<span class="k">open</span> <span class="nc">System</span>
+<span class="k">open</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nc">Types</span>
+
+<span class="k">type</span> <span class="k">private</span> <span class="nc">Subscriber</span> <span class="o">=</span>
+    <span class="k">abstract</span> <span class="nc">Action</span> <span class="o">:</span> <span class="n">obj</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
+    <span class="k">abstract</span> <span class="nc">Type</span> <span class="o">:</span> <span class="nc">Type</span>
+    <span class="k">abstract</span> <span class="nc">Binding</span> <span class="o">:</span> <span class="kt">string</span>
+
+<span class="k">type</span> <span class="k">private</span> <span class="nc">Subscriber</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span> <span class="o">=</span>
+    <span class="o">{</span> <span class="nc">SubscriptionId</span> <span class="o">:</span> <span class="nc">SubscriptionId</span>
+      <span class="nc">Binding</span> <span class="o">:</span> <span class="kt">string</span>
+      <span class="nc">Action</span> <span class="o">:</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="kt">unit</span> <span class="o">}</span>
+    <span class="k">interface</span> <span class="nc">Subscriber</span> <span class="k">with</span>
+        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Action</span> <span class="n">o</span> <span class="o">=</span>
+            <span class="n">o</span> <span class="o">|&gt;</span> <span class="n">unbox</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span> <span class="o">|&gt;</span> <span class="n">x</span><span class="o">.</span><span class="nc">Action</span>
+        <span class="k">member</span> <span class="o">__.</span><span class="nc">Type</span> <span class="o">=</span>
+            <span class="n">typeof</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span>
+        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Binding</span> <span class="o">=</span>
+            <span class="n">x</span><span class="o">.</span><span class="nc">Binding</span>
+
+<span class="k">type</span> <span class="k">private</span> <span class="nc">BusMessage</span> <span class="o">=</span>
+    <span class="o">|</span> <span class="nc">Publish</span> <span class="k">of</span> <span class="n">obj</span> <span class="o">*</span> <span class="nc">Type</span> <span class="o">*</span> <span class="nc">DateTime</span> <span class="o">*</span> <span class="nc">Topic</span> <span class="n">option</span>
+    <span class="o">|</span> <span class="nc">Subscribe</span> <span class="k">of</span> <span class="nc">Subscriber</span>
+    <span class="o">|</span> <span class="nc">Stop</span> <span class="k">of</span> <span class="nc">AsyncReplyChannel</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span>
+
+<span class="k">let</span> <span class="k">private</span> <span class="n">compareSection</span> <span class="o">(</span><span class="n">topicSection</span> <span class="o">:</span> <span class="kt">string</span><span class="o">,</span> <span class="n">bindingSection</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span>
+    <span class="k">match</span> <span class="n">bindingSection</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="s2">&quot;#&quot;</span> <span class="o">|</span> <span class="s2">&quot;*&quot;</span> <span class="o">-&gt;</span> <span class="bp">true</span>
+    <span class="o">|</span> <span class="o">_</span> <span class="k">when</span> <span class="n">bindingSection</span> <span class="o">=</span> <span class="n">topicSection</span> <span class="o">-&gt;</span> <span class="bp">true</span>
+    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">false</span>
+
+<span class="k">let</span> <span class="k">private</span> <span class="n">topicBindingMatch</span> <span class="n">topicOpt</span> <span class="o">(</span><span class="n">binding</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span>
+    <span class="k">match</span> <span class="n">topicOpt</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="nc">Some</span> <span class="o">(</span><span class="nc">Topic</span> <span class="n">topic</span><span class="o">)</span> <span class="o">-&gt;</span>
+        <span class="k">let</span> <span class="n">topicSections</span> <span class="o">=</span> <span class="n">topic</span><span class="o">.</span><span class="nc">Split</span> <span class="sc">&#39;.&#39;</span>
+        <span class="k">let</span> <span class="n">bindingSections</span> <span class="o">=</span> <span class="n">binding</span><span class="o">.</span><span class="nc">Split</span> <span class="sc">&#39;.&#39;</span>
+        <span class="k">if</span> <span class="n">bindingSections</span><span class="o">.[</span><span class="n">bindingSections</span><span class="o">.</span><span class="nc">Length</span> <span class="o">-</span> <span class="mi">1</span><span class="o">]</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span> <span class="k">then</span>
+            <span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">topicSections</span> <span class="n">bindingSections</span>
+            <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">forall</span> <span class="n">compareSection</span>
+        <span class="k">else</span>
+            <span class="k">if</span> <span class="n">bindingSections</span><span class="o">.</span><span class="nc">Length</span> <span class="o">=</span> <span class="n">topicSections</span><span class="o">.</span><span class="nc">Length</span> <span class="k">then</span>
+                <span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">topicSections</span> <span class="n">bindingSections</span>
+                <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">forall</span> <span class="n">compareSection</span>
+            <span class="k">else</span>
+                <span class="bp">false</span>
+    <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span>
+        <span class="n">binding</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span>
+
+<span class="k">let</span> <span class="k">rec</span> <span class="k">private</span> <span class="n">loop</span> <span class="n">subscribers</span> <span class="o">(</span><span class="n">agent</span> <span class="o">:</span> <span class="nc">MailboxProcessor</span><span class="o">&lt;</span><span class="nc">BusMessage</span><span class="o">&gt;)</span> <span class="o">=</span>
+    <span class="n">async</span> <span class="o">{</span>
+        <span class="k">let</span><span class="o">!</span> <span class="n">msg</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="nc">Receive</span><span class="bp">()</span>
+        <span class="k">match</span> <span class="n">msg</span> <span class="k">with</span>
+        <span class="o">|</span> <span class="nc">Stop</span> <span class="n">chan</span> <span class="o">-&gt;</span>
+            <span class="n">chan</span><span class="o">.</span><span class="nc">Reply</span> <span class="bp">()</span>
+            <span class="k">return</span> <span class="bp">()</span>
+        <span class="o">|</span> <span class="nc">Subscribe</span> <span class="n">s</span> <span class="o">-&gt;</span>
+            <span class="k">return</span><span class="o">!</span> <span class="n">loop</span> <span class="o">(</span><span class="n">s</span><span class="o">::</span><span class="n">subscribers</span><span class="o">)</span> <span class="n">agent</span>
+        <span class="o">|</span> <span class="nc">Publish</span> <span class="o">(</span><span class="n">message</span><span class="o">,</span> <span class="k">type&#39;</span><span class="o">,</span> <span class="n">expireTime</span><span class="o">,</span> <span class="n">topic</span><span class="o">)</span> <span class="o">-&gt;</span>
+            <span class="k">if</span> <span class="n">expireTime</span> <span class="o">&gt;</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">UtcNow</span> <span class="k">then</span>
+                <span class="n">subscribers</span>
+                <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">filter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">x</span> <span class="o">-&gt;</span> <span class="k">type&#39;</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="nc">Type</span>
+                                           <span class="o">&amp;&amp;</span> <span class="n">topicBindingMatch</span> <span class="n">topic</span> <span class="n">x</span><span class="o">.</span><span class="nc">Binding</span><span class="o">)</span>
+                <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">iter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">x</span> <span class="o">-&gt;</span> <span class="n">x</span><span class="o">.</span><span class="nc">Action</span> <span class="n">message</span><span class="o">)</span>
+            <span class="k">return</span><span class="o">!</span> <span class="n">loop</span> <span class="n">subscribers</span> <span class="n">agent</span>
+    <span class="o">}</span>
+
+<span class="k">type</span> <span class="nc">MemoryBus</span> <span class="bp">()</span> <span class="o">=</span>
+    <span class="k">let</span> <span class="n">agent</span> <span class="o">=</span> <span class="nn">MailboxProcessor</span><span class="p">.</span><span class="nc">Start</span><span class="o">(</span><span class="n">loop</span> <span class="bp">[]</span><span class="o">)</span>
+    <span class="k">do</span> <span class="n">agent</span><span class="o">.</span><span class="nn">Error</span><span class="p">.</span><span class="nc">Add</span> <span class="n">raise</span>
+    <span class="k">interface</span> <span class="nc">IDisposable</span> <span class="k">with</span>
+        <span class="k">member</span> <span class="o">__.</span><span class="nc">Dispose</span><span class="bp">()</span> <span class="o">=</span>
+            <span class="n">agent</span><span class="o">.</span><span class="nc">PostAndReply</span> <span class="nc">Stop</span>
+    <span class="k">interface</span> <span class="nc">ProcessManagerBus</span> <span class="k">with</span>
+        <span class="k">member</span> <span class="o">__.</span><span class="nc">Publish</span> <span class="o">(</span><span class="n">message</span> <span class="o">:</span> <span class="k">&#39;</span><span class="n">a</span><span class="o">)</span> <span class="n">expiry</span> <span class="o">=</span>
+            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Publish</span> <span class="o">(</span><span class="n">box</span> <span class="n">message</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;,</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">UtcNow</span> <span class="o">+</span> <span class="n">expiry</span><span class="o">,</span> <span class="nc">None</span><span class="o">))</span>
+        <span class="k">member</span> <span class="o">__.</span><span class="nc">TopicPublish</span> <span class="o">(</span><span class="n">message</span> <span class="o">:</span> <span class="k">&#39;</span><span class="n">a</span><span class="o">)</span> <span class="n">topic</span> <span class="n">expiry</span> <span class="o">=</span>
+            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Publish</span> <span class="o">(</span><span class="n">box</span> <span class="n">message</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;,</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">UtcNow</span> <span class="o">+</span> <span class="n">expiry</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">topic</span><span class="o">))</span>
+        <span class="k">member</span> <span class="o">__.</span><span class="nc">Subscribe</span> <span class="n">sid</span> <span class="n">action</span> <span class="o">=</span>
+            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Subscribe</span> <span class="o">{</span> <span class="nc">SubscriptionId</span> <span class="o">=</span> <span class="n">sid</span><span class="o">;</span> <span class="nc">Binding</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span><span class="o">;</span> <span class="nc">Action</span> <span class="o">=</span> <span class="n">action</span> <span class="o">})</span>
+        <span class="k">member</span> <span class="o">__.</span><span class="nc">TopicSubscribe</span> <span class="n">sid</span> <span class="o">(</span><span class="nc">Topic</span> <span class="n">binding</span><span class="o">)</span> <span class="n">action</span> <span class="o">=</span>
+            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Subscribe</span> <span class="o">{</span> <span class="nc">SubscriptionId</span> <span class="o">=</span> <span class="n">sid</span><span class="o">;</span> <span class="nc">Binding</span> <span class="o">=</span> <span class="n">binding</span><span class="o">;</span> <span class="nc">Action</span> <span class="o">=</span> <span class="n">action</span> <span class="o">})</span>
+</code></pre></div>
+<h2>Appendix 1</h2>
+
+<p>The async version!</p>
+
+<p>File 1:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">module</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nc">Types</span>
+
+<span class="k">open</span> <span class="nc">System</span>
+
+<span class="k">type</span> <span class="nc">SubscriptionId</span> <span class="o">=</span> <span class="nc">SubscriptionId</span> <span class="k">of</span> <span class="kt">string</span>
+<span class="k">type</span> <span class="nc">Topic</span> <span class="o">=</span> <span class="nc">Topic</span> <span class="k">of</span> <span class="kt">string</span>
+
+<span class="k">type</span> <span class="nc">ProcessManagerBus</span> <span class="o">=</span>
+    <span class="k">inherit</span> <span class="nc">IDisposable</span>
+
+    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">Publish</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
+        <span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="nc">TimeSpan</span> <span class="o">-&gt;</span> <span class="nc">Async</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span>
+    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">TopicPublish</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
+        <span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="nc">Topic</span> <span class="o">-&gt;</span> <span class="nc">TimeSpan</span> <span class="o">-&gt;</span> <span class="nc">Async</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span>
+    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">Subscribe</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
+        <span class="nc">SubscriptionId</span> <span class="o">-&gt;</span> <span class="o">(</span><span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="nc">Async</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;)</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
+    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">TopicSubscribe</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
+        <span class="nc">SubscriptionId</span> <span class="o">-&gt;</span> <span class="nc">Topic</span> <span class="o">-&gt;</span> <span class="o">(</span><span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="nc">Async</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;)</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
+</code></pre></div>
+<p>File 2:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="k">module</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nc">MemoryBus</span>
+
+<span class="k">open</span> <span class="nc">System</span>
+<span class="k">open</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nc">Types</span>
+
+<span class="k">type</span> <span class="k">private</span> <span class="nc">Subscriber</span> <span class="o">=</span>
+    <span class="k">abstract</span> <span class="nc">Action</span> <span class="o">:</span> <span class="n">obj</span> <span class="o">-&gt;</span> <span class="nc">Async</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span>
+    <span class="k">abstract</span> <span class="nc">Type</span> <span class="o">:</span> <span class="nc">Type</span>
+    <span class="k">abstract</span> <span class="nc">Binding</span> <span class="o">:</span> <span class="kt">string</span>
+
+<span class="k">type</span> <span class="k">private</span> <span class="nc">Subscriber</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span> <span class="o">=</span>
+    <span class="o">{</span> <span class="nc">SubscriptionId</span> <span class="o">:</span> <span class="nc">SubscriptionId</span>
+      <span class="nc">Binding</span> <span class="o">:</span> <span class="kt">string</span>
+      <span class="nc">Action</span> <span class="o">:</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="nc">Async</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span> <span class="o">}</span>
+    <span class="k">interface</span> <span class="nc">Subscriber</span> <span class="k">with</span>
+        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Action</span> <span class="n">o</span> <span class="o">=</span>
+            <span class="n">o</span> <span class="o">|&gt;</span> <span class="n">unbox</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span> <span class="o">|&gt;</span> <span class="n">x</span><span class="o">.</span><span class="nc">Action</span>
+        <span class="k">member</span> <span class="o">__.</span><span class="nc">Type</span> <span class="o">=</span>
+            <span class="n">typeof</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span>
+        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Binding</span> <span class="o">=</span>
+            <span class="n">x</span><span class="o">.</span><span class="nc">Binding</span>
+
+<span class="k">type</span> <span class="k">private</span> <span class="nc">BusMessage</span> <span class="o">=</span>
+    <span class="o">|</span> <span class="nc">Publish</span> <span class="k">of</span> <span class="n">obj</span> <span class="o">*</span> <span class="nc">Type</span> <span class="o">*</span> <span class="nc">DateTime</span> <span class="o">*</span> <span class="nc">Topic</span> <span class="n">option</span>
+    <span class="o">|</span> <span class="nc">Subscribe</span> <span class="k">of</span> <span class="nc">Subscriber</span>
+    <span class="o">|</span> <span class="nc">Stop</span> <span class="k">of</span> <span class="nc">AsyncReplyChannel</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span>
+
+<span class="k">let</span> <span class="k">private</span> <span class="n">compareSection</span> <span class="o">(</span><span class="n">topicSection</span> <span class="o">:</span> <span class="kt">string</span><span class="o">,</span> <span class="n">bindingSection</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span>
+    <span class="k">match</span> <span class="n">bindingSection</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="s2">&quot;#&quot;</span> <span class="o">|</span> <span class="s2">&quot;*&quot;</span> <span class="o">-&gt;</span> <span class="bp">true</span>
+    <span class="o">|</span> <span class="o">_</span> <span class="k">when</span> <span class="n">bindingSection</span> <span class="o">=</span> <span class="n">topicSection</span> <span class="o">-&gt;</span> <span class="bp">true</span>
+    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">false</span>
+
+<span class="k">let</span> <span class="k">private</span> <span class="n">topicBindingMatch</span> <span class="n">topicOpt</span> <span class="o">(</span><span class="n">binding</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span>
+    <span class="k">match</span> <span class="n">topicOpt</span> <span class="k">with</span>
+    <span class="o">|</span> <span class="nc">Some</span> <span class="o">(</span><span class="nc">Topic</span> <span class="n">topic</span><span class="o">)</span> <span class="o">-&gt;</span>
+        <span class="k">let</span> <span class="n">topicSections</span> <span class="o">=</span> <span class="n">topic</span><span class="o">.</span><span class="nc">Split</span> <span class="sc">&#39;.&#39;</span>
+        <span class="k">let</span> <span class="n">bindingSections</span> <span class="o">=</span> <span class="n">binding</span><span class="o">.</span><span class="nc">Split</span> <span class="sc">&#39;.&#39;</span>
+        <span class="k">if</span> <span class="n">bindingSections</span><span class="o">.[</span><span class="n">bindingSections</span><span class="o">.</span><span class="nc">Length</span> <span class="o">-</span> <span class="mi">1</span><span class="o">]</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span> <span class="k">then</span>
+            <span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">topicSections</span> <span class="n">bindingSections</span>
+            <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">forall</span> <span class="n">compareSection</span>
+        <span class="k">else</span>
+            <span class="k">if</span> <span class="n">bindingSections</span><span class="o">.</span><span class="nc">Length</span> <span class="o">=</span> <span class="n">topicSections</span><span class="o">.</span><span class="nc">Length</span> <span class="k">then</span>
+                <span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">topicSections</span> <span class="n">bindingSections</span>
+                <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">forall</span> <span class="n">compareSection</span>
+            <span class="k">else</span>
+                <span class="bp">false</span>
+    <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span>
+        <span class="n">binding</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span>
+
+<span class="k">let</span> <span class="k">rec</span> <span class="k">private</span> <span class="n">loop</span> <span class="n">subscribers</span> <span class="o">(</span><span class="n">exiting</span> <span class="o">:</span> <span class="nc">AsyncReplyChannel</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span> <span class="n">option</span><span class="o">)</span> <span class="o">(</span><span class="n">agent</span> <span class="o">:</span> <span class="nc">MailboxProcessor</span><span class="o">&lt;</span><span class="nc">BusMessage</span><span class="o">&gt;)</span> <span class="o">=</span>
+    <span class="n">async</span> <span class="o">{</span>
+        <span class="k">match</span> <span class="n">exiting</span> <span class="k">with</span>
+        <span class="o">|</span> <span class="nc">Some</span> <span class="n">chan</span> <span class="k">when</span> <span class="n">agent</span><span class="o">.</span><span class="nc">CurrentQueueLength</span> <span class="o">=</span> <span class="mi">0</span> <span class="o">-&gt;</span>
+            <span class="k">return</span> <span class="n">chan</span><span class="o">.</span><span class="nc">Reply</span><span class="bp">()</span>
+        <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
+            <span class="k">let</span><span class="o">!</span> <span class="n">msg</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="nc">Receive</span><span class="bp">()</span>
+            <span class="k">match</span> <span class="n">msg</span> <span class="k">with</span>
+            <span class="o">|</span> <span class="nc">Stop</span> <span class="n">chan</span> <span class="o">-&gt;</span>
+                <span class="k">return</span><span class="o">!</span> <span class="n">loop</span> <span class="n">subscribers</span> <span class="o">(</span><span class="nc">Some</span> <span class="n">chan</span><span class="o">)</span> <span class="n">agent</span>
+            <span class="o">|</span> <span class="nc">Subscribe</span> <span class="n">s</span> <span class="o">-&gt;</span>
+                <span class="k">return</span><span class="o">!</span> <span class="n">loop</span> <span class="o">(</span><span class="n">s</span><span class="o">::</span><span class="n">subscribers</span><span class="o">)</span> <span class="n">exiting</span> <span class="n">agent</span>
+            <span class="o">|</span> <span class="nc">Publish</span> <span class="o">(</span><span class="n">message</span><span class="o">,</span> <span class="k">type&#39;</span><span class="o">,</span> <span class="n">expireTime</span><span class="o">,</span> <span class="n">topic</span><span class="o">)</span> <span class="o">-&gt;</span>
+                <span class="k">if</span> <span class="n">expireTime</span> <span class="o">&gt;</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">UtcNow</span> <span class="k">then</span>
+                    <span class="k">let</span> <span class="n">matchingSubs</span> <span class="o">=</span>
+                        <span class="n">subscribers</span>
+                        <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">filter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">x</span> <span class="o">-&gt;</span> <span class="k">type&#39;</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="nc">Type</span>
+                                                  <span class="o">&amp;&amp;</span> <span class="n">topicBindingMatch</span> <span class="n">topic</span> <span class="n">x</span><span class="o">.</span><span class="nc">Binding</span><span class="o">)</span>
+                    <span class="k">for</span> <span class="n">sub</span> <span class="k">in</span> <span class="n">matchingSubs</span> <span class="k">do</span>
+                        <span class="n">sub</span><span class="o">.</span><span class="nc">Action</span> <span class="n">message</span> <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">StartImmediate</span>
+                <span class="k">return</span><span class="o">!</span> <span class="n">loop</span> <span class="n">subscribers</span> <span class="n">exiting</span> <span class="n">agent</span>
+    <span class="o">}</span>
+
+<span class="k">type</span> <span class="nc">MemoryBus</span> <span class="bp">()</span> <span class="o">=</span>
+    <span class="k">let</span> <span class="n">agent</span> <span class="o">=</span> <span class="nn">MailboxProcessor</span><span class="p">.</span><span class="nc">Start</span><span class="o">(</span><span class="n">loop</span> <span class="bp">[]</span> <span class="nc">None</span><span class="o">)</span>
+    <span class="k">do</span> <span class="n">agent</span><span class="o">.</span><span class="nn">Error</span><span class="p">.</span><span class="nc">Add</span> <span class="n">raise</span>
+    <span class="k">interface</span> <span class="nc">IDisposable</span> <span class="k">with</span>
+        <span class="k">member</span> <span class="o">__.</span><span class="nc">Dispose</span><span class="bp">()</span> <span class="o">=</span>
+            <span class="n">agent</span><span class="o">.</span><span class="nc">PostAndReply</span> <span class="nc">Stop</span>
+    <span class="k">interface</span> <span class="nc">ProcessManagerBus</span> <span class="k">with</span>
+        <span class="k">member</span> <span class="o">__.</span><span class="nc">Publish</span> <span class="o">(</span><span class="n">message</span> <span class="o">:</span> <span class="k">&#39;</span><span class="n">a</span><span class="o">)</span> <span class="n">expiry</span> <span class="o">=</span>
+            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Publish</span> <span class="o">(</span><span class="n">box</span> <span class="n">message</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;,</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">UtcNow</span> <span class="o">+</span> <span class="n">expiry</span><span class="o">,</span> <span class="nc">None</span><span class="o">))</span>
+            <span class="n">async</span><span class="o">.</span><span class="nc">Zero</span><span class="bp">()</span>
+        <span class="k">member</span> <span class="o">__.</span><span class="nc">TopicPublish</span> <span class="o">(</span><span class="n">message</span> <span class="o">:</span> <span class="k">&#39;</span><span class="n">a</span><span class="o">)</span> <span class="n">topic</span> <span class="n">expiry</span> <span class="o">=</span>
+            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Publish</span> <span class="o">(</span><span class="n">box</span> <span class="n">message</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;,</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">UtcNow</span> <span class="o">+</span> <span class="n">expiry</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">topic</span><span class="o">))</span>
+            <span class="n">async</span><span class="o">.</span><span class="nc">Zero</span><span class="bp">()</span>
+        <span class="k">member</span> <span class="o">__.</span><span class="nc">Subscribe</span> <span class="n">sid</span> <span class="n">action</span> <span class="o">=</span>
+            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Subscribe</span> <span class="o">{</span> <span class="nc">SubscriptionId</span> <span class="o">=</span> <span class="n">sid</span><span class="o">;</span> <span class="nc">Binding</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span><span class="o">;</span> <span class="nc">Action</span> <span class="o">=</span> <span class="n">action</span> <span class="o">})</span>
+        <span class="k">member</span> <span class="o">__.</span><span class="nc">TopicSubscribe</span> <span class="n">sid</span> <span class="o">(</span><span class="nc">Topic</span> <span class="n">binding</span><span class="o">)</span> <span class="n">action</span> <span class="o">=</span>
+            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Subscribe</span> <span class="o">{</span> <span class="nc">SubscriptionId</span> <span class="o">=</span> <span class="n">sid</span><span class="o">;</span> <span class="nc">Binding</span> <span class="o">=</span> <span class="n">binding</span><span class="o">;</span> <span class="nc">Action</span> <span class="o">=</span> <span class="n">action</span> <span class="o">})</span>
+</code></pre></div>]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Process Management in EasyNetQ]]></title>
+    <link href="https://blog.mavnn.co.uk/process-management-in-easynetq/"/>
+    <updated>2017-07-29T12:34:03+01:00</updated>
+    <id>https://blog.mavnn.co.uk/process-management-in-easynetq</id>
+    <content type="html"><![CDATA[<blockquote>
+<p>Update! Check out <a href="/routemaster-master-your-messaging-routes/">RouteMaster</a> for a progress update on this.</p>
+</blockquote>
+
+<p>Back in 2015, I wrote about a <a href="https://blog.mavnn.co.uk/easynetq-process-management/">process manager</a> I&#39;d written over
+the top of <a href="http://easynetq.com/">EasyNetQ</a>. At the time it was released as open
+source, and I was pretty pleased with it. It allowed you to fairly quickly string
+together a managed work flow of services steps with built in state management for
+each work flow, and avoided many of the potential pitfalls of trying to build
+a request/response based system in situations where it isn&#39;t appropriate.</p>
+
+<p>Two years on, I&#39;ve learnt a lot about distributed system design and a lot about
+composing logic (<em>cough</em> monads <em>cough</em>) - and the original source is no longer
+available from my previous employers where it was written.</p>
+
+<p>Despite that, I&#39;ve had a lot of interest in the library in between, so I&#39;m
+embarking on a full, clean room, rewrite incorporating everything I&#39;ve learnt.
+This will also allow me to take advantage of the (very) recent move of EasyNetQ
+to be .netcore compatible to build the library against .NET Standard, providing
+a fully portable solution out of the box.</p>
+
+<p>As with EasyNetQ itself, the major focus of this project will be providing the
+best possible developer experience. This means that it will provide sensible
+defaults and will be opinionated in places.</p>
+
+<p>Where do you come into all of this? Well, we&#39;re looking for corporate sponsorship
+to help accelerate the development process and we&#39;re looking for testers to help
+build products with pre-release versions. In both cases you get to help to drive
+which opinions the library settles on, and as a corporate sponsor we&#39;ll also help
+you get up and running. Whether you&#39;re sponsoring or not, we&#39;d love you to get involved.</p>
+
+<p>And on a more general note, if you find you&#39;re pushing the boundaries of EasyNetQ
+in any way and you&#39;d like some help, I&#39;d be happy to set up training or consultancy
+for a bespoke solution for you as well. Drop a note to <a href="mailto://us@mavnn.co.uk">us@mavnn.co.uk</a>.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[EasyNetQ Process Management]]></title>
+    <link href="https://blog.mavnn.co.uk/easynetq-process-management/"/>
+    <updated>2015-10-05T12:23:02+01:00</updated>
+    <id>https://blog.mavnn.co.uk/easynetq-process-management</id>
+    <content type="html"><![CDATA[<h1>Obsolete blog post warning!</h1>
+
+<p>Since this blog post has been written, I&#39;ve been working on <a href="/routemaster-master-your-messaging-routes/">RouteMaster</a>. It&#39;s much better than what&#39;s described here, and you should check it out.</p>
+
+<p>...and now, back to your original blog post.</p>
+
+<blockquote>
+<p>TL;DR: I wrote a EasyNetQ aware process manager library. Read down for some examples, and leave feedback if you think anything should change before it&#39;s released.</p>
+</blockquote>
+
+<p><a href="http://easynetq.com/">EasyNetQ</a> is a nice little .net client library for RabbitMQ. Originally designed for introducing Rabbit (and the concepts of a bus based architecture)
+to a company and programmers who hadn&#39;t previously used them before, it uses conventions to set up exchanges and queues - basing them on the names of the .net types that are
+being sent and subscribe to.</p>
+
+<p>For example (from the EasyNetQ homepage):</p>
+<div class="highlight"><pre><code class="csharp"><span class="n">bus</span><span class="p">.</span><span class="n">Publish</span><span class="p">&lt;</span><span class="n">MyMessage</span><span class="p">&gt;(</span><span class="n">message</span><span class="p">);</span>
+</code></pre></div>
+<p>Will publish a message of type &quot;MyMessage&quot;. Generally there&#39;s no need to actually specify the type here, C# will infer it for you, but it makes the example clearer.</p>
+
+<p>Other services can subscribe to &quot;MyMessage&quot; like so:</p>
+<div class="highlight"><pre><code class="csharp"><span class="n">bus</span><span class="p">.</span><span class="n">Subscribe</span><span class="p">&lt;</span><span class="n">MyMessage</span><span class="p">&gt;(</span><span class="s">&quot;my_subscription_id&quot;</span><span class="p">,</span> <span class="n">msg</span> <span class="p">=&gt;</span> 
+      <span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="n">msg</span><span class="p">.</span><span class="n">Text</span><span class="p">));</span>
+</code></pre></div>
+<!-- more -->
+
+<p>If multiple services use the same subscription id, they will all connect to the same queue on the Rabbit server. This means in practice they will round-robin receipt of
+messages, allowing for easy horizontal scalability. Subscribers with a different subscription ID will create a new queue behind the scenes and so a copy of the message will
+be routed to both subscription IDs.</p>
+
+<p>At this point, the only real point of coupling between subscribers and publishers is the need to share a dll with your &quot;contract types&quot; - the types that are going to be
+used for publishing and subscribing.</p>
+
+<p>This immediately gives you a lot of the ground work you need to start creating a message based system. But there is one big hole, which it&#39;s harder to fill than you might
+think.</p>
+
+<p>The hole is that at some point you&#39;re going to want to start building processes on top of your message based services which glue together some kind of long running
+work flow which requires information from several other components.</p>
+
+<p>Let&#39;s start with a simple example - we&#39;ll assume we have a email sending system. It has a bus based service that knows how to grab some data from somewhere;
+a service that stores email templates; a service that knows how to render the data and template together; and finally an email sender.</p>
+
+<p>Triggering the services might look a bit like this (if you&#39;re working in F#):</p>
+<div class="highlight"><pre><code class="fsharp"><span class="n">bus</span><span class="o">.</span><span class="nc">Publish</span> <span class="o">{</span> <span class="nn">StoreModel</span><span class="p">.</span><span class="nc">CorrelationId</span> <span class="o">=</span> <span class="nn">Guid</span><span class="p">.</span><span class="nc">NewGuid</span><span class="bp">()</span><span class="o">;</span> <span class="nc">Model</span> <span class="o">=</span> <span class="n">model</span> <span class="o">}</span>
+<span class="n">bus</span><span class="o">.</span><span class="nc">Publish</span> <span class="o">{</span> <span class="nn">StoreTemplate</span><span class="p">.</span><span class="nc">CorrelationId</span> <span class="o">=</span> <span class="nn">Guid</span><span class="p">.</span><span class="nc">NewGuid</span><span class="bp">()</span><span class="o">;</span> <span class="nc">Name</span> <span class="o">=</span> <span class="s2">&quot;mytemplate&quot;</span><span class="o">;</span> <span class="nc">Template</span> <span class="o">=</span> <span class="n">template</span> <span class="o">}</span>
+<span class="n">bus</span><span class="o">.</span><span class="nc">Publish</span> <span class="o">{</span> <span class="nn">RequestRender</span><span class="p">.</span><span class="nc">CorrelationId</span> <span class="o">=</span> <span class="nn">Guid</span><span class="p">.</span><span class="nc">NewGuid</span><span class="bp">()</span><span class="o">;</span> <span class="nc">TemplateId</span> <span class="o">=</span> <span class="mi">1</span><span class="o">;</span> <span class="nc">ModelId</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">}</span>
+<span class="n">bus</span><span class="o">.</span><span class="nc">Publish</span> <span class="o">{</span> <span class="nn">SendEmail</span><span class="p">.</span><span class="nc">CorrelationId</span> <span class="o">=</span> <span class="nn">Guid</span><span class="p">.</span><span class="nc">NewGuid</span><span class="bp">()</span><span class="o">;</span> <span class="nc">Content</span> <span class="o">=</span> <span class="s2">&quot;Hello world!&quot;</span><span class="o">;</span> <span class="nc">EmailAddress</span> <span class="o">=</span> <span class="s2">&quot;me@example.com&quot;</span> <span class="o">}</span>
+</code></pre></div>
+<p>That&#39;s fantastic; only, you&#39;ll notice the values for each step are hard coded. Obviously, we need to subscribe to the messages we&#39;re expecting to be published in response
+to these commands. We&#39;d better subscribe to the responses - in fact, we&#39;d better subscribe to everything before we start publishing, otherwise we might start getting responses
+back before we&#39;re listening for them:</p>
+<div class="highlight"><pre><code class="fsharp"><span class="c1">// Subscribers</span>
+<span class="n">bus</span><span class="o">.</span><span class="nc">Subscribe</span><span class="o">&lt;</span><span class="nc">RenderComplete</span><span class="o">&gt;</span> <span class="o">(</span><span class="s2">&quot;Process&quot;</span><span class="o">,</span> <span class="k">fun</span> <span class="n">r</span> <span class="o">-&gt;</span> <span class="n">printfn</span> <span class="s2">&quot;%A&quot;</span> <span class="n">r</span><span class="o">)</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
+<span class="n">bus</span><span class="o">.</span><span class="nc">Subscribe</span><span class="o">&lt;</span><span class="nc">ModelStored</span><span class="o">&gt;</span> <span class="o">(</span><span class="s2">&quot;Process&quot;</span><span class="o">,</span> <span class="k">fun</span> <span class="n">ms</span> <span class="o">-&gt;</span> <span class="n">printfn</span> <span class="s2">&quot;%A&quot;</span> <span class="n">ms</span><span class="o">)</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
+<span class="n">bus</span><span class="o">.</span><span class="nc">Subscribe</span><span class="o">&lt;</span><span class="nc">TemplateStored</span><span class="o">&gt;</span> <span class="o">(</span><span class="s2">&quot;Process&quot;</span><span class="o">,</span> <span class="k">fun</span> <span class="n">ts</span> <span class="o">-&gt;</span> <span class="n">printfn</span> <span class="s2">&quot;%A&quot;</span> <span class="n">ts</span><span class="o">)</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
+<span class="n">bus</span><span class="o">.</span><span class="nc">Subscribe</span><span class="o">&lt;</span><span class="nc">EmailSent</span><span class="o">&gt;</span> <span class="o">(</span><span class="s2">&quot;Process&quot;</span><span class="o">,</span> <span class="k">fun</span> <span class="n">es</span> <span class="o">-&gt;</span> <span class="n">printfn</span> <span class="s2">&quot;%A&quot;</span> <span class="n">es</span><span class="o">)</span> <span class="o">|&gt;</span> <span class="n">ignore</span>
+
+<span class="c1">// Senders</span>
+<span class="n">bus</span><span class="o">.</span><span class="nc">Publish</span> <span class="o">{</span> <span class="nn">StoreModel</span><span class="p">.</span><span class="nc">CorrelationId</span> <span class="o">=</span> <span class="nn">Guid</span><span class="p">.</span><span class="nc">NewGuid</span><span class="bp">()</span><span class="o">;</span> <span class="nc">Model</span> <span class="o">=</span> <span class="n">model</span> <span class="o">}</span>
+<span class="n">bus</span><span class="o">.</span><span class="nc">Publish</span> <span class="o">{</span> <span class="nn">StoreTemplate</span><span class="p">.</span><span class="nc">CorrelationId</span> <span class="o">=</span> <span class="nn">Guid</span><span class="p">.</span><span class="nc">NewGuid</span><span class="bp">()</span><span class="o">;</span> <span class="nc">Name</span> <span class="o">=</span> <span class="s2">&quot;mytemplate&quot;</span><span class="o">;</span> <span class="nc">Template</span> <span class="o">=</span> <span class="n">template</span> <span class="o">}</span>
+<span class="n">bus</span><span class="o">.</span><span class="nc">Publish</span> <span class="o">{</span> <span class="nn">RequestRender</span><span class="p">.</span><span class="nc">CorrelationId</span> <span class="o">=</span> <span class="nn">Guid</span><span class="p">.</span><span class="nc">NewGuid</span><span class="bp">()</span><span class="o">;</span> <span class="nc">TemplateId</span> <span class="o">=</span> <span class="mi">1</span><span class="o">;</span> <span class="nc">ModelId</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">}</span>
+<span class="n">bus</span><span class="o">.</span><span class="nc">Publish</span> <span class="o">{</span> <span class="nn">SendEmail</span><span class="p">.</span><span class="nc">CorrelationId</span> <span class="o">=</span> <span class="nn">Guid</span><span class="p">.</span><span class="nc">NewGuid</span><span class="bp">()</span><span class="o">;</span> <span class="nc">Content</span> <span class="o">=</span> <span class="s2">&quot;Hello world!&quot;</span><span class="o">;</span> <span class="nc">EmailAddress</span> <span class="o">=</span> <span class="s2">&quot;me@example.com&quot;</span> <span class="o">}</span>
+</code></pre></div>
+<p>So, that&#39;s great. What now?</p>
+
+<p>Well: as is common in a message based system we&#39;re passing a correlation ID into the service we&#39;re sending a request to, and part of the contract is that the triggered response will
+have the same correlation ID. So we need some way to link a correlation ID back to a specific business process - a state store. But that needs to be safe for horizontal scaling.
+We also need to wire up all the various stages in our process to know which other message to publish next. And it would be good if storing the template and model data happened concurrently,
+because we&#39;re message based and why not? And finally, the client only wants the email sent if we can generate it within 15 seconds. Did we not mention that?</p>
+
+<p>EasyNetQ provides one way of dealing with this, by allowing for what it calls a request/response pattern. But we found out the hard way that this still suffers from a few problems:
+at a practical level, it doesn&#39;t scale very well for services that need to handle a lot of requests. On a conceptual level it assumes that the service that issued the request will
+be around to process the response. That&#39;s an assumption that we really don&#39;t want if we&#39;re using a message bus to help us provide high availability.</p>
+
+<p>So after several rounds of consultation within the company, I&#39;ve written a library to help write process managers over the top of EasyNetQ, following the EasyNetQ conventions but
+meeting the needs we&#39;ve discovered.</p>
+
+<p>The code is available on github at https://github.com/15below/EasyNetQ.ProcessManager ; if you want to run the examples you&#39;ll need a few db bits set up (see the README) and a
+SMTP server (I recommend the excellent <a href="https://papercut.codeplex.com/">PaperCut</a> as a simple and convenient development SMTP server).</p>
+
+<blockquote>
+<p>Please note: if you&#39;ve looked at this article before, the code below has changed after a <a href="https://twitter.com/BlythMeister">a colleague of mine</a> suggested much better method names for certain operations...</p>
+</blockquote>
+
+<p>Back to the world of C#; first we&#39;ll need an actual ProcessManager object:</p>
+<div class="highlight"><pre><code class="csharp"><span class="kt">var</span> <span class="n">rabbitConnString</span> <span class="p">=</span> <span class="n">ConfigurationManager</span><span class="p">.</span><span class="n">AppSettings</span><span class="p">[</span><span class="s">&quot;rabbit connection&quot;</span><span class="p">];</span>
+<span class="kt">var</span> <span class="n">sqlConnString</span> <span class="p">=</span> <span class="n">ConfigurationManager</span><span class="p">.</span><span class="n">AppSettings</span><span class="p">[</span><span class="s">&quot;sql connection&quot;</span><span class="p">];</span>
+<span class="kt">var</span> <span class="n">bus</span> <span class="p">=</span> <span class="n">RabbitHutch</span><span class="p">.</span><span class="n">CreateBus</span><span class="p">(</span><span class="n">rabbitConnString</span><span class="p">);</span>
+<span class="kt">var</span> <span class="n">active</span> <span class="p">=</span> <span class="k">new</span> <span class="n">SqlActiveStore</span><span class="p">(</span><span class="n">sqlConnString</span><span class="p">);</span>
+<span class="kt">var</span> <span class="n">store</span> <span class="p">=</span> <span class="k">new</span> <span class="n">SqlStateStore</span><span class="p">(</span><span class="n">sqlConnString</span><span class="p">,</span> <span class="k">new</span> <span class="n">Serializer</span><span class="p">());</span>
+<span class="kt">var</span> <span class="n">pm</span> <span class="p">=</span> <span class="k">new</span> <span class="n">ProcessManager</span><span class="p">(</span><span class="k">new</span> <span class="n">EasyNetQPMBus</span><span class="p">(</span><span class="n">bus</span><span class="p">),</span> <span class="s">&quot;Process&quot;</span><span class="p">,</span> <span class="n">active</span><span class="p">,</span> <span class="n">store</span><span class="p">);</span>
+<span class="n">Workflow</span><span class="p">.</span><span class="n">Configure</span><span class="p">(</span><span class="n">pm</span><span class="p">);</span>
+</code></pre></div>
+<p>Obviously, most of this would normally be covered with an IoC container. So, the bus is probably pretty obvious, and <code>&quot;Process&quot;</code> is our subscription ID for any subscriptions we make
+- but what are the <code>SqlActiveStore</code> and <code>SqlStateStore</code>?</p>
+
+<p>The active store is a component that will store the list of correlation IDs a process is waiting for, and which handlers to connect them to. Out of the box you get a
+memory based version (fast, good for testing, not horizontally scalable for hopefully obvious reasons) and an SQL Server based version.</p>
+
+<p>The state store, as you might have guessed, stores state for your workflow. Again both memory and SQL based implementations are provided, with the SQL implementation guaranteed to be not
+just thread safe, but &quot;process safe&quot;. One thing you do have to provide yourself is a serializer that knows how to serialize any work flow state objects you want stored.</p>
+
+<p>Finally, and most interesting: let&#39;s see what&#39;s in <code>Workflow.Configure(pm)</code>. Let&#39;s take the file that actually configures our workflow, and break it down into sections (I&#39;ll chop some boilerplate out, full file at the end).</p>
+<div class="highlight"><pre><code class="csharp"><span class="k">using</span> <span class="nn">System</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">System.Collections.Generic</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">System.Runtime.Serialization</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">EasyNetQ.ProcessManager</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">Messenger.Messages.Email</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">Messenger.Messages.Render</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">Messenger.Messages.Store</span><span class="p">;</span>
+</code></pre></div>
+<p>All the standard bits - we&#39;ll need access to the various message types and the ProcessManager name space.</p>
+<div class="highlight"><pre><code class="csharp"><span class="na">[DataContract]</span>
+<span class="k">public</span> <span class="k">class</span> <span class="nc">WorkflowState</span>
+<span class="p">{</span>
+    <span class="k">public</span> <span class="nf">WorkflowState</span><span class="p">()</span> <span class="p">{</span> <span class="p">}</span>
+
+    <span class="k">public</span> <span class="nf">WorkflowState</span><span class="p">(</span><span class="kt">int?</span> <span class="n">modelId</span><span class="p">,</span> <span class="kt">int?</span> <span class="n">contentTemplateId</span><span class="p">,</span> <span class="kt">string</span> <span class="n">emailContent</span><span class="p">,</span> <span class="kt">string</span> <span class="n">emailAddress</span><span class="p">,</span> <span class="kt">int?</span> <span class="n">addressTemplateId</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">ModelId</span> <span class="p">=</span> <span class="n">modelId</span><span class="p">;</span>
+        <span class="n">ContentTemplateId</span> <span class="p">=</span> <span class="n">contentTemplateId</span><span class="p">;</span>
+        <span class="n">EmailContent</span> <span class="p">=</span> <span class="n">emailContent</span><span class="p">;</span>
+        <span class="n">EmailAddress</span> <span class="p">=</span> <span class="n">emailAddress</span><span class="p">;</span>
+        <span class="n">AddressTemplateId</span> <span class="p">=</span> <span class="n">addressTemplateId</span><span class="p">;</span>
+    <span class="p">}</span>
+
+<span class="na">    [DataMember]</span>
+    <span class="k">public</span> <span class="kt">int?</span> <span class="n">ModelId</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+<span class="na">    [DataMember]</span>
+    <span class="k">public</span> <span class="kt">int?</span> <span class="n">ContentTemplateId</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+<span class="na">    [DataMember]</span>
+    <span class="k">public</span> <span class="kt">int?</span> <span class="n">AddressTemplateId</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+<span class="na">    [DataMember]</span>
+    <span class="k">public</span> <span class="kt">string</span> <span class="n">EmailContent</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+<span class="na">    [DataMember]</span>
+    <span class="k">public</span> <span class="kt">string</span> <span class="n">EmailAddress</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>This object will store the state of our work flow. As you might guess, it starts off empty and steps in the work flow will gradually fill in the gaps as
+they receive information back from the remote services. The basic flow of the process we&#39;re creating is to store a model (piece of data), an address template
+and a content template. We&#39;ll render an address once we have both address template and model IDs, and the content once we have both content template and model ID.</p>
+
+<p>After both rendering jobs have finished, we&#39;ll send an email to the address, with the content. Note that our object does <em>not</em> need any awareness of which
+instance of the work flow it&#39;s storing information for - the ProcessManager will handle that for us.</p>
+<div class="highlight"><pre><code class="csharp"><span class="k">public</span> <span class="k">class</span> <span class="nc">Workflow</span>
+<span class="p">{</span>
+</code></pre></div>
+<p>Let&#39;s have a class to group all of our work flow logic together in one place. This isn&#39;t in anyway required by ProcessManager, but it&#39;s definitely recommended to
+allow people to work out what on earth your project manager actually does.</p>
+<div class="highlight"><pre><code class="csharp"><span class="k">private</span> <span class="k">const</span> <span class="kt">string</span> <span class="n">ModelStoredCheckRenderContentKey</span> <span class="p">=</span> <span class="s">&quot;ModelStoredCheckRenderContentKey&quot;</span><span class="p">;</span>
+<span class="k">private</span> <span class="k">const</span> <span class="kt">string</span> <span class="n">ModelStoredCheckRenderAddressKey</span> <span class="p">=</span> <span class="s">&quot;ModelStoredCheckRenderAddress&quot;</span><span class="p">;</span>
+<span class="k">private</span> <span class="k">const</span> <span class="kt">string</span> <span class="n">ContentTemplateStoredCheckRenderContentKey</span> <span class="p">=</span> <span class="s">&quot;ContentTemplateStoredCheckRenderContent&quot;</span><span class="p">;</span>
+<span class="k">private</span> <span class="k">const</span> <span class="kt">string</span> <span class="n">AddressTemplateStoredCheckRenderAddressKey</span> <span class="p">=</span> <span class="s">&quot;AddressTemplateStoredCheckRenderAddress&quot;</span><span class="p">;</span>
+<span class="k">private</span> <span class="k">const</span> <span class="kt">string</span> <span class="n">ContentRenderedCheckSendEmailKey</span> <span class="p">=</span> <span class="s">&quot;ContentRenderedCheckSendEmail&quot;</span><span class="p">;</span>
+<span class="k">private</span> <span class="k">const</span> <span class="kt">string</span> <span class="n">AddressRenderedCheckSendEmailKey</span> <span class="p">=</span> <span class="s">&quot;AddressRenderedCheckSendEmail&quot;</span><span class="p">;</span>
+</code></pre></div>
+<p>We&#39;ll be specifying in each of our work flow steps which callbacks we&#39;re expecting to be fired when response messages are received. Because these callbacks may not
+happen in the same process (ProcessManager is horizontally scalable by design), callbacks are referred to by a string mapping. These get used in several places, so
+it&#39;s probably worth recording them all as <code>const</code>s to avoid typos.</p>
+<div class="highlight"><pre><code class="csharp"><span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">Start</span><span class="p">(</span><span class="n">IDictionary</span><span class="p">&lt;</span><span class="kt">string</span><span class="p">,</span> <span class="kt">object</span><span class="p">&gt;</span> <span class="n">model</span><span class="p">,</span> <span class="kt">string</span> <span class="n">contentTemplate</span><span class="p">,</span> <span class="kt">string</span> <span class="n">addressTemplate</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">var</span> <span class="n">modelCid</span> <span class="p">=</span> <span class="n">Guid</span><span class="p">.</span><span class="n">NewGuid</span><span class="p">();</span>
+    <span class="kt">var</span> <span class="n">contentCid</span> <span class="p">=</span> <span class="n">Guid</span><span class="p">.</span><span class="n">NewGuid</span><span class="p">();</span>
+    <span class="kt">var</span> <span class="n">addressCid</span> <span class="p">=</span> <span class="n">Guid</span><span class="p">.</span><span class="n">NewGuid</span><span class="p">();</span>
+    <span class="k">return</span>
+        <span class="n">Out</span><span class="p">.</span><span class="n">Empty</span>
+            <span class="p">.</span><span class="n">Send</span><span class="p">(</span><span class="k">new</span> <span class="n">StoreModel</span><span class="p">(</span><span class="n">modelCid</span><span class="p">,</span> <span class="n">model</span><span class="p">),</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">4</span><span class="p">))</span>
+            <span class="p">.</span><span class="n">Expect</span><span class="p">&lt;</span><span class="n">ModelStored</span><span class="p">&gt;(</span><span class="n">modelCid</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span>
+                <span class="n">ModelStoredCheckRenderContentKey</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">),</span> <span class="s">&quot;TimeOut&quot;</span><span class="p">)</span>
+            <span class="p">.</span><span class="n">Expect</span><span class="p">&lt;</span><span class="n">ModelStored</span><span class="p">&gt;(</span><span class="n">modelCid</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span>
+                <span class="n">ModelStoredCheckRenderAddressKey</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">),</span> <span class="s">&quot;TimeOut&quot;</span><span class="p">)</span>
+            <span class="p">.</span><span class="n">Send</span><span class="p">(</span><span class="k">new</span> <span class="n">StoreTemplate</span><span class="p">(</span><span class="n">contentCid</span><span class="p">,</span> <span class="s">&quot;content template&quot;</span><span class="p">,</span>
+                <span class="n">contentTemplate</span><span class="p">),</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">4</span><span class="p">))</span>
+            <span class="p">.</span><span class="n">Expect</span><span class="p">&lt;</span><span class="n">TemplateStored</span><span class="p">&gt;(</span><span class="n">contentCid</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span>
+                <span class="n">ContentTemplateStoredCheckRenderContentKey</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">),</span>
+                <span class="s">&quot;TimeOut&quot;</span><span class="p">)</span>
+            <span class="p">.</span><span class="n">Send</span><span class="p">(</span><span class="k">new</span> <span class="n">StoreTemplate</span><span class="p">(</span><span class="n">addressCid</span><span class="p">,</span> <span class="s">&quot;address template&quot;</span><span class="p">,</span>
+                <span class="n">addressTemplate</span><span class="p">),</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">4</span><span class="p">))</span>
+            <span class="p">.</span><span class="n">Expect</span><span class="p">&lt;</span><span class="n">TemplateStored</span><span class="p">&gt;(</span><span class="n">addressCid</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span>
+                <span class="n">AddressTemplateStoredCheckRenderAddressKey</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">),</span>
+                <span class="s">&quot;TimeOut&quot;</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>So: our <code>Start</code> method is where the real fun starts. It&#39;s <code>static</code>, as an instance of the work flow class makes very little sense as all state will be stored in the
+state store. And basically all it does is set up our first set of expected requests (to <code>Send</code>) and continuations (to <code>Expect</code>).</p>
+
+<p>All functions within a work flow must return an <code>Out</code> object. Here, we create our Out using its fluent builder API; first adding a request to send a <code>StoreModel</code>,
+then hooking up two handlers to the response message we expect the store to send when it&#39;s done storing the model (there&#39;s no requirement for a specific message to trigger
+only one continuation). But what are these <code>TimeSpan</code>s floating around everywhere?</p>
+
+<p>Well, it turns out that RabbitMQ implements the idea of expiring messages. ProcessManager forces you to choose how long a message should stay available for before expiring,
+to avoid creating situations where you build up unbounded backlogs of ancient messages that no longer have any relevance. For time critical processes such as ours, it also
+means that we can put expectations on how long we expect a step to take. Here, we&#39;re saying: &quot;if the store doesn&#39;t accept the store model request within 4 seconds, do not
+deliver it.&quot;</p>
+
+<p>In a similar way, we must choose a timespan to process continuations within. Network issues or overloading of the ProcessManager itself might mean that the request is processed,
+but by the time the continuation trigger message returns we&#39;ve already missed our processing window. In this example, we&#39;re specifying: &quot;if we don&#39;t receive a model stored message
+within 5 seconds, do not process the continuation when (or if) it arrives; also, publish a time out message to be processed by a handler named TimeOut.&quot;</p>
+
+<p>The rest of the method follows a similar pattern, setting up the requests to store content and address templates respectively, with the expected continuations.</p>
+<div class="highlight"><pre><code class="csharp"><span class="k">private</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">RenderContentIfReady</span><span class="p">(</span><span class="n">WorkflowState</span> <span class="n">state</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">if</span> <span class="p">(!</span><span class="n">state</span><span class="p">.</span><span class="n">ModelId</span><span class="p">.</span><span class="n">HasValue</span> <span class="p">||</span> <span class="p">!</span><span class="n">state</span><span class="p">.</span><span class="n">ContentTemplateId</span><span class="p">.</span><span class="n">HasValue</span><span class="p">)</span> <span class="k">return</span> <span class="n">Out</span><span class="p">.</span><span class="n">Ignore</span><span class="p">;</span>
+    <span class="kt">var</span> <span class="n">cid</span> <span class="p">=</span> <span class="n">Guid</span><span class="p">.</span><span class="n">NewGuid</span><span class="p">();</span>
+    <span class="kt">var</span> <span class="n">renderContent</span> <span class="p">=</span>
+        <span class="k">new</span> <span class="nf">RequestRender</span><span class="p">(</span><span class="n">cid</span><span class="p">,</span> <span class="n">state</span><span class="p">.</span><span class="n">ContentTemplateId</span><span class="p">.</span><span class="n">Value</span><span class="p">,</span> <span class="n">state</span><span class="p">.</span><span class="n">ModelId</span><span class="p">.</span><span class="n">Value</span><span class="p">);</span>
+    <span class="k">return</span>
+        <span class="n">Out</span><span class="p">.</span><span class="n">Empty</span>
+            <span class="p">.</span><span class="n">Send</span><span class="p">(</span><span class="n">renderContent</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">4</span><span class="p">))</span>
+            <span class="p">.</span><span class="n">Expect</span><span class="p">&lt;</span><span class="n">RenderComplete</span><span class="p">&gt;(</span><span class="n">cid</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="n">ContentRenderedCheckSendEmailKey</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">),</span>
+                <span class="s">&quot;TimeOut&quot;</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">private</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">RenderAddressIfReady</span><span class="p">(</span><span class="n">WorkflowState</span> <span class="n">state</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">if</span> <span class="p">(!</span><span class="n">state</span><span class="p">.</span><span class="n">ModelId</span><span class="p">.</span><span class="n">HasValue</span> <span class="p">||</span> <span class="p">!</span><span class="n">state</span><span class="p">.</span><span class="n">AddressTemplateId</span><span class="p">.</span><span class="n">HasValue</span><span class="p">)</span> <span class="k">return</span> <span class="n">Out</span><span class="p">.</span><span class="n">Ignore</span><span class="p">;</span>
+    <span class="kt">var</span> <span class="n">cid</span> <span class="p">=</span> <span class="n">Guid</span><span class="p">.</span><span class="n">NewGuid</span><span class="p">();</span>
+    <span class="kt">var</span> <span class="n">renderContent</span> <span class="p">=</span>
+        <span class="k">new</span> <span class="nf">RequestRender</span><span class="p">(</span><span class="n">cid</span><span class="p">,</span> <span class="n">state</span><span class="p">.</span><span class="n">AddressTemplateId</span><span class="p">.</span><span class="n">Value</span><span class="p">,</span> <span class="n">state</span><span class="p">.</span><span class="n">ModelId</span><span class="p">.</span><span class="n">Value</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">Out</span><span class="p">.</span><span class="n">Empty</span><span class="p">.</span><span class="n">Send</span><span class="p">(</span><span class="n">renderContent</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">4</span><span class="p">))</span>
+        <span class="p">.</span><span class="n">Expect</span><span class="p">&lt;</span><span class="n">RenderComplete</span><span class="p">&gt;(</span><span class="n">cid</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="n">AddressRenderedCheckSendEmailKey</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">),</span>
+            <span class="s">&quot;TimeOut&quot;</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Next up: a couple of private helper methods. These take our <code>WorkflowState</code> object from above and know whether we can start the two rendering processes yet.</p>
+
+<p>Note the use of <code>Out.Ignore</code> if the state is not yet ready to trigger the next part of the work flow. <code>Ignore</code> is basically a way of marking this branch of the
+work flow complete. This is different to <code>Out.End</code>, which we&#39;ll have a look at a bit later - and which ends all branches of the work flow.</p>
+<div class="highlight"><pre><code class="csharp"><span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">ModelStoredCheckRenderContent</span><span class="p">(</span><span class="n">ModelStored</span> <span class="n">ms</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">var</span> <span class="n">ws</span> <span class="p">=</span> <span class="n">state</span><span class="p">.</span><span class="n">AddOrUpdate</span><span class="p">(</span><span class="k">new</span> <span class="n">WorkflowState</span> <span class="p">{</span><span class="n">ModelId</span> <span class="p">=</span> <span class="n">ms</span><span class="p">.</span><span class="n">ModelId</span><span class="p">},</span> <span class="n">existing</span> <span class="p">=&gt;</span>
+    <span class="p">{</span>
+        <span class="n">existing</span><span class="p">.</span><span class="n">ModelId</span> <span class="p">=</span> <span class="n">ms</span><span class="p">.</span><span class="n">ModelId</span><span class="p">;</span>
+        <span class="k">return</span> <span class="n">existing</span><span class="p">;</span>
+    <span class="p">});</span>
+    <span class="k">return</span> <span class="nf">RenderContentIfReady</span><span class="p">(</span><span class="n">ws</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">ModelStoredCheckRenderAddress</span><span class="p">(</span><span class="n">ModelStored</span> <span class="n">ms</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">var</span> <span class="n">ws</span> <span class="p">=</span> <span class="n">state</span><span class="p">.</span><span class="n">AddOrUpdate</span><span class="p">(</span><span class="k">new</span> <span class="n">WorkflowState</span> <span class="p">{</span><span class="n">ModelId</span> <span class="p">=</span> <span class="n">ms</span><span class="p">.</span><span class="n">ModelId</span><span class="p">},</span> <span class="n">existing</span> <span class="p">=&gt;</span>
+    <span class="p">{</span>
+        <span class="n">existing</span><span class="p">.</span><span class="n">ModelId</span> <span class="p">=</span> <span class="n">ms</span><span class="p">.</span><span class="n">ModelId</span><span class="p">;</span>
+        <span class="k">return</span> <span class="n">existing</span><span class="p">;</span>
+    <span class="p">});</span>
+    <span class="k">return</span> <span class="nf">RenderAddressIfReady</span><span class="p">(</span><span class="n">ws</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">ContentTemplateStoredCheckRenderContent</span><span class="p">(</span><span class="n">TemplateStored</span> <span class="n">ts</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">var</span> <span class="n">ws</span> <span class="p">=</span> <span class="n">state</span><span class="p">.</span><span class="n">AddOrUpdate</span><span class="p">(</span><span class="k">new</span> <span class="n">WorkflowState</span> <span class="p">{</span><span class="n">ContentTemplateId</span> <span class="p">=</span> <span class="n">ts</span><span class="p">.</span><span class="n">TemplateId</span><span class="p">},</span> <span class="n">existing</span> <span class="p">=&gt;</span>
+    <span class="p">{</span>
+        <span class="n">existing</span><span class="p">.</span><span class="n">ContentTemplateId</span> <span class="p">=</span> <span class="n">ts</span><span class="p">.</span><span class="n">TemplateId</span><span class="p">;</span>
+        <span class="k">return</span> <span class="n">existing</span><span class="p">;</span>
+    <span class="p">});</span>
+    <span class="k">return</span> <span class="nf">RenderContentIfReady</span><span class="p">(</span><span class="n">ws</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">AddressTemplateStoredCheckRenderAddress</span><span class="p">(</span><span class="n">TemplateStored</span> <span class="n">ts</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">var</span> <span class="n">ws</span> <span class="p">=</span> <span class="n">state</span><span class="p">.</span><span class="n">AddOrUpdate</span><span class="p">(</span><span class="k">new</span> <span class="n">WorkflowState</span> <span class="p">{</span><span class="n">AddressTemplateId</span> <span class="p">=</span> <span class="n">ts</span><span class="p">.</span><span class="n">TemplateId</span><span class="p">},</span> <span class="n">existing</span> <span class="p">=&gt;</span>
+    <span class="p">{</span>
+        <span class="n">existing</span><span class="p">.</span><span class="n">AddressTemplateId</span> <span class="p">=</span> <span class="n">ts</span><span class="p">.</span><span class="n">TemplateId</span><span class="p">;</span>
+        <span class="k">return</span> <span class="n">existing</span><span class="p">;</span>
+    <span class="p">});</span>
+    <span class="k">return</span> <span class="nf">RenderAddressIfReady</span><span class="p">(</span><span class="n">ws</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>These four methods will be wired up to handle the four continuation options we created in our <code>Start</code> method.
+Each is very similar: it is passed the triggering message and the state of <em>this</em> work flow, updates or creates the
+state with the data it has received back, and then runs one of the private helpers we defined above.</p>
+
+<p>Why can we not just Add, or just Update the state? Well - we published 3 requests which are being handled by 4
+continuations. There are no guarantees what order these will be triggered in or that they won&#39;t be triggered simultaneously
+on different threads or even on different machines. <code>AddOrUpdate</code> acts as a synchronization point for our work flow,
+guaranteeing that the operation happening within it will be atomic.</p>
+
+<p>We can apply similar logic to waiting for our two rendering jobs:</p>
+<div class="highlight"><pre><code class="csharp"><span class="k">private</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">SendEmailIfReady</span><span class="p">(</span><span class="n">WorkflowState</span> <span class="n">state</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">state</span><span class="p">.</span><span class="n">EmailAddress</span> <span class="p">==</span> <span class="k">null</span> <span class="p">||</span> <span class="n">state</span><span class="p">.</span><span class="n">EmailContent</span> <span class="p">==</span> <span class="k">null</span><span class="p">)</span> <span class="k">return</span> <span class="n">Out</span><span class="p">.</span><span class="n">Ignore</span><span class="p">;</span>
+    <span class="kt">var</span> <span class="n">cid</span> <span class="p">=</span> <span class="n">Guid</span><span class="p">.</span><span class="n">NewGuid</span><span class="p">();</span>
+    <span class="kt">var</span> <span class="n">sendEmail</span> <span class="p">=</span>
+        <span class="k">new</span> <span class="nf">SendEmail</span><span class="p">(</span><span class="n">cid</span><span class="p">,</span> <span class="n">state</span><span class="p">.</span><span class="n">EmailAddress</span><span class="p">,</span> <span class="n">state</span><span class="p">.</span><span class="n">EmailContent</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">Out</span><span class="p">.</span><span class="n">Empty</span><span class="p">.</span><span class="n">Send</span><span class="p">(</span><span class="n">sendEmail</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">4</span><span class="p">))</span>
+        <span class="p">.</span><span class="n">Expect</span><span class="p">&lt;</span><span class="n">EmailSent</span><span class="p">&gt;(</span><span class="n">cid</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="s">&quot;EmailSent&quot;</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">),</span> <span class="s">&quot;TimeOut&quot;</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">AddressRenderedCheckSendEmail</span><span class="p">(</span><span class="n">RenderComplete</span> <span class="n">rc</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">var</span> <span class="n">ws</span> <span class="p">=</span> <span class="n">state</span><span class="p">.</span><span class="n">AddOrUpdate</span><span class="p">(</span><span class="k">new</span> <span class="n">WorkflowState</span> <span class="p">{</span><span class="n">EmailAddress</span> <span class="p">=</span> <span class="n">rc</span><span class="p">.</span><span class="n">Content</span><span class="p">},</span> <span class="n">existing</span> <span class="p">=&gt;</span>
+    <span class="p">{</span>
+        <span class="n">existing</span><span class="p">.</span><span class="n">EmailAddress</span> <span class="p">=</span> <span class="n">rc</span><span class="p">.</span><span class="n">Content</span><span class="p">;</span>
+        <span class="k">return</span> <span class="n">existing</span><span class="p">;</span>
+    <span class="p">});</span>
+    <span class="k">return</span> <span class="nf">SendEmailIfReady</span><span class="p">(</span><span class="n">ws</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">ContentRenderedCheckSendEmail</span><span class="p">(</span><span class="n">RenderComplete</span> <span class="n">rc</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">var</span> <span class="n">ws</span> <span class="p">=</span> <span class="n">state</span><span class="p">.</span><span class="n">AddOrUpdate</span><span class="p">(</span><span class="k">new</span> <span class="n">WorkflowState</span> <span class="p">{</span><span class="n">EmailContent</span> <span class="p">=</span> <span class="n">rc</span><span class="p">.</span><span class="n">Content</span><span class="p">},</span> <span class="n">existing</span> <span class="p">=&gt;</span>
+    <span class="p">{</span>
+        <span class="n">existing</span><span class="p">.</span><span class="n">EmailContent</span> <span class="p">=</span> <span class="n">rc</span><span class="p">.</span><span class="n">Content</span><span class="p">;</span>
+        <span class="k">return</span> <span class="n">existing</span><span class="p">;</span>
+    <span class="p">});</span>
+    <span class="k">return</span> <span class="nf">SendEmailIfReady</span><span class="p">(</span><span class="n">ws</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Once they have both finished, and only once they have both finished, <code>SendEmailIfReady</code> will fire off a <code>SendEmail</code> request.</p>
+<div class="highlight"><pre><code class="csharp"><span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">EmailSent</span><span class="p">(</span><span class="n">EmailSent</span> <span class="n">es</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">var</span> <span class="n">ws</span> <span class="p">=</span> <span class="n">state</span><span class="p">.</span><span class="n">Get</span><span class="p">&lt;</span><span class="n">WorkflowState</span><span class="p">&gt;().</span><span class="n">Value</span><span class="p">;</span>
+    <span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">&quot;Email send success: {0}\nAddress: {1}\nContent: {2}&quot;</span><span class="p">,</span> <span class="n">es</span><span class="p">.</span><span class="n">Successful</span><span class="p">,</span> <span class="n">ws</span><span class="p">.</span><span class="n">EmailAddress</span><span class="p">,</span> <span class="n">ws</span><span class="p">.</span><span class="n">EmailContent</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">Out</span><span class="p">.</span><span class="n">End</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Finally on our happy path, we&#39;re informed that an email has been sent. Here we mark the work flow as ended using <code>Out.End</code>. This will cancel
+any outstanding continuations and remove the work flow state from the state store. ProcessManager <em>will not retain any information</em>
+about the running of a work flow. If you require (and you probably do) any kind of logging or auditing it is your responsibility to
+cover that within the handlers you write.</p>
+
+<p>But all this only covers the happy path. What happens if we hit one of those time outs we&#39;ve been talking about?</p>
+<div class="highlight"><pre><code class="csharp"><span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">TimeOut</span><span class="p">(</span><span class="n">TimeOutMessage</span> <span class="n">to</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">&quot;Time out waiting for: {0}&quot;</span><span class="p">,</span> <span class="n">to</span><span class="p">.</span><span class="n">TimedOutStep</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">Out</span><span class="p">.</span><span class="n">End</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Well, in that case a <code>TimeOutMessage</code> will be published, and we can handle it appropriately. In this case, just printing out the fact the job timed out, and which step it was that didn&#39;t complete (one of the fields on the <code>TimeOutMessage</code> object).
+As above, we explicitly <code>End</code> the work flow. No further continuations will be triggered beyond this point. One thing to bear in mind though: while a continuation
+timeout guarantees the continuation will not fire after the <code>TimeSpan</code> has expired, there is <strong>no</strong> guarantee that the <code>TimeOutMessage</code> will be either published
+or handled in any particular timescale. For example, if all your ProcessManager nodes go down; well you won&#39;t be publishing/handling any time outs until they&#39;re running
+again.</p>
+
+<p>Now we&#39;re ready to write our <code>Configure</code> method. Let&#39;s wire everything up:</p>
+<div class="highlight"><pre><code class="csharp"><span class="k">public</span> <span class="k">static</span> <span class="k">void</span> <span class="nf">Configure</span><span class="p">(</span><span class="n">ProcessManager</span> <span class="n">pm</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="n">pm</span><span class="p">.</span><span class="n">AddProcessor</span><span class="p">(</span><span class="n">stored</span> <span class="p">=&gt;</span> <span class="n">stored</span><span class="p">.</span><span class="n">CorrelationId</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="k">new</span> <span class="p">[]</span>
+    <span class="p">{</span>
+        <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">ModelStored</span><span class="p">&gt;(</span><span class="n">ModelStoredCheckRenderContentKey</span><span class="p">,</span> <span class="n">ModelStoredCheckRenderContent</span><span class="p">),</span>
+        <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">ModelStored</span><span class="p">&gt;(</span><span class="n">ModelStoredCheckRenderAddressKey</span><span class="p">,</span> <span class="n">ModelStoredCheckRenderAddress</span><span class="p">)</span>
+    <span class="p">});</span>
+
+    <span class="n">pm</span><span class="p">.</span><span class="n">AddProcessor</span><span class="p">(</span><span class="n">stored</span> <span class="p">=&gt;</span> <span class="n">stored</span><span class="p">.</span><span class="n">CorrelationId</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="k">new</span><span class="p">[]</span>
+    <span class="p">{</span>
+        <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">TemplateStored</span><span class="p">&gt;(</span><span class="n">ContentTemplateStoredCheckRenderContentKey</span><span class="p">,</span>
+            <span class="n">ContentTemplateStoredCheckRenderContent</span><span class="p">),</span>
+        <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">TemplateStored</span><span class="p">&gt;(</span><span class="n">AddressTemplateStoredCheckRenderAddressKey</span><span class="p">,</span>
+            <span class="n">AddressTemplateStoredCheckRenderAddress</span><span class="p">)</span>
+    <span class="p">});</span>
+
+    <span class="n">pm</span><span class="p">.</span><span class="n">AddProcessor</span><span class="p">(</span><span class="n">complete</span> <span class="p">=&gt;</span> <span class="n">complete</span><span class="p">.</span><span class="n">CorrelationId</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="k">new</span> <span class="p">[]</span>
+    <span class="p">{</span>
+        <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">RenderComplete</span><span class="p">&gt;(</span><span class="n">AddressRenderedCheckSendEmailKey</span><span class="p">,</span> <span class="n">AddressRenderedCheckSendEmail</span><span class="p">),</span>
+        <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">RenderComplete</span><span class="p">&gt;(</span><span class="n">ContentRenderedCheckSendEmailKey</span><span class="p">,</span> <span class="n">ContentRenderedCheckSendEmail</span><span class="p">)</span>
+    <span class="p">});</span>
+
+    <span class="n">pm</span><span class="p">.</span><span class="n">AddProcessor</span><span class="p">(</span><span class="n">sent</span> <span class="p">=&gt;</span> <span class="n">sent</span><span class="p">.</span><span class="n">CorrelationId</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">EmailSent</span><span class="p">&gt;(</span><span class="s">&quot;EmailSent&quot;</span><span class="p">,</span> <span class="n">EmailSent</span><span class="p">));</span>
+
+    <span class="n">pm</span><span class="p">.</span><span class="n">AddProcessor</span><span class="p">(</span><span class="n">to</span> <span class="p">=&gt;</span> <span class="n">to</span><span class="p">.</span><span class="n">CorrelationId</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">TimeOutMessage</span><span class="p">&gt;(</span><span class="s">&quot;TimeOut&quot;</span><span class="p">,</span> <span class="n">TimeOut</span><span class="p">));</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>The method takes our ProcessManager and starts adding processors to it. A processor knows how to extract a correlation ID from a specific message type, and an <code>IEnumerable</code> of mappings.
+Each mapping tells the ProcessManager which method to fire based on a string Key (remember our <code>const</code>s from above?).</p>
+
+<p>So, there you have it; a complete managed work flow on top of EasyNetQ with split and merge and time outs. The full work flow code file with out my commentary is below for those of you
+who find that easier!</p>
+<div class="highlight"><pre><code class="csharp"><span class="k">using</span> <span class="nn">System</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">System.Collections.Generic</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">System.Runtime.Serialization</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">EasyNetQ.ProcessManager</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">Messenger.Messages.Email</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">Messenger.Messages.Render</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">Messenger.Messages.Store</span><span class="p">;</span>
+
+<span class="k">namespace</span> <span class="nn">Process3</span>
+<span class="p">{</span>
+<span class="na">    [DataContract]</span>
+    <span class="k">public</span> <span class="k">class</span> <span class="nc">WorkflowState</span>
+    <span class="p">{</span>
+        <span class="k">public</span> <span class="nf">WorkflowState</span><span class="p">()</span> <span class="p">{</span> <span class="p">}</span>
+
+        <span class="k">public</span> <span class="nf">WorkflowState</span><span class="p">(</span><span class="kt">int?</span> <span class="n">modelId</span><span class="p">,</span> <span class="kt">int?</span> <span class="n">contentTemplateId</span><span class="p">,</span> <span class="kt">string</span> <span class="n">emailContent</span><span class="p">,</span> <span class="kt">string</span> <span class="n">emailAddress</span><span class="p">,</span> <span class="kt">int?</span> <span class="n">addressTemplateId</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="n">ModelId</span> <span class="p">=</span> <span class="n">modelId</span><span class="p">;</span>
+            <span class="n">ContentTemplateId</span> <span class="p">=</span> <span class="n">contentTemplateId</span><span class="p">;</span>
+            <span class="n">EmailContent</span> <span class="p">=</span> <span class="n">emailContent</span><span class="p">;</span>
+            <span class="n">EmailAddress</span> <span class="p">=</span> <span class="n">emailAddress</span><span class="p">;</span>
+            <span class="n">AddressTemplateId</span> <span class="p">=</span> <span class="n">addressTemplateId</span><span class="p">;</span>
+        <span class="p">}</span>
+
+<span class="na">        [DataMember]</span>
+        <span class="k">public</span> <span class="kt">int?</span> <span class="n">ModelId</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+<span class="na">        [DataMember]</span>
+        <span class="k">public</span> <span class="kt">int?</span> <span class="n">ContentTemplateId</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+<span class="na">        [DataMember]</span>
+        <span class="k">public</span> <span class="kt">int?</span> <span class="n">AddressTemplateId</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+<span class="na">        [DataMember]</span>
+        <span class="k">public</span> <span class="kt">string</span> <span class="n">EmailContent</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+<span class="na">        [DataMember]</span>
+        <span class="k">public</span> <span class="kt">string</span> <span class="n">EmailAddress</span> <span class="p">{</span> <span class="k">get</span><span class="p">;</span> <span class="k">set</span><span class="p">;</span> <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="k">public</span> <span class="k">class</span> <span class="nc">Workflow</span>
+    <span class="p">{</span>
+        <span class="c1">// Callback keys</span>
+        <span class="k">private</span> <span class="k">const</span> <span class="kt">string</span> <span class="n">ModelStoredCheckRenderContentKey</span> <span class="p">=</span> <span class="s">&quot;ModelStoredCheckRenderContentKey&quot;</span><span class="p">;</span>
+        <span class="k">private</span> <span class="k">const</span> <span class="kt">string</span> <span class="n">ModelStoredCheckRenderAddressKey</span> <span class="p">=</span> <span class="s">&quot;ModelStoredCheckRenderAddress&quot;</span><span class="p">;</span>
+        <span class="k">private</span> <span class="k">const</span> <span class="kt">string</span> <span class="n">ContentTemplateStoredCheckRenderContentKey</span> <span class="p">=</span> <span class="s">&quot;ContentTemplateStoredCheckRenderContent&quot;</span><span class="p">;</span>
+        <span class="k">private</span> <span class="k">const</span> <span class="kt">string</span> <span class="n">AddressTemplateStoredCheckRenderAddressKey</span> <span class="p">=</span> <span class="s">&quot;AddressTemplateStoredCheckRenderAddress&quot;</span><span class="p">;</span>
+        <span class="k">private</span> <span class="k">const</span> <span class="kt">string</span> <span class="n">ContentRenderedCheckSendEmailKey</span> <span class="p">=</span> <span class="s">&quot;ContentRenderedCheckSendEmail&quot;</span><span class="p">;</span>
+        <span class="k">private</span> <span class="k">const</span> <span class="kt">string</span> <span class="n">AddressRenderedCheckSendEmailKey</span> <span class="p">=</span> <span class="s">&quot;AddressRenderedCheckSendEmail&quot;</span><span class="p">;</span>
+
+        <span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">Start</span><span class="p">(</span><span class="n">IDictionary</span><span class="p">&lt;</span><span class="kt">string</span><span class="p">,</span> <span class="kt">object</span><span class="p">&gt;</span> <span class="n">model</span><span class="p">,</span> <span class="kt">string</span> <span class="n">contentTemplate</span><span class="p">,</span> <span class="kt">string</span> <span class="n">addressTemplate</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="kt">var</span> <span class="n">modelCid</span> <span class="p">=</span> <span class="n">Guid</span><span class="p">.</span><span class="n">NewGuid</span><span class="p">();</span>
+            <span class="kt">var</span> <span class="n">contentCid</span> <span class="p">=</span> <span class="n">Guid</span><span class="p">.</span><span class="n">NewGuid</span><span class="p">();</span>
+            <span class="kt">var</span> <span class="n">addressCid</span> <span class="p">=</span> <span class="n">Guid</span><span class="p">.</span><span class="n">NewGuid</span><span class="p">();</span>
+            <span class="k">return</span>
+                <span class="n">Out</span><span class="p">.</span><span class="n">Empty</span>
+                    <span class="p">.</span><span class="n">Send</span><span class="p">(</span><span class="k">new</span> <span class="n">StoreModel</span><span class="p">(</span><span class="n">modelCid</span><span class="p">,</span> <span class="n">model</span><span class="p">),</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">4</span><span class="p">))</span>
+                    <span class="p">.</span><span class="n">Expect</span><span class="p">&lt;</span><span class="n">ModelStored</span><span class="p">&gt;(</span><span class="n">modelCid</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="n">ModelStoredCheckRenderContentKey</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">),</span> <span class="s">&quot;TimeOut&quot;</span><span class="p">)</span>
+                    <span class="p">.</span><span class="n">Expect</span><span class="p">&lt;</span><span class="n">ModelStored</span><span class="p">&gt;(</span><span class="n">modelCid</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="n">ModelStoredCheckRenderAddressKey</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">),</span> <span class="s">&quot;TimeOut&quot;</span><span class="p">)</span>
+                    <span class="p">.</span><span class="n">Send</span><span class="p">(</span><span class="k">new</span> <span class="n">StoreTemplate</span><span class="p">(</span><span class="n">contentCid</span><span class="p">,</span> <span class="s">&quot;content template&quot;</span><span class="p">,</span> <span class="n">contentTemplate</span><span class="p">),</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">4</span><span class="p">))</span>
+                    <span class="p">.</span><span class="n">Expect</span><span class="p">&lt;</span><span class="n">TemplateStored</span><span class="p">&gt;(</span><span class="n">contentCid</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="n">ContentTemplateStoredCheckRenderContentKey</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">),</span>
+                        <span class="s">&quot;TimeOut&quot;</span><span class="p">)</span>
+                    <span class="p">.</span><span class="n">Send</span><span class="p">(</span><span class="k">new</span> <span class="n">StoreTemplate</span><span class="p">(</span><span class="n">addressCid</span><span class="p">,</span> <span class="s">&quot;address template&quot;</span><span class="p">,</span> <span class="n">addressTemplate</span><span class="p">),</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">4</span><span class="p">))</span>
+                    <span class="p">.</span><span class="n">Expect</span><span class="p">&lt;</span><span class="n">TemplateStored</span><span class="p">&gt;(</span><span class="n">addressCid</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="n">AddressTemplateStoredCheckRenderAddressKey</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">),</span>
+                        <span class="s">&quot;TimeOut&quot;</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="k">private</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">RenderContentIfReady</span><span class="p">(</span><span class="n">WorkflowState</span> <span class="n">state</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="k">if</span> <span class="p">(!</span><span class="n">state</span><span class="p">.</span><span class="n">ModelId</span><span class="p">.</span><span class="n">HasValue</span> <span class="p">||</span> <span class="p">!</span><span class="n">state</span><span class="p">.</span><span class="n">ContentTemplateId</span><span class="p">.</span><span class="n">HasValue</span><span class="p">)</span> <span class="k">return</span> <span class="n">Out</span><span class="p">.</span><span class="n">Ignore</span><span class="p">;</span>
+            <span class="kt">var</span> <span class="n">cid</span> <span class="p">=</span> <span class="n">Guid</span><span class="p">.</span><span class="n">NewGuid</span><span class="p">();</span>
+            <span class="kt">var</span> <span class="n">renderContent</span> <span class="p">=</span>
+                <span class="k">new</span> <span class="nf">RequestRender</span><span class="p">(</span><span class="n">cid</span><span class="p">,</span> <span class="n">state</span><span class="p">.</span><span class="n">ContentTemplateId</span><span class="p">.</span><span class="n">Value</span><span class="p">,</span> <span class="n">state</span><span class="p">.</span><span class="n">ModelId</span><span class="p">.</span><span class="n">Value</span><span class="p">);</span>
+            <span class="k">return</span>
+                <span class="n">Out</span><span class="p">.</span><span class="n">Empty</span>
+                    <span class="p">.</span><span class="n">Send</span><span class="p">(</span><span class="n">renderContent</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">4</span><span class="p">))</span>
+                    <span class="p">.</span><span class="n">Expect</span><span class="p">&lt;</span><span class="n">RenderComplete</span><span class="p">&gt;(</span><span class="n">cid</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="n">ContentRenderedCheckSendEmailKey</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">),</span>
+                        <span class="s">&quot;TimeOut&quot;</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="k">private</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">RenderAddressIfReady</span><span class="p">(</span><span class="n">WorkflowState</span> <span class="n">state</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="k">if</span> <span class="p">(!</span><span class="n">state</span><span class="p">.</span><span class="n">ModelId</span><span class="p">.</span><span class="n">HasValue</span> <span class="p">||</span> <span class="p">!</span><span class="n">state</span><span class="p">.</span><span class="n">AddressTemplateId</span><span class="p">.</span><span class="n">HasValue</span><span class="p">)</span> <span class="k">return</span> <span class="n">Out</span><span class="p">.</span><span class="n">Ignore</span><span class="p">;</span>
+            <span class="kt">var</span> <span class="n">cid</span> <span class="p">=</span> <span class="n">Guid</span><span class="p">.</span><span class="n">NewGuid</span><span class="p">();</span>
+            <span class="kt">var</span> <span class="n">renderContent</span> <span class="p">=</span>
+                <span class="k">new</span> <span class="nf">RequestRender</span><span class="p">(</span><span class="n">cid</span><span class="p">,</span> <span class="n">state</span><span class="p">.</span><span class="n">AddressTemplateId</span><span class="p">.</span><span class="n">Value</span><span class="p">,</span> <span class="n">state</span><span class="p">.</span><span class="n">ModelId</span><span class="p">.</span><span class="n">Value</span><span class="p">);</span>
+            <span class="k">return</span> <span class="n">Out</span><span class="p">.</span><span class="n">Empty</span><span class="p">.</span><span class="n">Send</span><span class="p">(</span><span class="n">renderContent</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">4</span><span class="p">))</span>
+                <span class="p">.</span><span class="n">Expect</span><span class="p">&lt;</span><span class="n">RenderComplete</span><span class="p">&gt;(</span><span class="n">cid</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="n">AddressRenderedCheckSendEmailKey</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">),</span>
+                    <span class="s">&quot;TimeOut&quot;</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">ModelStoredCheckRenderContent</span><span class="p">(</span><span class="n">ModelStored</span> <span class="n">ms</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="kt">var</span> <span class="n">ws</span> <span class="p">=</span> <span class="n">state</span><span class="p">.</span><span class="n">AddOrUpdate</span><span class="p">(</span><span class="k">new</span> <span class="n">WorkflowState</span> <span class="p">{</span><span class="n">ModelId</span> <span class="p">=</span> <span class="n">ms</span><span class="p">.</span><span class="n">ModelId</span><span class="p">},</span> <span class="n">existing</span> <span class="p">=&gt;</span>
+            <span class="p">{</span>
+                <span class="n">existing</span><span class="p">.</span><span class="n">ModelId</span> <span class="p">=</span> <span class="n">ms</span><span class="p">.</span><span class="n">ModelId</span><span class="p">;</span>
+                <span class="k">return</span> <span class="n">existing</span><span class="p">;</span>
+            <span class="p">});</span>
+            <span class="k">return</span> <span class="nf">RenderContentIfReady</span><span class="p">(</span><span class="n">ws</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">ModelStoredCheckRenderAddress</span><span class="p">(</span><span class="n">ModelStored</span> <span class="n">ms</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="kt">var</span> <span class="n">ws</span> <span class="p">=</span> <span class="n">state</span><span class="p">.</span><span class="n">AddOrUpdate</span><span class="p">(</span><span class="k">new</span> <span class="n">WorkflowState</span> <span class="p">{</span><span class="n">ModelId</span> <span class="p">=</span> <span class="n">ms</span><span class="p">.</span><span class="n">ModelId</span><span class="p">},</span> <span class="n">existing</span> <span class="p">=&gt;</span>
+            <span class="p">{</span>
+                <span class="n">existing</span><span class="p">.</span><span class="n">ModelId</span> <span class="p">=</span> <span class="n">ms</span><span class="p">.</span><span class="n">ModelId</span><span class="p">;</span>
+                <span class="k">return</span> <span class="n">existing</span><span class="p">;</span>
+            <span class="p">});</span>
+            <span class="k">return</span> <span class="nf">RenderAddressIfReady</span><span class="p">(</span><span class="n">ws</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">ContentTemplateStoredCheckRenderContent</span><span class="p">(</span><span class="n">TemplateStored</span> <span class="n">ts</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="kt">var</span> <span class="n">ws</span> <span class="p">=</span> <span class="n">state</span><span class="p">.</span><span class="n">AddOrUpdate</span><span class="p">(</span><span class="k">new</span> <span class="n">WorkflowState</span> <span class="p">{</span><span class="n">ContentTemplateId</span> <span class="p">=</span> <span class="n">ts</span><span class="p">.</span><span class="n">TemplateId</span><span class="p">},</span> <span class="n">existing</span> <span class="p">=&gt;</span>
+            <span class="p">{</span>
+                <span class="n">existing</span><span class="p">.</span><span class="n">ContentTemplateId</span> <span class="p">=</span> <span class="n">ts</span><span class="p">.</span><span class="n">TemplateId</span><span class="p">;</span>
+                <span class="k">return</span> <span class="n">existing</span><span class="p">;</span>
+            <span class="p">});</span>
+            <span class="k">return</span> <span class="nf">RenderContentIfReady</span><span class="p">(</span><span class="n">ws</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">AddressTemplateStoredCheckRenderAddress</span><span class="p">(</span><span class="n">TemplateStored</span> <span class="n">ts</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="kt">var</span> <span class="n">ws</span> <span class="p">=</span> <span class="n">state</span><span class="p">.</span><span class="n">AddOrUpdate</span><span class="p">(</span><span class="k">new</span> <span class="n">WorkflowState</span> <span class="p">{</span><span class="n">AddressTemplateId</span> <span class="p">=</span> <span class="n">ts</span><span class="p">.</span><span class="n">TemplateId</span><span class="p">},</span> <span class="n">existing</span> <span class="p">=&gt;</span>
+            <span class="p">{</span>
+                <span class="n">existing</span><span class="p">.</span><span class="n">AddressTemplateId</span> <span class="p">=</span> <span class="n">ts</span><span class="p">.</span><span class="n">TemplateId</span><span class="p">;</span>
+                <span class="k">return</span> <span class="n">existing</span><span class="p">;</span>
+            <span class="p">});</span>
+            <span class="k">return</span> <span class="nf">RenderAddressIfReady</span><span class="p">(</span><span class="n">ws</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="k">private</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">SendEmailIfReady</span><span class="p">(</span><span class="n">WorkflowState</span> <span class="n">state</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">state</span><span class="p">.</span><span class="n">EmailAddress</span> <span class="p">==</span> <span class="k">null</span> <span class="p">||</span> <span class="n">state</span><span class="p">.</span><span class="n">EmailContent</span> <span class="p">==</span> <span class="k">null</span><span class="p">)</span> <span class="k">return</span> <span class="n">Out</span><span class="p">.</span><span class="n">Ignore</span><span class="p">;</span>
+            <span class="kt">var</span> <span class="n">cid</span> <span class="p">=</span> <span class="n">Guid</span><span class="p">.</span><span class="n">NewGuid</span><span class="p">();</span>
+            <span class="kt">var</span> <span class="n">sendEmail</span> <span class="p">=</span>
+                <span class="k">new</span> <span class="nf">SendEmail</span><span class="p">(</span><span class="n">cid</span><span class="p">,</span> <span class="n">state</span><span class="p">.</span><span class="n">EmailAddress</span><span class="p">,</span> <span class="n">state</span><span class="p">.</span><span class="n">EmailContent</span><span class="p">);</span>
+            <span class="k">return</span> <span class="n">Out</span><span class="p">.</span><span class="n">Empty</span><span class="p">.</span><span class="n">Send</span><span class="p">(</span><span class="n">sendEmail</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">4</span><span class="p">))</span>
+                <span class="p">.</span><span class="n">Expect</span><span class="p">&lt;</span><span class="n">EmailSent</span><span class="p">&gt;(</span><span class="n">cid</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="s">&quot;EmailSent&quot;</span><span class="p">,</span> <span class="n">TimeSpan</span><span class="p">.</span><span class="n">FromSeconds</span><span class="p">(</span><span class="m">5</span><span class="p">),</span> <span class="s">&quot;TimeOut&quot;</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">AddressRenderedCheckSendEmail</span><span class="p">(</span><span class="n">RenderComplete</span> <span class="n">rc</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="kt">var</span> <span class="n">ws</span> <span class="p">=</span> <span class="n">state</span><span class="p">.</span><span class="n">AddOrUpdate</span><span class="p">(</span><span class="k">new</span> <span class="n">WorkflowState</span> <span class="p">{</span><span class="n">EmailAddress</span> <span class="p">=</span> <span class="n">rc</span><span class="p">.</span><span class="n">Content</span><span class="p">},</span> <span class="n">existing</span> <span class="p">=&gt;</span>
+            <span class="p">{</span>
+                <span class="n">existing</span><span class="p">.</span><span class="n">EmailAddress</span> <span class="p">=</span> <span class="n">rc</span><span class="p">.</span><span class="n">Content</span><span class="p">;</span>
+                <span class="k">return</span> <span class="n">existing</span><span class="p">;</span>
+            <span class="p">});</span>
+            <span class="k">return</span> <span class="nf">SendEmailIfReady</span><span class="p">(</span><span class="n">ws</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">ContentRenderedCheckSendEmail</span><span class="p">(</span><span class="n">RenderComplete</span> <span class="n">rc</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="kt">var</span> <span class="n">ws</span> <span class="p">=</span> <span class="n">state</span><span class="p">.</span><span class="n">AddOrUpdate</span><span class="p">(</span><span class="k">new</span> <span class="n">WorkflowState</span> <span class="p">{</span><span class="n">EmailContent</span> <span class="p">=</span> <span class="n">rc</span><span class="p">.</span><span class="n">Content</span><span class="p">},</span> <span class="n">existing</span> <span class="p">=&gt;</span>
+            <span class="p">{</span>
+                <span class="n">existing</span><span class="p">.</span><span class="n">EmailContent</span> <span class="p">=</span> <span class="n">rc</span><span class="p">.</span><span class="n">Content</span><span class="p">;</span>
+                <span class="k">return</span> <span class="n">existing</span><span class="p">;</span>
+            <span class="p">});</span>
+            <span class="k">return</span> <span class="nf">SendEmailIfReady</span><span class="p">(</span><span class="n">ws</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">EmailSent</span><span class="p">(</span><span class="n">EmailSent</span> <span class="n">es</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="kt">var</span> <span class="n">ws</span> <span class="p">=</span> <span class="n">state</span><span class="p">.</span><span class="n">Get</span><span class="p">&lt;</span><span class="n">WorkflowState</span><span class="p">&gt;().</span><span class="n">Value</span><span class="p">;</span>
+            <span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">&quot;Email send success: {0}\nAddress: {1}\nContent: {2}&quot;</span><span class="p">,</span> <span class="n">es</span><span class="p">.</span><span class="n">Successful</span><span class="p">,</span> <span class="n">ws</span><span class="p">.</span><span class="n">EmailAddress</span><span class="p">,</span> <span class="n">ws</span><span class="p">.</span><span class="n">EmailContent</span><span class="p">);</span>
+            <span class="k">return</span> <span class="n">Out</span><span class="p">.</span><span class="n">End</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="k">public</span> <span class="k">static</span> <span class="n">Out</span> <span class="nf">TimeOut</span><span class="p">(</span><span class="n">TimeOutMessage</span> <span class="n">to</span><span class="p">,</span> <span class="n">IState</span> <span class="n">state</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="n">Console</span><span class="p">.</span><span class="n">WriteLine</span><span class="p">(</span><span class="s">&quot;Time out waiting for: {0}&quot;</span><span class="p">,</span> <span class="n">to</span><span class="p">.</span><span class="n">TimedOutStep</span><span class="p">);</span>
+            <span class="k">return</span> <span class="n">Out</span><span class="p">.</span><span class="n">End</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="k">public</span> <span class="k">static</span> <span class="k">void</span> <span class="nf">Configure</span><span class="p">(</span><span class="n">ProcessManager</span> <span class="n">pm</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="n">pm</span><span class="p">.</span><span class="n">AddProcessor</span><span class="p">(</span><span class="n">stored</span> <span class="p">=&gt;</span> <span class="n">stored</span><span class="p">.</span><span class="n">CorrelationId</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="k">new</span> <span class="p">[]</span>
+            <span class="p">{</span>
+                <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">ModelStored</span><span class="p">&gt;(</span><span class="n">ModelStoredCheckRenderContentKey</span><span class="p">,</span> <span class="n">ModelStoredCheckRenderContent</span><span class="p">),</span>
+                <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">ModelStored</span><span class="p">&gt;(</span><span class="n">ModelStoredCheckRenderAddressKey</span><span class="p">,</span> <span class="n">ModelStoredCheckRenderAddress</span><span class="p">)</span>
+            <span class="p">});</span>
+
+            <span class="n">pm</span><span class="p">.</span><span class="n">AddProcessor</span><span class="p">(</span><span class="n">stored</span> <span class="p">=&gt;</span> <span class="n">stored</span><span class="p">.</span><span class="n">CorrelationId</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="k">new</span><span class="p">[]</span>
+            <span class="p">{</span>
+                <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">TemplateStored</span><span class="p">&gt;(</span><span class="n">ContentTemplateStoredCheckRenderContentKey</span><span class="p">,</span>
+                    <span class="n">ContentTemplateStoredCheckRenderContent</span><span class="p">),</span>
+                <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">TemplateStored</span><span class="p">&gt;(</span><span class="n">AddressTemplateStoredCheckRenderAddressKey</span><span class="p">,</span>
+                    <span class="n">AddressTemplateStoredCheckRenderAddress</span><span class="p">)</span>
+            <span class="p">});</span>
+
+            <span class="n">pm</span><span class="p">.</span><span class="n">AddProcessor</span><span class="p">(</span><span class="n">complete</span> <span class="p">=&gt;</span> <span class="n">complete</span><span class="p">.</span><span class="n">CorrelationId</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="k">new</span> <span class="p">[]</span>
+            <span class="p">{</span>
+                <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">RenderComplete</span><span class="p">&gt;(</span><span class="n">AddressRenderedCheckSendEmailKey</span><span class="p">,</span> <span class="n">AddressRenderedCheckSendEmail</span><span class="p">),</span>
+                <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">RenderComplete</span><span class="p">&gt;(</span><span class="n">ContentRenderedCheckSendEmailKey</span><span class="p">,</span> <span class="n">ContentRenderedCheckSendEmail</span><span class="p">)</span>
+            <span class="p">});</span>
+
+            <span class="n">pm</span><span class="p">.</span><span class="n">AddProcessor</span><span class="p">(</span><span class="n">sent</span> <span class="p">=&gt;</span> <span class="n">sent</span><span class="p">.</span><span class="n">CorrelationId</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">EmailSent</span><span class="p">&gt;(</span><span class="s">&quot;EmailSent&quot;</span><span class="p">,</span> <span class="n">EmailSent</span><span class="p">));</span>
+
+            <span class="n">pm</span><span class="p">.</span><span class="n">AddProcessor</span><span class="p">(</span><span class="n">to</span> <span class="p">=&gt;</span> <span class="n">to</span><span class="p">.</span><span class="n">CorrelationId</span><span class="p">.</span><span class="n">ToString</span><span class="p">(),</span> <span class="k">new</span> <span class="n">Mapping</span><span class="p">&lt;</span><span class="n">TimeOutMessage</span><span class="p">&gt;(</span><span class="s">&quot;TimeOut&quot;</span><span class="p">,</span> <span class="n">TimeOut</span><span class="p">));</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Suggestions, additions and questions welcome.</p>
 ]]></content>
   </entry>
   

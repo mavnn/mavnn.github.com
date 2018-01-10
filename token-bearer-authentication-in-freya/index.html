@@ -1,0 +1,651 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Token Bearer Authentication in Freya - Mavnn's blog</title>
+  <meta name="author" content="mavnn">
+
+  
+  <meta name="description" content="As part of my Building Solid Systems course, I&#39;ll be talking about authentication in distributed systems. I wanted a practical demonstration that &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+  <link rel="canonical" href="https://blog.mavnn.co.uk/token-bearer-authentication-in-freya/">
+  <link href="/favicon.ico" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Mavnn's blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="https://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="https://fonts.googleapis.com/css?family=Fira+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="https://fonts.googleapis.com/css?family=Fira+Mono:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+<!-- Google Analytics -->
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-37561687-1', 'auto');
+ga('send', 'pageview');
+
+</script>
+<!-- End Google Analytics -->
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <a href="https://mavnn.co.uk"><img class="swirl-logo" src="/images/swirl.svg"/></a>
+  <h1><a href="/">Mavnn's blog</a></h1>
+  
+    <h2>Stuff from my brain</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="#" method="get" id="searchbox" >
+  <fieldset role="search">
+    <input type="hidden" id="site_query" value="site:blog.mavnn.co.uk" />
+    <input class="search" type="text" name="q" results="0" id="search_query" placeholder="Search"/>
+  </fieldset>
+</form>
+<ul class="main-navigation">
+  <li><a href="https://mavnn.co.uk">Main Site</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+
+<!-- for the course -->
+    <h5>We're running <a href="/building-solid-systems-in-f-number/">Building Solid Systems in F#</a> in London, 31 Jan - 1 Feb 2018. High quality training for building .NET Core, F#, distributed production ready systems.</h5>
+<!-- take it out up to here... -->
+
+
+
+  <header>
+    
+      <h1 class="entry-title">Token Bearer Authentication in Freya</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2018-01-10T11:03:48+00:00" pubdate data-updated="true">Jan 10<span>th</span>, 2018</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>As part of my <a href="/building-solid-systems-in-f-number/">Building Solid Systems</a> course, I&#39;ll be talking about authentication in distributed systems. I wanted a practical demonstration that people could play with, so I added token bearer authentication to a Freya API.</p>
+
+<p>Here&#39;s how.</p>
+
+<!-- more -->
+
+<h3>System design</h3>
+
+<p>Over the years, I have become a big believer in using standards where standards exist (unless they&#39;re actively terrible); as such, for authentication we&#39;ll be assuming that our system includes an OAuth2 compliant authorization server. Depending on our needs, this might be an external service or a self hosted solution such as <a href="https://identityserver.io/">IdentityServer</a>.</p>
+
+<p>We&#39;re going to set up an API which will use &quot;token bearer&quot; authentication. This means that the client is responsible for obtaining a valid token from our authorization server which includes a claim for access to the resource our API represents. How the client gets the token, we don&#39;t really care: there are several ways of obtaining a grant from an OAuth2 server and I won&#39;t be going too far down that rabbit hole here (although check the end of the article for an example).</p>
+
+<h3>The code</h3>
+
+<p>Let&#39;s start coding, and add authentication to the &quot;hello&quot; endpoint of the Freya template project. Set up a new file for our <code>Auth</code> module, and open up everything we need.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nc">Auth</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nc">System</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Freya</span><span class="p">.</span><span class="nc">Core</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Machines</span><span class="p">.</span><span class="nc">Http</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optics</span><span class="p">.</span><span class="nc">Http</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Types</span><span class="p">.</span><span class="nc">Http</span>
+</span><span class='line'><span class="k">open</span> <span class="nc">Hopac</span>
+</span><span class='line'><span class="k">open</span> <span class="nc">IdentityModel</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">IdentityModel</span><span class="p">.</span><span class="nc">Client</span>
+</span><span class='line'><span class="k">open</span> <span class="nc">Logging</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Most of these should make sense; the additions are <code>IdentityModel</code> and a <code>Logging</code> module. IdentityModel is a NuGet package supplied by the IdentityServer project which implements the basics of the OAuth2 specification from a consumers point of view, and gives a nice client API over the top of the various endpoints an OAuth2 compliant server should implement.</p>
+
+<p>The <code>Logging</code> module is the one from my <a href="/logging-freya/">previous blog post</a>; any logging here is optional, but in practice is <em>really very helpful</em> in an actual production distributed system.</p>
+
+<p>The first thing we&#39;re going to do is create a <code>DiscoveryClient</code>. OAuth2 servers provide a discovery document which specifies things like it&#39;s public key and the locations of the other endpoints. In theory, this information can change over time - in this case I&#39;m going to statically grab it on service start up.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">discoClient</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">new</span> <span class="nc">DiscoveryClient</span><span class="o">(</span><span class="s2">&quot;http://idserver:5000&quot;</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">discoClient</span><span class="o">.</span><span class="nn">Policy</span><span class="p">.</span><span class="nc">RequireHttps</span> <span class="o">&lt;-</span> <span class="bp">false</span>
+</span><span class='line'><span class="n">discoClient</span><span class="o">.</span><span class="nn">Policy</span><span class="p">.</span><span class="nc">ValidateEndpoints</span> <span class="o">&lt;-</span> <span class="bp">false</span>
+</span><span class='line'><span class="n">discoClient</span><span class="o">.</span><span class="nn">Policy</span><span class="p">.</span><span class="nc">ValidateIssuerName</span> <span class="o">&lt;-</span> <span class="bp">false</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">doc</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">discoClient</span><span class="o">.</span><span class="nc">GetAsync</span><span class="bp">()</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">AwaitTask</span>
+</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">RunSynchronously</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Your configuration here will vary considerably: I&#39;m running within a kubernetes cluster using an internal DNS record, so I&#39;m overriding the normal safety checks. If you are deploying a service which will be calling the identity server on an external network, you obviously shouldn&#39;t do this&#8230;</p>
+
+<p>The <code>freyaMachine</code> has separate decision points for whether the request is <code>authorized</code> and whether it&#39;s <code>allowed</code>. Authorized is the simplest: a request is authorized if it has an authorization header. Let&#39;s build a method which checks that for us:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">isAuthed</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">freya</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">hasHeader</span> <span class="o">=</span>
+</span><span class='line'>            <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optic</span><span class="p">.</span><span class="n">get</span> <span class="nn">Request</span><span class="p">.</span><span class="nn">Headers</span><span class="p">.</span><span class="n">authorization_</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Freya</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">opt</span> <span class="o">-&gt;</span> <span class="n">opt</span><span class="o">.</span><span class="nc">IsSome</span><span class="o">)</span>
+</span><span class='line'>        <span class="k">if</span> <span class="n">hasHeader</span> <span class="k">then</span>
+</span><span class='line'>            <span class="k">do</span><span class="o">!</span> <span class="nn">Log</span><span class="p">.</span><span class="n">message</span> <span class="s2">&quot;Auth header found&quot;</span>
+</span><span class='line'>                <span class="o">|&gt;</span> <span class="nn">Log</span><span class="p">.</span><span class="n">debug</span>
+</span><span class='line'>        <span class="k">else</span>
+</span><span class='line'>            <span class="k">do</span><span class="o">!</span> <span class="nn">Log</span><span class="p">.</span><span class="n">message</span> <span class="s2">&quot;No auth header&quot;</span>
+</span><span class='line'>                <span class="o">|&gt;</span> <span class="nn">Log</span><span class="p">.</span><span class="n">debug</span>
+</span><span class='line'>        <span class="k">return</span> <span class="n">hasHeader</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Most of the code here is actually logging - but you won&#39;t regret it when your customers ask you why they can&#39;t authenticate against your API.</p>
+
+<p>Now we&#39;re onto the more interesting case; the caller has made an attempt to access a secured resource, and they&#39;ve supplied some authentication to try and do so.</p>
+
+<p>Let&#39;s check first if they&#39;ve supplied a &quot;Bearer&quot; token; this is the only authentication style we&#39;re allowing at the moment.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">token</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">freya</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">auth</span> <span class="o">=</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optic</span><span class="p">.</span><span class="n">get</span> <span class="nn">Request</span><span class="p">.</span><span class="nn">Headers</span><span class="p">.</span><span class="n">authorization_</span>
+</span><span class='line'>        <span class="k">match</span> <span class="n">auth</span> <span class="k">with</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="c1">// We should never reach this branch without an auth header -</span>
+</span><span class='line'>            <span class="c1">// it should be caught by the isAuthed check</span>
+</span><span class='line'>            <span class="k">do</span><span class="o">!</span> <span class="nn">Log</span><span class="p">.</span><span class="n">message</span> <span class="s2">&quot;No auth header found when checking authorization&quot;</span>
+</span><span class='line'>                <span class="o">|&gt;</span> <span class="nn">Log</span><span class="p">.</span><span class="n">warn</span>
+</span><span class='line'>            <span class="k">return</span> <span class="nc">None</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">Some</span> <span class="n">a</span> <span class="k">when</span> <span class="ow">not</span> <span class="o">(</span><span class="n">a</span><span class="o">.</span><span class="nc">StartsWith</span><span class="o">(</span><span class="s2">&quot;Bearer &quot;</span><span class="o">))</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="k">do</span><span class="o">!</span> <span class="nn">Log</span><span class="p">.</span><span class="n">message</span> <span class="s2">&quot;Auth found, but not of type Bearer&quot;</span>
+</span><span class='line'>                <span class="o">|&gt;</span> <span class="nn">Log</span><span class="p">.</span><span class="n">debug</span>
+</span><span class='line'>            <span class="k">return</span> <span class="nc">None</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">Some</span> <span class="n">a</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="k">do</span><span class="o">!</span> <span class="nn">Log</span><span class="p">.</span><span class="n">message</span> <span class="s2">&quot;Bearer token extracted&quot;</span>
+</span><span class='line'>                <span class="o">|&gt;</span> <span class="nn">Log</span><span class="p">.</span><span class="n">debug</span>
+</span><span class='line'>            <span class="k">return</span> <span class="nc">Some</span> <span class="o">&lt;|</span> <span class="n">a</span><span class="o">.</span><span class="nc">Substring</span><span class="o">(</span><span class="mi">7</span><span class="o">)</span>
+</span><span class='line'>    <span class="o">}</span> <span class="o">|&gt;</span> <span class="nn">Freya</span><span class="p">.</span><span class="n">memo</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Now we can check the token to see if it is valid. If the token is a JWT token we could choose to check it locally; we have the public key of the issuer available. Here I&#39;ve decided to go the route of checking each token with the issuer, as that means that we pick up things like token cancellation. Your strategy here will depend a lot on your use case, and <code>IdentityModel</code> also allows for caching to allow a good compromise.</p>
+
+<p>Checking the token can be done via an asynchronous call with the <code>IntrospectionClient</code>. As I&#39;m using Freya compiled against <code>Hopac</code> I&#39;m wrapping it in a <code>job</code> - you could equally wrap it in an <code>async</code> block if you&#39;ve using Async Freya.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">checkToken</span> <span class="n">apiName</span> <span class="n">apiSecret</span> <span class="n">t</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">job</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">use</span> <span class="n">introClient</span> <span class="o">=</span>
+</span><span class='line'>            <span class="k">new</span> <span class="nc">IntrospectionClient</span><span class="o">(</span><span class="n">doc</span><span class="o">.</span><span class="nc">IntrospectionEndpoint</span><span class="o">,</span>
+</span><span class='line'>                                    <span class="n">apiName</span><span class="o">,</span> <span class="n">apiSecret</span><span class="o">)</span>
+</span><span class='line'>        <span class="k">return</span><span class="o">!</span>
+</span><span class='line'>            <span class="n">introClient</span><span class="o">.</span><span class="nc">SendAsync</span><span class="o">(</span><span class="nc">IntrospectionRequest</span><span class="o">(</span><span class="nc">Token</span> <span class="o">=</span> <span class="n">t</span><span class="o">))</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Hopac</span><span class="p">.</span><span class="nn">Job</span><span class="p">.</span><span class="n">awaitTask</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>And now the last step is to build a <code>allowed</code> decision point. Our decision point takes three parameters: the name of this API resource, as known to the identity server, the shared secret between resource and identity server, and the scope this particular resource within the API requires. Normally this will be something like <code>read</code> or <code>write</code>. An entire API will normally share a single name and secret, while each endpoint may require a different scope.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">isAllowedFor</span> <span class="n">apiName</span> <span class="n">apiSecret</span> <span class="n">scope</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">freya</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">token</span> <span class="o">=</span> <span class="n">token</span>
+</span><span class='line'>        <span class="k">match</span> <span class="n">token</span> <span class="k">with</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="k">return</span> <span class="bp">false</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">Some</span> <span class="n">t</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="k">let</span><span class="o">!</span> <span class="n">resp</span> <span class="o">=</span>
+</span><span class='line'>                <span class="n">checkToken</span> <span class="n">apiName</span> <span class="n">apiSecret</span> <span class="n">t</span>
+</span><span class='line'>                <span class="o">|&gt;</span> <span class="nn">Freya</span><span class="p">.</span><span class="n">fromJob</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">scopeMatch</span> <span class="o">=</span>
+</span><span class='line'>                <span class="n">resp</span><span class="o">.</span><span class="nc">Claims</span>
+</span><span class='line'>                <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">exists</span> <span class="o">(</span><span class="k">fun</span> <span class="n">c</span> <span class="o">-&gt;</span> <span class="n">c</span><span class="o">.</span><span class="nc">Type</span> <span class="o">=</span> <span class="s2">&quot;scope&quot;</span> <span class="o">&amp;&amp;</span> <span class="n">c</span><span class="o">.</span><span class="nc">Value</span> <span class="o">=</span> <span class="n">scope</span><span class="o">)</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">clientId</span> <span class="o">=</span>
+</span><span class='line'>                <span class="n">resp</span><span class="o">.</span><span class="nc">Claims</span>
+</span><span class='line'>                <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">tryFind</span> <span class="o">(</span><span class="k">fun</span> <span class="n">c</span> <span class="o">-&gt;</span> <span class="n">c</span><span class="o">.</span><span class="nc">Type</span> <span class="o">=</span> <span class="s2">&quot;client_id&quot;</span><span class="o">)</span>
+</span><span class='line'>            <span class="k">let</span> <span class="n">isAllowed</span> <span class="o">=</span>
+</span><span class='line'>                <span class="n">resp</span><span class="o">.</span><span class="nc">IsActive</span> <span class="o">&amp;&amp;</span> <span class="n">scopeMatch</span> <span class="o">&amp;&amp;</span> <span class="n">clientId</span><span class="o">.</span><span class="nc">IsSome</span>
+</span><span class='line'>            <span class="k">if</span> <span class="n">isAllowed</span> <span class="k">then</span>
+</span><span class='line'>                <span class="k">do</span><span class="o">!</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optic</span><span class="p">.</span><span class="n">set</span>
+</span><span class='line'>                        <span class="nn">Request</span><span class="p">.</span><span class="n">clientId_</span>
+</span><span class='line'>                        <span class="o">(</span><span class="n">clientId</span> <span class="o">|&gt;</span> <span class="nn">Option</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">c</span> <span class="o">-&gt;</span> <span class="n">c</span><span class="o">.</span><span class="nc">Value</span><span class="o">))</span>
+</span><span class='line'>                <span class="k">do</span><span class="o">!</span> <span class="nn">Log</span><span class="p">.</span><span class="n">message</span> <span class="s2">&quot;Request allowed to scope {scope}&quot;</span>
+</span><span class='line'>                    <span class="o">|&gt;</span> <span class="nn">Log</span><span class="p">.</span><span class="n">add</span> <span class="n">scope</span>
+</span><span class='line'>                    <span class="o">|&gt;</span> <span class="nn">Log</span><span class="p">.</span><span class="n">info</span>
+</span><span class='line'>            <span class="k">else</span>
+</span><span class='line'>                <span class="k">do</span><span class="o">!</span> <span class="nn">Log</span><span class="p">.</span><span class="n">message</span> <span class="s2">&quot;Invalid token supplied&quot;</span>
+</span><span class='line'>                    <span class="o">|&gt;</span> <span class="nn">Log</span><span class="p">.</span><span class="n">debug</span>
+</span><span class='line'>            <span class="k">return</span> <span class="n">isAllowed</span>
+</span><span class='line'>    <span class="o">}</span> <span class="o">|&gt;</span> <span class="nn">Freya</span><span class="p">.</span><span class="n">memo</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">authMachine</span> <span class="n">apiName</span> <span class="n">apiSecret</span> <span class="n">scope</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">freyaMachine</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">allowed</span> <span class="o">(</span><span class="n">isAllowedFor</span> <span class="n">apiName</span> <span class="n">apiSecret</span> <span class="n">scope</span><span class="o">)</span>
+</span><span class='line'>        <span class="n">authorized</span> <span class="n">isAuthed</span>
+</span><span class='line'>        <span class="n">methods</span> <span class="o">[</span><span class="nc">GET</span><span class="o">;</span> <span class="nc">HEAD</span><span class="o">;</span> <span class="nc">OPTIONS</span><span class="o">]</span> <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Apart from actually checking whether access is allowed, the other important thing we do here is add the calling clientId to the OWIN state. This means that we can make use of the clientId in any further pipeline steps (and in our logging).</p>
+
+<p>So: we now have an <code>authMachine</code> which will check if you&#39;re allowed to do something&#8230; but doesn&#39;t actually do anything itself.</p>
+
+<p>Time to switch back to <code>Api.fs</code> from the template project (making sure you&#39;ve added in both the <code>Logging</code> and <code>Auth</code> modules to the project).</p>
+
+<p>Amend your <code>helloMachine</code> as follows:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">helloMachine</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">freyaMachine</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">including</span> <span class="o">(</span><span class="n">authMachine</span> <span class="s2">&quot;myApi&quot;</span> <span class="s2">&quot;apiSecret&quot;</span> <span class="s2">&quot;myApi.read&quot;</span><span class="o">)</span>
+</span><span class='line'>        <span class="n">methods</span> <span class="o">[</span><span class="nc">GET</span><span class="o">;</span> <span class="nc">HEAD</span><span class="o">;</span> <span class="nc">OPTIONS</span><span class="o">]</span>
+</span><span class='line'>        <span class="n">handleOk</span> <span class="n">sayHello</span> <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>and finally make sure that you remember to inject your logger (see the previous blog post):</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">root</span> <span class="n">config</span> <span class="o">=</span>
+</span><span class='line'>    <span class="nn">Pipeline</span><span class="p">.</span><span class="n">compose</span>
+</span><span class='line'>        <span class="o">(</span><span class="nn">Log</span><span class="p">.</span><span class="n">injectLogger</span> <span class="n">config</span><span class="o">)</span>
+</span><span class='line'>        <span class="o">(</span><span class="n">freyaRouter</span> <span class="o">{</span> <span class="n">resource</span> <span class="s2">&quot;/hello{/name}&quot;</span> <span class="n">helloMachine</span> <span class="o">})</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Now we should be able to spin everything up.</p>
+
+<h3>Trying it all out</h3>
+
+<p>We&#39;ll be using <a href="https://www.oauth.com/oauth2-servers/access-tokens/client-credentials/">Client Credential</a> authentication for this example; this is a grant type used when a &quot;client&quot; is requesting access to a &quot;resource&quot; when no &quot;user&quot; is present. It&#39;s a standard grant type covered by the OAuth specification, and we&#39;re going to assume that we have an OAuth2 compliant authority available to issue allow introspection of tokens.</p>
+
+<p>This type of grant is generally used for service to service communication - there&#39;s no user interaction at all, just an agreed pre-shared &quot;client secret&quot; (an API key).</p>
+
+<p>First we need to get a token from our identity server using our clientId and clientSecret (this client must be configured in the identity server).</p>
+
+<p>If you&#39;re using IdentityServer4 like I am, your request will look like this (curl format):</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>curl -X POST <span class="se">\</span>
+</span><span class='line'>  http://identity.mavnn.co.uk/connect/token <span class="se">\</span>
+</span><span class='line'>  -H <span class="s1">&#39;cache-control: no-cache&#39;</span> <span class="se">\</span>
+</span><span class='line'>  -H <span class="s1">&#39;content-type: application/x-www-form-urlencoded&#39;</span> <span class="se">\</span>
+</span><span class='line'>  -d <span class="s1">&#39;grant_type=client_credentials&amp;scope=myApi.read&amp;client_id=myClient&amp;client_secret=mySecret&#39;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>You&#39;ll get back a response including a token:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='json'><span class='line'><span class="p">{</span>
+</span><span class='line'>    <span class="nt">&quot;access_token&quot;</span><span class="p">:</span> <span class="s2">&quot;eyJhbGciOi...&quot;</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;expires_in&quot;</span><span class="p">:</span> <span class="mi">3600</span><span class="p">,</span>
+</span><span class='line'>    <span class="nt">&quot;token_type&quot;</span><span class="p">:</span> <span class="s2">&quot;Bearer&quot;</span>
+</span><span class='line'><span class="p">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Now when you call the secured API, you need to add the token to your headers:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>curl -X GET <span class="se">\</span>
+</span><span class='line'>  http://localhost/hello <span class="se">\</span>
+</span><span class='line'>  -H <span class="s1">&#39;authorization: Bearer eyJhbGciOi...&#39;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>If you don&#39;t supply the <code>authorization</code> header at all, you correctly get a <code>401</code> response; if the token is invalid or you (for example) try and use <code>Basic</code> authentication, you receive a <code>403</code>. Both return with an empty body; if you wanted to make the pages pretty you would need to add <code>handleUnauthorized</code> and <code>handleForbidden</code> to your <code>freyaMachine</code>. Here, for an API it&#39;s probably as meaningful to just leave the response empty. There isn&#39;t any further information to supply, after all.</p>
+
+<p>And there it is: token bearer authentication set up for Freya.</p>
+
+<p>Interested in how you can set up the whole environment in Kubernetes including IdentityServer, logging, metrics and all the other mod cons you could desire? There&#39;s still time to sign up for <a href="/building-solid-systems-in-f-number/">Building Solid Systems in F#</a> at the end of the month!</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">mavnn</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2018-01-10T11:03:48+00:00" pubdate data-updated="true">Jan 10<span>th</span>, 2018</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/freya/'>freya</a>, <a class='category' href='/blog/categories/fsharp/'>fsharp</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="https://blog.mavnn.co.uk/token-bearer-authentication-in-freya/" data-via="mavnn" data-counturl="https://blog.mavnn.co.uk/token-bearer-authentication-in-freya/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/logging-freya/" title="Previous Post: Logging Freya">&laquo; Logging Freya</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Hire the Author</h1>
+  <p>
+    Want some help in any of the areas you've read about? Hop across to
+    <a href="https://mavnn.co.uk">mavnn.co.uk</a> where you can hire the
+    author.
+  </p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/token-bearer-authentication-in-freya/">Token Bearer Authentication in Freya</a>
+      </li>
+    
+      <li class="post">
+        <a href="/logging-freya/">Logging Freya</a>
+      </li>
+    
+      <li class="post">
+        <a href="/f-number-through-a-ruby-lens/">F# Through a Ruby Lens</a>
+      </li>
+    
+      <li class="post">
+        <a href="/advent-2017-reading-from-the-firehose-with-fable/">Advent 2017 - Reading From the Firehose With Fable</a>
+      </li>
+    
+      <li class="post">
+        <a href="/going-down-the-property-based-testing-rabbit-hole/">Going Down the Property Based Testing Rabbit Hole</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/mavnn">@mavnn</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'mavnn',
+            count: 3,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2018 - mavnn -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<div id="disqus_thread"></div>
+<script>
+    var disqus_config = function () {
+        this.page.url = 'https://blog.mavnn.co.uk/token-bearer-authentication-in-freya/';
+        this.page.identifier = 'https://blog.mavnn.co.uk/token-bearer-authentication-in-freya/';
+    };
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+        s.src = 'https://mavnn.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+<script type="text/javascript">
+ (function() {
+   const searchbox = document.getElementById("searchbox");
+   const site_query = document.getElementById("site_query").value;
+   const search_query = document.getElementById("search_query");
+
+   searchbox.onsubmit = function() {
+     const q = encodeURIComponent(search_query.value);
+     document.location.assign("https://google.com/search?q=" + site_query + "+" + q);
+     return false;
+   };
+ })()
+</script>
+
+
+</body>
+</html>

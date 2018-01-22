@@ -5,6 +5,8 @@ date: 2017-09-13 14:19:21 +0100
 comments: true
 categories: 
 ---
+> Update: The original venue sold out - more tickets are available for the 8th - 9th March 2018 on [EventBrite](https://www.eventbrite.co.uk/e/building-solid-systems-in-f-tickets-42416619250)!
+
 We are running another course, and I'm officially stoked! Read on for the details...
 
 <h2>Building Solid Systems in F#</h2>
@@ -61,7 +63,7 @@ You need to bring laptop with:
 
 <ul class="org-ul">
 <li>a relatively recent F# development environment (you'll need to be able to build dotnet core 2.0 apps)</li>
-<li>Minikube installed</li>
+<li>Minikube and kubectl installed</li>
 </ul>
 
 <p>
@@ -72,17 +74,15 @@ We'll also ask you to pre-download some code and containers in advance so that w
 
 No; [Level Up Your F#](https://blog.mavnn.co.uk/level-up-your-f-number-skills/) focussed on the details of the F# language, this course is focussed on building systems. We will be running Level Up Your F# again in the future.
 
-## Where will it happen?
+## Where/when will it happen?
 
-At the [Wellcome Collection](https://wellcomecollection.org/)
+<del>At the [Wellcome Collection](https://wellcomecollection.org/)</del> Sold out!
+
+[The Skiff](https://www.theskiff.org/), in Brighton on the 8th and 9th Manch 2018
 
 ## Where can I get tickets?
 
-Right here!
-
-<div style="width:100%; text-align:left;"><iframe src="//eventbrite.co.uk/tickets-external?eid=37887882677&ref=etckt" frameborder="0" height="648" width="100%" vspace="0" hspace="0" marginheight="5" marginwidth="5" scrolling="auto" allowtransparency="true"></iframe><div style="font-family:Helvetica, Arial; font-size:12px; padding:10px 0 5px; margin:2px; width:100%; text-align:left;" ><a class="powered-by-eb" style="color: #ADB0B6; text-decoration: none;" target="_blank" href="http://www.eventbrite.co.uk/">Powered by Eventbrite</a></div></div>
-
-(Or go to [EventBrite](https://www.eventbrite.co.uk/e/writing-solid-systems-in-f-tickets-37887882677) if that form isn't working for you)
+[EventBrite](https://www.eventbrite.co.uk/e/building-solid-systems-in-f-tickets-42416619250) or email <a href="mailto:us@mavnn.co.uk">us@mavnn.co.uk</a> and we'll sort you out an invoice.
 
 ## What have other people said about your courses?
 

@@ -9,7 +9,7 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="So, as a follow up to this post I&#39;m in the final stages of preparing a presentation for this Friday introducing an audience of (mostly) fairly &hellip;">
+  <meta name="description" content="So, a couple of weeks ago I went to the Brighton Functional Programmers meet up. It was a fun night, and at one point I ended up live coding in front &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -80,6 +80,156 @@ ga('send', 'pageview');
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+
+  <header>
+    
+      <h1 class="entry-title"><a href="/to-infinity/">To Infinity and Beyond</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-10-31T07:41:00+00:00" pubdate data-updated="true">Oct 31<span>st</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>So, a couple of weeks ago I went to the Brighton Functional Programmers meet up. It was a fun night, and at one point I ended up live coding in front of a room of functional programmers trying to give examples of lazy and strict evaluation.</p>
+
+<p>The canonical go to tool for the job, is of course the infinite sequence and being stared at by a bunch of people and having syntax highlighting but no compiler, the first thing my brain pulled out of the air was this:</p>
+
+<div><script src='https://gist.githubusercontent.com/mavnn/7246744.js?file=Part1.fs'></script>
+<noscript><pre><code>let ones =
+    seq {
+        while true do
+            yield 1
+    }
+// seq [1; 1; 1; 1; ...]</code></pre></noscript></div>
+
+<p>Which prompted one of the people attending (hi <a href="https://twitter.com/milessabin">Miles!</a>) to comment &quot;let&#39;s see that in Haskell without the bizarre looping generator&quot;. Roughly - I&#39;m slightly paraphrasing here given the couple of weeks in between. He has a bit of a point, this isn&#39;t the most functional looking sequence generator in the world, and it looks like quite a lot of code to just generate a lot of ones.</p>
+
+<p>As always in these situations, I had of course thought of several other alternatives before I even reached my chair, so I thought I&#39;d have a quick survey of them and their advantages and disadvantages.</p>
+
+<p>My first thought was that I&#39;d missed the obvious and succinct option of just generating a range. In F# (as in Haskell) the 1 .. 10 notation generates a list of the integers from 1 to 10. Unfortunately:</p>
+
+<div><script src='https://gist.githubusercontent.com/mavnn/7246744.js?file=Part2.fs'></script>
+<noscript><pre><code>// Can&#39;t do this, unfortunately
+// seq { 1 .. }
+//
+// or this:
+// seq { 1 .. 0 .. 2 }
+//
+// Which I thought might be a nice hack.
+</code></pre></noscript></div>
+
+<p>Unlike Haskell, you can&#39;t have an unbounded range, nor can you set the &quot;step&quot; to zero to just keep on generating the same number. So you&#39;re limited to generating very big, but definitely not infinite sequences:</p>
+
+<div><script src='https://gist.githubusercontent.com/mavnn/7246744.js?file=Part3.fs'></script>
+<noscript><pre><code>let notInfiniteOrOnes = seq { 1 .. System.Int32.MaxValue }
+// seq [1; 2; 3; 4; ...]
+
+let notInfinite = seq { for _ in 1 .. System.Int32.MaxValue -&gt; 1 }
+// seq [1; 1; 1; 1; ...]
+</code></pre></noscript></div>
+
+<p>But hey! We&#39;re in functional world. So if we can&#39;t use sneaky built in syntax constructs, the next obvious choice is a recursive function:</p>
+
+<div><script src='https://gist.githubusercontent.com/mavnn/7246744.js?file=Part4.fs'></script>
+<noscript><pre><code>let ones&#39; =
+    let rec gen () =
+        seq {
+            yield 1
+            yield! gen ()
+        }
+    gen ()
+// seq [1; 1; 1; 1; ...]
+</code></pre></noscript></div>
+
+<p>This is definitely infinite, and definitely functional in style. Bit verbose, of course, but it least it won&#39;t stack overflow as F# implements tail call recursion. It&#39;s verbose, but it does also have its advantages. It&#39;s trivial to pass things round in the recursive function (previous values from the sequence, etc) making this a very flexible way of generating sequences.</p>
+
+<p>And, of course, let&#39;s not ignore the standard library. The <code>Seq</code> module gives us a couple of methods designed specifically for generating (potentially) infinite sequences.</p>
+
+<p><code>Seq.initInfinite</code> just takes a function that returns a sequence value based on the index of that value:</p>
+
+<div><script src='https://gist.githubusercontent.com/mavnn/7246744.js?file=Part5.fs'></script>
+<noscript><pre><code>let ones&#39;&#39; = Seq.initInfinite (fun _ -&gt; 1)
+// seq [1; 1; 1; 1; ...]
+</code></pre></noscript></div>
+
+<p>As long as a simple mapping from index to value exists, this is both clear and concise. In theory, of course, it also suffers from the same issue as my range generators above: if your index exceeds the valid size of an Int32 you&#39;re out of luck.</p>
+
+<p><code>Seq.unfold</code> may seem less intuitive, but in my mind is the more flexible and powerful solution. I tend to come across examples where it&#39;s easier to generate a sequence based on either some state or the previous term than by index, and that&#39;s exactly what unfold allows you to do:</p>
+
+<div><script src='https://gist.githubusercontent.com/mavnn/7246744.js?file=Part6.fs'></script>
+<noscript><pre><code>let ones&#39;&#39;&#39; = Seq.unfold (fun _ -&gt; Some (1, ())) ()
+// seq [1; 1; 1; 1; ...]
+</code></pre></noscript></div>
+
+<p>It will also happily generate sequences forever if your generating function allows.</p>
+
+<p>So, how does it actually work? Let&#39;s look at a (slightly) more complex example that actually makes use of some state:</p>
+
+<div><script src='https://gist.githubusercontent.com/mavnn/7246744.js?file=Part7.fs'></script>
+<noscript><pre><code>let moreInterestingUnfold =
+    Seq.unfold
+        (fun state -&gt;
+            Some (state, state + 1)) 1
+// seq [1; 2; 3; 4; ...]
+</code></pre></noscript></div>
+
+<p>What&#39;s going on here then? Well, <code>unfold</code> takes two arguments. The first is a function that takes a &#39;State and returns an Option&lt;&#39;T * &#39;State&gt;. In our simple example above, both &#39;State and &#39;T are of type <code>int</code> but there&#39;s no requirement for them to be of the same type. If at any point the function returns <code>None</code>, the sequence ends. In our example, we always return <code>Some</code>, so our sequence is infinite (at least until it runs out of integers) and we&#39;re return a tuple of two values - the first of which will be used as the next term in the sequence, and the second which will become the new state.</p>
+
+<p>The second argument to <code>unfold</code> is the starting state. In our case, this means the number that will be the first term in the sequence, and then we&#39;ll add one to it each time.</p>
+
+<p>Let&#39;s round this out with an example that uses different types for the state and the terms of the sequence, which will hopefully now make some sense:</p>
+
+<div><script src='https://gist.githubusercontent.com/mavnn/7246744.js?file=Part8.fs'></script>
+<noscript><pre><code>type Time =
+    {
+        Hour : int
+        Minute : int
+    }
+
+let addMinute time =
+    match time with
+    | { Hour = 23; Minute = 59 } -&gt;
+        { Hour = 0; Minute = 0 }
+    | { Minute = 59 } -&gt;
+        { Hour = time.Hour + 1; Minute = 0 }
+    | _ -&gt;
+        { Hour = time.Hour; Minute = time.Minute + 1 }
+
+let unfold&#39; =
+    Seq.unfold
+        (fun state -&gt;
+            Some (sprintf &quot;%02d:%02d&quot; state.Hour state.Minute, addMinute state)
+            ) { Hour = 22; Minute = 59 }
+// seq [&quot;23:59&quot;; &quot;00:00&quot;; &quot;00:01&quot;; &quot;00:02&quot;; ...]
+</code></pre></noscript></div>
+
+<p>I&#39;m sure that you&#39;ve always needed a convenient way of cycling through every minute of the day repeatedly, with a nice readable string representation.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1274,79 +1424,6 @@ let UpdateProj (projFile : string) =
 
     </article>
   
-  
-    <article>
-      
-
-  <header>
-    
-      <h1 class="entry-title"><a href="/a-short-interlude-into-adaptive-polling-tag-f/">A Short Interlude Into Adaptive Polling</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-01-22T00:00:00+00:00" pubdate data-updated="true"></time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Your windows service is watching an email inbox.</p>
-
-<p>How often should it poll?</p>
-
-<p>Once every 5 minutes? Every 10? Then of course you realise that it should be different for every customer… or maybe every mailbox. You need more config!</p>
-
-<h3>Or not.</h3>
-
-<p>The real answer, of course, is something completely different: it should poll a lot when a lot of emails are arriving, and not very much when they aren’t.</p>
-
-<p>It took a lot longer than it should have done to get my maths brain back on, but with the help of my wife I eventually settled on this code for deciding the intervals between polls:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">interval</span> <span class="n">i</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">let</span> <span class="n">x</span> <span class="o">=</span> <span class="kt">float</span> <span class="n">i</span>
-</span><span class='line'>    <span class="k">let</span> <span class="n">maxWait</span> <span class="o">=</span> <span class="mi">60</span><span class="o">.</span> <span class="o">*</span> <span class="mi">10</span><span class="o">.</span>
-</span><span class='line'>    <span class="k">let</span> <span class="n">raisePower</span> <span class="n">x</span> <span class="o">=</span> <span class="n">pown</span> <span class="o">(</span><span class="n">x</span> <span class="o">/</span><span class="mi">10</span><span class="o">.)</span> <span class="mi">4</span>
-</span><span class='line'>    <span class="o">(</span><span class="n">maxWait</span> <span class="o">*</span> <span class="o">(</span><span class="n">raisePower</span> <span class="n">x</span><span class="o">))</span> <span class="o">/</span> <span class="o">(</span><span class="n">raisePower</span> <span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="o">.)</span>
-</span><span class='line'>    <span class="o">|&gt;</span> <span class="o">(*)</span> <span class="mi">1000</span><span class="o">.</span> <span class="o">|&gt;</span> <span class="kt">int</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>The ‘i’ in this function is the number of times we’ve polled since the last time a new email was received (if one is received, we reset i to 0).</p>
-
-<p>If you plot this out on a graph, you get something that looks like this:</p>
-
-<p><img src="http://www.wolframalpha.com/share/img?i=d41d8cd98f00b204e9800998ecf8427ehd954rh40i&amp;f=HBQTQYZYGY4TOM3CGRSGMMBWGAYDCM3DGYZGMOBWGFRDANDCMUZAaaaa" alt="" /></p>
-
-<p>You can play with the shape of the graph at <a href="http://www.wolframalpha.com/share/clip?f=d41d8cd98f00b204e9800998ecf8427ehd954rh40i">Wolfram|Alpha if you&#39;re feeling really geeky</a> :).</p>
-
-<p>This gives us very aggressive polling for the first few minutes after discovering an email, then dropping off rapidly to close to the one every ten minutes mark that I decided was a reasonable background polling rate.</p>
-
-<p>It&#39;s not truly adaptive in the machine learning sense, but it gives a very good first cut that is an awful lot better than any fixed value could be.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/8/">&larr; Older</a>
@@ -1372,6 +1449,10 @@ let UpdateProj (projFile : string) =
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/getting-started-with-f-number-in-kubernetes/">Getting Started With F# in Kubernetes</a>
+      </li>
+    
+      <li class="post">
         <a href="/token-bearer-authentication-in-freya/">Token Bearer Authentication in Freya</a>
       </li>
     
@@ -1385,10 +1466,6 @@ let UpdateProj (projFile : string) =
     
       <li class="post">
         <a href="/advent-2017-reading-from-the-firehose-with-fable/">Advent 2017 - Reading From the Firehose With Fable</a>
-      </li>
-    
-      <li class="post">
-        <a href="/going-down-the-property-based-testing-rabbit-hole/">Going Down the Property Based Testing Rabbit Hole</a>
       </li>
     
   </ul>

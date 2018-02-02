@@ -4,7 +4,7 @@
   <title><![CDATA[Mavnn's blog]]></title>
   <link href="https://blog.mavnn.co.uk/atom.xml" rel="self"/>
   <link href="https://blog.mavnn.co.uk/"/>
-  <updated>2018-01-22T11:45:28+00:00</updated>
+  <updated>2018-02-02T21:40:38+00:00</updated>
   <id>https://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,377 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Getting Started With F# in Kubernetes]]></title>
+    <link href="https://blog.mavnn.co.uk/getting-started-with-f-number-in-kubernetes/"/>
+    <updated>2018-02-02T14:44:21+00:00</updated>
+    <id>https://blog.mavnn.co.uk/getting-started-with-f-number-in-kubernetes</id>
+    <content type="html"><![CDATA[<blockquote>
+<p>Author&#39;s note: This post is a quick start to help you get a single F# based service up and running on Kubernetes. If you want the full story on how to design a distributed system, we offer <a href="https://blog.mavnn.co.uk/building-solid-systems-in-f-number/">commercial training</a> and <a href="https://mavnn.co.uk/">consulting services</a> to help you with that.</p>
+</blockquote>
+
+<p>&quot;Kubernetes is an open-source system for automating deployment, scaling, and management of containerized applications&quot; - in other words, it will handle more deployment, health monitoring and service discovery needs out of the box, as long as you can turn your application into a container. So, let&#39;s have a quick look at how to do that with an F# application.</p>
+
+<!-- more -->
+
+<h2>Prerequisites</h2>
+
+<p>We going to use Minikube to start up a local Kubernetes &quot;cluster&quot; (it will only have a single node), and installation and first start depend slightly on operating system and which virtual machine backend you want it to use. Instructions on installing it can be found <a href="https://github.com/kubernetes/minikube">here</a>.</p>
+
+<p>Note that Minikube depends in turn on <a href="https://kubernetes.io/docs/tasks/tools/install-kubectl/">kubectl</a> which will also need to be installed.</p>
+
+<p>The example application we&#39;re going to deploy is going to be a .NET Core app running on Linux, so you will also need the .NET Core SDK 2.0+ installed. We&#39;re going to leverage the <code>dotnet</code> command line tool a fair bit.</p>
+
+<p>Finally, most of the commands you need to run will be given in bash syntax. Hopefully you have bash installed (via installing <code>git</code> if nothing else!), but if you don&#39;t it should be fairly clear how to carry the steps out in other consoles.</p>
+
+<h2>Actually Doing Stuff</h2>
+
+<p>First things first; start up minikube.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'>minikube start <span class="c"># you may need options here depending on desired virtual machine software</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>It will take a little while to get going, especially on the first run when it will download an ISO image to create its own virtual machine. You can carry on with other steps as it warms up.</p>
+
+<p>While that&#39;s going on, let&#39;s lay out a nice project structure to store all the things we&#39;re going to need. All future command line snippets will assume you&#39;re running them from the root of this structure.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'>mkdir kube <span class="c"># Stores Kubernetes config</span>
+</span><span class='line'>mkdir src <span class="c"># our F# code</span>
+</span><span class='line'>mkdir docker <span class="c"># docker config</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Before we can run an application in Kubernetes, we need an application. So let&#39;s start with that. We&#39;re going to use the .NET Core <a href="https://docs.freya.io/en/latest/">Freya</a> template to create a simple console application with a single HTTP endpoint on it.</p>
+
+<p>If you don&#39;t have the Freya template installed, grab it first using:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'>dotnet new --install <span class="s2">&quot;Freya.Template::*&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Now we can create our project.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'>dotnet new freya -o src/WebHello
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Run a restore just to make sure everything is as it should be, and then you should be able to start up your service:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'>dotnet restore src/WebHello/WebHello.fsproj
+</span><span class='line'>dotnet run -p src/WebHello/WebHello.fsproj
+</span></code></pre></td></tr></table></div></figure>
+
+<p>It should tell you it has started a web server on socket 8080, and surfing to <code>http://localhost:8080/hello</code> should get you a &quot;Hello, world!&quot; response.</p>
+
+<p>Great - it works! Hit ctrl-c to shut it down again.</p>
+
+<p>We just need to make one change here; because we&#39;re going to deploy this on a container, we can&#39;t only listen on local host. Go into Program.fs, and change the <code>main</code> function to look like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="o">[&lt;</span><span class="nc">EntryPoint</span><span class="o">&gt;]</span>
+</span><span class='line'><span class="k">let</span> <span class="n">main</span> <span class="n">argv</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">myCfg</span> <span class="o">=</span>
+</span><span class='line'>        <span class="o">{</span> <span class="n">defaultConfig</span> <span class="k">with</span>
+</span><span class='line'>            <span class="n">bindings</span> <span class="o">=</span> <span class="o">[</span> <span class="nn">HttpBinding</span><span class="p">.</span><span class="n">createSimple</span> <span class="nc">HTTP</span> <span class="s2">&quot;0.0.0.0&quot;</span> <span class="mi">8080</span> <span class="o">]</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">startWebServer</span>
+</span><span class='line'>        <span class="n">myCfg</span>
+</span><span class='line'>        <span class="o">(</span><span class="nn">Owin</span><span class="p">.</span><span class="nn">OwinApp</span><span class="p">.</span><span class="n">ofAppFunc</span> <span class="s2">&quot;/&quot;</span> <span class="o">(</span><span class="nn">OwinAppFunc</span><span class="p">.</span><span class="n">ofFreya</span> <span class="nn">Api</span><span class="p">.</span><span class="n">root</span><span class="o">))</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="mi">0</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Now we need to turn it into a docker container so it can run on Kubernetes.</p>
+
+<p>Create a new file in the docker directory called <code>WebHelloDockerfile</code> (imaginative, I know). Docker will use this file to create a image based on our code. To make sure that the image created is the same as what we&#39;re going to deploy in production, we don&#39;t create the image from the compilation output on our development box - instead, we actually use a intermediate docker container to build our source code with a known version of the .NET Core tool chain. We use the exact same docker file (and therefore versions of the tool chain) for our continuous integration builds. <em>Thanks to <a href="http://twitter.com/stevejgordon">Steve Gordon</a> for pointing out this trick for me.</em></p>
+
+<p>Into the file, put this contents:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="nc">FROM</span> <span class="n">microsoft</span><span class="o">/</span><span class="n">dotnet</span><span class="o">:</span><span class="mi">2</span><span class="o">.</span><span class="mi">0</span><span class="o">-</span><span class="n">sdk</span> <span class="nc">AS</span> <span class="nc">BUILD</span>
+</span><span class='line'><span class="nc">WORKDIR</span> <span class="o">/</span><span class="n">build</span>
+</span><span class='line'><span class="nc">COPY</span> <span class="n">src</span> <span class="n">src</span>
+</span><span class='line'><span class="nc">RUN</span> <span class="n">dotnet</span> <span class="n">restore</span> <span class="n">src</span><span class="o">/</span><span class="nc">WebHello</span><span class="o">/</span><span class="nn">WebHello</span><span class="p">.</span><span class="n">fsproj</span>
+</span><span class='line'><span class="nc">RUN</span> <span class="n">dotnet</span> <span class="n">publish</span> <span class="n">src</span><span class="o">/</span><span class="nc">WebHello</span><span class="o">/</span><span class="nn">WebHello</span><span class="p">.</span><span class="n">fsproj</span> <span class="o">-</span><span class="n">o</span> <span class="n">out</span> <span class="o">-</span><span class="n">c</span> <span class="nc">Release</span> <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">restore</span>
+</span><span class='line'>
+</span><span class='line'><span class="nc">FROM</span> <span class="n">microsoft</span><span class="o">/</span><span class="n">dotnet</span><span class="o">:</span><span class="mi">2</span><span class="o">.</span><span class="mi">0</span><span class="o">-</span><span class="n">runtime</span>
+</span><span class='line'><span class="nc">WORKDIR</span> <span class="o">/</span><span class="n">app</span>
+</span><span class='line'><span class="nc">COPY</span> <span class="o">--</span><span class="n">from</span><span class="o">=</span><span class="nc">BUILD</span> <span class="o">/</span><span class="n">build</span><span class="o">/</span><span class="n">src</span><span class="o">/</span><span class="nc">WebHello</span><span class="o">/</span><span class="n">out</span> <span class="o">.</span>
+</span><span class='line'><span class="nc">EXPOSE</span> <span class="mi">8080</span>
+</span><span class='line'><span class="nc">ENTRYPOINT</span> <span class="n">dotnet</span> <span class="o">/</span><span class="n">app</span><span class="o">/</span><span class="nn">WebHello</span><span class="p">.</span><span class="n">dll</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>This is a multistage docker build; we&#39;re asking docker to use the a container based on <code>microsoft/dotnet:2.0-sdk</code> to restore and build our code - but the final image we&#39;re creating (i.e. the last one in the file) is based on <code>microsoft/dotnet:2.0-runtime</code>, just copying across the result of running <code>dotnet publish</code>. Between the final image not having the SDK installed, and only copying exactly the files we need to run our application, we create a much smaller image this way.</p>
+
+<p>Don&#39;t run a normal docker build straight away! Even if you have docker installed, we don&#39;t want to build this image on your computer&#39;s docker - we want to build it directly in minikube&#39;s docker so that Kubernetes can find it. Kubernetes also knows how to pull images from external docker repositories, but we don&#39;t want to set one up right now.</p>
+
+<p>To run a command inside minikube, we can take advantage of minikube&#39;s ssh and mount functionality.</p>
+
+<p>In a separate terminal (or as a detached process if you know what you&#39;re doing) in the same directory, run:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'>minikube mount .:/host
+</span></code></pre></td></tr></table></div></figure>
+
+<p>This will expose the current directory (<code>.</code>) to the minikube machine at the location <code>/host</code>. You might need to use a full path local under windows, quoting it so the <code>:</code> in the drive name doesn&#39;t confuse things.</p>
+
+<p>Now (back in our original terminal) we can run:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'>minikube ssh <span class="s2">&quot;cd /host; docker build -f docker/WebHelloDockerfile -t webhello .&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>No need to even have docker installed on your host computer at all. Running this command will take quite a while the first time; don&#39;t worry too much, it caches everything so it will be pretty quick from now on.</p>
+
+<p>So this is all great, and we now have a docker container. We still need to tell Kubernetes about it though. Create yourself an other file, this time in the kube directory. Call it <code>webhello.yml</code> and put this in it:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'>apiVersion: v1
+</span><span class='line'>kind: Service
+</span><span class='line'>metadata:
+</span><span class='line'>  name: webhello
+</span><span class='line'>spec:
+</span><span class='line'>  selector:
+</span><span class='line'>    app: webhello
+</span><span class='line'>  ports:
+</span><span class='line'>  - name: http
+</span><span class='line'>    port: 8080
+</span><span class='line'>    protocol: TCP
+</span><span class='line'>    targetPort: http
+</span><span class='line'>---
+</span><span class='line'>apiVersion: extensions/v1beta1
+</span><span class='line'>kind: Deployment
+</span><span class='line'>metadata:
+</span><span class='line'>  name: webhello
+</span><span class='line'>spec:
+</span><span class='line'>  selector:
+</span><span class='line'>    matchLabels:
+</span><span class='line'>      app: webhello
+</span><span class='line'>  replicas: 3
+</span><span class='line'>  strategy:
+</span><span class='line'>    <span class="nb">type</span>: RollingUpdate
+</span><span class='line'>    rollingUpdate:
+</span><span class='line'>      maxUnavailable: 0
+</span><span class='line'>  template:
+</span><span class='line'>    metadata:
+</span><span class='line'>      labels:
+</span><span class='line'>        app: webhello
+</span><span class='line'>    spec:
+</span><span class='line'>      containers:
+</span><span class='line'>      - image: <span class="s2">&quot;webhello&quot;</span>
+</span><span class='line'>        imagePullPolicy: Never
+</span><span class='line'>        name: webhello
+</span><span class='line'>        resources:
+</span><span class='line'>          requests:
+</span><span class='line'>            memory: <span class="s2">&quot;128Mi&quot;</span>
+</span><span class='line'>          limits:
+</span><span class='line'>            memory: <span class="s2">&quot;256Mi&quot;</span>
+</span><span class='line'>        ports:
+</span><span class='line'>        - name: http
+</span><span class='line'>          containerPort: 8080
+</span><span class='line'>          protocol: TCP
+</span><span class='line'>        readinessProbe:
+</span><span class='line'>          httpGet:
+</span><span class='line'>            path: <span class="s2">&quot;/hello&quot;</span>
+</span><span class='line'>            port: http
+</span><span class='line'>            scheme: HTTP
+</span><span class='line'>          initialDelaySeconds: 10
+</span><span class='line'>          periodSeconds: 5
+</span><span class='line'>          failureThreshold: 10
+</span><span class='line'>          successThreshold: 1
+</span><span class='line'>          timeoutSeconds: 10
+</span><span class='line'>        livenessProbe:
+</span><span class='line'>          httpGet:
+</span><span class='line'>            path: <span class="s2">&quot;/hello&quot;</span>
+</span><span class='line'>            port: http
+</span><span class='line'>            scheme: HTTP
+</span><span class='line'>          failureThreshold: 2
+</span><span class='line'>          initialDelaySeconds: 20
+</span><span class='line'>          periodSeconds: 10
+</span><span class='line'>          successThreshold: 1
+</span><span class='line'>          timeoutSeconds: 5
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Whoa! That&#39;s a wall of text. What&#39;s going on here?</p>
+
+<p>Well, the first section is telling Kubernetes that we want a service called <code>webhello</code>; it should expose a port called <code>http</code> and it should route requests to it to <code>pods</code> that are part of the app called <code>webhello</code>.</p>
+
+<p>What are these <code>pods</code>? Well, you can read more about that in the Kubernetes documentation, but for now we can assume they are instances of our application running. But our service won&#39;t do anything until it has pods to route to, which is where the second section of the file kicks in. Here we tell Kubernetes that we want to create a deployment with rules to govern how the <code>webhello</code> app should be deployed. We say that there should be 3 copies running, and that when new versions are rolled out that we want to start a pod with the new version and wait for it to be healthy before we shut down each old pod (the <code>maxUnavailable</code> bit).</p>
+
+<p>Finally, we give a specification of how to create these 3 pods we&#39;ve asked for; we want to base it on the image <code>webhello</code> (using the local version, and not trying to check for updates&#8230;), it shouldn&#39;t need much memory (the limit helps the garbage collector kick in), it exposes a port and that it shouldn&#39;t be considered alive or ready if it doesn&#39;t respond with a success code on http requests to the endpoint <code>/hello</code>.</p>
+
+<p>In yet an other terminal, fire up the command <code>kubectl proxy</code>. This will give you access to the Kubernetes api, including it&#39;s built in dashboard. If you now surf to the <a href="http://127.0.0.1:8001/api/v1/proxy/namespaces/kube-system/services/Kubernetes-dashboard/#!/pod?namespace=default">pods page</a> in the dashboard, it should tell you there are no pods deployed.</p>
+
+<p>Back to our first terminal; run:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'>kubectl apply -f kube/
+</span></code></pre></td></tr></table></div></figure>
+
+<p>To apply all of the config files in the kube directory to the currently connected cluster.</p>
+
+<p>Refresh your dashboard a few times, and you should slowly see your pods appearing and becoming live.</p>
+
+<p>This is good progress - we have a service up and running. Unfortunately, we can&#39;t see it.</p>
+
+<p>For our final step, let&#39;s configure Kubernetes to allow external access to this service. This is normally done by making use of the Ingress resource - what that actually represents is up to your Kubernetes provider, but in the case of Minikube it will use an nginx server as a proxy from the outside world to our services.</p>
+
+<p>First, make sure minikube has ingress support enabled:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'>minikube addons <span class="nb">enable </span>ingress
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Now add a second file into the kube directory called <code>ingress.yml</code>. Stick the following content in:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'>---
+</span><span class='line'>apiVersion: extensions/v1beta1
+</span><span class='line'>kind: Ingress
+</span><span class='line'>metadata:
+</span><span class='line'>  name: ingress
+</span><span class='line'>spec:
+</span><span class='line'>  rules:
+</span><span class='line'>  - http:
+</span><span class='line'>      paths:
+</span><span class='line'>        - path: /hello
+</span><span class='line'>          backend:
+</span><span class='line'>            serviceName: webhello
+</span><span class='line'>            servicePort: http
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Hopefully it should be fairly clear what this does!</p>
+
+<p>Apply our config to the cluster again:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'>kubectl apply -f kube/
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Setting up the ingress can take a moment, so run:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'>kubectl get ingress
+</span></code></pre></td></tr></table></div></figure>
+
+<p>a few times until you get a response in that contains an IP address. At this point, you should be able to hit the IP address listed by <code>kubectl</code> on the <code>/hello</code> or <code>/hello/yourName</code> paths; normally it will be <a href="http://192.168.99.100/hello">http://192.168.99.100/hello</a>. Depending on Minikube version, you might have to allow a self signed certificate called &quot;ingress.local&quot; to get through.</p>
+
+<p>And there you have it - an F# service deployed in Kubernetes.</p>
+
+<p>One last trick - because you&#39;re just pushing images direct into Minikube&#39;s docker rather than into a registry of any kind, Kubernetes won&#39;t pick up new versions of the image. If you do a build and want to deploy the changed image, try using something like this to add a <code>updated</code> timestamp to your deployment configuration:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'>kubectl patch deployment webhello -p<span class="o">=</span><span class="s2">&quot;{ \&quot;spec\&quot;: { \&quot;template\&quot;: {\&quot;metadata\&quot;: {\&quot;labels\&quot;:{\&quot;updated\&quot;: \&quot;$(date +&quot;</span>%s<span class="s2">&quot;)\&quot; }}}}}&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Because your deployment has changed, Kubernetes will then try and refresh all the pods with the latest version of the image. Enjoy watching your magic, zero down time deploy roll on through.</p>
+
+<p>That&#39;s it for now!</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Token Bearer Authentication in Freya]]></title>
@@ -4233,19 +4604,6 @@ technique heavily.</p>
     <content type="html"><![CDATA[<p>As mentioned on the blog already, I had the opportunity to talk at this year&#39;s F# Exchange at <a href="https://skillsmatter.com/">skillsmatter</a>. As always, they&#39;ve done an excellent job on the video production, so if you&#39;re interested in what makes F# different from other programming languages have a watch of <a href="https://skillsmatter.com/skillscasts/9883-fixing-real-life-problems-from-the-ivory-tower">Fixing Real Life Problems From the Ivory Tower</a> (free log in required).</p>
 
 <p>If you like the talk and would like to learn more, these are also the subjects that I&#39;ll be covering in my recently announced <a href="https://blog.mavnn.co.uk/level-up-your-f-number-skills/">Level Up Your F#</a> course, which will be running for 2 days in London on the 15th-16th June.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Slides for F# Exchange 2017]]></title>
-    <link href="https://blog.mavnn.co.uk/slides-for-f-number-exchange-2017/"/>
-    <updated>2017-04-07T13:37:13+01:00</updated>
-    <id>https://blog.mavnn.co.uk/slides-for-f-number-exchange-2017</id>
-    <content type="html"><![CDATA[<p>My &quot;slides&quot; from my talk at F# Exchange were actually just a set of .fsx scripts this year, enabling me to play a bit live during the presentation.</p>
-
-<p>If you&#39;re interested you can find them on my github account at <a href="https://github.com/mavnn/FSharpX2017">https://github.com/mavnn/FSharpX2017</a>.</p>
-
-<p>Have fun!</p>
 ]]></content>
   </entry>
   

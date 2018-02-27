@@ -4,7 +4,7 @@
   <title><![CDATA[Category: training | Mavnn's blog]]></title>
   <link href="https://blog.mavnn.co.uk/blog/categories/training/atom.xml" rel="self"/>
   <link href="https://blog.mavnn.co.uk/"/>
-  <updated>2018-02-02T21:40:38+00:00</updated>
+  <updated>2018-02-27T12:44:18+00:00</updated>
   <id>https://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,248 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Internal Training Deep Dive]]></title>
+    <link href="https://blog.mavnn.co.uk/internal-training-deep-dive/"/>
+    <updated>2018-02-27T11:43:22+00:00</updated>
+    <id>https://blog.mavnn.co.uk/internal-training-deep-dive</id>
+    <content type="html"><![CDATA[<p>I sometimes get asked what I actually do when I go to companies. The answer is, it varies a lot - but hopefully this post will give you some idea.</p>
+
+<p>A few months back, <a href="https://twitter.com/rickasaurus">Rick Minerich</a> noticed I was running an <a href="https://blog.mavnn.co.uk/building-solid-systems-in-f-number/">F# course</a> in the UK, and mentioned that he had a team of developers that were hoping to take their F# skills to the next level.</p>
+
+<p>There were only two problems: the team is based in Atlanta, Georgia. And the course focused on writing distributed systems, which isn&#39;t the current problem space the team is working in.</p>
+
+<p>I had several rounds of conversation with Rick to sort out exactly what it was that the team needed, and we worked together to form a syllabus for a week of internal training. </p>
+
+<p>Each time I&#39;ve done this the result has been very different; in this case the level of experience also varied across the team so I was asked for clear prerequisite criteria to allow people to choose relevant sessions to come along to.</p>
+
+<p>The five days ended up looking like this:</p>
+
+<!-- more -->
+
+<h1>Monday AM: SOLID to Functional</h1>
+
+<h2>Objective</h2>
+
+<p>Understand and recognize some of the basic functional programming
+techniques which take the place of SOLID principles in object oriented
+code.</p>
+
+<h2>Session Outline</h2>
+
+<p>We&#39;ll start with a analyzing a simple but carefully written object
+oriented data processing application. Step by step we&#39;ll take examples
+of SOLID principles from the code base (like Single Responsibility and
+Dependency Inversion) and convert our service to use equivalent
+functional techniques.</p>
+
+<h2>Prerequisites</h2>
+
+<p>None</p>
+
+<h1>Monday PM: Responding to Real Time Input</h1>
+
+<h2>Objective</h2>
+
+<p>Learn the differences between &quot;pure&quot; and &quot;impure&quot; code and learn how
+to interact with external inputs (user actions, incoming network
+connections) in real time while keeping your core logic pure.</p>
+
+<h2>Session Outline</h2>
+
+<p>Working through guided examples we&#39;ll explore how our application logic
+can treat both incoming events and outgoing data as &quot;lazily evaluated
+sequences&quot; manipulated by &quot;pure&quot; functions.</p>
+
+<p>This will enable us to separate the &quot;impure&quot; input and output code we
+use to interact with the outside world from our &quot;pure&quot; internal logic,
+increasing readability and ease of testing.</p>
+
+<h2>Prerequisites</h2>
+
+<p>None</p>
+
+<h1>Tuesday AM: Pipelines Beyond the &quot;Happy Path&quot;</h1>
+
+<h2>Objective</h2>
+
+<p>Learn to use and recognize functional techniques for handling errors and
+disposable resources, especially within &quot;pipeline&quot; applications.</p>
+
+<h2>Session Outline</h2>
+
+<p>Basic pipeline logic in F# is easy to write, easy to reason about and
+expresses intent clearly. Unfortunately, how you handle exceptional
+circumstances such as disposable resources and errors is not always
+obvious.</p>
+
+<p>We&#39;ll take our functional pipeline application from Monday morning and
+start adding:</p>
+
+<ul>
+<li>  error handling</li>
+<li>  asynchronous IO</li>
+<li>  handling of disposable resources</li>
+<li>  logging</li>
+</ul>
+
+<h2>Prerequisites</h2>
+
+<p>Basic handling of sequences and lists via the Seq and List modules.</p>
+
+<h1>Tuesday PM: Computational Expressions and Bind</h1>
+
+<h2>Objective</h2>
+
+<p>Understand how &quot;Computational Expressions&quot; work and become confident
+in their use.</p>
+
+<h2>Session Outline</h2>
+
+<p>In C#, async/await is a compiler construct. In F#, async is
+implemented as a &quot;Computational Expression&quot; - and you can define your
+own. In this session we&#39;ll cover the basics of what computational
+expressions are, how to define them, and how to use them with
+confidence.</p>
+
+<h2>Prerequisites</h2>
+
+<p>Understanding of &quot;bind&quot; functions of the shape
+<code>T&lt;&#39;a&gt; -&gt; (&#39;a -&gt; T&lt;&#39;b&gt;) -&gt; T&lt;&#39;b&gt;</code> (as covered Tuesday AM).</p>
+
+<h1>Wednesday AM: Breaking Your Code in New and Unusual Ways</h1>
+
+<h2>Objective</h2>
+
+<p>Discover how to use property based testing and BenchmarkDotNet to help
+build correct and high performance code.</p>
+
+<h2>Session Outline</h2>
+
+<p>Beyond the basics of unit testing we can also test code&#39;s
+<strong>performance</strong> and whether it obeys defined <strong>properties</strong>.</p>
+
+<p>In this unit we&#39;ll take several different implementations of the same
+logic and find out how to test it to destruction with FsCheck, and how
+to choose the most performant version with BenchmarkDotNet.</p>
+
+<h2>Prerequisites</h2>
+
+<p>Confident use of computational expressions (for property based testing).</p>
+
+<h1>Wednesday PM: Useful F# Tricks and Tips</h1>
+
+<h2>Objective</h2>
+
+<p>Use Active Patterns to partition data with clean, readable code.
+Depending on timings, learn how to write highly generic and reusable
+library code with &quot;member constraints&quot;.</p>
+
+<h2>Session Outline</h2>
+
+<p>We&#39;ll work through a series of examples of using some of F#&#39;s most
+unusual features: active patterns and member constraints.</p>
+
+<p>Active patterns allow us to use custom logic in pattern matching; for
+example dividing strings into valid and invalid phone numbers using a
+pattern match statement.</p>
+
+<p>Member constraints (sometimes referred to as &quot;type safe duck typing&quot;)
+allow us to build highly generic code which will accept any type which
+implements a member with matching name and signature - even types which
+are not available at compile time to your code. This technique is used
+by the F# core libraries in places, and can allow the writing of type
+safe code that would other wise be impossible within the F# type
+system.</p>
+
+<h2>Prerequisites</h2>
+
+<p>None</p>
+
+<h1>Thursday (all day): Presenting Your Data to the User</h1>
+
+<h2>Objective</h2>
+
+<p>Create user interfaces which are efficient, look good and use the same
+principles (and in some cases underlying code) as the functional
+services they sit on top of.</p>
+
+<h2>Session Outline</h2>
+
+<p>Fable is a F# to JavaScript compiler designed to allow easy interop
+with &quot;raw&quot; JavaScript and typed F# code which can be used on both
+server and client.</p>
+
+<p>Elmish is a UI library which sits on top of Fable (inspired by the Elm
+programming language), which can create both SPAs (Single Page
+Application websites) and native applications via React and React Native
+respectively. It models the user interface as a &quot;state&quot; (what you wish
+to display) updated by an incoming stream of &quot;events&quot; which are
+treated as a sequence.</p>
+
+<p>Here we will experience how the basic functional concepts of processing
+sequences of data can be applied even to interactive domains.</p>
+
+<h2>Prerequisites</h2>
+
+<p>Good understanding of writing F# code with sequence combinators (see
+the course sections for Monday afternoon and Tuesday all day).</p>
+
+<h1>Friday AM: Building a Domain Description With Types</h1>
+
+<h2>Objective</h2>
+
+<p>Learn to model a business process in the F# type system, to help
+building code where the links between actual business terms and pieces
+of code are made obvious.</p>
+
+<h2>Session Outline</h2>
+
+<p>F# gives us a very concise way of capturing the structure of a business
+process via the use of records and union types. In this session we&#39;ll
+delve into translating &quot;how we talk about a business process as
+humans&quot; into &quot;how we talk about a business process to the compiler&quot;.
+Done well, this allows for code which is easier to test, maintain and
+understand because it is easier to map from what the business thinks
+should happen to the actual code in your editor.</p>
+
+<p>We&#39;ll explore how it&#39;s useful to model a process by capturing several
+distinct categories of types:</p>
+
+<ul>
+<li>  Commands which can be sent to a system</li>
+<li>  Events which occur within a system (normally in response to
+Commands)</li>
+<li>  Data which the system must be able to understand</li>
+</ul>
+
+<h2>Prerequisites</h2>
+
+<p>Knowing something about a business process. No coding knowledge at all
+is required, and non-coders would be welcome to take part in the
+exercise (it would even be helpful).</p>
+
+<h1>Friday PM: Building Logic Around Your Types</h1>
+
+<h2>Objective</h2>
+
+<p>Construct the basic structure of an application around a well defined
+domain captured in the type system.</p>
+
+<h2>Session Outline</h2>
+
+<p>Taking the types from Friday morning (whether you were at the session or
+not) we&#39;ll experiment with how to turn them into a code base which
+knows about the gory details of computers (IO/networking/parsing/etc) -
+without losing the visibility of the underlying business process.</p>
+
+<h2>Prerequisites</h2>
+
+<p>Good understanding of writing F# code with sequence combinators (see
+the course sections for Monday afternoon and Tuesday all day).</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[F# Through a Ruby Lens]]></title>

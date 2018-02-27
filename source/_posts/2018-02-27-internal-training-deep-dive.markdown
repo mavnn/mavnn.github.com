@@ -3,6 +3,7 @@ layout: post
 title: "Internal Training Deep Dive"
 date: 2018-02-27 11:43:22 +0000
 comments: true
+published: false
 categories: ["fsharp", "training"]
 ---
 I sometimes get asked what I actually do when I go to companies. The answer is, it varies a lot - but hopefully this post will give you some idea.

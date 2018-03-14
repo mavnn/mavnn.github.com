@@ -9,6 +9,8 @@ We're launching a new two day course this April (26th/27th), called "Cloud Nativ
 
 Full details below!
 
+<!-- more -->
+
 <h1>Cloud Native .NET</h1>
 <h2 id="orgb18d510">Or "Writing Maintainable Systems in .NET"</h2>
 <div class="outline-text-2" id="text-orgb18d510">

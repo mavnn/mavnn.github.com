@@ -9,7 +9,7 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="It&#39;s alive! The process manager code I&#39;ve been reconstructing (see Intro and the in memory test bus) is slowly starting to take some shape. &hellip;">
+  <meta name="description" content="I&#39;ve written about how nice Freya is as a library, but documentation is still a little light on the ground. So here&#39;s a minimal &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -80,6 +80,74 @@ ga('send', 'pageview');
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+
+  <header>
+    
+      <h1 class="entry-title"><a href="/posting-to-freya/">POSTing to Freya</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2017-10-25T15:52:57+01:00" pubdate data-updated="true">Oct 25<span>th</span>, 2017</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>I&#39;ve written about how nice Freya is as a library, but documentation is still a little light on the ground.</p>
+
+<p>So here&#39;s a minimal implementation of a &quot;microservice&quot; Freya API, starting from which dotnet commands to run to install the Freya template, through to a running web service.</p>
+
+<p>Make sure you have an up to date .NET Core SDK installed, and grab yourself the handy dandy Freya template:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>dotnet new -i <span class="s2">&quot;Freya.Template::*&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Then create yourself a directory and go into it. The following command will set up a brand new Freya project using kestrel as the underlying webserver, and Hopac (rather than F# Async) for concurrency. Alternatively, you can leave both the options off and you&#39;ll get Freya running on Suave with standard Async.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>dotnet new freya --framework kestrel --concurrency hopac
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Your project should run at this point; <code>dotnet run</code> will spin up a webserver on port 5000 which will give a 404 at the root and text responses on /hello and /hello/name paths.</p>
+
+<p>Api.fs is where all the magic of configuring Freya happens - KestrelInterop.fs contains boilerplate for making sure Routing information passes correctly between Kestrel and Freya, and Program.fs just starts Kestrel with our Freya API as an OWIN app.</p>
+
+<h3>Adding JSON</h3>
+
+<p>So, this is great and all, but we&#39;re building a microservice aren&#39;t we? That normally means JSON (or at least something more structured than plain text!).</p>
+
+<p>Let&#39;s change things up so that as well as supplying the name to greet in the route, we can POST JSON with a name field to the /hello end point.</p>
+
+<p>To respond in JSON, we need a Freya <code>Represent</code> record. We&#39;re sending a result with a fixed structure, so we don&#39;t need a serialization library or anything, we&#39;ll just construct the JSON by hand. Stick this near the top of Api.fs:</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/posting-to-freya/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -697,56 +765,6 @@ generalities (even if they&#39;re true) - fight it with specifics.</p>
 
     </article>
   
-  
-    <article>
-      
-
-  <header>
-    
-      <h1 class="entry-title"><a href="/managing-mutable-state-with-computational-expressions/">Managing Mutable State With Computational Expressions</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2017-04-25T23:55:29+01:00" pubdate data-updated="true">Apr 25<span>th</span>, 2017</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>In mixed paradigm languages such as F# and Scala you frequently end up using
-mutable APIs in your &quot;nice&quot; pure functional code. It might be because you&#39;re using
-a 3rd party library, or it might be for performance reasons - but either way it&#39;s very
-easy to make mistakes with mutable constructs when you&#39;re in a functional mind space, especially if you want to compose operations on instances of a mutable type.</p>
-
-<p>Let&#39;s have a look at one way of handling this issue: custom operations on 
-computational expressions. We&#39;ll take the Provided Types API for building
-types within a type provider as an example of an API to
-use, and see what we can do to wrap it.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/managing-mutable-state-with-computational-expressions/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/3/">&larr; Older</a>
@@ -772,6 +790,10 @@ use, and see what we can do to wrap it.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/routemaster-and-the-tale-of-the-globally-unique-voters/">RouteMaster and the Tale of the Globally Unique Voters</a>
+      </li>
+    
+      <li class="post">
         <a href="/cloud-native-net/">Cloud Native .NET</a>
       </li>
     
@@ -785,10 +807,6 @@ use, and see what we can do to wrap it.</p>
     
       <li class="post">
         <a href="/logging-freya/">Logging Freya</a>
-      </li>
-    
-      <li class="post">
-        <a href="/f-number-through-a-ruby-lens/">F# Through a Ruby Lens</a>
       </li>
     
   </ul>

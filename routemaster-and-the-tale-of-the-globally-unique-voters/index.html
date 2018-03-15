@@ -1,0 +1,509 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>RouteMaster and the Tale of the Globally Unique Voters - Mavnn's blog</title>
+  <meta name="author" content="mavnn">
+
+  
+  <meta name="description" content="RouteMaster a process manager library I&#39;ve been working on for simplifying the creation of complex work flows in message based systems. One of &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+  <link rel="canonical" href="https://blog.mavnn.co.uk/routemaster-and-the-tale-of-the-globally-unique-voters/">
+  <link href="/favicon.ico" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Mavnn's blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="https://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="https://fonts.googleapis.com/css?family=Fira+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="https://fonts.googleapis.com/css?family=Fira+Mono:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+<!-- Google Analytics -->
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-37561687-1', 'auto');
+ga('send', 'pageview');
+
+</script>
+<!-- End Google Analytics -->
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <a href="https://mavnn.co.uk"><img class="swirl-logo" src="/images/swirl.svg"/></a>
+  <h1><a href="/">Mavnn's blog</a></h1>
+  
+    <h2>Stuff from my brain</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="#" method="get" id="searchbox" >
+  <fieldset role="search">
+    <input type="hidden" id="site_query" value="site:blog.mavnn.co.uk" />
+    <input class="search" type="text" name="q" results="0" id="search_query" placeholder="Search"/>
+  </fieldset>
+</form>
+<ul class="main-navigation">
+  <li><a href="https://mavnn.co.uk">Main Site</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+
+<!-- for the course -->
+<h5>We're running <a href="/cloud-native-net/">Cloud Native .NET</a> in Brighton, 26th-27th April 2018. High quality training for building .NET Core, distributed, production ready systems.</h5>
+<!-- take it out up to here... -->
+
+
+
+  <header>
+    
+      <h1 class="entry-title">RouteMaster and the Tale of the Globally Unique Voters</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2018-03-15T21:43:38+00:00" pubdate data-updated="true">Mar 15<span>th</span>, 2018</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p><a href="https://github.com/RouteMasterIntegration/RouteMaster">RouteMaster</a> a process manager library I&#39;ve been working on for simplifying the creation of complex work flows in message based systems.</p>
+
+<p>One of the challenges RouteMaster faces is that once you have defined your &quot;route&quot; in RouteMaster, you generally want to run multiple instances of your process manager service in your distributed environment. This means that a lot of care has been taken to make sure that things like work flow state is handled safely, but it also causes a particular challenge for dealing with timeouts.</p>
+
+<!-- more -->
+
+<h3>What&#39;s the problem?</h3>
+
+<p>RouteMaster nodes for managing the same process maintain a list of messages they are expecting to receive - and how long they&#39;re willing to wait for them. This list is stored in a transactional data store.</p>
+
+<p>Approximately every seconds, the list should be scanned, and messages which have not been received before their timeout should be removed and <code>TimeOut</code> messages published to the process&#39; time out handlers.</p>
+
+<p>It turns out that this scan is the single slowest action that RouteMaster needs to take&#8230; and here we have all of the nodes carrying it out every second or so.</p>
+
+<h3>The solution</h3>
+
+<p>My first thought was the sinking feeling that I was going to have to implement a <a href="https://en.wikipedia.org/wiki/Consensus_algorithm">consensus algorithm</a>, and have the nodes &quot;agree&quot; on a master to deal with time outs.</p>
+
+<p>Fortunately I had the good sense to talk to <a href="https://twitter.com/kjnilsson">Karl</a> before doing so. Karl pointed out that I didn&#39;t need <em>exactly one</em> master at any one time; if there was no master for short periods, or multiple masters for short periods, that was fine. The problem only kicks in if there are <em>lots</em> of masters at the same time.</p>
+
+<p>He mentioned that there was a known answer in these kinds of situations: have a GUID election.</p>
+
+<p>The logic is fairly straight forward, and goes something like this&#8230;</p>
+
+<p>Each node stores some state about itself and the other nodes it has seen. (The full code can be seen at <a href="https://github.com/RouteMasterIntegration/RouteMaster/blob/master/Core/TimeoutManager.fs">in the RouteMaster repository if you&#39;re curious</a>, but I&#39;ll put enough here to follow the idea).</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="k">internal</span> <span class="nc">State</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span> <span class="nc">Id</span> <span class="o">:</span> <span class="nc">Guid</span>
+</span><span class='line'>      <span class="nc">Active</span> <span class="o">:</span> <span class="kt">bool</span>
+</span><span class='line'>      <span class="nc">Tick</span> <span class="o">:</span> <span class="kt">int64</span><span class="o">&lt;</span><span class="nc">Tick</span><span class="o">&gt;</span>
+</span><span class='line'>      <span class="nc">LowestGuidSeen</span> <span class="o">:</span> <span class="nc">Guid</span>
+</span><span class='line'>      <span class="nc">LowestGuidSeenTick</span> <span class="o">:</span> <span class="kt">int64</span><span class="o">&lt;</span><span class="nc">Tick</span><span class="o">&gt;</span>
+</span><span class='line'>      <span class="nc">GuidsSeen</span> <span class="o">:</span> <span class="nc">Map</span><span class="o">&lt;</span><span class="nc">Guid</span><span class="o">,</span> <span class="kt">int64</span><span class="o">&lt;</span><span class="nc">Tick</span><span class="o">&gt;&gt;</span>
+</span><span class='line'>      <span class="nc">LastPublish</span> <span class="o">:</span> <span class="kt">int64</span><span class="o">&lt;</span><span class="nc">Tick</span><span class="o">&gt;</span> <span class="o">}</span>
+</span><span class='line'>    <span class="k">static</span> <span class="k">member</span> <span class="nc">Empty</span><span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>        <span class="o">{</span> <span class="nc">Id</span> <span class="o">=</span> <span class="nn">Guid</span><span class="p">.</span><span class="nc">NewGuid</span><span class="bp">()</span>
+</span><span class='line'>          <span class="nc">Active</span> <span class="o">=</span> <span class="bp">false</span>
+</span><span class='line'>          <span class="nc">Tick</span> <span class="o">=</span> <span class="mi">0</span><span class="n">L</span><span class="o">&lt;</span><span class="nc">Tick</span><span class="o">&gt;</span>
+</span><span class='line'>          <span class="nc">LowestGuidSeen</span> <span class="o">=</span> <span class="nn">Guid</span><span class="p">.</span><span class="nc">MaxValue</span>
+</span><span class='line'>          <span class="nc">LowestGuidSeenTick</span> <span class="o">=</span> <span class="mi">0</span><span class="n">L</span><span class="o">&lt;</span><span class="nc">Tick</span><span class="o">&gt;</span>
+</span><span class='line'>          <span class="nc">GuidsSeen</span> <span class="o">=</span> <span class="nn">Map</span><span class="p">.</span><span class="n">empty</span>
+</span><span class='line'>          <span class="nc">LastPublish</span> <span class="o">=</span> <span class="o">-</span><span class="mi">10</span><span class="n">L</span><span class="o">&lt;</span><span class="nc">Tick</span><span class="o">&gt;</span> <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>As you can see, each node starts off with a unique ID, and keeps track of every other ID it has seen and when. It also sets the &quot;lowest&quot; GUID it&#39;s seen so far to the value <code>Guid.MaxValue</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">Guid</span> <span class="k">with</span>
+</span><span class='line'>    <span class="k">static</span> <span class="k">member</span> <span class="nc">MaxValue</span> <span class="o">=</span>
+</span><span class='line'>        <span class="nc">Guid</span><span class="o">(</span><span class="nn">Array</span><span class="p">.</span><span class="n">create</span> <span class="mi">16</span> <span class="nn">Byte</span><span class="p">.</span><span class="nc">MaxValue</span><span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>A <code>MailBoxProcessor</code> is then connected to the message bus (we&#39;re in a message based system) and to a one second <code>Tick</code> generator.</p>
+
+<p>If a new GUID arrives, we add it to our state:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">addGuid</span> <span class="n">guid</span> <span class="n">state</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">if</span> <span class="n">guid</span> <span class="o">&lt;=</span> <span class="n">state</span><span class="o">.</span><span class="nc">LowestGuidSeen</span> <span class="k">then</span>
+</span><span class='line'>        <span class="o">{</span> <span class="n">state</span> <span class="k">with</span>
+</span><span class='line'>            <span class="nc">Active</span> <span class="o">=</span> <span class="n">guid</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="nc">Id</span>
+</span><span class='line'>            <span class="nc">LowestGuidSeen</span> <span class="o">=</span> <span class="n">guid</span>
+</span><span class='line'>            <span class="nc">LowestGuidSeenTick</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="nc">Tick</span>
+</span><span class='line'>            <span class="nc">GuidsSeen</span> <span class="o">=</span> <span class="nn">Map</span><span class="p">.</span><span class="n">add</span> <span class="n">guid</span> <span class="n">state</span><span class="o">.</span><span class="nc">Tick</span> <span class="n">state</span><span class="o">.</span><span class="nc">GuidsSeen</span> <span class="o">}</span>
+</span><span class='line'>    <span class="k">else</span>
+</span><span class='line'>        <span class="o">{</span> <span class="n">state</span> <span class="k">with</span>
+</span><span class='line'>            <span class="nc">GuidsSeen</span> <span class="o">=</span> <span class="nn">Map</span><span class="p">.</span><span class="n">add</span> <span class="n">guid</span> <span class="n">state</span><span class="o">.</span><span class="nc">Tick</span> <span class="n">state</span><span class="o">.</span><span class="nc">GuidsSeen</span> <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Every second, when the <code>Tick</code> fires, we:</p>
+
+<h4>Increment the Tick count</h4>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">increment</span> <span class="n">state</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span> <span class="n">state</span> <span class="k">with</span> <span class="nc">Tick</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="nc">Tick</span> <span class="o">+</span> <span class="mi">1</span><span class="n">L</span><span class="o">&lt;</span><span class="nc">Tick</span><span class="o">&gt;</span> <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<h4>Clean out &quot;old&quot; GUIDs</h4>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="n">cleanOld</span> <span class="n">state</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">liveMap</span> <span class="o">=</span>
+</span><span class='line'>        <span class="nn">Map</span><span class="p">.</span><span class="n">filter</span> <span class="o">(</span><span class="k">fun</span> <span class="o">_</span> <span class="n">t</span> <span class="o">-&gt;</span> <span class="n">t</span> <span class="o">+</span> <span class="mi">15</span><span class="n">L</span><span class="o">&lt;</span><span class="nc">Tick</span><span class="o">&gt;</span> <span class="o">&lt;</span> <span class="n">state</span><span class="o">.</span><span class="nc">Tick</span><span class="o">)</span> <span class="n">state</span><span class="o">.</span><span class="nc">GuidsSeen</span>
+</span><span class='line'>    <span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="nc">LowestGuidSeenTick</span> <span class="o">+</span> <span class="mi">15</span><span class="n">L</span><span class="o">&lt;</span><span class="nc">Tick</span><span class="o">&gt;</span> <span class="o">&lt;</span> <span class="n">state</span><span class="o">.</span><span class="nc">Tick</span> <span class="k">then</span>
+</span><span class='line'>        <span class="k">match</span> <span class="nn">Map</span><span class="p">.</span><span class="n">toSeq</span> <span class="n">liveMap</span> <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">sortBy</span> <span class="n">fst</span> <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">tryHead</span> <span class="k">with</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">Some</span> <span class="o">(</span><span class="n">guid</span><span class="o">,</span> <span class="n">tick</span><span class="o">)</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="o">{</span> <span class="n">state</span> <span class="k">with</span>
+</span><span class='line'>                <span class="nc">Active</span> <span class="o">=</span> <span class="n">guid</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="nc">Id</span>
+</span><span class='line'>                <span class="nc">LowestGuidSeen</span> <span class="o">=</span> <span class="n">guid</span>
+</span><span class='line'>                <span class="nc">LowestGuidSeenTick</span> <span class="o">=</span> <span class="n">tick</span>
+</span><span class='line'>                <span class="nc">GuidsSeen</span> <span class="o">=</span> <span class="n">liveMap</span> <span class="o">}</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span>
+</span><span class='line'>            <span class="c1">// If we reach here, we&#39;re not even seeing our own announcement</span>
+</span><span class='line'>            <span class="c1">// messages - something is wrong...</span>
+</span><span class='line'>            <span class="nn">Message</span><span class="p">.</span><span class="n">event</span> <span class="nc">Warn</span> <span class="s2">&quot;Manager {managerId} is not receiving timeout manager announcements&quot;</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Message</span><span class="p">.</span><span class="n">setField</span> <span class="s2">&quot;managerId&quot;</span> <span class="n">state</span><span class="o">.</span><span class="nc">Id</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="n">logger</span><span class="o">.</span><span class="n">logSimple</span>
+</span><span class='line'>            <span class="o">{</span> <span class="n">state</span> <span class="k">with</span>
+</span><span class='line'>                <span class="nc">Active</span> <span class="o">=</span> <span class="bp">true</span>
+</span><span class='line'>                <span class="nc">LowestGuidSeen</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="nc">Id</span>
+</span><span class='line'>                <span class="nc">LowestGuidSeenTick</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="nc">Tick</span>
+</span><span class='line'>                <span class="nc">GuidsSeen</span> <span class="o">=</span> <span class="n">liveMap</span> <span class="o">}</span>
+</span><span class='line'>    <span class="k">else</span> <span class="n">state</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<h4>Annouce we&#39;re live if we haven&#39;t for a while</h4>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="k">internal</span> <span class="n">checkPublishAnnoucement</span> <span class="n">topic</span> <span class="o">(</span><span class="n">bus</span> <span class="o">:</span> <span class="nc">MessageBus</span><span class="o">)</span> <span class="n">state</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">async</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="nc">LastPublish</span> <span class="o">+</span> <span class="mi">10</span><span class="n">L</span><span class="o">&lt;</span><span class="nc">Tick</span><span class="o">&gt;</span> <span class="o">&lt;=</span> <span class="n">state</span><span class="o">.</span><span class="nc">Tick</span> <span class="k">then</span>
+</span><span class='line'>            <span class="k">do</span><span class="o">!</span> <span class="n">bus</span><span class="o">.</span><span class="nc">TopicPublish</span>
+</span><span class='line'>                    <span class="o">(</span><span class="nc">TimeoutManagerAnnouncement</span> <span class="n">state</span><span class="o">.</span><span class="nc">Id</span><span class="o">)</span>
+</span><span class='line'>                    <span class="n">topic</span>
+</span><span class='line'>                    <span class="o">(</span><span class="nn">TimeSpan</span><span class="p">.</span><span class="nc">FromSeconds</span> <span class="mi">15</span><span class="o">.)</span>
+</span><span class='line'>            <span class="k">return</span> <span class="o">{</span> <span class="n">state</span> <span class="k">with</span> <span class="nc">LastPublish</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="nc">Tick</span> <span class="o">}</span>
+</span><span class='line'>        <span class="k">else</span>
+</span><span class='line'>            <span class="k">return</span> <span class="n">state</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<h4>Decide if we&#39;re a master</h4>
+
+<p>This is the clever bit: if the lowest GUID we&#39;ve seen in a while is our own, we take responsibility for dealing with timed out messages and declare ourselves active. We&#39;ll stay active until a message arrives from a node with a lower GUID. There&#39;s no guarantee at any particular point that only one node will <em>definitely</em> think it&#39;s the master, or that a master will <em>definitely</em> be the only master - but it&#39;s more than good enough for the needs we have here.</p>
+
+<h2>The moral of the story</h2>
+
+<p>If you need to do something hard, ask Karl how to do it. No - wait. That&#39;s good advice, but the real moral is:</p>
+
+<p>Make sure you&#39;re building what you actually need - not something vastly more complex for no practical gain.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">mavnn</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2018-03-15T21:43:38+00:00" pubdate data-updated="true">Mar 15<span>th</span>, 2018</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/routemaster/'>RouteMaster</a>, <a class='category' href='/blog/categories/fsharp/'>fsharp</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="https://blog.mavnn.co.uk/routemaster-and-the-tale-of-the-globally-unique-voters/" data-via="mavnn" data-counturl="https://blog.mavnn.co.uk/routemaster-and-the-tale-of-the-globally-unique-voters/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/cloud-native-net/" title="Previous Post: Cloud Native .NET">&laquo; Cloud Native .NET</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Hire the Author</h1>
+  <p>
+    Want some help in any of the areas you've read about? Hop across to
+    <a href="https://mavnn.co.uk">mavnn.co.uk</a> where you can hire the
+    author.
+  </p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/routemaster-and-the-tale-of-the-globally-unique-voters/">RouteMaster and the Tale of the Globally Unique Voters</a>
+      </li>
+    
+      <li class="post">
+        <a href="/cloud-native-net/">Cloud Native .NET</a>
+      </li>
+    
+      <li class="post">
+        <a href="/getting-started-with-f-number-in-kubernetes/">Getting Started With F# in Kubernetes</a>
+      </li>
+    
+      <li class="post">
+        <a href="/token-bearer-authentication-in-freya/">Token Bearer Authentication in Freya</a>
+      </li>
+    
+      <li class="post">
+        <a href="/logging-freya/">Logging Freya</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/mavnn">@mavnn</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'mavnn',
+            count: 3,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2018 - mavnn -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<div id="disqus_thread"></div>
+<script>
+    var disqus_config = function () {
+        this.page.url = 'https://blog.mavnn.co.uk/routemaster-and-the-tale-of-the-globally-unique-voters/';
+        this.page.identifier = 'https://blog.mavnn.co.uk/routemaster-and-the-tale-of-the-globally-unique-voters/';
+    };
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+        s.src = 'https://mavnn.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+<script type="text/javascript">
+ (function() {
+   const searchbox = document.getElementById("searchbox");
+   const site_query = document.getElementById("site_query").value;
+   const search_query = document.getElementById("search_query");
+
+   searchbox.onsubmit = function() {
+     const q = encodeURIComponent(search_query.value);
+     document.location.assign("https://google.com/search?q=" + site_query + "+" + q);
+     return false;
+   };
+ })()
+</script>
+
+
+</body>
+</html>

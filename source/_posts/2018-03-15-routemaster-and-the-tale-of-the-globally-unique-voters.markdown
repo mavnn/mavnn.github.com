@@ -5,7 +5,7 @@ date: 2018-03-15 21:43:38 +0000
 comments: true
 categories: ["fsharp", "RouteMaster"]
 ---
-[RouteMaster](https://github.com/RouteMasterIntegration/RouteMaster) a process manager library I've been working on for simplifying the creation of complex work flows in message based systems.
+[RouteMaster](https://github.com/RouteMasterIntegration/RouteMaster) is a process manager library I've been working on for simplifying the creation of complex work flows in message based systems.
 
 One of the challenges RouteMaster faces is that once you have defined your "route" in RouteMaster, you generally want to run multiple instances of your process manager service in your distributed environment. This means that a lot of care has been taken to make sure that things like work flow state is handled safely, but it also causes a particular challenge for dealing with timeouts.
 
@@ -13,9 +13,9 @@ One of the challenges RouteMaster faces is that once you have defined your "rout
 
 ### What's the problem?
 
-RouteMaster nodes for managing the same process maintain a list of messages they are expecting to receive - and how long they're willing to wait for them. This list is stored in a transactional data store.
+RouteMaster nodes for managing the same process maintain a shared list of messages they are expecting to receive - and how long they're willing to wait for them. This list is stored in a transactional data store.
 
-Approximately every seconds, the list should be scanned, and messages which have not been received before their timeout should be removed and `TimeOut` messages published to the process' time out handlers.
+Approximately every second, the list should be scanned, and messages which have not been received before their timeout should be removed and `TimeOut` messages published to the process' time out handlers.
 
 It turns out that this scan is the single slowest action that RouteMaster needs to take... and here we have all of the nodes carrying it out every second or so.
 
@@ -60,7 +60,7 @@ type Guid with
 
 A `MailBoxProcessor` is then connected to the message bus (we're in a message based system) and to a one second `Tick` generator.
 
-If a new GUID arrives, we add it to our state:
+If a new GUID arrives, we add it to our state, and check if it's the lowest we seen we far. If it is, we record that. If it's also our own, we mark ourselves `Active`.
 
 ``` fsharp
     let addGuid guid state =
@@ -128,9 +128,9 @@ let internal checkPublishAnnoucement topic (bus : MessageBus) state =
     }
 ```
 
-#### Decide if we're a master
+#### Act if we're active
 
-This is the clever bit: if the lowest GUID we've seen in a while is our own, we take responsibility for dealing with timed out messages and declare ourselves active. We'll stay active until a message arrives from a node with a lower GUID. There's no guarantee at any particular point that only one node will *definitely* think it's the master, or that a master will *definitely* be the only master - but it's more than good enough for the needs we have here.
+This is the clever bit: if the lowest GUID we've seen in a while is our own, we're the "master" node and we take responsibility for dealing with timed out messages. We'll stay active until a message arrives from a node with a lower GUID. There's no guarantee at any particular point that only one node will *definitely* think it's the master, or that a master will *definitely* be the only master - but it's more than good enough for the needs we have here.
 
 ## The moral of the story
 

@@ -4,7 +4,7 @@
   <title><![CDATA[Category: RouteMaster | Mavnn's blog]]></title>
   <link href="https://blog.mavnn.co.uk/blog/categories/routemaster/atom.xml" rel="self"/>
   <link href="https://blog.mavnn.co.uk/"/>
-  <updated>2018-03-15T22:20:26+00:00</updated>
+  <updated>2018-03-16T09:08:42+00:00</updated>
   <id>https://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -18,7 +18,7 @@
     <link href="https://blog.mavnn.co.uk/routemaster-and-the-tale-of-the-globally-unique-voters/"/>
     <updated>2018-03-15T21:43:38+00:00</updated>
     <id>https://blog.mavnn.co.uk/routemaster-and-the-tale-of-the-globally-unique-voters</id>
-    <content type="html"><![CDATA[<p><a href="https://github.com/RouteMasterIntegration/RouteMaster">RouteMaster</a> a process manager library I&#39;ve been working on for simplifying the creation of complex work flows in message based systems.</p>
+    <content type="html"><![CDATA[<p><a href="https://github.com/RouteMasterIntegration/RouteMaster">RouteMaster</a> is a process manager library I&#39;ve been working on for simplifying the creation of complex work flows in message based systems.</p>
 
 <p>One of the challenges RouteMaster faces is that once you have defined your &quot;route&quot; in RouteMaster, you generally want to run multiple instances of your process manager service in your distributed environment. This means that a lot of care has been taken to make sure that things like work flow state is handled safely, but it also causes a particular challenge for dealing with timeouts.</p>
 
@@ -26,9 +26,9 @@
 
 <h3>What&#39;s the problem?</h3>
 
-<p>RouteMaster nodes for managing the same process maintain a list of messages they are expecting to receive - and how long they&#39;re willing to wait for them. This list is stored in a transactional data store.</p>
+<p>RouteMaster nodes for managing the same process maintain a shared list of messages they are expecting to receive - and how long they&#39;re willing to wait for them. This list is stored in a transactional data store.</p>
 
-<p>Approximately every seconds, the list should be scanned, and messages which have not been received before their timeout should be removed and <code>TimeOut</code> messages published to the process&#39; time out handlers.</p>
+<p>Approximately every second, the list should be scanned, and messages which have not been received before their timeout should be removed and <code>TimeOut</code> messages published to the process&#39; time out handlers.</p>
 
 <p>It turns out that this scan is the single slowest action that RouteMaster needs to take... and here we have all of the nodes carrying it out every second or so.</p>
 
@@ -67,7 +67,7 @@
 </code></pre></div>
 <p>A <code>MailBoxProcessor</code> is then connected to the message bus (we&#39;re in a message based system) and to a one second <code>Tick</code> generator.</p>
 
-<p>If a new GUID arrives, we add it to our state:</p>
+<p>If a new GUID arrives, we add it to our state, and check if it&#39;s the lowest we seen we far. If it is, we record that. If it&#39;s also our own, we mark ourselves <code>Active</code>.</p>
 <div class="highlight"><pre><code class="fsharp">    <span class="k">let</span> <span class="n">addGuid</span> <span class="n">guid</span> <span class="n">state</span> <span class="o">=</span>
         <span class="k">if</span> <span class="n">guid</span> <span class="o">&lt;=</span> <span class="n">state</span><span class="o">.</span><span class="nc">LowestGuidSeen</span> <span class="k">then</span>
             <span class="o">{</span> <span class="n">state</span> <span class="k">with</span>
@@ -123,9 +123,9 @@
             <span class="k">return</span> <span class="n">state</span>
     <span class="o">}</span>
 </code></pre></div>
-<h4>Decide if we&#39;re a master</h4>
+<h4>Act if we&#39;re active</h4>
 
-<p>This is the clever bit: if the lowest GUID we&#39;ve seen in a while is our own, we take responsibility for dealing with timed out messages and declare ourselves active. We&#39;ll stay active until a message arrives from a node with a lower GUID. There&#39;s no guarantee at any particular point that only one node will <em>definitely</em> think it&#39;s the master, or that a master will <em>definitely</em> be the only master - but it&#39;s more than good enough for the needs we have here.</p>
+<p>This is the clever bit: if the lowest GUID we&#39;ve seen in a while is our own, we&#39;re the &quot;master&quot; node and we take responsibility for dealing with timed out messages. We&#39;ll stay active until a message arrives from a node with a lower GUID. There&#39;s no guarantee at any particular point that only one node will <em>definitely</em> think it&#39;s the master, or that a master will <em>definitely</em> be the only master - but it&#39;s more than good enough for the needs we have here.</p>
 
 <h2>The moral of the story</h2>
 

@@ -9,7 +9,7 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="RouteMaster is a process manager library I&#39;ve been working on for simplifying the creation of complex work flows in message based systems. One of &hellip;">
+  <meta name="description" content="Yesterday night I was about to demo a quick server/client pair with Freya and Fable, and it all went a bit wrong. Some of the issues weren&#39;t &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -80,6 +80,623 @@ ga('send', 'pageview');
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+
+  <header>
+    
+      <h1 class="entry-title"><a href="/full-stack-with-freya/">Full Stack With Freya</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2018-05-22T15:04:00+01:00" pubdate data-updated="true">May 22<span>nd</span>, 2018</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Yesterday night I was about to demo a quick server/client pair with Freya and Fable, and it all went a bit wrong. Some of the issues weren&#39;t related to what I did (computers, gotta love &#39;em) but others were just bits of configuration that I didn&#39;t have at my finger tips.</p>
+
+<p>This means it&#39;s time for a little practice for me, and a mini-tutorial for you (and future me).</p>
+
+<h2>What we&#39;re going to do</h2>
+
+<p>We&#39;re going to build a small server application based on Freya which will serve JSON and be a nice RESTful (in the loose sense) API.</p>
+
+<p>Then, we&#39;re going to configure Fable with Elmish to load data from that API. The crucial thing here is that we&#39;re going to configure both projects such that we have a seamless development work flow; automated recompile and restart of the server on code changes, and automatic recompile/reload of the Fable UI on change.</p>
+
+<h2>The server</h2>
+
+<p>Make sure your dotnet core Freya template is up to date:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>dotnet new -i Freya
+</span></code></pre></td></tr></table></div></figure>
+
+<p>In a root directory for our overall solution, run:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>dotnet new freya -lang f# -c hopac -f kestrel -o FateServer
+</span></code></pre></td></tr></table></div></figure>
+
+<p>This will create a new directory called &quot;FateServer&quot; with a F# project in it. Go into the directory and make sure everything has restored correctly:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nb">cd </span>FateServer
+</span><span class='line'>dotnet restore
+</span><span class='line'>dotnet build
+</span></code></pre></td></tr></table></div></figure>
+
+<p>One thing I&#39;ve been slowly learning with dotnet core is that the <code>restore</code> run by default during a build doesn&#39;t always seem to be as effective as actually running the full restore command. Just in general, if Core is behaving strangely, running <code>restore</code> is a good starting point.</p>
+
+<p>Next up is making our server log something: by default, Kestrel logs basically nothing.</p>
+
+<p>Install the logging package (it&#39;s not part of the default Freya template):</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>dotnet add package Microsoft.Extensions.Logging.Console
+</span><span class='line'>dotnet restore
+</span></code></pre></td></tr></table></div></figure>
+
+<p>In <code>Program.fs</code> add the following at the end of the open statements:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">AspNetCore</span><span class="p">.</span><span class="nc">Builder</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">AspNetCore</span><span class="p">.</span><span class="nc">Hosting</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Microsoft</span><span class="p">.</span><span class="nn">Extensions</span><span class="p">.</span><span class="nc">Logging</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">configureLogging</span> <span class="o">(</span><span class="n">b</span> <span class="o">:</span> <span class="nc">IWebHostBuilder</span><span class="o">)</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">b</span><span class="o">.</span><span class="nc">ConfigureLogging</span><span class="o">(</span><span class="k">fun</span> <span class="n">l</span> <span class="o">-&gt;</span> <span class="n">l</span><span class="o">.</span><span class="nc">AddConsole</span><span class="bp">()</span> <span class="o">|&gt;</span> <span class="n">ignore</span><span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Then inject the method into your WebHost configuration pipeline:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="nn">WebHost</span><span class="p">.</span><span class="n">create</span> <span class="bp">()</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">WebHost</span><span class="p">.</span><span class="n">bindTo</span> <span class="o">[|</span><span class="s2">&quot;http://localhost:5000&quot;</span><span class="o">|]</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">WebHost</span><span class="p">.</span><span class="n">configure</span> <span class="n">configureApp</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="n">configureLogging</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">WebHost</span><span class="p">.</span><span class="n">buildAndRun</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Hey presto! Run your application and get logs!</p>
+
+<p>To finish off the niceties of civilized development, let&#39;s add the watch command to our server.</p>
+
+<p>Crack open the <code>fsproj</code> file and add the following ItemGroup to it:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'><span class="nt">&lt;ItemGroup&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;DotNetCliToolReference</span> <span class="na">Include=</span><span class="s">&quot;Microsoft.DotNet.Watcher.Tools&quot;</span> <span class="na">Version=</span><span class="s">&quot;2.0.0&quot;</span> <span class="nt">/&gt;</span>
+</span><span class='line'><span class="nt">&lt;/ItemGroup&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Run <code>dotnet restore</code> and from now on running <code>dotnet watch run</code> to start continuous development with file watching should work.</p>
+
+<p>Now we just need to serve up some JSON. We want a send a format which Fable understands, and the kind people at the Fable project have written a Newtonsoft configuration for doing exactly that.</p>
+
+<p>Stop watching the build long enough to run:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>dotnet add package Fable.JsonConverter
+</span><span class='line'>dotnet restore
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Next, set up the domain. Create a new file <code>Character.fs</code> (we&#39;re going to be sending back and forth <a href="https://fate-srd.com/fate-accelerated/get-started">Fate Accelerated</a> characters as data). Make sure you add it to the project file before <code>Api.fs</code>.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nc">Character</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">LadderLevel</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">BeyondLegendary</span> <span class="k">of</span> <span class="kt">int</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Legendary</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Epic</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Superb</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Great</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Good</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Fair</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Average</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Mediocre</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Poor</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Terrible</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">Abysmal</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">BeyondAbysmal</span> <span class="k">of</span> <span class="kt">int</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">Character</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span> <span class="nc">Name</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>      <span class="nc">Careful</span> <span class="o">:</span> <span class="nc">LadderLevel</span>
+</span><span class='line'>      <span class="nc">Clever</span> <span class="o">:</span> <span class="nc">LadderLevel</span>
+</span><span class='line'>      <span class="nc">Flashy</span> <span class="o">:</span> <span class="nc">LadderLevel</span>
+</span><span class='line'>      <span class="nc">Forceful</span> <span class="o">:</span> <span class="nc">LadderLevel</span>
+</span><span class='line'>      <span class="nc">Quick</span> <span class="o">:</span> <span class="nc">LadderLevel</span>
+</span><span class='line'>      <span class="nc">Sneaky</span> <span class="o">:</span> <span class="nc">LadderLevel</span>
+</span><span class='line'>      <span class="nc">HighConcept</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>      <span class="nc">Trouble</span> <span class="o">:</span> <span class="kt">string</span>
+</span><span class='line'>      <span class="nc">Aspects</span> <span class="o">:</span> <span class="kt">string</span> <span class="kt">list</span>
+</span><span class='line'>      <span class="nc">Stunts</span> <span class="o">:</span> <span class="kt">string</span> <span class="kt">list</span> <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Now move across to <code>Api.fs</code>. You&#39;ll see that it defaults to a single &quot;greeting&quot; endpoint which responds with a text response. Let&#39;s add a helper for sending JSON correctly, immediately after the existing <code>open</code> statements:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">open</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Machines</span><span class="p">.</span><span class="nn">Http</span><span class="p">.</span><span class="nc">Cors</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Types</span><span class="p">.</span><span class="nn">Http</span><span class="p">.</span><span class="nc">Cors</span>
+</span><span class='line'><span class="k">open</span> <span class="nc">System</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">System</span><span class="p">.</span><span class="nc">IO</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Newtonsoft</span><span class="p">.</span><span class="nc">Json</span>
+</span><span class='line'><span class="k">open</span> <span class="nc">Character</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">jsonConverter</span> <span class="o">=</span> <span class="nn">Fable</span><span class="p">.</span><span class="nc">JsonConverter</span><span class="bp">()</span> <span class="o">:&gt;</span> <span class="nc">JsonConverter</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">module</span> <span class="nc">Represent</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">let</span> <span class="n">json</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span> <span class="n">value</span> <span class="o">=</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">data</span> <span class="o">=</span>
+</span><span class='line'>            <span class="nn">JsonConvert</span><span class="p">.</span><span class="nc">SerializeObject</span><span class="o">(</span><span class="n">value</span><span class="o">,</span> <span class="o">[|</span><span class="n">jsonConverter</span><span class="o">|])</span>
+</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Text</span><span class="p">.</span><span class="nn">UTF8Encoding</span><span class="p">.</span><span class="nn">UTF8</span><span class="p">.</span><span class="nc">GetBytes</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">desc</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">{</span> <span class="nc">Encodings</span> <span class="o">=</span> <span class="nc">None</span>
+</span><span class='line'>              <span class="nc">Charset</span> <span class="o">=</span> <span class="nc">Some</span> <span class="nn">Charset</span><span class="p">.</span><span class="nc">Utf8</span>
+</span><span class='line'>              <span class="nc">Languages</span> <span class="o">=</span> <span class="nc">None</span>
+</span><span class='line'>              <span class="nc">MediaType</span> <span class="o">=</span> <span class="nc">Some</span> <span class="nn">MediaType</span><span class="p">.</span><span class="nc">Json</span> <span class="o">}</span>
+</span><span class='line'>        <span class="o">{</span> <span class="nc">Data</span> <span class="o">=</span> <span class="n">data</span>
+</span><span class='line'>          <span class="nc">Description</span> <span class="o">=</span> <span class="n">desc</span> <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Next, delete the entire rest of the file and add the following:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="c1">// This endpoint requires a URL template with the &quot;name&quot; atom</span>
+</span><span class='line'><span class="k">let</span> <span class="n">name_</span> <span class="o">=</span> <span class="nn">Route</span><span class="p">.</span><span class="n">atom_</span> <span class="s2">&quot;name&quot;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">name</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">freya</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">nameO</span> <span class="o">=</span> <span class="nn">Freya</span><span class="p">.</span><span class="nn">Optic</span><span class="p">.</span><span class="n">get</span> <span class="n">name_</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">match</span> <span class="n">nameO</span> <span class="k">with</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">Some</span> <span class="n">name</span> <span class="o">-&gt;</span> <span class="k">return</span> <span class="n">name</span>
+</span><span class='line'>        <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="k">return</span> <span class="n">failwith</span> <span class="s2">&quot;Name is a compulsory element of the URL&quot;</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// We&#39;re going to hard code our data for now</span>
+</span><span class='line'><span class="k">let</span> <span class="n">exampleCharacters</span> <span class="o">=</span>
+</span><span class='line'>    <span class="nc">Map</span> <span class="o">[</span>
+</span><span class='line'>        <span class="s2">&quot;bob&quot;</span><span class="o">,</span> <span class="o">{</span> <span class="nc">Name</span> <span class="o">=</span> <span class="s2">&quot;Bob&quot;</span>
+</span><span class='line'>                 <span class="nc">Careful</span> <span class="o">=</span> <span class="nc">Mediocre</span>
+</span><span class='line'>                 <span class="nc">Clever</span> <span class="o">=</span> <span class="nc">Fair</span>
+</span><span class='line'>                 <span class="nc">Flashy</span> <span class="o">=</span> <span class="nc">Fair</span>
+</span><span class='line'>                 <span class="nc">Forceful</span> <span class="o">=</span> <span class="nc">Good</span>
+</span><span class='line'>                 <span class="nc">Quick</span> <span class="o">=</span> <span class="nc">Average</span>
+</span><span class='line'>                 <span class="nc">Sneaky</span> <span class="o">=</span> <span class="nc">Average</span>
+</span><span class='line'>                 <span class="nc">HighConcept</span> <span class="o">=</span> <span class="s2">&quot;The eternal example&quot;</span>
+</span><span class='line'>                 <span class="nc">Trouble</span> <span class="o">=</span> <span class="s2">&quot;Lives in the test&quot;</span>
+</span><span class='line'>                 <span class="nc">Aspects</span> <span class="o">=</span> <span class="o">[</span> <span class="s2">&quot;Really? He&#39;s just Bob&quot;</span> <span class="o">]</span>
+</span><span class='line'>                 <span class="nc">Stunts</span> <span class="o">=</span> <span class="o">[</span> <span class="s2">&quot;QA haven&#39;t defeated him yet&quot;</span> <span class="o">]</span> <span class="o">}</span>
+</span><span class='line'>    <span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">// Once per request, try and load the named character (see the memo at the end)</span>
+</span><span class='line'><span class="k">let</span> <span class="n">character</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">freya</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+</span><span class='line'>        <span class="k">return</span> <span class="nn">Map</span><span class="p">.</span><span class="n">tryFind</span> <span class="o">(</span><span class="n">name</span><span class="o">.</span><span class="nc">ToLowerInvariant</span><span class="bp">()</span><span class="o">)</span> <span class="n">exampleCharacters</span>
+</span><span class='line'>    <span class="o">}</span> <span class="o">|&gt;</span> <span class="nn">Freya</span><span class="p">.</span><span class="n">memo</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">characterExists</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">character</span> <span class="o">|&gt;</span> <span class="nn">Freya</span><span class="p">.</span><span class="n">map</span> <span class="o">(</span><span class="k">fun</span> <span class="n">c</span> <span class="o">-&gt;</span> <span class="n">c</span><span class="o">.</span><span class="nc">IsSome</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">sendCharacter</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">freya</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">character</span> <span class="o">=</span> <span class="n">character</span>
+</span><span class='line'>        <span class="k">return</span> <span class="nn">Represent</span><span class="p">.</span><span class="n">json</span> <span class="o">(</span><span class="n">character</span><span class="o">.</span><span class="nc">Value</span><span class="o">)</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">characterMachine</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">freyaMachine</span> <span class="o">{</span>
+</span><span class='line'><span class="o">#</span><span class="k">if</span> <span class="nc">DEBUG</span>
+</span><span class='line'>        <span class="n">cors</span>
+</span><span class='line'>        <span class="n">corsOrigins</span> <span class="o">[</span> <span class="nn">SerializedOrigin</span><span class="p">.</span><span class="n">parse</span> <span class="s2">&quot;http://localhost:8080&quot;</span> <span class="o">]</span>
+</span><span class='line'><span class="o">#</span><span class="n">endif</span>
+</span><span class='line'>        <span class="n">methods</span> <span class="o">[</span><span class="nc">GET</span><span class="o">;</span> <span class="nc">HEAD</span><span class="o">;</span> <span class="nc">OPTIONS</span><span class="o">]</span>
+</span><span class='line'>        <span class="n">exists</span> <span class="n">characterExists</span>
+</span><span class='line'>        <span class="n">handleOk</span> <span class="n">sendCharacter</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">root</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">freyaRouter</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">resource</span> <span class="s2">&quot;/character/{name}&quot;</span> <span class="n">characterMachine</span> <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>There&#39;s quite a lot going on in there, but what we&#39;ve defined with <code>characterMachine</code> is a resource which checks if a character exists, and sends it as Fable readable JSON if it does. We then configure a route to point to it.</p>
+
+<p>Critically, we also turn on <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS">CORS</a> (Cross Origin Resource Sharing) for localhost:8080 for debug builds. This will enable requests from our Fable client running it&#39;s development server on a different port to talk to the server.</p>
+
+<h2>The client</h2>
+
+<p>Go back up into the root directory of the solution, and run:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>dotnet new -i Fable.Template.Fulma.Minimal
+</span></code></pre></td></tr></table></div></figure>
+
+<p>To get a dotnet core template for Fable with F# wrappers for React and Bulma - as well as Elmish pre-installed.</p>
+
+<p>Then run:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'>dotnet new fulma-minimal -lang f# -o FateClient
+</span></code></pre></td></tr></table></div></figure>
+
+<p>To create our client application.</p>
+
+<p>Go into the newly created project directory, and use the built in build scripts to get everything up and running:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='bash'><span class='line'><span class="nb">cd </span>FateClient
+</span><span class='line'>./fate.sh -t watch
+</span></code></pre></td></tr></table></div></figure>
+
+<p>On first run, it will download most of the internet, but such is modern net development.</p>
+
+<p>Browse on over to <a href="http://localhost:8080/">http://localhost:8080/</a> to see the base template before we start hacking away!</p>
+
+<p>Very pretty: and in <code>App.fs</code> we can see the nice clean Elmish code driving it.</p>
+
+<p>Now! Let&#39;s start hacking away. Firstly, we&#39;re going to want to share our character types. I&#39;ve decided here that they are owned by the server, so we need to link the file into the Fable project.</p>
+
+<p>In <code>FateClient.fsproj</code>, add change:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'>  <span class="nt">&lt;ItemGroup&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;Compile</span> <span class="na">Include=</span><span class="s">&quot;App.fs&quot;</span> <span class="nt">/&gt;</span>
+</span><span class='line'>  <span class="nt">&lt;/ItemGroup&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>to:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='xml'><span class='line'>  <span class="nt">&lt;ItemGroup&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;Compile</span> <span class="na">Include=</span><span class="s">&quot;..\..\FateServer\Character.fs&quot;</span> <span class="nt">/&gt;</span>
+</span><span class='line'>    <span class="nt">&lt;Compile</span> <span class="na">Include=</span><span class="s">&quot;App.fs&quot;</span> <span class="nt">/&gt;</span>
+</span><span class='line'>  <span class="nt">&lt;/ItemGroup&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Now we can load up our character. In <code>App.fs</code>, it&#39;s time to expand our model. Change our Elmish app as below:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+<span class='line-number'>85</span>
+<span class='line-number'>86</span>
+<span class='line-number'>87</span>
+<span class='line-number'>88</span>
+<span class='line-number'>89</span>
+<span class='line-number'>90</span>
+<span class='line-number'>91</span>
+<span class='line-number'>92</span>
+<span class='line-number'>93</span>
+<span class='line-number'>94</span>
+<span class='line-number'>95</span>
+</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nn">App</span><span class="p">.</span><span class="nc">View</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nc">Elmish</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Fable</span><span class="p">.</span><span class="nn">Helpers</span><span class="p">.</span><span class="nc">React</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Fable</span><span class="p">.</span><span class="nn">Helpers</span><span class="p">.</span><span class="nn">React</span><span class="p">.</span><span class="nc">Props</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Fable</span><span class="p">.</span><span class="nc">PowerPack</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Fable</span><span class="p">.</span><span class="nn">PowerPack</span><span class="p">.</span><span class="nc">Fetch</span>
+</span><span class='line'><span class="k">open</span> <span class="nc">Fulma</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Fulma</span><span class="p">.</span><span class="nc">FontAwesome</span>
+</span><span class='line'><span class="k">open</span> <span class="nc">Character</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">Model</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span> <span class="nc">IsLoading</span> <span class="o">:</span> <span class="kt">bool</span>
+</span><span class='line'>      <span class="nc">Character</span> <span class="o">:</span> <span class="nc">Character</span> <span class="n">option</span>
+</span><span class='line'>      <span class="nc">ErrorMessage</span> <span class="o">:</span> <span class="kt">string</span> <span class="n">option</span> <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">type</span> <span class="nc">Msg</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">CharacterLoaded</span> <span class="k">of</span> <span class="nc">Character</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">LoadingError</span> <span class="k">of</span> <span class="kt">string</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">loadBob</span> <span class="bp">()</span> <span class="o">=</span>
+</span><span class='line'>    <span class="n">promise</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">let</span> <span class="n">props</span> <span class="o">=</span>
+</span><span class='line'>            <span class="o">[</span> <span class="nn">RequestProperties</span><span class="p">.</span><span class="nc">Method</span> <span class="nn">HttpMethod</span><span class="p">.</span><span class="nc">GET</span> <span class="o">]</span>
+</span><span class='line'>        <span class="k">return</span><span class="o">!</span> <span class="n">fetchAs</span><span class="o">&lt;</span><span class="nc">Character</span><span class="o">&gt;</span> <span class="s2">&quot;http://localhost:5000/character/bob&quot;</span> <span class="n">props</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">init</span> <span class="o">_</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">{</span> <span class="nc">IsLoading</span> <span class="o">=</span> <span class="bp">true</span>
+</span><span class='line'>      <span class="nc">Character</span> <span class="o">=</span> <span class="nc">None</span>
+</span><span class='line'>      <span class="nc">ErrorMessage</span> <span class="o">=</span> <span class="nc">None</span> <span class="o">},</span>
+</span><span class='line'>    <span class="nn">Cmd</span><span class="p">.</span><span class="n">ofPromise</span> <span class="n">loadBob</span> <span class="bp">()</span> <span class="nc">CharacterLoaded</span> <span class="o">(</span><span class="k">fun</span> <span class="n">e</span> <span class="o">-&gt;</span> <span class="nc">LoadingError</span> <span class="n">e</span><span class="o">.</span><span class="nc">Message</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">update</span> <span class="n">msg</span> <span class="n">model</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">match</span> <span class="n">msg</span> <span class="k">with</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">CharacterLoaded</span> <span class="n">bob</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="o">{</span> <span class="n">model</span> <span class="k">with</span> <span class="nc">IsLoading</span> <span class="o">=</span> <span class="bp">false</span>
+</span><span class='line'>                     <span class="nc">Character</span> <span class="o">=</span> <span class="nc">Some</span> <span class="n">bob</span> <span class="o">},</span> <span class="nn">Cmd</span><span class="p">.</span><span class="n">none</span>
+</span><span class='line'>    <span class="o">|</span> <span class="nc">LoadingError</span> <span class="n">error</span> <span class="o">-&gt;</span>
+</span><span class='line'>        <span class="o">{</span> <span class="n">model</span> <span class="k">with</span> <span class="nc">IsLoading</span> <span class="o">=</span> <span class="bp">false</span>
+</span><span class='line'>                     <span class="nc">Character</span> <span class="o">=</span> <span class="nc">None</span>
+</span><span class='line'>                     <span class="nc">ErrorMessage</span> <span class="o">=</span> <span class="nc">Some</span> <span class="n">error</span> <span class="o">},</span> <span class="nn">Cmd</span><span class="p">.</span><span class="n">none</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">loadingMessage</span> <span class="n">model</span> <span class="o">=</span>
+</span><span class='line'>    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="nc">IsLoading</span> <span class="k">then</span>
+</span><span class='line'>        <span class="o">[</span> <span class="n">str</span> <span class="s2">&quot;Loading...&quot;</span> <span class="o">]</span>
+</span><span class='line'>    <span class="k">else</span> <span class="bp">[]</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">characterView</span> <span class="n">character</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">[</span> <span class="n">h1</span> <span class="bp">[]</span> <span class="o">[</span> <span class="n">str</span> <span class="n">character</span><span class="o">.</span><span class="nc">Name</span> <span class="o">]</span>
+</span><span class='line'>      <span class="n">h2</span> <span class="bp">[]</span> <span class="o">[</span> <span class="n">str</span> <span class="s2">&quot;Aspects&quot;</span> <span class="o">]</span>
+</span><span class='line'>      <span class="n">ul</span> <span class="bp">[]</span> <span class="o">[</span>
+</span><span class='line'>        <span class="n">li</span> <span class="bp">[]</span> <span class="o">[</span> <span class="n">str</span> <span class="o">&lt;|</span> <span class="n">sprintf</span> <span class="s2">&quot;High Concept: %s&quot;</span> <span class="n">character</span><span class="o">.</span><span class="nc">HighConcept</span> <span class="o">]</span>
+</span><span class='line'>      <span class="o">]</span>
+</span><span class='line'>    <span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="n">errorView</span> <span class="n">message</span> <span class="o">=</span>
+</span><span class='line'>    <span class="o">[</span> <span class="nn">Notification</span><span class="p">.</span><span class="n">notification</span> <span class="o">[</span> <span class="nn">Notification</span><span class="p">.</span><span class="nc">Color</span> <span class="nc">IsDanger</span> <span class="o">]</span> <span class="o">[</span>
+</span><span class='line'>        <span class="n">str</span> <span class="n">message</span>
+</span><span class='line'>    <span class="o">]</span> <span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">view</span> <span class="n">model</span> <span class="n">dispatch</span> <span class="o">=</span>
+</span><span class='line'>    <span class="nn">Hero</span><span class="p">.</span><span class="n">hero</span> <span class="o">[</span> <span class="nn">Hero</span><span class="p">.</span><span class="nc">IsFullHeight</span> <span class="o">]</span>
+</span><span class='line'>        <span class="o">[</span> <span class="nn">Hero</span><span class="p">.</span><span class="n">body</span> <span class="o">[</span> <span class="o">]</span>
+</span><span class='line'>            <span class="o">[</span> <span class="nn">Container</span><span class="p">.</span><span class="n">container</span> <span class="o">[</span> <span class="o">]</span>
+</span><span class='line'>                <span class="o">[</span> <span class="nn">Columns</span><span class="p">.</span><span class="n">columns</span> <span class="o">[</span> <span class="nn">Columns</span><span class="p">.</span><span class="nc">CustomClass</span> <span class="s2">&quot;has-text-centered&quot;</span> <span class="o">]</span>
+</span><span class='line'>                    <span class="o">[</span> <span class="nn">Column</span><span class="p">.</span><span class="n">column</span> <span class="o">[</span> <span class="nn">Column</span><span class="p">.</span><span class="nc">Width</span><span class="o">(</span><span class="nn">Screen</span><span class="p">.</span><span class="nc">All</span><span class="o">,</span> <span class="nn">Column</span><span class="p">.</span><span class="nc">IsOneThird</span><span class="o">)</span>
+</span><span class='line'>                                      <span class="nn">Column</span><span class="p">.</span><span class="nc">Offset</span><span class="o">(</span><span class="nn">Screen</span><span class="p">.</span><span class="nc">All</span><span class="o">,</span> <span class="nn">Column</span><span class="p">.</span><span class="nc">IsOneThird</span><span class="o">)</span> <span class="o">]</span>
+</span><span class='line'>                        <span class="o">[</span> <span class="nn">Image</span><span class="p">.</span><span class="n">image</span> <span class="o">[</span> <span class="nn">Image</span><span class="p">.</span><span class="nc">Is128x128</span>
+</span><span class='line'>                                        <span class="nn">Image</span><span class="p">.</span><span class="nc">Props</span> <span class="o">[</span> <span class="nc">Style</span> <span class="o">[</span> <span class="nc">Margin</span> <span class="s2">&quot;auto&quot;</span><span class="o">]</span> <span class="o">]</span> <span class="o">]</span>
+</span><span class='line'>                            <span class="o">[</span> <span class="n">img</span> <span class="o">[</span> <span class="nc">Src</span> <span class="s2">&quot;assets/fulma_logo.svg&quot;</span> <span class="o">]</span> <span class="o">]</span>
+</span><span class='line'>                          <span class="nn">Content</span><span class="p">.</span><span class="n">content</span> <span class="o">[</span> <span class="o">]</span>
+</span><span class='line'>                            <span class="o">[</span> <span class="k">yield</span><span class="o">!</span> <span class="n">loadingMessage</span> <span class="n">model</span>
+</span><span class='line'>                              <span class="k">match</span> <span class="n">model</span><span class="o">.</span><span class="nc">Character</span> <span class="k">with</span>
+</span><span class='line'>                              <span class="o">|</span> <span class="nc">Some</span> <span class="n">c</span> <span class="o">-&gt;</span>
+</span><span class='line'>                                  <span class="k">yield</span><span class="o">!</span> <span class="n">characterView</span> <span class="n">c</span>
+</span><span class='line'>                              <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="bp">()</span>
+</span><span class='line'>                              <span class="k">match</span> <span class="n">model</span><span class="o">.</span><span class="nc">ErrorMessage</span> <span class="k">with</span>
+</span><span class='line'>                              <span class="o">|</span> <span class="nc">Some</span> <span class="n">m</span> <span class="o">-&gt;</span>
+</span><span class='line'>                                  <span class="k">yield</span><span class="o">!</span> <span class="n">errorView</span> <span class="n">m</span>
+</span><span class='line'>                              <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span> <span class="bp">()</span> <span class="o">]</span> <span class="o">]</span> <span class="o">]</span> <span class="o">]</span> <span class="o">]</span> <span class="o">]</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">open</span> <span class="nn">Elmish</span><span class="p">.</span><span class="nc">React</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Elmish</span><span class="p">.</span><span class="nc">Debug</span>
+</span><span class='line'><span class="k">open</span> <span class="nn">Elmish</span><span class="p">.</span><span class="nc">HMR</span>
+</span><span class='line'>
+</span><span class='line'><span class="nn">Program</span><span class="p">.</span><span class="n">mkProgram</span> <span class="n">init</span> <span class="n">update</span> <span class="n">view</span>
+</span><span class='line'><span class="o">#</span><span class="k">if</span> <span class="nc">DEBUG</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Program</span><span class="p">.</span><span class="n">withHMR</span>
+</span><span class='line'><span class="o">#</span><span class="n">endif</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Program</span><span class="p">.</span><span class="n">withReactUnoptimized</span> <span class="s2">&quot;elmish-app&quot;</span>
+</span><span class='line'><span class="o">#</span><span class="k">if</span> <span class="nc">DEBUG</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Program</span><span class="p">.</span><span class="n">withDebugger</span>
+</span><span class='line'><span class="o">#</span><span class="n">endif</span>
+</span><span class='line'><span class="o">|&gt;</span> <span class="nn">Program</span><span class="p">.</span><span class="n">run</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>And there you have it - a simple app that loads &quot;Bob&quot; from our server, using the generic <code>fetchAs</code> method to cast the JSON back into our strongly typed world. Making the application interactive and more attractive is left to the user; it gets quite addictive with a nice type safe wrapper over React and auto-reloading.</p>
+
+<p>Till next time&#8230;</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1289,85 +1906,6 @@ ga('send', 'pageview');
 
     </article>
   
-  
-    <article>
-      
-
-  <header>
-    
-      <h1 class="entry-title"><a href="/routemaster-master-your-messaging-routes/">RouteMaster : Master Your Messaging Routes</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2017-10-27T16:25:53+01:00" pubdate data-updated="true">Oct 27<span>th</span>, 2017</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>I&#39;m very pleased to announce the release of an initial alpha of <a href="https://github.com/RouteMasterIntegration/RouteMaster">RouteMaster</a>.</p>
-
-<p>What is it? Well, I&#39;ll let the README speak for itself:</p>
-
-<blockquote>
-<p>RouteMaster is a .NET library for writing stateful workflows on top of a message bus. It exists to make the implementation of long running business processes easy in event driven systems.</p>
-</blockquote>
-
-<p>There is also example code in the repository so you can see what things are starting to look like.</p>
-
-<p>For those of you following along, this will sound awfully familiar; that&#39;s because RouteMaster is the outcome of my decision to rebuild a <a href="/process-management-in-easynetq/">Process Manager</a> for EasyNetQ. The first cut of that was imaginatively called &quot;EasyNetQ.ProcessManager&quot;, but I decided to rename it for three main reasons:</p>
-
-<ul>
-<li>On re-reading <a href="http://www.enterpriseintegrationpatterns.com/">Enterprise Integration Patterns</a>, it occurred to me that RouteMaster was an enabler for many of the other patterns as well as the &quot;Process Manager&quot;</li>
-<li>The message bus RouteMaster uses is provided as an interface; the main dll has no dependency on EasyNetQ at all</li>
-<li>The previous EasyNetQ.ProcessManager is still available as a Nuget package supplied by my previous employer, and they have both the moral and legal rights to the package given I wrote the original on their time</li>
-</ul>
-
-<p>A pre-emptive few FAQs:</p>
-
-<h3>Is this ready to use?</h3>
-
-<p>No, not yet. I&#39;m out of time I can afford to spend on it right now, get in touch if you can/want to fund future development.</p>
-
-<p>If you want to play, the code as provided does run and all of the process tests pass.</p>
-
-<h3>Urgh! All the examples are F#!?</h3>
-
-<p>Yes, but there is a C# friendly API in the works. See the first question :)</p>
-
-<h3>What infrastructure do I need to run this?</h3>
-
-<p>At the moment, I&#39;m using EasyNetQ (over RabbitMQ) and PostgreSQL (via Marten) for transport and storage respectively.</p>
-
-<h3>What about things like NServiceBus and MassTransit?</h3>
-
-<p>In some ways they fall in a similar space to RouteMaster, but with a different philosophy. Just as EasyNetQ is a focused library that supplies only part of the functionality you&#39;d find in these larger solutions, RouteMaster is designed to work with your chosen transport abstraction not replace it.</p>
-
-<h2>Ask not what your RouteMaster can do for you, but what you can do for your RouteMaster!</h2>
-
-<p>I&#39;d really like feedback, ideas, use cases and suggestions - leave comments here or ping an issue onto the repository. If you&#39;re feeling really brave and can try and actually experiment with it, but at the moment I&#39;m mostly hoping for concrete use cases and, well, funding.</p>
-
-<p>Quite a few people over the years have hit my website searching for an EasyNetQ process manager, and others have asked me if it&#39;s still available. I&#39;d like to hear from as many of you as possible to build the tightest, simplest solution which will do the job.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -1391,6 +1929,10 @@ ga('send', 'pageview');
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/full-stack-with-freya/">Full Stack With Freya</a>
+      </li>
+    
+      <li class="post">
         <a href="/routemaster-and-the-tale-of-the-globally-unique-voters/">RouteMaster and the Tale of the Globally Unique Voters</a>
       </li>
     
@@ -1404,10 +1946,6 @@ ga('send', 'pageview');
     
       <li class="post">
         <a href="/token-bearer-authentication-in-freya/">Token Bearer Authentication in Freya</a>
-      </li>
-    
-      <li class="post">
-        <a href="/logging-freya/">Logging Freya</a>
       </li>
     
   </ul>

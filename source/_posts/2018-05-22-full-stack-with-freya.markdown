@@ -9,6 +9,8 @@ Yesterday night I was about to demo a quick server/client pair with Freya and Fa
 
 This means it's time for a little practice for me, and a mini-tutorial for you (and future me).
 
+<!-- more -->
+
 ## What we're going to do
 
 We're going to build a small server application based on Freya which will serve JSON and be a nice RESTful (in the loose sense) API.
@@ -169,17 +171,19 @@ let name =
 // We're going to hard code our data for now
 let exampleCharacters =
     Map [
-        "bob", { Name = "Bob"
+        "bob", { Name = "Bob Bobson"
                  Careful = Mediocre
                  Clever = Fair
                  Flashy = Fair
-                 Forceful = Good
+                 Forceful = Average
                  Quick = Average
-                 Sneaky = Average
+                 Sneaky = Good
                  HighConcept = "The eternal example"
                  Trouble = "Lives in the test"
-                 Aspects = [ "Really? He's just Bob" ]
-                 Stunts = [ "QA haven't defeated him yet" ] }
+                 Aspects = [ "It's only Bob"
+                             "Is he... the recursive one?"
+                             "I've got Fred's back!" ]
+                 Stunts = [ "Because everyone assumes I don't exist, I get +2 on Sneaky rolls to not be noticed." ] }
     ]
 
 // Once per request, try and load the named character (see the memo at the end)
@@ -216,6 +220,8 @@ There's quite a lot going on in there, but what we've defined with `characterMac
 
 Critically, we also turn on [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS) (Cross Origin Resource Sharing) for localhost:8080 for debug builds. This will enable requests from our Fable client running it's development server on a different port to talk to the server.
 
+Edit: Zaid Ajaj [points out](https://twitter.com/zaid_ajaj/status/999177873431891968) that you can also configure webpack's dev server to proxy to your development front end. If you're writing a system where your API and client will be running on the same domain, check out how to do that below.
+
 ## The client
 
 Go back up into the root directory of the solution, and run:
@@ -246,6 +252,25 @@ On first run, it will download most of the internet, but such is modern net deve
 Browse on over to [http://localhost:8080/](http://localhost:8080/) to see the base template before we start hacking away!
 
 Very pretty: and in `App.fs` we can see the nice clean Elmish code driving it.
+
+If you're running both API and client on the same domain, this is also a good time to update your webpack config (you'll find `webpack.config.js` in your FateClient directory). Amend the `devServer` section as follows:
+
+``` json
+    devServer: {
+      proxy: {
+        '/character/*': {
+          target: 'http://localhost:5000',
+          changeOrigin: true
+        }
+      },
+      contentBase: "./static",
+      publicPath: "/",
+      hot: true,
+      inline: true
+    },
+```
+
+If you do this, you'll want to change the URL below used to load the data.
 
 Now! Let's start hacking away. Firstly, we're going to want to share our character types. I've decided here that they are owned by the server, so we need to link the file into the Fable project.
 
@@ -293,7 +318,12 @@ let loadBob () =
     promise {
         let props =
             [ RequestProperties.Method HttpMethod.GET ]
+        #if DEBUG
+        // Use "/character/bob" here if you've set up the webpack proxy
         return! fetchAs<Character> "http://localhost:5000/character/bob" props
+        #else
+        return! fetchAs<Character> "http://api.example.com/character/bob" props
+        #endif
     }
 
 let init _ =
@@ -317,11 +347,69 @@ let loadingMessage model =
         [ str "Loading..." ]
     else []
 
+let isRounded : IHTMLProp list =
+    [ Style [ BorderRadius "25px" ] ]
+
 let characterView character =
-    [ h1 [] [ str character.Name ]
-      h2 [] [ str "Aspects" ]
-      ul [] [
-        li [] [ str <| sprintf "High Concept: %s" character.HighConcept ]
+    [ Hero.hero [ Hero.Color IsBlack
+                  Hero.Props isRounded ] [
+        Hero.body [] [
+            Container.container [ Container.IsFluid
+                                  Container.Modifiers
+                                      [ Modifier.TextAlignment (Screen.All, TextAlignment.Centered) ] ] [
+                Heading.h1 [] [ str character.Name ]
+                p [] [
+                    strong [] [ str "High Concept: " ]
+                    str character.HighConcept
+                ]
+                p [] [
+                    strong [] [ str "Trouble: " ]
+                    str character.Trouble
+                ]
+            ]
+        ]
+      ]
+      Columns.columns [] [
+          Column.column [] [
+              Heading.h2 [] [ str "Approaches" ]
+              Table.table
+                  [ Table.IsBordered
+                    Table.IsStriped ]
+                  [ thead []
+                        [ tr []
+                              [ th [] [ str "Approach" ]
+                                th [] [ str "Level" ] ] ]
+                    tbody []
+                        [ tr []
+                              [ td [] [ str "Careful" ]
+                                td [] [ str <| character.Careful.ToString() ] ]
+                          tr []
+                              [ td [] [ str "Clever" ]
+                                td [] [ str <| character.Clever.ToString() ] ]
+                          tr []
+                              [ td [] [ str "Flashy" ]
+                                td [] [ str <| character.Flashy.ToString() ] ]
+                          tr []
+                              [ td [] [ str "Forceful" ]
+                                td [] [ str <| character.Forceful.ToString() ] ]
+                          tr []
+                              [ td [] [ str "Quick" ]
+                                td [] [ str <| character.Quick.ToString() ] ]
+                          tr []
+                              [ td [] [ str "Sneaky" ]
+                                td [] [ str <| character.Sneaky.ToString() ] ] ]
+                  ]
+          ]
+          Column.column [] [
+              Heading.h2 [] [ str "Other Aspects" ]
+              ul [] [
+                  yield! [ for a in character.Aspects -> li [] [ str a ] ]
+              ]
+              Heading.h2 [] [ str "Stunts" ]
+              ul [] [
+                  yield! [ for s in character.Stunts -> li [] [ str s ] ]
+              ]
+          ]
       ]
     ]
 
@@ -331,25 +419,18 @@ let errorView message =
     ] ]
 
 let private view model dispatch =
-    Hero.hero [ Hero.IsFullHeight ]
-        [ Hero.body [ ]
-            [ Container.container [ ]
-                [ Columns.columns [ Columns.CustomClass "has-text-centered" ]
-                    [ Column.column [ Column.Width(Screen.All, Column.IsOneThird)
-                                      Column.Offset(Screen.All, Column.IsOneThird) ]
-                        [ Image.image [ Image.Is128x128
-                                        Image.Props [ Style [ Margin "auto"] ] ]
-                            [ img [ Src "assets/fulma_logo.svg" ] ]
-                          Content.content [ ]
-                            [ yield! loadingMessage model
-                              match model.Character with
-                              | Some c ->
-                                  yield! characterView c
-                              | None -> ()
-                              match model.ErrorMessage with
-                              | Some m ->
-                                  yield! errorView m
-                              | None -> () ] ] ] ] ] ]
+    Container.container [] [
+        Content.content [ ]
+          [ yield! loadingMessage model
+            match model.Character with
+            | Some c ->
+                yield! characterView c
+            | None -> ()
+            match model.ErrorMessage with
+            | Some m ->
+                yield! errorView m
+            | None -> () ]
+    ]
 
 open Elmish.React
 open Elmish.Debug
@@ -369,3 +450,5 @@ Program.mkProgram init update view
 And there you have it - a simple app that loads "Bob" from our server, using the generic `fetchAs` method to cast the JSON back into our strongly typed world. Making the application interactive and more attractive is left to the user; it gets quite addictive with a nice type safe wrapper over React and auto-reloading.
 
 Till next time...
+
+![The Final Result](/images/bob_bobson.png)

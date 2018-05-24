@@ -244,7 +244,7 @@ Go into the newly created project directory, and use the built in build scripts 
 
 ``` bash
 cd FateClient
-./fate.sh -t watch
+./fake.sh -t watch
 ```
 
 On first run, it will download most of the internet, but such is modern net development.

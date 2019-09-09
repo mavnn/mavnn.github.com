@@ -1,0 +1,437 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Shake: The Intro - Mavnn's blog</title>
+  <meta name="author" content="mavnn">
+
+  
+  <meta name="description" content="At NoRedInk we&#39;ve been looking into using Shake to incrementally build large polyglot projects. In general, it&#39;s been a great tool to work &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+  <link rel="canonical" href="https://blog.mavnn.co.uk/shake-the-intro/">
+  <link href="/favicon.ico" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Mavnn's blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="https://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="https://fonts.googleapis.com/css?family=Fira+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="https://fonts.googleapis.com/css?family=Fira+Mono:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+<!-- Google Analytics -->
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-37561687-1', 'auto');
+ga('send', 'pageview');
+
+</script>
+<!-- End Google Analytics -->
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <a href="https://mavnn.co.uk"><img class="swirl-logo" src="/images/swirl.svg"/></a>
+  <h1><a href="/">Mavnn's blog</a></h1>
+  
+    <h2>Stuff from my brain</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="#" method="get" id="searchbox" >
+  <fieldset role="search">
+    <input type="hidden" id="site_query" value="site:blog.mavnn.co.uk" />
+    <input class="search" type="text" name="q" results="0" id="search_query" placeholder="Search"/>
+  </fieldset>
+</form>
+<ul class="main-navigation">
+  <li><a href="https://mavnn.co.uk">Main Site</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+
+<!-- for the course -->
+<!-- <h5>We're running <a href="/cloud-native-net/">Cloud Native .NET</a> in Brighton, 26th-27th April 2018. High quality training for building .NET Core, distributed, production ready systems.</h5> -->
+<!-- take it out up to here... -->
+
+
+
+  <header>
+    
+      <h1 class="entry-title">Shake: The Intro</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2019-09-09T15:00:00+01:00" pubdate data-updated="true">Sep 9<span>th</span>, 2019</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>At <a href="http://noredink.com">NoRedInk</a> we&#39;ve been looking into using <a href="https://shakebuild.com/">Shake</a> to incrementally build large polyglot projects. In general, it&#39;s been a great tool to work with, but there were a few things that caught us out, so I wanted to capture some of that learning before it got lost.</p>
+
+<p>Shake is basically a domain specific language built on top of Haskell, so knowing Haskell can definitely help you unlock it&#39;s full power. But you can get a long way for basic builds by just working with some simple building blocks. You will have to jump through some extra hoops to get it installed and write your scripts with editor support if you&#39;re not using Haskell anyway - but we are, so that wasn&#39;t much of an obstacle for us!</p>
+
+<p>I&#39;m not going to go into the really basic ideas behind Shake: the main website (linked above) has a good introductory demo, and Neil Mitchell (who wrote Shake) has given numerous (very well done) talks on the ideas behind it. What I&#39;m going to do over a few posts is look at some of the things which caught us out, and what you can do about them. I&#39;ll try and remember to link each post here as it comes out!</p>
+
+<!-- more -->
+
+<p>In this introduction, I&#39;m going to show you the mini-example project that we&#39;ll be using in each of the following blog posts. All of the examples can be seen in full (with runnable code!) at <a href="https://github.com/mavnn/shake-examples">https://github.com/mavnn/shake-examples</a>, but if you want just want to follow along you can pretend and just read the Shake files here.</p>
+
+<p>Our &quot;base&quot; Shake file just knows how to build a Haskell project from a group of &quot;*.hs&quot; files in the <code>src</code> directory - everything else will build up from there! This is our starter <code>Shakefile.hs</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'><span class="kr">module</span> <span class="nn">Shakefile</span>
+</span><span class='line'>  <span class="p">(</span> <span class="nf">main</span>
+</span><span class='line'>  <span class="p">)</span>
+</span><span class='line'><span class="kr">where</span>
+</span><span class='line'>
+</span><span class='line'><span class="kr">import</span> <span class="nn">Development.Shake</span>
+</span><span class='line'><span class="kr">import</span> <span class="nn">Development.Shake.FilePath</span>
+</span><span class='line'>
+</span><span class='line'><span class="nf">main</span> <span class="ow">::</span> <span class="kt">IO</span> <span class="nb">()</span>
+</span><span class='line'><span class="nf">main</span> <span class="ow">=</span>
+</span><span class='line'>  <span class="n">shakeArgs</span>
+</span><span class='line'>    <span class="n">shakeOptions</span>
+</span><span class='line'>      <span class="p">{</span> <span class="n">shakeFiles</span> <span class="ow">=</span> <span class="s">&quot;_build&quot;</span>
+</span><span class='line'>      <span class="p">,</span> <span class="n">shakeChange</span> <span class="ow">=</span> <span class="kt">ChangeModtimeAndDigest</span>
+</span><span class='line'>      <span class="p">,</span> <span class="n">shakeColor</span> <span class="ow">=</span> <span class="kt">True</span>
+</span><span class='line'>      <span class="p">,</span> <span class="n">shakeThreads</span> <span class="ow">=</span> <span class="mi">4</span> <span class="c1">-- default to multicore!</span>
+</span><span class='line'>      <span class="p">}</span> <span class="o">$</span> <span class="kr">do</span>
+</span><span class='line'>    <span class="n">want</span>
+</span><span class='line'>      <span class="p">[</span> <span class="s">&quot;_build&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main&quot;</span> <span class="o">&lt;.&gt;</span> <span class="n">exe</span>
+</span><span class='line'>      <span class="p">]</span>
+</span><span class='line'>    <span class="n">rules</span>
+</span><span class='line'>
+</span><span class='line'><span class="nf">rules</span> <span class="ow">::</span> <span class="kt">Rules</span> <span class="nb">()</span>
+</span><span class='line'><span class="nf">rules</span> <span class="ow">=</span> <span class="kr">do</span>
+</span><span class='line'>  <span class="c1">-- Clean build artifacts (including shake history)</span>
+</span><span class='line'>  <span class="n">phony</span> <span class="s">&quot;clean&quot;</span> <span class="o">$</span> <span class="kr">do</span>
+</span><span class='line'>    <span class="n">putNormal</span> <span class="s">&quot;Cleaning _build&quot;</span>
+</span><span class='line'>    <span class="n">removeFilesAfter</span> <span class="s">&quot;_build&quot;</span> <span class="p">[</span><span class="s">&quot;//*&quot;</span><span class="p">]</span>
+</span><span class='line'>  <span class="c1">-- Build our Haskell application</span>
+</span><span class='line'>  <span class="s">&quot;_build&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main&quot;</span> <span class="o">&lt;.&gt;</span> <span class="n">exe</span> <span class="o">%&gt;</span> <span class="nf">\</span><span class="n">out</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
+</span><span class='line'>    <span class="n">src</span> <span class="ow">&lt;-</span> <span class="n">getDirectoryFiles</span> <span class="s">&quot;&quot;</span> <span class="p">[</span><span class="s">&quot;src//*.hs&quot;</span><span class="p">]</span>
+</span><span class='line'>    <span class="n">need</span> <span class="n">src</span>
+</span><span class='line'>    <span class="n">cmd_</span>
+</span><span class='line'>      <span class="s">&quot;ghc&quot;</span>
+</span><span class='line'>      <span class="p">(</span><span class="s">&quot;src&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main.hs&quot;</span><span class="p">)</span>
+</span><span class='line'>      <span class="s">&quot;-isrc&quot;</span>
+</span><span class='line'>      <span class="s">&quot;-outputdir&quot;</span>
+</span><span class='line'>      <span class="s">&quot;_build&quot;</span>
+</span><span class='line'>      <span class="s">&quot;-o&quot;</span>
+</span><span class='line'>      <span class="n">out</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>What does this do? Well, there&#39;s a bit of boilerplate to import the <code>Shake</code> libraries and configure Shake. We also set the wanted output of a default build in this <code>main</code> function: in this case an executable called <code>main</code> in the <code>_build</code> directory (or <code>main.exe</code> on Windows).</p>
+
+<p>Then we have two rules:</p>
+
+<ul>
+<li>one &#39;phony&#39; rule (it doesn&#39;t create a file) that knows how to delete our build artifacts</li>
+<li>a rule that knows how to build the desired output file</li>
+</ul>
+
+<p>This second rule goes through a few steps:</p>
+
+<ul>
+<li>It calls <code>getDirectoryFiles</code> to get <em>and depend on</em> the list of &quot;*.hs&quot; files in the src directory. If any *.hs files are added or removed, the rule will be re-run.</li>
+<li>It <code>need</code>s all of the *.hs files it found. This means that if the content of any of those files changes, the rule will be re-run.</li>
+<li>Finally, it calls <code>ghc</code>, a Haskell compiler, telling it to put all of it&#39;s build artifacts and the output file in the <code>_build</code> directory.</li>
+</ul>
+
+<p>Now: let&#39;s start looking at how to build in some more troublesome (or at least, less obvious) functionality you might want in a larger project.</p>
+
+<ol>
+<li><a href="/shake-linting">Linting And Formatting</a></li>
+<li><a href="/shake-generated-files/">Generated Files</a></li>
+</ol>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">mavnn</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2019-09-09T15:00:00+01:00" pubdate data-updated="true">Sep 9<span>th</span>, 2019</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/haskell/'>haskell</a>, <a class='category' href='/blog/categories/shake/'>shake</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="https://blog.mavnn.co.uk/shake-the-intro/" data-via="mavnn" data-counturl="https://blog.mavnn.co.uk/shake-the-intro/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/property-based-testing-at-ndc-oslo-2018/" title="Previous Post: Property Based Testing at NDC Oslo 2018">&laquo; Property Based Testing at NDC Oslo 2018</a>
+      
+      
+        <a class="basic-alignment right" href="/shake-linting/" title="Next Post: Shake: Linting And Formatting">Shake: Linting And Formatting &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Hire the Author</h1>
+  <p>
+    Want some help in any of the areas you've read about? Hop across to
+    <a href="https://mavnn.co.uk">mavnn.co.uk</a> where you can hire the
+    author.
+  </p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/shake-generated-files/">Shake: Generated Files</a>
+      </li>
+    
+      <li class="post">
+        <a href="/shake-linting/">Shake: Linting and Formatting</a>
+      </li>
+    
+      <li class="post">
+        <a href="/shake-the-intro/">Shake: The Intro</a>
+      </li>
+    
+      <li class="post">
+        <a href="/property-based-testing-at-ndc-oslo-2018/">Property Based Testing at NDC Oslo 2018</a>
+      </li>
+    
+      <li class="post">
+        <a href="/working-with-noredink/">Working With NoRedInk</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/mavnn">@mavnn</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'mavnn',
+            count: 3,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2019 - mavnn -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<div id="disqus_thread"></div>
+<script>
+    var disqus_config = function () {
+        this.page.url = 'https://blog.mavnn.co.uk/shake-the-intro/';
+        this.page.identifier = 'https://blog.mavnn.co.uk/shake-the-intro/';
+    };
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+        s.src = 'https://mavnn.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+<script type="text/javascript">
+ (function() {
+   const searchbox = document.getElementById("searchbox");
+   const site_query = document.getElementById("site_query").value;
+   const search_query = document.getElementById("search_query");
+
+   searchbox.onsubmit = function() {
+     const q = encodeURIComponent(search_query.value);
+     document.location.assign("https://google.com/search?q=" + site_query + "+" + q);
+     return false;
+   };
+ })()
+</script>
+
+
+</body>
+</html>

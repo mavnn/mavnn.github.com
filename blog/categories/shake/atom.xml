@@ -1,0 +1,538 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: shake | Mavnn's blog]]></title>
+  <link href="https://blog.mavnn.co.uk/blog/categories/shake/atom.xml" rel="self"/>
+  <link href="https://blog.mavnn.co.uk/"/>
+  <updated>2019-09-09T14:11:21+01:00</updated>
+  <id>https://blog.mavnn.co.uk/</id>
+  <author>
+    <name><![CDATA[mavnn]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Shake: Generated Files]]></title>
+    <link href="https://blog.mavnn.co.uk/shake-generated-files/"/>
+    <updated>2019-09-09T17:00:00+01:00</updated>
+    <id>https://blog.mavnn.co.uk/shake-generated-files</id>
+    <content type="html"><![CDATA[<blockquote>
+<p>This post is part of a series! If you haven&#39;t already, check out <a href="/shake-the-intro/">the introduction</a> so you know what&#39;s going on.</p>
+</blockquote>
+
+<p>It&#39;s fairly obvious how dependencies work in Shake when all of the files are known while you&#39;re writing your rules.</p>
+
+<p>And if a build rule creates a single file matching a pattern, or even a known set of files based on a pattern: that&#39;s pretty simple too. Just add a rule (<a href="https://hackage.haskell.org/package/shake-0.17.1/docs/Development-Shake.html#v:-37--62-">%&gt;</a> for building a single file, <a href="https://hackage.haskell.org/package/shake-0.17.1/docs/Development-Shake.html#v:-38--37--62-">&amp;%&gt;</a> for a list) and then when you <code>need</code> one of the outputs Shake knows how to make sure it&#39;s up to date.</p>
+
+<p>Life becomes a little more interesting when you have a rule that takes multiple inputs (detected at run time) and creates multiple outputs (depending on what was found).</p>
+
+<p>Let&#39;s look at an example. We&#39;re writing a computer game, and the game designers want to be able to quickly specify new types of characters that can exist. The designers and developers settle on a compromise; they&#39;ll use Yaml with a few simple type names the developers will teach the designers.</p>
+
+<p>So the designers start churning out character types, which look like this:</p>
+<div class="highlight"><pre><code class="yaml"><span class="l-Scalar-Plain">name</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">Fighter</span>
+<span class="l-Scalar-Plain">insaneToughness</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">Integer</span>
+<span class="l-Scalar-Plain">ridiculousStrength</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">Integer</span>
+</code></pre></div>
+<p>or this:</p>
+<div class="highlight"><pre><code class="yaml"><span class="l-Scalar-Plain">name</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">Rogue</span>
+<span class="l-Scalar-Plain">sneakyTricks</span><span class="p-Indicator">:</span> <span class="s">&quot;[String]&quot;</span>
+</code></pre></div>
+<p>The developers, on the other hand, want to be able to consume nice safe Haskell types like so:</p>
+<div class="highlight"><pre><code class="haskell"><span class="kr">import</span> <span class="nn">Generated.Fighter</span>
+<span class="kr">import</span> <span class="nn">Names</span>
+
+<span class="nf">main</span> <span class="ow">::</span> <span class="kt">IO</span> <span class="nb">()</span>
+<span class="nf">main</span> <span class="ow">=</span> <span class="kr">do</span>
+  <span class="n">putStrLn</span> <span class="o">$</span> <span class="s">&quot;Hello, &quot;</span> <span class="o">++</span> <span class="n">world</span> <span class="o">++</span> <span class="s">&quot;!&quot;</span>
+  <span class="n">print</span>
+    <span class="p">(</span> <span class="kt">Fighter</span>
+      <span class="p">{</span> <span class="n">insaneToughness</span> <span class="ow">=</span> <span class="mi">5</span>
+      <span class="p">,</span> <span class="n">ridiculousStrength</span> <span class="ow">=</span> <span class="mi">10</span>
+      <span class="p">}</span>
+    <span class="p">)</span>
+</code></pre></div>
+<p>And we want our code to break at compile time if, for any reason, the Yaml files get changed and we start relying on things that no longer exist. So we&#39;re going to set up a build rule that builds a directory full of nice type safe code from a directory full of nice concise and easy to edit Yaml.</p>
+
+<!-- More -->
+
+<p>Let&#39;s see what we can come up to build this safely. Our first shot at a replacement build <code>Rule</code> looks like this:</p>
+<div class="highlight"><pre><code class="haskell">  <span class="s">&quot;_build&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main&quot;</span> <span class="o">&lt;.&gt;</span> <span class="n">exe</span> <span class="o">%&gt;</span> <span class="nf">\</span><span class="n">out</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
+    <span class="n">src</span> <span class="ow">&lt;-</span> <span class="n">getDirectoryFiles</span> <span class="s">&quot;&quot;</span> <span class="p">[</span><span class="s">&quot;src//*.hs&quot;</span><span class="p">]</span>
+    <span class="c1">-- depend on the generated Haskell as well</span>
+    <span class="c1">-- as hand written files</span>
+    <span class="n">need</span> <span class="p">[</span><span class="s">&quot;_build/haskell_generation.log&quot;</span><span class="p">]</span>
+    <span class="n">generated</span> <span class="ow">&lt;-</span> <span class="n">getDirectoryFiles</span> <span class="s">&quot;&quot;</span> <span class="p">[</span><span class="s">&quot;src&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;Generated//*.hs&quot;</span><span class="p">]</span>
+    <span class="n">need</span> <span class="o">$</span> <span class="n">src</span> <span class="o">++</span> <span class="n">generated</span>
+    <span class="n">cmd_</span>
+      <span class="s">&quot;ghc&quot;</span>
+      <span class="p">(</span><span class="s">&quot;src&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main.hs&quot;</span><span class="p">)</span>
+      <span class="s">&quot;-isrc&quot;</span>
+      <span class="s">&quot;-outputdir&quot;</span>
+      <span class="s">&quot;_build&quot;</span>
+      <span class="s">&quot;-o&quot;</span>
+      <span class="n">out</span>
+</code></pre></div>
+<p>This looks very similar to the previous build rule, with just the addition of a few lines to account for the generated files. The only slightly quirky moment is <code>need [&quot;_build/haskell_generation.log&quot;]</code>; we need this because Shake has no concept of a rule for a directory. So the rule for <code>_build/haskell_generation.log</code> creates all of our generated files, so that we can then &quot;get&quot; them on the line below.</p>
+
+<p>We also need to add the rules for <code>_build/haskell_generation.log</code> and for files in the generated directory, to make sure they&#39;re generated before they are used.</p>
+<div class="highlight"><pre><code class="haskell">  <span class="c1">-- Make sure if a generated file is needed, it has been</span>
+  <span class="c1">-- created</span>
+  <span class="n">priority</span> <span class="mi">2</span> <span class="o">$</span> <span class="s">&quot;src&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;Generated//*.hs&quot;</span> <span class="o">%&gt;</span> <span class="nf">\</span><span class="kr">_</span> <span class="ow">-&gt;</span>
+    <span class="n">need</span> <span class="p">[</span><span class="s">&quot;_build/haskell_generation.log&quot;</span><span class="p">]</span>
+  <span class="c1">-- Target ensures all haskell files are built</span>
+  <span class="s">&quot;_build/haskell_generation.log&quot;</span> <span class="o">%&gt;</span> <span class="nf">\</span><span class="n">out</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
+    <span class="n">yamlFiles</span> <span class="ow">&lt;-</span> <span class="n">getDirectoryFiles</span> <span class="s">&quot;&quot;</span> <span class="p">[</span><span class="s">&quot;yaml_types//*.yaml&quot;</span><span class="p">]</span>
+    <span class="n">need</span> <span class="n">yamlFiles</span>
+    <span class="n">createHaskellFiles</span> <span class="n">yamlFiles</span>
+    <span class="n">writeFileLines</span> <span class="n">out</span> <span class="n">yamlFiles</span>
+    <span class="c1">-- Make sure we rerun if the list of files in src/Generated</span>
+    <span class="c1">-- changes</span>
+    <span class="kr">_</span> <span class="ow">&lt;-</span> <span class="n">getDirectoryFiles</span> <span class="s">&quot;&quot;</span> <span class="p">[</span><span class="s">&quot;src&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;Generated//*.hs&quot;</span><span class="p">]</span>
+    <span class="n">pure</span> <span class="nb">()</span>
+</code></pre></div>
+<p><code>createHaskellFiles</code> here is the logic that writes the Generated files, but it could easily be some external tool being called via a script.</p>
+
+<p>Then you run shake, and ... the code works! Awesome, we&#39;re done, right?</p>
+
+<p>Well, maybe not. The first sign something might be wrong is in the docs. The docs for <a href="http://hackage.haskell.org/package/shake-0.17.3/docs/Development-Shake.html#v:getDirectoryFiles">getDirectoryFiles</a> state: &quot;As a consequence of being tracked, if the contents change during the build (e.g. you are generating .c files in this directory) then the build not reach a stable point, which is an error - detected by running with --lint. You should normally only call this function returning source files.&quot;</p>
+
+<p>That doesn&#39;t sound good. Maybe we should check the behaviour of our code.</p>
+
+<p>Let&#39;s delete one of the generated files, and run Shake again to check it detects that:</p>
+<div class="highlight"><pre><code class="sh"><span class="nv">$ </span>rm src/Generated/rogue.hs
+<span class="nv">$ </span>shake
+Formatting build files
+<span class="c"># ormolu (for src/Generated/rogue.hs)</span>
+<span class="c"># ghc (for _build/main)</span>
+Build completed in 0.51s
+</code></pre></div>
+<p>Whew! Maybe we&#39;re okay. We&#39;ll just run it once more:</p>
+<div class="highlight"><pre><code class="sh"><span class="nv">$ </span>shake
+Formatting build files
+<span class="c"># ghc (for _build/main)</span>
+Build completed in 0.23s
+</code></pre></div>
+<p>Oh. That&#39;s not good: nothing has changed, so why have we invoked <code>ghc</code>?</p>
+
+<p>Here we hit something very, very, important to understand about <code>getDirectoryFiles</code> (and other Shake Rules and Oracles): they only run once per invocation of Shake.</p>
+
+<p>Let&#39;s step through the implications of what this means on each of the build runs.</p>
+
+<h3>Run 1 (from clean)</h3>
+
+<ul>
+<li>We ask for the <code>_build/main</code> executable to be built; it doesn&#39;t exist, so the <code>Action</code> in the <code>Rule</code> runs</li>
+<li>Among other things, we ask for <code>_build/haskell_generation.log</code>; it also doesn&#39;t exist, so we run it&#39;s <code>Action</code>. Several files (let&#39;s say, <code>fighter.hs</code> and <code>rogue.hs</code>) get written to the generated file directory</li>
+<li>We call <code>getDirectoryFiles</code>, telling Shake that we depend on the generated files directory having <code>fighter.hs</code> and <code>rogue.hs</code> and no other Haskell files</li>
+<li>We need the content of all the source files and build the executable.</li>
+</ul>
+
+<h3>Run 2 (deleted <code>rogue.hs</code>)</h3>
+
+<ul>
+<li>We ask for the <code>_build/main</code> executable to be built; it exists, so Shake starts checking if it&#39;s dependencies have changed</li>
+<li>Among other things, it call <code>getDirectoryFiles</code> on the generated file directory, and records that there&#39;s now only <code>fighter.hs</code> in there: the file list has changed</li>
+<li><code>_build/main</code> has changed dependencies so we run it&#39;s <code>Action</code></li>
+<li>During that action, <code>getDirectoryFiles</code> is called on the Generated file directory. It has already been run (see above) so Shake does not run it again: it records that only <code>fighter.hs</code> is depended on <em>even though <code>rogue.hs</code> has now been recreated</em></li>
+<li>We build the executable</li>
+</ul>
+
+<h3>Run 3 (no change)</h3>
+
+<ul>
+<li>We ask for the <code>_build/main</code> executable to be built; it exists, so Shake starts checking if it&#39;s dependencies have changed</li>
+<li>Among other things, it call <code>getDirectoryFiles</code> on the generated file directory, and records that there&#39;s now both <code>fighter.hs</code> and <code>rogue.hs</code> in there: the file list has changed again!</li>
+<li><code>_build/main</code> has changed dependencies so we run it&#39;s <code>Action</code></li>
+</ul>
+
+<p>In fact, it turns out that if we turn on linting in Shake it will tell us about this problem:</p>
+<div class="highlight"><pre><code class="sh"><span class="nv">$ </span>shake --lint
+<span class="c"># ormolu (for src/Generated/fighter.hs)</span>
+<span class="c"># ghc (for _build/main)</span>
+<span class="o">[</span>2 of 3<span class="o">]</span> Compiling Generated.Fighter <span class="o">(</span> src/Generated/Fighter.hs, _build/Generated/Fighter.o <span class="o">)</span>
+Linking _build/main ...
+Lint checking error - value has changed since being depended upon:
+  Key:  getDirectoryFiles  <span class="o">[</span>src//*.hs<span class="o">]</span>
+  Old:  <span class="o">(</span>src/Names.hs src/main.hs src/Generated/rogue.hs,<span class="s2">&quot;&quot;</span><span class="o">)</span>
+  New:  src/Names.hs src/main.hs src/Generated/fighter.hs src/Generated/rogue.hs
+</code></pre></div>
+<h2>Back to the drawing board</h2>
+
+<p>So: what do we want from our rules here? Let&#39;s actually put down the end effect we&#39;re aiming for:</p>
+
+<ul>
+<li>If there are any Yaml files are added, removed or changed, we should regenerate</li>
+<li>If any of the Generated files have been removed or changed, we should regenerate</li>
+<li>If a generated file is <code>need</code>ed, we should check we have an up to date set of generated files</li>
+<li>If the input and output files are unchanged since the last run, we should not regenerate</li>
+</ul>
+
+<p>We can&#39;t call <code>getDirectoryFiles</code> on the generated Haskell files, for the reason given above; and we can&#39;t call <code>need</code> on the Haskell files after generating them in the <code>_build/haskell_generation.log</code> to rebuild if they change, because they themselves <code>need</code> the Haskell generation.</p>
+
+<p>We&#39;re going to have to break out some bigger guns.</p>
+
+<p>Firstly, we&#39;re going to want to encode from custom logic for when to rebuild based on the environment. We model this is Shake by setting up an &quot;Oracle&quot;; this allows us to store a value in the Shake database, and if it changes between one run and the next anything which depends on it is considered dirty and needs rebuilding.</p>
+
+<p>Secondly, <code>_build/haskell_generation.log</code> is going to stop being just a &quot;stamp&quot; file to get around the fact that Shake doesn&#39;t know about directories, and we&#39;re going to start storing some useful info in there.</p>
+
+<p>Of course, we still need to be careful: just like running <code>getDirectoryFiles</code>, our Oracle is only going to be evaluated once for the whole run of Shake, and it will be evaluated to check dependencies before the actual rules which depend on it are run.</p>
+
+<p>Let&#39;s go with a model where we assign each run of the generator a unique ID, which we&#39;ll use in our Oracle and stash in our output file so that we can return the same ID if nothing has changed on disk.</p>
+
+<p>We&#39;ll create some reusable code to do this; we&#39;ll take a list of patterns for generated files this rule controls, an output file, and an action to generate the files. I&#39;ll show you the code in full, and there&#39;s some explanation underneath:</p>
+<div class="highlight"><pre><code class="haskell"><span class="cm">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span>
+<span class="cm">{-# LANGUAGE ScopedTypeVariables #-}</span>
+<span class="cm">{-# LANGUAGE TypeFamilies #-}</span>
+
+<span class="kr">module</span> <span class="nn">Shakefiles.Generator</span>
+  <span class="p">(</span> <span class="nf">generator</span>
+  <span class="p">,</span> <span class="nf">getGeneratedFiles</span>
+  <span class="p">,</span> <span class="nf">runIdOracle</span>
+  <span class="p">)</span>
+<span class="kr">where</span>
+
+<span class="kr">import</span> <span class="nn">Control.Applicative</span> <span class="p">()</span>
+<span class="kr">import</span> <span class="nn">Data.Aeson</span>
+<span class="kr">import</span> <span class="k">qualified</span> <span class="nn">Data.ByteString.Lazy</span> <span class="k">as</span> <span class="n">B</span>
+<span class="kr">import</span> <span class="k">qualified</span> <span class="nn">Data.UUID</span> <span class="k">as</span> <span class="n">UUID</span>
+<span class="kr">import</span> <span class="nn">Data.UUID.V4</span> <span class="p">(</span><span class="nf">nextRandom</span><span class="p">)</span>
+<span class="kr">import</span> <span class="nn">Development.Shake</span>
+<span class="kr">import</span> <span class="nn">Development.Shake.Classes</span>
+<span class="kr">import</span> <span class="k">qualified</span> <span class="nn">System.Directory</span> <span class="k">as</span> <span class="n">Directory</span>
+
+<span class="kr">newtype</span> <span class="kt">GetRunId</span>
+  <span class="ow">=</span> <span class="kt">GetRunId</span> <span class="p">(</span><span class="kt">FilePath</span><span class="p">,</span> <span class="p">[</span><span class="kt">FilePattern</span><span class="p">])</span>
+  <span class="kr">deriving</span> <span class="p">(</span><span class="kt">Show</span><span class="p">,</span> <span class="kt">Typeable</span><span class="p">,</span> <span class="kt">Eq</span><span class="p">,</span> <span class="kt">Hashable</span><span class="p">,</span> <span class="kt">Binary</span><span class="p">,</span> <span class="kt">NFData</span><span class="p">)</span>
+
+<span class="kr">type</span> <span class="kr">instance</span> <span class="kt">RuleResult</span> <span class="kt">GetRunId</span> <span class="ow">=</span> <span class="kt">UUID</span><span class="o">.</span><span class="kt">UUID</span>
+
+<span class="nf">runIdOracle</span> <span class="ow">::</span> <span class="kt">GetRunId</span> <span class="ow">-&gt;</span> <span class="kt">Action</span> <span class="kt">UUID</span><span class="o">.</span><span class="kt">UUID</span>
+<span class="nf">runIdOracle</span> <span class="p">(</span><span class="kt">GetRunId</span> <span class="p">(</span><span class="n">filePath</span><span class="p">,</span> <span class="n">patterns</span><span class="p">))</span> <span class="ow">=</span> <span class="kr">do</span>
+  <span class="n">recordExists</span> <span class="ow">&lt;-</span> <span class="n">liftIO</span> <span class="o">$</span> <span class="kt">Directory</span><span class="o">.</span><span class="n">doesFileExist</span> <span class="n">filePath</span>
+  <span class="kr">if</span> <span class="n">recordExists</span>
+  <span class="kr">then</span>
+    <span class="kr">do</span>
+      <span class="n">recorded</span> <span class="ow">&lt;-</span> <span class="n">decode</span> <span class="o">&lt;$&gt;</span> <span class="n">liftIO</span> <span class="p">(</span><span class="kt">B</span><span class="o">.</span><span class="n">readFile</span> <span class="n">filePath</span><span class="p">)</span>
+      <span class="kr">case</span> <span class="n">recorded</span> <span class="kr">of</span>
+        <span class="kt">Just</span> <span class="p">(</span><span class="n">lastRunId</span><span class="p">,</span> <span class="n">generatedFiles</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
+          <span class="n">filesOnDisk</span> <span class="ow">&lt;-</span> <span class="n">liftIO</span> <span class="o">$</span> <span class="n">getDirectoryFilesIO</span> <span class="s">&quot;&quot;</span> <span class="n">patterns</span>
+          <span class="kr">if</span> <span class="n">filesOnDisk</span> <span class="o">/=</span> <span class="n">generatedFiles</span>
+          <span class="kr">then</span> <span class="n">liftIO</span> <span class="n">nextRandom</span>
+          <span class="kr">else</span> <span class="n">pure</span> <span class="n">lastRunId</span>
+        <span class="kt">Nothing</span> <span class="ow">-&gt;</span>
+          <span class="n">liftIO</span> <span class="n">nextRandom</span>
+  <span class="kr">else</span> <span class="n">liftIO</span> <span class="n">nextRandom</span>
+
+<span class="nf">recordGeneratedFiles</span> <span class="ow">::</span> <span class="kt">UUID</span><span class="o">.</span><span class="kt">UUID</span> <span class="ow">-&gt;</span> <span class="kt">FilePath</span> <span class="ow">-&gt;</span> <span class="p">[</span><span class="kt">FilePattern</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="kt">Action</span> <span class="nb">()</span>
+<span class="nf">recordGeneratedFiles</span> <span class="n">runId</span> <span class="n">out</span> <span class="n">patterns</span> <span class="ow">=</span> <span class="kr">do</span>
+  <span class="n">filesCreated</span> <span class="ow">&lt;-</span> <span class="n">liftIO</span> <span class="o">$</span> <span class="n">getDirectoryFilesIO</span> <span class="s">&quot;&quot;</span> <span class="n">patterns</span>
+  <span class="n">liftIO</span> <span class="o">$</span> <span class="kt">B</span><span class="o">.</span><span class="n">writeFile</span> <span class="n">out</span> <span class="o">$</span> <span class="n">encode</span> <span class="p">(</span><span class="n">runId</span><span class="p">,</span> <span class="n">filesCreated</span><span class="p">)</span>
+
+<span class="nf">generator</span> <span class="ow">::</span> <span class="kt">FilePath</span> <span class="ow">-&gt;</span> <span class="p">[</span><span class="kt">FilePattern</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="kt">Action</span> <span class="nb">()</span> <span class="ow">-&gt;</span> <span class="kt">Rules</span> <span class="nb">()</span>
+<span class="nf">generator</span> <span class="n">out</span> <span class="n">generatedPatterns</span> <span class="n">generationCmd</span> <span class="ow">=</span> <span class="kr">do</span>
+  <span class="n">generatedPatterns</span> <span class="o">|%&gt;</span> <span class="nf">\</span><span class="kr">_</span> <span class="ow">-&gt;</span> <span class="n">need</span> <span class="p">[</span><span class="n">out</span><span class="p">]</span>
+  <span class="n">out</span> <span class="o">%&gt;</span> <span class="nf">\</span><span class="kr">_</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
+    <span class="n">runId</span> <span class="ow">&lt;-</span> <span class="n">askOracle</span> <span class="o">$</span> <span class="kt">GetRunId</span> <span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">generatedPatterns</span><span class="p">)</span>
+    <span class="n">liftIO</span> <span class="o">$</span> <span class="n">removeFiles</span> <span class="s">&quot;&quot;</span> <span class="n">generatedPatterns</span>
+    <span class="n">generationCmd</span>
+    <span class="n">recordGeneratedFiles</span> <span class="n">runId</span> <span class="n">out</span> <span class="n">generatedPatterns</span>
+</code></pre></div>
+<p>The file starts with some boiler plate code needed for storing the unique identifier in the shake database.</p>
+
+<p>Then we have the logic for creating a run ID:</p>
+
+<ul>
+<li>Check if an output file already exists. </li>
+<li>If it does:
+
+<ul>
+<li>we&#39;ll read the last UID and list of files created from it</li>
+<li>We&#39;ll read the list of files that match the generated pattern </li>
+<li>If the two lists don&#39;t match, new UID is created</li>
+<li>If they do, we return the same UID as last time</li>
+</ul></li>
+<li>If it doesn&#39;t, we&#39;ll create a new UID</li>
+</ul>
+
+<p>That means that if the list of generated files has changed, we know we need to run the generator.</p>
+
+<p>Then we have a rule that matches all of the patterns for files which will be generated, and depends on the output file.</p>
+
+<p>Finally, we have the rule for the output file:</p>
+
+<ul>
+<li>this acquires a run ID</li>
+<li>deletes any files that match the generated patterns (this ensures that we don&#39;t end up with &quot;stale&quot; generated files that no longer have a creator)</li>
+<li>runs the generation Action the user provided</li>
+<li>and finally writes the output file with the run ID used and the list of files created</li>
+</ul>
+
+<p>This completes the loop and lets us check next time around if the list of generated files has changed.</p>
+
+<p>What does it look like to use? Something like this:</p>
+<div class="highlight"><pre><code class="haskell">  <span class="c1">-- This goes in our Shake Rules &quot;do&quot; block</span>
+  <span class="kr">_</span> <span class="ow">&lt;-</span> <span class="n">addOracle</span> <span class="n">runIdOracle</span>
+  <span class="n">priority</span> <span class="mi">2</span> <span class="o">$</span>
+    <span class="n">generator</span>
+      <span class="s">&quot;_build/haskell_generation.log&quot;</span>
+      <span class="p">[</span><span class="s">&quot;src&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;Generated//*.hs&quot;</span><span class="p">]</span>
+      <span class="n">writeHaskellFiles</span>
+  <span class="kr">where</span>
+    <span class="n">writeHaskellFiles</span> <span class="ow">=</span> <span class="kr">do</span>
+      <span class="n">yamlFiles</span> <span class="ow">&lt;-</span> <span class="n">getDirectoryFiles</span> <span class="s">&quot;&quot;</span> <span class="p">[</span><span class="s">&quot;yaml_types//*.yaml&quot;</span><span class="p">]</span>
+      <span class="n">need</span> <span class="n">yamlFiles</span>
+      <span class="n">createHaskellFiles</span> <span class="n">yamlFiles</span>
+</code></pre></div>
+<p>We have to add the oracle to our rules (only once, not per generator). Then we just call our reusable code with specify the output file, the pattern of files out will be generated, and the logic to generate them (including specifying dependencies of the process). </p>
+
+<p>We&#39;re nearly there, but we still have a problem. We called <code>getDirectoryFiles</code> on the Haskell source files in our Haskell compile build rule! It turns out that it&#39;s not just in the Rules for the generated files themselves that you need to be careful: you just can&#39;t reliably call <code>getDirectoryFiles</code> on generated files anywhere in your build specification.</p>
+
+<p>We can get around that in two ways. One is that we can separate depending on source files (call <code>getDirectoryFiles</code> with a pattern that doesn&#39;t include any of the generated files) from the generated files, and add a helper like the one below to get which files have been generated:</p>
+<div class="highlight"><pre><code class="haskell"><span class="nf">getGeneratedFiles</span> <span class="ow">::</span> <span class="kt">FilePath</span> <span class="ow">-&gt;</span> <span class="kt">Action</span> <span class="p">[</span><span class="kt">FilePath</span><span class="p">]</span>
+<span class="nf">getGeneratedFiles</span> <span class="n">out</span> <span class="ow">=</span> <span class="kr">do</span>
+  <span class="n">need</span> <span class="p">[</span><span class="n">out</span><span class="p">]</span>
+  <span class="n">recordFile</span> <span class="ow">&lt;-</span> <span class="n">decode</span> <span class="o">&lt;$&gt;</span> <span class="n">liftIO</span> <span class="p">(</span><span class="kt">B</span><span class="o">.</span><span class="n">readFile</span> <span class="n">out</span><span class="p">)</span>
+  <span class="kr">case</span> <span class="n">recordFile</span> <span class="kr">of</span>
+    <span class="kt">Just</span> <span class="p">(</span><span class="kr">_</span> <span class="ow">::</span> <span class="kt">UUID</span><span class="o">.</span><span class="kt">UUID</span><span class="p">,</span> <span class="n">rf</span><span class="p">)</span> <span class="ow">-&gt;</span>
+      <span class="n">pure</span> <span class="n">rf</span>
+    <span class="kt">Nothing</span> <span class="ow">-&gt;</span>
+      <span class="n">fail</span> <span class="s">&quot;&quot;</span>
+</code></pre></div>
+<p>Usefully, this also ensures that if you ask for the list of generated files the file generation rule will be called!</p>
+
+<p>Alternatively, if we&#39;re happy that all of our input files have now been created, we can often get our tools themselves to tell us what they used. Shake allows us to call the <code>needed</code> function here to record a dependency that we&#39;ve already used. Be aware though that this will error if anything changes the <code>needed</code> file after you used it!</p>
+
+<p>As an example, we can combine the use of <code>ghc</code>&#39;s dependency generation flag and Shake&#39;s makefile parser to rewrite our Haskell rule to the following:</p>
+<div class="highlight"><pre><code class="haskell">  <span class="s">&quot;_build&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main&quot;</span> <span class="o">&lt;.&gt;</span> <span class="n">exe</span> <span class="o">%&gt;</span> <span class="nf">\</span><span class="n">out</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
+    <span class="n">need</span> <span class="p">[</span><span class="s">&quot;_build/haskell_generation.log&quot;</span><span class="p">]</span>
+    <span class="n">cmd_</span>
+      <span class="s">&quot;ghc&quot;</span>
+      <span class="p">(</span><span class="s">&quot;src&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main.hs&quot;</span><span class="p">)</span>
+      <span class="s">&quot;-isrc&quot;</span>
+      <span class="s">&quot;-dep-suffix hs&quot;</span>
+      <span class="s">&quot;-outputdir&quot;</span>
+      <span class="s">&quot;_build&quot;</span>
+      <span class="s">&quot;-o&quot;</span>
+      <span class="n">out</span>
+    <span class="n">withTempFile</span>
+      <span class="p">(</span> <span class="nf">\</span><span class="n">tmpFile</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
+        <span class="n">cmd_</span>
+          <span class="kt">Shell</span>
+          <span class="s">&quot;ghc&quot;</span>
+          <span class="p">(</span><span class="s">&quot;src&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main.hs&quot;</span><span class="p">)</span>
+          <span class="s">&quot;-isrc&quot;</span>
+          <span class="s">&quot;-outputdir&quot;</span>
+          <span class="s">&quot;_build&quot;</span>
+          <span class="s">&quot;-o&quot;</span>
+          <span class="n">out</span>
+          <span class="s">&quot;-dep-makefile&quot;</span>
+          <span class="n">tmpFile</span>
+          <span class="s">&quot;-dep-suffix &#39;&#39;&quot;</span>
+          <span class="s">&quot;-M&quot;</span>
+        <span class="n">makeStuff</span> <span class="ow">&lt;-</span> <span class="n">liftIO</span> <span class="o">$</span> <span class="n">readFile</span> <span class="n">tmpFile</span>
+        <span class="n">putNormal</span> <span class="n">makeStuff</span>
+        <span class="n">neededMakefileDependencies</span> <span class="n">tmpFile</span>
+      <span class="p">)</span>
+</code></pre></div>
+<p>This runs the compile process, and then calls <code>ghc</code> telling it to write all of the dependencies it used to a temporary makefile. We then use <code>neededMakefileDependencies</code> to specify that we did use those files, even if we didn&#39;t know we were going to before building.</p>
+
+<p>Just make sure that you&#39;ve needed anything that the build system needs to create/update before you run your compile action though!</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Shake: Linting And Formatting]]></title>
+    <link href="https://blog.mavnn.co.uk/shake-linting/"/>
+    <updated>2019-09-09T16:00:00+01:00</updated>
+    <id>https://blog.mavnn.co.uk/shake-linting</id>
+    <content type="html"><![CDATA[<blockquote>
+<p>This post is part of a series! If you haven&#39;t already, check out <a href="/shake-the-intro/">the introduction</a> so you know what&#39;s going on.</p>
+</blockquote>
+
+<p>There&#39;s a bunch of nice tools out there these days that operate on your source code itself, such as auto-formatting and linting tools.</p>
+
+<p>How to configure rules for this kind of thing in Shake isn&#39;t immediately obvious when you&#39;re new to using it. The first time I did it, I ended up with something that looked like this (only showing relevant rules):</p>
+<div class="highlight"><pre><code class="haskell">  <span class="s">&quot;_build&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main&quot;</span> <span class="o">&lt;.&gt;</span> <span class="n">exe</span> <span class="o">%&gt;</span> <span class="nf">\</span><span class="n">out</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
+    <span class="n">src</span> <span class="ow">&lt;-</span> <span class="n">getDirectoryFiles</span> <span class="s">&quot;&quot;</span> <span class="p">[</span><span class="s">&quot;src//*.hs&quot;</span><span class="p">]</span>
+    <span class="n">cmd_</span>
+      <span class="s">&quot;hlint&quot;</span>
+      <span class="n">src</span>
+    <span class="n">need</span> <span class="n">src</span>
+    <span class="n">cmd_</span>
+      <span class="s">&quot;ghc&quot;</span>
+      <span class="p">(</span><span class="s">&quot;src&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main.hs&quot;</span><span class="p">)</span>
+      <span class="s">&quot;-isrc&quot;</span>
+      <span class="s">&quot;-outputdir&quot;</span>
+      <span class="s">&quot;_build&quot;</span>
+      <span class="s">&quot;-o&quot;</span>
+      <span class="n">out</span>
+</code></pre></div>
+<p>Which at first glance looks great! I&#39;ve made sure that I find and run <code>hlint</code> (a Haskell linting tool) on the source files before I &quot;need&quot; them - remember, once a file has been &quot;needed&quot; in Shake it should not be changed. The code is simple and easy to read. <code>hlint</code> gets efficiently run on the whole list of source files all at once.</p>
+
+<p>What&#39;s not to like?</p>
+
+<!-- More -->
+
+<p>Well: there can be a couple of issues here. One (doesn&#39;t happen often in Haskell, but happens a lot in dynamic languages!) is that several targets could all depend on the same source file. Do all of the targets run the formatter? Who gets there first?</p>
+
+<p>The other problem is that if any source file changes, the command has to be re-run on all of them: if you have a lot of source files and a slow linter or formatter, that&#39;s a big problem. In fact, avoiding that kind of thing is the reason most people start using Shake in the first place!</p>
+
+<p>So we need to move the formatting/linting into the rule for the source file itself: this is the only way to guarantee that whoever uses the file, whenever they use it in the build process, the file will already be formatted before it&#39;s read.</p>
+
+<p>Version two of my code ends up looking like this:</p>
+<div class="highlight"><pre><code class="haskell">  <span class="c1">-- actually build the executable</span>
+  <span class="s">&quot;_build&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main&quot;</span> <span class="o">&lt;.&gt;</span> <span class="n">exe</span> <span class="o">%&gt;</span> <span class="nf">\</span><span class="n">out</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
+    <span class="n">src</span> <span class="ow">&lt;-</span> <span class="n">getDirectoryFiles</span> <span class="s">&quot;&quot;</span> <span class="p">[</span><span class="s">&quot;src//*.hs&quot;</span><span class="p">]</span>
+    <span class="n">need</span> <span class="n">src</span>
+    <span class="n">cmd_</span>
+      <span class="s">&quot;ghc&quot;</span>
+      <span class="p">(</span><span class="s">&quot;src&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main.hs&quot;</span><span class="p">)</span>
+      <span class="s">&quot;-isrc&quot;</span>
+      <span class="s">&quot;-outputdir&quot;</span>
+      <span class="s">&quot;_build&quot;</span>
+      <span class="s">&quot;-o&quot;</span>
+      <span class="n">out</span>
+  <span class="c1">-- nicely format and lint all our source files</span>
+  <span class="s">&quot;//*.hs&quot;</span> <span class="o">%&gt;</span> <span class="nf">\</span><span class="n">out</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
+    <span class="n">disableHistory</span>
+    <span class="n">cmd_</span> <span class="s">&quot;ormolu&quot;</span> <span class="s">&quot;-m&quot;</span> <span class="s">&quot;inplace&quot;</span> <span class="n">out</span>
+    <span class="n">cmd_</span> <span class="s">&quot;hlint&quot;</span> <span class="n">out</span>
+</code></pre></div>
+<p>This is Shake at its best: super explicit, clear and easy to read. The only slightly quirky thing here is the call to <code>disableHistory</code>; rules where the output and the input are the same file don&#39;t play nicely with Shake&#39;s optional caching system (<code>shakeShare</code> and in the future <code>shakeCloud</code>) so we specify that this rule shouldn&#39;t try and use cached results.</p>
+
+<p>Unfortunately, we do still have a problem: formatting/linting software is often very fast per file, but normally has a short start up time. When you&#39;re starting to format 1,000s of files, that start up time becomes a problem. So now we have technically correct, but unusable code.</p>
+
+<p>Fortunately, the authors of Shake have come across this issue before, and included the amazingly useful <code>batch</code> helpers.</p>
+
+<p>To use <code>batch</code> we need a few things:</p>
+
+<ul>
+<li>a maximum batch size</li>
+<li>a &quot;match&quot; function to specify which files this batch handles</li>
+<li>a &quot;preparation&quot; function that carries out any actions that should be run on the files individually (<code>a -&gt; Action b</code>)</li>
+<li>a &quot;batch&quot; function to process a batch of outputs from the preparation function (<code>[b] -&gt; Action a</code>)</li>
+</ul>
+
+<p>Behind the scenes, the first time that Shake finds that a target is supplied by a batch function, it doesn&#39;t queue building that target immediately. Instead, it runs any preparation steps and then punts the batch to the end of the queue. It keeps on doing this until it either a) runs out of work to do that isn&#39;t in the batch (at which point it will start with whatever size batch it has) or b) the maximum batch size has been queued. Then it will run the batch command.</p>
+
+<p>It looks like this:</p>
+<div class="highlight"><pre><code class="haskell">  <span class="c1">-- Build our Haskell application</span>
+  <span class="s">&quot;_build&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main&quot;</span> <span class="o">&lt;.&gt;</span> <span class="n">exe</span> <span class="o">%&gt;</span> <span class="nf">\</span><span class="n">out</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
+    <span class="n">src</span> <span class="ow">&lt;-</span> <span class="n">getDirectoryFiles</span> <span class="s">&quot;&quot;</span> <span class="p">[</span><span class="s">&quot;src//*.hs&quot;</span><span class="p">]</span>
+    <span class="n">need</span> <span class="n">src</span>
+    <span class="n">cmd_</span>
+      <span class="s">&quot;ghc&quot;</span>
+      <span class="p">(</span><span class="s">&quot;src&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main.hs&quot;</span><span class="p">)</span>
+      <span class="s">&quot;-isrc&quot;</span>
+      <span class="s">&quot;-outputdir&quot;</span>
+      <span class="s">&quot;_build&quot;</span>
+      <span class="s">&quot;-o&quot;</span>
+      <span class="n">out</span>
+  <span class="c1">-- Format and lint our source files</span>
+  <span class="n">batch</span> <span class="mi">10</span> <span class="p">(</span><span class="s">&quot;//*.hs&quot;</span> <span class="o">%&gt;</span><span class="p">)</span>
+    <span class="p">(</span> <span class="nf">\</span><span class="n">out</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
+      <span class="n">historyDisable</span>
+      <span class="c1">-- called per file as ormolu</span>
+      <span class="c1">-- processes files one at a time</span>
+      <span class="n">cmd_</span> <span class="s">&quot;ormolu&quot;</span> <span class="s">&quot;-m&quot;</span> <span class="s">&quot;inplace&quot;</span> <span class="n">out</span>
+      <span class="n">pure</span> <span class="n">out</span>
+    <span class="p">)</span>
+    <span class="c1">-- lint all the files in batches</span>
+    <span class="p">(</span><span class="n">cmd_</span> <span class="s">&quot;hlint&quot;</span><span class="p">)</span>
+</code></pre></div>
+<p>Voilà! Correct, fast code.</p>
+
+<p>Of course, engineering reality is full of trade offs, and we have made one here. Because the <code>batch</code> action is run on a list of files, that means that if any one file fails the batch, the entire batch is counted as failing. This is also true if an other rule fails while a batch is processing and Shake cancels the batch.</p>
+
+<p>So while it might be tempting to just turn the batch number up and run the whole lot at once, it might be a better idea to spend a little time tuning the numbers to match the size of your code base and the speed of each batch.</p>
+
+<p>Next up: working with <a href="/shake-generated-files/">generated files</a>.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Shake: The Intro]]></title>
+    <link href="https://blog.mavnn.co.uk/shake-the-intro/"/>
+    <updated>2019-09-09T15:00:00+01:00</updated>
+    <id>https://blog.mavnn.co.uk/shake-the-intro</id>
+    <content type="html"><![CDATA[<p>At <a href="http://noredink.com">NoRedInk</a> we&#39;ve been looking into using <a href="https://shakebuild.com/">Shake</a> to incrementally build large polyglot projects. In general, it&#39;s been a great tool to work with, but there were a few things that caught us out, so I wanted to capture some of that learning before it got lost.</p>
+
+<p>Shake is basically a domain specific language built on top of Haskell, so knowing Haskell can definitely help you unlock it&#39;s full power. But you can get a long way for basic builds by just working with some simple building blocks. You will have to jump through some extra hoops to get it installed and write your scripts with editor support if you&#39;re not using Haskell anyway - but we are, so that wasn&#39;t much of an obstacle for us!</p>
+
+<p>I&#39;m not going to go into the really basic ideas behind Shake: the main website (linked above) has a good introductory demo, and Neil Mitchell (who wrote Shake) has given numerous (very well done) talks on the ideas behind it. What I&#39;m going to do over a few posts is look at some of the things which caught us out, and what you can do about them. I&#39;ll try and remember to link each post here as it comes out!</p>
+
+<!-- more -->
+
+<p>In this introduction, I&#39;m going to show you the mini-example project that we&#39;ll be using in each of the following blog posts. All of the examples can be seen in full (with runnable code!) at <a href="https://github.com/mavnn/shake-examples">https://github.com/mavnn/shake-examples</a>, but if you want just want to follow along you can pretend and just read the Shake files here.</p>
+
+<p>Our &quot;base&quot; Shake file just knows how to build a Haskell project from a group of &quot;*.hs&quot; files in the <code>src</code> directory - everything else will build up from there! This is our starter <code>Shakefile.hs</code>:</p>
+<div class="highlight"><pre><code class="haskell"><span class="kr">module</span> <span class="nn">Shakefile</span>
+  <span class="p">(</span> <span class="nf">main</span>
+  <span class="p">)</span>
+<span class="kr">where</span>
+
+<span class="kr">import</span> <span class="nn">Development.Shake</span>
+<span class="kr">import</span> <span class="nn">Development.Shake.FilePath</span>
+
+<span class="nf">main</span> <span class="ow">::</span> <span class="kt">IO</span> <span class="nb">()</span>
+<span class="nf">main</span> <span class="ow">=</span>
+  <span class="n">shakeArgs</span>
+    <span class="n">shakeOptions</span>
+      <span class="p">{</span> <span class="n">shakeFiles</span> <span class="ow">=</span> <span class="s">&quot;_build&quot;</span>
+      <span class="p">,</span> <span class="n">shakeChange</span> <span class="ow">=</span> <span class="kt">ChangeModtimeAndDigest</span>
+      <span class="p">,</span> <span class="n">shakeColor</span> <span class="ow">=</span> <span class="kt">True</span>
+      <span class="p">,</span> <span class="n">shakeThreads</span> <span class="ow">=</span> <span class="mi">4</span> <span class="c1">-- default to multicore!</span>
+      <span class="p">}</span> <span class="o">$</span> <span class="kr">do</span>
+    <span class="n">want</span>
+      <span class="p">[</span> <span class="s">&quot;_build&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main&quot;</span> <span class="o">&lt;.&gt;</span> <span class="n">exe</span>
+      <span class="p">]</span>
+    <span class="n">rules</span>
+
+<span class="nf">rules</span> <span class="ow">::</span> <span class="kt">Rules</span> <span class="nb">()</span>
+<span class="nf">rules</span> <span class="ow">=</span> <span class="kr">do</span>
+  <span class="c1">-- Clean build artifacts (including shake history)</span>
+  <span class="n">phony</span> <span class="s">&quot;clean&quot;</span> <span class="o">$</span> <span class="kr">do</span>
+    <span class="n">putNormal</span> <span class="s">&quot;Cleaning _build&quot;</span>
+    <span class="n">removeFilesAfter</span> <span class="s">&quot;_build&quot;</span> <span class="p">[</span><span class="s">&quot;//*&quot;</span><span class="p">]</span>
+  <span class="c1">-- Build our Haskell application</span>
+  <span class="s">&quot;_build&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main&quot;</span> <span class="o">&lt;.&gt;</span> <span class="n">exe</span> <span class="o">%&gt;</span> <span class="nf">\</span><span class="n">out</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
+    <span class="n">src</span> <span class="ow">&lt;-</span> <span class="n">getDirectoryFiles</span> <span class="s">&quot;&quot;</span> <span class="p">[</span><span class="s">&quot;src//*.hs&quot;</span><span class="p">]</span>
+    <span class="n">need</span> <span class="n">src</span>
+    <span class="n">cmd_</span>
+      <span class="s">&quot;ghc&quot;</span>
+      <span class="p">(</span><span class="s">&quot;src&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main.hs&quot;</span><span class="p">)</span>
+      <span class="s">&quot;-isrc&quot;</span>
+      <span class="s">&quot;-outputdir&quot;</span>
+      <span class="s">&quot;_build&quot;</span>
+      <span class="s">&quot;-o&quot;</span>
+      <span class="n">out</span>
+</code></pre></div>
+<p>What does this do? Well, there&#39;s a bit of boilerplate to import the <code>Shake</code> libraries and configure Shake. We also set the wanted output of a default build in this <code>main</code> function: in this case an executable called <code>main</code> in the <code>_build</code> directory (or <code>main.exe</code> on Windows).</p>
+
+<p>Then we have two rules:</p>
+
+<ul>
+<li>one &#39;phony&#39; rule (it doesn&#39;t create a file) that knows how to delete our build artifacts</li>
+<li>a rule that knows how to build the desired output file</li>
+</ul>
+
+<p>This second rule goes through a few steps:</p>
+
+<ul>
+<li>It calls <code>getDirectoryFiles</code> to get <em>and depend on</em> the list of &quot;*.hs&quot; files in the src directory. If any *.hs files are added or removed, the rule will be re-run.</li>
+<li>It <code>need</code>s all of the *.hs files it found. This means that if the content of any of those files changes, the rule will be re-run.</li>
+<li>Finally, it calls <code>ghc</code>, a Haskell compiler, telling it to put all of it&#39;s build artifacts and the output file in the <code>_build</code> directory.</li>
+</ul>
+
+<p>Now: let&#39;s start looking at how to build in some more troublesome (or at least, less obvious) functionality you might want in a larger project.</p>
+
+<ol>
+<li><a href="/shake-linting">Linting And Formatting</a></li>
+<li><a href="/shake-generated-files/">Generated Files</a></li>
+</ol>
+]]></content>
+  </entry>
+  
+</feed>

@@ -9,7 +9,7 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="Imagine, if you will, a card game. (Don&#39;t worry, there&#39;s code later. Lots of code.) It&#39;s not a complex card game; it&#39;s a quick and &hellip;">
+  <meta name="description" content="Eugene Tolmachev asked in a comment on a previous post how I handle dependency injection with Freya. So&#8230; my first, slightly annoying answer is &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -80,6 +80,265 @@ ga('send', 'pageview');
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+
+  <header>
+    
+      <h1 class="entry-title"><a href="/logging-freya/">Logging Freya</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2017-12-08T15:43:57+00:00" pubdate data-updated="true">Dec 8<span>th</span>, 2017</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Eugene Tolmachev asked in a comment on a previous post <a href="http://disq.us/p/1oeml1a">how I handle dependency injection</a> with <a href="https://freya.io/">Freya</a>.</p>
+
+<p>So&#8230; my first, slightly annoying answer is that I try not to. Mark Seeman has written about this in a <a href="http://blog.ploeh.dk/2017/01/27/from-dependency-injection-to-dependency-rejection/">great series of blog posts</a> which I won&#39;t try and repeat here.</p>
+
+<p>Still, there are occasions where you want to quickly and easily do&#8230; something.. with a dependency making use of the context that being inside a Freya workflow provides. Let&#39;s quickly walk through how I inject a logger into a Freya workflow which &quot;knows&quot; about things like the request ID Kestrel has assigned to the current request.</p>
+
+<p>I&#39;m going to use Serilog as an example below, but you could also use any other structured logging library (I like Logary, but there isn&#39;t a .NET Core release at time of writing).</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/logging-freya/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+
+  <header>
+    
+      <h1 class="entry-title"><a href="/f-number-through-a-ruby-lens/">F# Through a Ruby Lens</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2017-12-07T21:00:00+00:00" pubdate data-updated="true">Dec 7<span>th</span>, 2017</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>I spent last week delivering a five day deep dive into F# for a group of (mostly) Ruby developers in Munich, and wanted to capture some of my thoughts before I lost them as well as give people an idea of the types of things internal training can give you.</p>
+
+<p>I won&#39;t be mentioning personal, company or exact team names here as I&#39;ve not been given explicit permission to do so; if the people who were on the course want to chime in I&#39;ll add their comments.</p>
+
+<h2>The background</h2>
+
+<p>Although mostly a Ruby on Rails shop, this company also relies on machine learning and expert systems to deliver some of its core services. The R&amp;D department (who build the models) settled on F# for development as a good balance between:</p>
+
+<ul>
+<li>familiarity of syntax (most have a background in Python and/or a ML language)</li>
+<li>performance (Ruby had struggled here)</li>
+<li>type safety</li>
+<li>good &quot;production&quot; library support (logging, etc)</li>
+</ul>
+
+<p>Having examined the available options in depth, they decided on a standard stack for creating F# microservices of:</p>
+
+<ul>
+<li>Freya on Kestrel via .NET Core</li>
+<li>Chiron for type safe JSON serialization/deserialization</li>
+</ul>
+
+<p>They wanted to investigate the use of Hephaestus as a rules engine (Freya uses Hephaestus to process HTTP requests). Many of their machine learning models only work with quite constrained ranges of input values, and Hephaestus as a rules engine looked an effective way of routing decisions to the &quot;correct&quot; machine learning algorithm for a particular input range. This in turn would allow for the models to stay reasonably simple and testable.</p>
+
+<h2>The brief</h2>
+
+<p>Having made these decisions, the company needed to bring the production services team up to speed on what R&amp;D were going to produce, especially because production had expressed an interest in having F# as an extra potential tool for their own projects.</p>
+
+<p>My brief was to create 5 days of training, after which production needed to know enough about the F# libraries in use that they could work out what R&amp;D&#39;s code was doing, and enough about running .NET code in production to feel confident adding error handling, logging, metrics, tests and all the rest of the &quot;engineering&quot; side of development which is not about the programming language but the surrounding ecosystem.</p>
+
+<h2>What we did</h2>
+
+<p>I knew that I had a lot of ground to cover in just 5 days, so there was no way that the team was going to come away with all of the new knowledge absorbed and at their finger tips. At the same time, it couldn&#39;t be an overwhelming flood of information.</p>
+
+<p>I decided to split the training time between a deep dive in understanding a few key areas in depth (Freya&#39;s design, optics and testing), and providing worked examples for the rest which could be referred back to when they became needed. Although I had relevant training material on several of the areas already, it was all tailored in this course to fit a single theme: over the course of a week, we were going to build a microservice that did just one thing, and we were going to test the heck out of it.</p>
+
+<p>The timetable ended up looking like this:</p>
+
+<ul>
+<li>Monday AM: Introductions
+
+<ul>
+<li>high level microservice design</li>
+<li>check everyone had all the software they needed installed</li>
+</ul></li>
+<li>Monday PM: Freya overview
+
+<ul>
+<li>install the template</li>
+<li>modify the hello world service to accept POSTs with a name</li>
+</ul></li>
+<li>Tuesday AM: Optics
+
+<ul>
+<li>Chiron, Freya and Hephaestus all make heavy use of &quot;Optics&quot;</li>
+<li>What are they?</li>
+<li>Building our own</li>
+</ul></li>
+<li>Tuesday PM: Handling external data
+
+<ul>
+<li>Using Chiron for translation, version handling and API design (using our new found knowledge of optics)</li>
+</ul></li>
+<li>Wednesday AM: Start our actual microservice as a real project
+
+<ul>
+<li>how .NET solutions are (normally) laid out</li>
+<li>using Paket for package management</li>
+<li>add a test project with <a href="/going-down-the-property-based-testing-rabbit-hole/">this set of property based tests</a></li>
+<li>write our first bit of domain logic to pass these tests, and plug it into the Freya API</li>
+</ul></li>
+<li>Wednesday PM: Start making our service production worthy
+
+<ul>
+<li>Spin up a docker &quot;infrastructure&quot; with Kibana and ElasticSearch</li>
+<li>Adding logging to our service, plugged into Freya to automatically capture context like request IDs</li>
+<li>Health endpoint</li>
+<li>How to capture metrics</li>
+</ul></li>
+<li>Thursday AM: interesting bits &amp; answers to questions asked
+
+<ul>
+<li>How do computational expressions work?</li>
+<li>How would I structure a functional UI?</li>
+</ul></li>
+<li>Thursday PM: flexible rules engines with Hephaestus
+
+<ul>
+<li>rebuilt the logic from Wednesday AM reusing the same property tests</li>
+<li>looked at how we can splice Hephaestus rules graphs together</li>
+</ul></li>
+<li>Friday AM: BenchmarkDotNet
+
+<ul>
+<li>now we know it&#39;s correct - is it fast?</li>
+<li>benchmarked our two implementations of the same logic together</li>
+</ul></li>
+<li>Friday PM: Using it all in real life
+
+<ul>
+<li>code review of pieces of the existing code base, looking at adding what we&#39;d learned</li>
+</ul></li>
+</ul>
+
+<h2>How it went</h2>
+
+<p>Overall the course seemed to go really well. At the end of it, the delegates were confident about the basics of building HTTP resources with Freya and Chiron, and happily building benchmarks and tests for their existing code base. For other areas (the boiler plate for plugging logging into Kestrel and Freya, for example) they understood the concepts and felt the course notes were sufficiently detailed they that could make use of them in other situations as needed. That was incredibly pleasing to hear from my point of view, as the course notes for these sessions are by far the most time consuming part of the process to create.</p>
+
+<p>Although they missed some of the features of Ruby when writing F#, pattern matching with discriminated unions was a big hit and they liked the enforced discipline of Freya that required separating the logic of the various stages of handling an HTTP request - and how reusable that made components for handling concerns such as authentication.</p>
+
+<p>Finally, all 3 of the core participants (there were other people around for certain parts of the course) came away saying that they&#39;d really enjoyed it and found it interesting throughout - so that&#39;s a big win right there!</p>
+
+<h2>Can you do this for us?</h2>
+
+<p>Yes; this particular course was tailored for the specific circumstances, but I&#39;ve also provided training on the more conceptual side (functional programming concepts) through to the gritty detail of DevOps (with both new and existing code bases).</p>
+
+<p>We can also tailor delivery to match your availability; for this course I traveled to Munich to deliver it, and so it was delivered in a single 5 day unit. For other clients we can arrange regular shorter sessions or even remote workshops (group or individual) with tools such as Zoom.</p>
+
+<p>And if you just want to turn up at a venue and get trained, check out <a href="/building-solid-systems-in-f-number/">Building Solid Systems in F#</a> happening 31st Jan-1st Feb 2018 in London.</p>
+
+<p>Get in touch with us at <a href="us@mavnn.co.uk">us@mavnn.co.uk</a> if you have any ideas.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+
+  <header>
+    
+      <h1 class="entry-title"><a href="/advent-2017-reading-from-the-firehose-with-fable/">Advent 2017 - Reading From the Firehose With Fable</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2017-12-04T13:00:00+00:00" pubdate data-updated="true">Dec 4<span>th</span>, 2017</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Each year, the F# programming community creates an advent calendar of blog posts, coordinated by Sergey Tihon <a href="https://sergeytihon.com/2017/10/22/f-advent-calendar-in-english-2017/">his blog</a>.</p>
+
+<p>I really like the idea, and have taken part in <a href="https://blog.mavnn.co.uk/advent-2016/">2016</a>, <a href="https://blog.mavnn.co.uk/angels-from-the-realms-of-glory/">2015</a> &amp; <a href="https://blog.mavnn.co.uk/modelling-inheritance-with-inheritance/">2014</a>.</p>
+
+<p>Below is this year&#39;s post.</p>
+
+<h1>The plan: speed read Christmas</h1>
+
+<p>So; you want to find out what Christmas is about, where it really came from&#8230; but you don&#39;t have much time.</p>
+
+<p>The solution is obvious: take the famous bible passages that churches read every year, and speed read them!</p>
+
+<p>Let&#39;s build an app to help us with that.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/advent-2017-reading-from-the-firehose-with-fable/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -1143,239 +1402,6 @@ ga('send', 'pageview');
 
     </article>
   
-  
-    <article>
-      
-
-  <header>
-    
-      <h1 class="entry-title"><a href="/building-solid-systems-in-f-number/">Building Solid Systems in F#</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2017-09-13T14:19:21+01:00" pubdate data-updated="true">Sep 13<span>th</span>, 2017</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><blockquote>
-<p>Update: The original venue sold out - more tickets are available for the 8th - 9th March 2018 on <a href="https://www.eventbrite.co.uk/e/building-solid-systems-in-f-tickets-42416619250">EventBrite</a>!</p>
-</blockquote>
-
-<p>We are running another course, and I&#39;m officially stoked! Read on for the details&#8230;</p>
-
-<h2>Building Solid Systems in F#</h2>
-
-<p>Writing code is only the first part of putting software into production - to run, maintain and scale your product, you&#39;ll need to understand and design the overall system.</p>
-
-<p>This 2 day course will take you through best practice in both writing an F# based, distributed system and running it in production - including sensible inter-operation with components written in other languages.</p>
-
-<p>To fit this into 2 days, we&#39;ll need to make some opinionated decisions (such as using F#!), but many of the ideas and concepts will be transferable. </p>
-
-<h2>We&#39;ll cover:</h2>
-
-<ul class="org-ul">
-<li>Writing reliable code using F#&#8217;s unique language features</li>
-<li>Learn how to apply SOLID (like) principles in a functional style</li>
-<li>How to instrument distributed services</li>
-<li>Continuous Improvement: 
-<ul class="org-ul">
-<li>Unit testing</li>
-<li>Performance measurement</li>
-</ul></li>
-<li>Running distributed systems in development</li>
-<li>Deploying distributed systems to production</li>
-<li>Good practice in dependency management and code organization</li>
-</ul>
-
-<h2>You&#39;ll come away with:</h2>
-
-<p>
-A git repository of your completed work, which will include:
-</p>
-
-<ul class="org-ul">
-<li>Nicely instrumented, benchmarked and unit tested F# services</li>
-<li>A scripted, deterministic deployment process for the overall distributed system</li>
-<li>Real time centralized logging, metrics and health feedback from the system, whether running on the dev machine or in production</li>
-<li>Zero down time continuous deployment for the overall system</li>
-</ul>
-
-<h2>Prerequisites:</h2>
-
-<p>
-You need to have:
-</p>
-
-<ul class="org-ul">
-<li>a basic knowledge of F# syntax</li>
-<li>a reasonable background knowledge of software development</li>
-</ul>
-
-<p>
-You need to bring laptop with:
-</p>
-
-<ul class="org-ul">
-<li>a relatively recent F# development environment (you&#8217;ll need to be able to build dotnet core 2.0 apps)</li>
-<li>Minikube and kubectl installed</li>
-</ul>
-
-<p>
-We&#8217;ll also ask you to pre-download some code and containers in advance so that we can hit the ground running on the first day; we&#8217;ll pass you the details of that before the event. 
-</p>
-
-<h2>Is this a replacement for Level Up Your F#?</h2>
-
-<p>No; <a href="https://blog.mavnn.co.uk/level-up-your-f-number-skills/">Level Up Your F#</a> focussed on the details of the F# language, this course is focussed on building systems. We will be running Level Up Your F# again in the future.</p>
-
-<h2>Where/when will it happen?</h2>
-
-<p><del>At the <a href="https://wellcomecollection.org/">Wellcome Collection</a></del> Sold out!</p>
-
-<p><a href="https://www.theskiff.org/">The Skiff</a>, in Brighton on the 8th and 9th Manch 2018</p>
-
-<h2>Where can I get tickets?</h2>
-
-<p><a href="https://www.eventbrite.co.uk/e/building-solid-systems-in-f-tickets-42416619250">EventBrite</a> or email <a href="mailto:us@mavnn.co.uk">us@mavnn.co.uk</a> and we&#39;ll sort you out an invoice.</p>
-
-<h2>What have other people said about your courses?</h2>
-
-<p>Hassan Ezzahir, Lead developer (Contractor) at BNP Paribas</p>
-
-<blockquote>
-<p>I’ve been trying to learn F# for several years now and got almost all
-the existing books on the subjects.</p>
-
-<p>Yet, I felt there was a gap between my good understanding of the
-language and actually applying it on bigger “real” projects.</p>
-
-<p>Michael’s great training skills has enabled me to quickly practice some
-advanced topics I was less familiar with.</p>
-
-<p>With my newly acquired knowledge, I’m confident I will be able achieve
-some great (and fun) developments with F#</p>
-</blockquote>
-
-<p>Alexander Battisti, Senior Software Developer (Machine Learning) at Freeletics GmbH</p>
-
-<blockquote>
-<p>I found &quot;Level Up your F#&quot; a good course teaching advanced topics in
-F# that are commonly ignored or glossed over when you are on your own,
-but are useful enough so you shouldn&#39;t ignore them. The exercises were
-difficult in a good way and engaging. I definitely recommend the
-course for anybody after they took their first serious steps in
-learning F#.</p>
-</blockquote>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-
-  <header>
-    
-      <h1 class="entry-title"><a href="/system-dot-console-is-why-we-cant-have-nice-things/">System.Console Is Why We Can&#8217;t Have Nice Things</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2017-08-31T16:30:18+01:00" pubdate data-updated="true">Aug 31<span>st</span>, 2017</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>In writing a simple tutorial for this years <a href="https://skillsmatter.com/conferences/8268-progressive-dot-net-2017#program">Progressive .Net</a> I thought I&#39;d use the Console to allow some nice visual feedback with requiring a dependency.</p>
-
-<p>TD;LR: <code>System.Console</code> (at least on dotnet core 2.0) is not as threadsafe as you&#39;d hope, and means that writing any simple cross platform console UI is nearly impossible.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/system-dot-console-is-why-we-cant-have-nice-things/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-
-  <header>
-    
-      <h1 class="entry-title"><a href="/an-in-memory-message-bus-in-100-lines-or-less/">An in Memory Message Bus in 100 Lines or Less</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2017-08-17T15:15:43+01:00" pubdate data-updated="true">Aug 17<span>th</span>, 2017</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>In reimplementing an <a href="/process-management-in-easynetq/">EasyNetQ process manager</a> one of the things I wanted to keep from the original project was an in memory message bus that could be used for testing without requiring a running RabbitMQ server. The code has ended up being pleasingly short and also uses a few techniques that seemed interesting, so I thought I&#39;d document it here as part of the design process.</p>
-
-<p>Please note we&#39;re not going for a full re-implementation of RabbitMQ in memory here, but this does give us enough to do some useful testing!</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/an-in-memory-message-bus-in-100-lines-or-less/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/3/">&larr; Older</a>
@@ -1401,23 +1427,23 @@ learning F#.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/shake-generated-files/">Shake: Generated Files</a>
+      </li>
+    
+      <li class="post">
+        <a href="/shake-linting/">Shake: Linting and Formatting</a>
+      </li>
+    
+      <li class="post">
+        <a href="/shake-the-intro/">Shake: The Intro</a>
+      </li>
+    
+      <li class="post">
         <a href="/property-based-testing-at-ndc-oslo-2018/">Property Based Testing at NDC Oslo 2018</a>
       </li>
     
       <li class="post">
         <a href="/working-with-noredink/">Working With NoRedInk</a>
-      </li>
-    
-      <li class="post">
-        <a href="/full-stack-with-freya/">Full Stack With Freya</a>
-      </li>
-    
-      <li class="post">
-        <a href="/routemaster-and-the-tale-of-the-globally-unique-voters/">RouteMaster and the Tale of the Globally Unique Voters</a>
-      </li>
-    
-      <li class="post">
-        <a href="/cloud-native-net/">Cloud Native .NET</a>
       </li>
     
   </ul>
@@ -1460,7 +1486,7 @@ learning F#.</p>
     </div>
   </div>
   <footer role="contentinfo"><p>
-  Copyright &copy; 2018 - mavnn -
+  Copyright &copy; 2019 - mavnn -
   <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
 </p>
 

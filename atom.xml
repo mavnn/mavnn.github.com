@@ -4,7 +4,7 @@
   <title><![CDATA[Mavnn's blog]]></title>
   <link href="https://blog.mavnn.co.uk/atom.xml" rel="self"/>
   <link href="https://blog.mavnn.co.uk/"/>
-  <updated>2018-09-07T15:37:23+01:00</updated>
+  <updated>2019-09-09T14:11:21+01:00</updated>
   <id>https://blog.mavnn.co.uk/</id>
   <author>
     <name><![CDATA[mavnn]]></name>
@@ -12,6 +12,826 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Shake: Generated Files]]></title>
+    <link href="https://blog.mavnn.co.uk/shake-generated-files/"/>
+    <updated>2019-09-09T17:00:00+01:00</updated>
+    <id>https://blog.mavnn.co.uk/shake-generated-files</id>
+    <content type="html"><![CDATA[<blockquote>
+<p>This post is part of a series! If you haven&#39;t already, check out <a href="https://blog.mavnn.co.uk/shake-the-intro/">the introduction</a> so you know what&#39;s going on.</p>
+</blockquote>
+
+<p>It&#39;s fairly obvious how dependencies work in Shake when all of the files are known while you&#39;re writing your rules.</p>
+
+<p>And if a build rule creates a single file matching a pattern, or even a known set of files based on a pattern: that&#39;s pretty simple too. Just add a rule (<a href="https://hackage.haskell.org/package/shake-0.17.1/docs/Development-Shake.html#v:-37--62-">%&gt;</a> for building a single file, <a href="https://hackage.haskell.org/package/shake-0.17.1/docs/Development-Shake.html#v:-38--37--62-">&amp;%&gt;</a> for a list) and then when you <code>need</code> one of the outputs Shake knows how to make sure it&#39;s up to date.</p>
+
+<p>Life becomes a little more interesting when you have a rule that takes multiple inputs (detected at run time) and creates multiple outputs (depending on what was found).</p>
+
+<p>Let&#39;s look at an example. We&#39;re writing a computer game, and the game designers want to be able to quickly specify new types of characters that can exist. The designers and developers settle on a compromise; they&#39;ll use Yaml with a few simple type names the developers will teach the designers.</p>
+
+<p>So the designers start churning out character types, which look like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='yaml'><span class='line'><span class="l-Scalar-Plain">name</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">Fighter</span>
+</span><span class='line'><span class="l-Scalar-Plain">insaneToughness</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">Integer</span>
+</span><span class='line'><span class="l-Scalar-Plain">ridiculousStrength</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">Integer</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>or this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='yaml'><span class='line'><span class="l-Scalar-Plain">name</span><span class="p-Indicator">:</span> <span class="l-Scalar-Plain">Rogue</span>
+</span><span class='line'><span class="l-Scalar-Plain">sneakyTricks</span><span class="p-Indicator">:</span> <span class="s">&quot;[String]&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>The developers, on the other hand, want to be able to consume nice safe Haskell types like so:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'><span class="kr">import</span> <span class="nn">Generated.Fighter</span>
+</span><span class='line'><span class="kr">import</span> <span class="nn">Names</span>
+</span><span class='line'>
+</span><span class='line'><span class="nf">main</span> <span class="ow">::</span> <span class="kt">IO</span> <span class="nb">()</span>
+</span><span class='line'><span class="nf">main</span> <span class="ow">=</span> <span class="kr">do</span>
+</span><span class='line'>  <span class="n">putStrLn</span> <span class="o">$</span> <span class="s">&quot;Hello, &quot;</span> <span class="o">++</span> <span class="n">world</span> <span class="o">++</span> <span class="s">&quot;!&quot;</span>
+</span><span class='line'>  <span class="n">print</span>
+</span><span class='line'>    <span class="p">(</span> <span class="kt">Fighter</span>
+</span><span class='line'>      <span class="p">{</span> <span class="n">insaneToughness</span> <span class="ow">=</span> <span class="mi">5</span>
+</span><span class='line'>      <span class="p">,</span> <span class="n">ridiculousStrength</span> <span class="ow">=</span> <span class="mi">10</span>
+</span><span class='line'>      <span class="p">}</span>
+</span><span class='line'>    <span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>And we want our code to break at compile time if, for any reason, the Yaml files get changed and we start relying on things that no longer exist. So we&#39;re going to set up a build rule that builds a directory full of nice type safe code from a directory full of nice concise and easy to edit Yaml.</p>
+
+<!-- More -->
+
+<p>Let&#39;s see what we can come up to build this safely. Our first shot at a replacement build <code>Rule</code> looks like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'>  <span class="s">&quot;_build&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main&quot;</span> <span class="o">&lt;.&gt;</span> <span class="n">exe</span> <span class="o">%&gt;</span> <span class="nf">\</span><span class="n">out</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
+</span><span class='line'>    <span class="n">src</span> <span class="ow">&lt;-</span> <span class="n">getDirectoryFiles</span> <span class="s">&quot;&quot;</span> <span class="p">[</span><span class="s">&quot;src//*.hs&quot;</span><span class="p">]</span>
+</span><span class='line'>    <span class="c1">-- depend on the generated Haskell as well</span>
+</span><span class='line'>    <span class="c1">-- as hand written files</span>
+</span><span class='line'>    <span class="n">need</span> <span class="p">[</span><span class="s">&quot;_build/haskell_generation.log&quot;</span><span class="p">]</span>
+</span><span class='line'>    <span class="n">generated</span> <span class="ow">&lt;-</span> <span class="n">getDirectoryFiles</span> <span class="s">&quot;&quot;</span> <span class="p">[</span><span class="s">&quot;src&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;Generated//*.hs&quot;</span><span class="p">]</span>
+</span><span class='line'>    <span class="n">need</span> <span class="o">$</span> <span class="n">src</span> <span class="o">++</span> <span class="n">generated</span>
+</span><span class='line'>    <span class="n">cmd_</span>
+</span><span class='line'>      <span class="s">&quot;ghc&quot;</span>
+</span><span class='line'>      <span class="p">(</span><span class="s">&quot;src&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main.hs&quot;</span><span class="p">)</span>
+</span><span class='line'>      <span class="s">&quot;-isrc&quot;</span>
+</span><span class='line'>      <span class="s">&quot;-outputdir&quot;</span>
+</span><span class='line'>      <span class="s">&quot;_build&quot;</span>
+</span><span class='line'>      <span class="s">&quot;-o&quot;</span>
+</span><span class='line'>      <span class="n">out</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>This looks very similar to the previous build rule, with just the addition of a few lines to account for the generated files. The only slightly quirky moment is <code>need [&quot;_build/haskell_generation.log&quot;]</code>; we need this because Shake has no concept of a rule for a directory. So the rule for <code>_build/haskell_generation.log</code> creates all of our generated files, so that we can then &quot;get&quot; them on the line below.</p>
+
+<p>We also need to add the rules for <code>_build/haskell_generation.log</code> and for files in the generated directory, to make sure they&#39;re generated before they are used.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'>  <span class="c1">-- Make sure if a generated file is needed, it has been</span>
+</span><span class='line'>  <span class="c1">-- created</span>
+</span><span class='line'>  <span class="n">priority</span> <span class="mi">2</span> <span class="o">$</span> <span class="s">&quot;src&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;Generated//*.hs&quot;</span> <span class="o">%&gt;</span> <span class="nf">\</span><span class="kr">_</span> <span class="ow">-&gt;</span>
+</span><span class='line'>    <span class="n">need</span> <span class="p">[</span><span class="s">&quot;_build/haskell_generation.log&quot;</span><span class="p">]</span>
+</span><span class='line'>  <span class="c1">-- Target ensures all haskell files are built</span>
+</span><span class='line'>  <span class="s">&quot;_build/haskell_generation.log&quot;</span> <span class="o">%&gt;</span> <span class="nf">\</span><span class="n">out</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
+</span><span class='line'>    <span class="n">yamlFiles</span> <span class="ow">&lt;-</span> <span class="n">getDirectoryFiles</span> <span class="s">&quot;&quot;</span> <span class="p">[</span><span class="s">&quot;yaml_types//*.yaml&quot;</span><span class="p">]</span>
+</span><span class='line'>    <span class="n">need</span> <span class="n">yamlFiles</span>
+</span><span class='line'>    <span class="n">createHaskellFiles</span> <span class="n">yamlFiles</span>
+</span><span class='line'>    <span class="n">writeFileLines</span> <span class="n">out</span> <span class="n">yamlFiles</span>
+</span><span class='line'>    <span class="c1">-- Make sure we rerun if the list of files in src/Generated</span>
+</span><span class='line'>    <span class="c1">-- changes</span>
+</span><span class='line'>    <span class="kr">_</span> <span class="ow">&lt;-</span> <span class="n">getDirectoryFiles</span> <span class="s">&quot;&quot;</span> <span class="p">[</span><span class="s">&quot;src&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;Generated//*.hs&quot;</span><span class="p">]</span>
+</span><span class='line'>    <span class="n">pure</span> <span class="nb">()</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p><code>createHaskellFiles</code> here is the logic that writes the Generated files, but it could easily be some external tool being called via a script.</p>
+
+<p>Then you run shake, and &#8230; the code works! Awesome, we&#39;re done, right?</p>
+
+<p>Well, maybe not. The first sign something might be wrong is in the docs. The docs for <a href="http://hackage.haskell.org/package/shake-0.17.3/docs/Development-Shake.html#v:getDirectoryFiles">getDirectoryFiles</a> state: &quot;As a consequence of being tracked, if the contents change during the build (e.g. you are generating .c files in this directory) then the build not reach a stable point, which is an error - detected by running with &#8211;lint. You should normally only call this function returning source files.&quot;</p>
+
+<p>That doesn&#39;t sound good. Maybe we should check the behaviour of our code.</p>
+
+<p>Let&#39;s delete one of the generated files, and run Shake again to check it detects that:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'><span class="nv">$ </span>rm src/Generated/rogue.hs
+</span><span class='line'><span class="nv">$ </span>shake
+</span><span class='line'>Formatting build files
+</span><span class='line'><span class="c"># ormolu (for src/Generated/rogue.hs)</span>
+</span><span class='line'><span class="c"># ghc (for _build/main)</span>
+</span><span class='line'>Build completed in 0.51s
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Whew! Maybe we&#39;re okay. We&#39;ll just run it once more:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'><span class="nv">$ </span>shake
+</span><span class='line'>Formatting build files
+</span><span class='line'><span class="c"># ghc (for _build/main)</span>
+</span><span class='line'>Build completed in 0.23s
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Oh. That&#39;s not good: nothing has changed, so why have we invoked <code>ghc</code>?</p>
+
+<p>Here we hit something very, very, important to understand about <code>getDirectoryFiles</code> (and other Shake Rules and Oracles): they only run once per invocation of Shake.</p>
+
+<p>Let&#39;s step through the implications of what this means on each of the build runs.</p>
+
+<h3>Run 1 (from clean)</h3>
+
+<ul>
+<li>We ask for the <code>_build/main</code> executable to be built; it doesn&#39;t exist, so the <code>Action</code> in the <code>Rule</code> runs</li>
+<li>Among other things, we ask for <code>_build/haskell_generation.log</code>; it also doesn&#39;t exist, so we run it&#39;s <code>Action</code>. Several files (let&#39;s say, <code>fighter.hs</code> and <code>rogue.hs</code>) get written to the generated file directory</li>
+<li>We call <code>getDirectoryFiles</code>, telling Shake that we depend on the generated files directory having <code>fighter.hs</code> and <code>rogue.hs</code> and no other Haskell files</li>
+<li>We need the content of all the source files and build the executable.</li>
+</ul>
+
+<h3>Run 2 (deleted <code>rogue.hs</code>)</h3>
+
+<ul>
+<li>We ask for the <code>_build/main</code> executable to be built; it exists, so Shake starts checking if it&#39;s dependencies have changed</li>
+<li>Among other things, it call <code>getDirectoryFiles</code> on the generated file directory, and records that there&#39;s now only <code>fighter.hs</code> in there: the file list has changed</li>
+<li><code>_build/main</code> has changed dependencies so we run it&#39;s <code>Action</code></li>
+<li>During that action, <code>getDirectoryFiles</code> is called on the Generated file directory. It has already been run (see above) so Shake does not run it again: it records that only <code>fighter.hs</code> is depended on <em>even though <code>rogue.hs</code> has now been recreated</em></li>
+<li>We build the executable</li>
+</ul>
+
+<h3>Run 3 (no change)</h3>
+
+<ul>
+<li>We ask for the <code>_build/main</code> executable to be built; it exists, so Shake starts checking if it&#39;s dependencies have changed</li>
+<li>Among other things, it call <code>getDirectoryFiles</code> on the generated file directory, and records that there&#39;s now both <code>fighter.hs</code> and <code>rogue.hs</code> in there: the file list has changed again!</li>
+<li><code>_build/main</code> has changed dependencies so we run it&#39;s <code>Action</code></li>
+</ul>
+
+<p>In fact, it turns out that if we turn on linting in Shake it will tell us about this problem:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='sh'><span class='line'><span class="nv">$ </span>shake --lint
+</span><span class='line'><span class="c"># ormolu (for src/Generated/fighter.hs)</span>
+</span><span class='line'><span class="c"># ghc (for _build/main)</span>
+</span><span class='line'><span class="o">[</span>2 of 3<span class="o">]</span> Compiling Generated.Fighter <span class="o">(</span> src/Generated/Fighter.hs, _build/Generated/Fighter.o <span class="o">)</span>
+</span><span class='line'>Linking _build/main ...
+</span><span class='line'>Lint checking error - value has changed since being depended upon:
+</span><span class='line'>  Key:  getDirectoryFiles  <span class="o">[</span>src//*.hs<span class="o">]</span>
+</span><span class='line'>  Old:  <span class="o">(</span>src/Names.hs src/main.hs src/Generated/rogue.hs,<span class="s2">&quot;&quot;</span><span class="o">)</span>
+</span><span class='line'>  New:  src/Names.hs src/main.hs src/Generated/fighter.hs src/Generated/rogue.hs
+</span></code></pre></td></tr></table></div></figure>
+
+<h2>Back to the drawing board</h2>
+
+<p>So: what do we want from our rules here? Let&#39;s actually put down the end effect we&#39;re aiming for:</p>
+
+<ul>
+<li>If there are any Yaml files are added, removed or changed, we should regenerate</li>
+<li>If any of the Generated files have been removed or changed, we should regenerate</li>
+<li>If a generated file is <code>need</code>ed, we should check we have an up to date set of generated files</li>
+<li>If the input and output files are unchanged since the last run, we should not regenerate</li>
+</ul>
+
+<p>We can&#39;t call <code>getDirectoryFiles</code> on the generated Haskell files, for the reason given above; and we can&#39;t call <code>need</code> on the Haskell files after generating them in the <code>_build/haskell_generation.log</code> to rebuild if they change, because they themselves <code>need</code> the Haskell generation.</p>
+
+<p>We&#39;re going to have to break out some bigger guns.</p>
+
+<p>Firstly, we&#39;re going to want to encode from custom logic for when to rebuild based on the environment. We model this is Shake by setting up an &quot;Oracle&quot;; this allows us to store a value in the Shake database, and if it changes between one run and the next anything which depends on it is considered dirty and needs rebuilding.</p>
+
+<p>Secondly, <code>_build/haskell_generation.log</code> is going to stop being just a &quot;stamp&quot; file to get around the fact that Shake doesn&#39;t know about directories, and we&#39;re going to start storing some useful info in there.</p>
+
+<p>Of course, we still need to be careful: just like running <code>getDirectoryFiles</code>, our Oracle is only going to be evaluated once for the whole run of Shake, and it will be evaluated to check dependencies before the actual rules which depend on it are run.</p>
+
+<p>Let&#39;s go with a model where we assign each run of the generator a unique ID, which we&#39;ll use in our Oracle and stash in our output file so that we can return the same ID if nothing has changed on disk.</p>
+
+<p>We&#39;ll create some reusable code to do this; we&#39;ll take a list of patterns for generated files this rule controls, an output file, and an action to generate the files. I&#39;ll show you the code in full, and there&#39;s some explanation underneath:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'><span class="cm">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span>
+</span><span class='line'><span class="cm">{-# LANGUAGE ScopedTypeVariables #-}</span>
+</span><span class='line'><span class="cm">{-# LANGUAGE TypeFamilies #-}</span>
+</span><span class='line'>
+</span><span class='line'><span class="kr">module</span> <span class="nn">Shakefiles.Generator</span>
+</span><span class='line'>  <span class="p">(</span> <span class="nf">generator</span>
+</span><span class='line'>  <span class="p">,</span> <span class="nf">getGeneratedFiles</span>
+</span><span class='line'>  <span class="p">,</span> <span class="nf">runIdOracle</span>
+</span><span class='line'>  <span class="p">)</span>
+</span><span class='line'><span class="kr">where</span>
+</span><span class='line'>
+</span><span class='line'><span class="kr">import</span> <span class="nn">Control.Applicative</span> <span class="p">()</span>
+</span><span class='line'><span class="kr">import</span> <span class="nn">Data.Aeson</span>
+</span><span class='line'><span class="kr">import</span> <span class="k">qualified</span> <span class="nn">Data.ByteString.Lazy</span> <span class="k">as</span> <span class="n">B</span>
+</span><span class='line'><span class="kr">import</span> <span class="k">qualified</span> <span class="nn">Data.UUID</span> <span class="k">as</span> <span class="n">UUID</span>
+</span><span class='line'><span class="kr">import</span> <span class="nn">Data.UUID.V4</span> <span class="p">(</span><span class="nf">nextRandom</span><span class="p">)</span>
+</span><span class='line'><span class="kr">import</span> <span class="nn">Development.Shake</span>
+</span><span class='line'><span class="kr">import</span> <span class="nn">Development.Shake.Classes</span>
+</span><span class='line'><span class="kr">import</span> <span class="k">qualified</span> <span class="nn">System.Directory</span> <span class="k">as</span> <span class="n">Directory</span>
+</span><span class='line'>
+</span><span class='line'><span class="kr">newtype</span> <span class="kt">GetRunId</span>
+</span><span class='line'>  <span class="ow">=</span> <span class="kt">GetRunId</span> <span class="p">(</span><span class="kt">FilePath</span><span class="p">,</span> <span class="p">[</span><span class="kt">FilePattern</span><span class="p">])</span>
+</span><span class='line'>  <span class="kr">deriving</span> <span class="p">(</span><span class="kt">Show</span><span class="p">,</span> <span class="kt">Typeable</span><span class="p">,</span> <span class="kt">Eq</span><span class="p">,</span> <span class="kt">Hashable</span><span class="p">,</span> <span class="kt">Binary</span><span class="p">,</span> <span class="kt">NFData</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="kr">type</span> <span class="kr">instance</span> <span class="kt">RuleResult</span> <span class="kt">GetRunId</span> <span class="ow">=</span> <span class="kt">UUID</span><span class="o">.</span><span class="kt">UUID</span>
+</span><span class='line'>
+</span><span class='line'><span class="nf">runIdOracle</span> <span class="ow">::</span> <span class="kt">GetRunId</span> <span class="ow">-&gt;</span> <span class="kt">Action</span> <span class="kt">UUID</span><span class="o">.</span><span class="kt">UUID</span>
+</span><span class='line'><span class="nf">runIdOracle</span> <span class="p">(</span><span class="kt">GetRunId</span> <span class="p">(</span><span class="n">filePath</span><span class="p">,</span> <span class="n">patterns</span><span class="p">))</span> <span class="ow">=</span> <span class="kr">do</span>
+</span><span class='line'>  <span class="n">recordExists</span> <span class="ow">&lt;-</span> <span class="n">liftIO</span> <span class="o">$</span> <span class="kt">Directory</span><span class="o">.</span><span class="n">doesFileExist</span> <span class="n">filePath</span>
+</span><span class='line'>  <span class="kr">if</span> <span class="n">recordExists</span>
+</span><span class='line'>  <span class="kr">then</span>
+</span><span class='line'>    <span class="kr">do</span>
+</span><span class='line'>      <span class="n">recorded</span> <span class="ow">&lt;-</span> <span class="n">decode</span> <span class="o">&lt;$&gt;</span> <span class="n">liftIO</span> <span class="p">(</span><span class="kt">B</span><span class="o">.</span><span class="n">readFile</span> <span class="n">filePath</span><span class="p">)</span>
+</span><span class='line'>      <span class="kr">case</span> <span class="n">recorded</span> <span class="kr">of</span>
+</span><span class='line'>        <span class="kt">Just</span> <span class="p">(</span><span class="n">lastRunId</span><span class="p">,</span> <span class="n">generatedFiles</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
+</span><span class='line'>          <span class="n">filesOnDisk</span> <span class="ow">&lt;-</span> <span class="n">liftIO</span> <span class="o">$</span> <span class="n">getDirectoryFilesIO</span> <span class="s">&quot;&quot;</span> <span class="n">patterns</span>
+</span><span class='line'>          <span class="kr">if</span> <span class="n">filesOnDisk</span> <span class="o">/=</span> <span class="n">generatedFiles</span>
+</span><span class='line'>          <span class="kr">then</span> <span class="n">liftIO</span> <span class="n">nextRandom</span>
+</span><span class='line'>          <span class="kr">else</span> <span class="n">pure</span> <span class="n">lastRunId</span>
+</span><span class='line'>        <span class="kt">Nothing</span> <span class="ow">-&gt;</span>
+</span><span class='line'>          <span class="n">liftIO</span> <span class="n">nextRandom</span>
+</span><span class='line'>  <span class="kr">else</span> <span class="n">liftIO</span> <span class="n">nextRandom</span>
+</span><span class='line'>
+</span><span class='line'><span class="nf">recordGeneratedFiles</span> <span class="ow">::</span> <span class="kt">UUID</span><span class="o">.</span><span class="kt">UUID</span> <span class="ow">-&gt;</span> <span class="kt">FilePath</span> <span class="ow">-&gt;</span> <span class="p">[</span><span class="kt">FilePattern</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="kt">Action</span> <span class="nb">()</span>
+</span><span class='line'><span class="nf">recordGeneratedFiles</span> <span class="n">runId</span> <span class="n">out</span> <span class="n">patterns</span> <span class="ow">=</span> <span class="kr">do</span>
+</span><span class='line'>  <span class="n">filesCreated</span> <span class="ow">&lt;-</span> <span class="n">liftIO</span> <span class="o">$</span> <span class="n">getDirectoryFilesIO</span> <span class="s">&quot;&quot;</span> <span class="n">patterns</span>
+</span><span class='line'>  <span class="n">liftIO</span> <span class="o">$</span> <span class="kt">B</span><span class="o">.</span><span class="n">writeFile</span> <span class="n">out</span> <span class="o">$</span> <span class="n">encode</span> <span class="p">(</span><span class="n">runId</span><span class="p">,</span> <span class="n">filesCreated</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="nf">generator</span> <span class="ow">::</span> <span class="kt">FilePath</span> <span class="ow">-&gt;</span> <span class="p">[</span><span class="kt">FilePattern</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="kt">Action</span> <span class="nb">()</span> <span class="ow">-&gt;</span> <span class="kt">Rules</span> <span class="nb">()</span>
+</span><span class='line'><span class="nf">generator</span> <span class="n">out</span> <span class="n">generatedPatterns</span> <span class="n">generationCmd</span> <span class="ow">=</span> <span class="kr">do</span>
+</span><span class='line'>  <span class="n">generatedPatterns</span> <span class="o">|%&gt;</span> <span class="nf">\</span><span class="kr">_</span> <span class="ow">-&gt;</span> <span class="n">need</span> <span class="p">[</span><span class="n">out</span><span class="p">]</span>
+</span><span class='line'>  <span class="n">out</span> <span class="o">%&gt;</span> <span class="nf">\</span><span class="kr">_</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
+</span><span class='line'>    <span class="n">runId</span> <span class="ow">&lt;-</span> <span class="n">askOracle</span> <span class="o">$</span> <span class="kt">GetRunId</span> <span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">generatedPatterns</span><span class="p">)</span>
+</span><span class='line'>    <span class="n">liftIO</span> <span class="o">$</span> <span class="n">removeFiles</span> <span class="s">&quot;&quot;</span> <span class="n">generatedPatterns</span>
+</span><span class='line'>    <span class="n">generationCmd</span>
+</span><span class='line'>    <span class="n">recordGeneratedFiles</span> <span class="n">runId</span> <span class="n">out</span> <span class="n">generatedPatterns</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>The file starts with some boiler plate code needed for storing the unique identifier in the shake database.</p>
+
+<p>Then we have the logic for creating a run ID:</p>
+
+<ul>
+<li>Check if an output file already exists. </li>
+<li>If it does:
+
+<ul>
+<li>we&#39;ll read the last UID and list of files created from it</li>
+<li>We&#39;ll read the list of files that match the generated pattern </li>
+<li>If the two lists don&#39;t match, new UID is created</li>
+<li>If they do, we return the same UID as last time</li>
+</ul></li>
+<li>If it doesn&#39;t, we&#39;ll create a new UID</li>
+</ul>
+
+<p>That means that if the list of generated files has changed, we know we need to run the generator.</p>
+
+<p>Then we have a rule that matches all of the patterns for files which will be generated, and depends on the output file.</p>
+
+<p>Finally, we have the rule for the output file:</p>
+
+<ul>
+<li>this acquires a run ID</li>
+<li>deletes any files that match the generated patterns (this ensures that we don&#39;t end up with &quot;stale&quot; generated files that no longer have a creator)</li>
+<li>runs the generation Action the user provided</li>
+<li>and finally writes the output file with the run ID used and the list of files created</li>
+</ul>
+
+<p>This completes the loop and lets us check next time around if the list of generated files has changed.</p>
+
+<p>What does it look like to use? Something like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'>  <span class="c1">-- This goes in our Shake Rules &quot;do&quot; block</span>
+</span><span class='line'>  <span class="kr">_</span> <span class="ow">&lt;-</span> <span class="n">addOracle</span> <span class="n">runIdOracle</span>
+</span><span class='line'>  <span class="n">priority</span> <span class="mi">2</span> <span class="o">$</span>
+</span><span class='line'>    <span class="n">generator</span>
+</span><span class='line'>      <span class="s">&quot;_build/haskell_generation.log&quot;</span>
+</span><span class='line'>      <span class="p">[</span><span class="s">&quot;src&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;Generated//*.hs&quot;</span><span class="p">]</span>
+</span><span class='line'>      <span class="n">writeHaskellFiles</span>
+</span><span class='line'>  <span class="kr">where</span>
+</span><span class='line'>    <span class="n">writeHaskellFiles</span> <span class="ow">=</span> <span class="kr">do</span>
+</span><span class='line'>      <span class="n">yamlFiles</span> <span class="ow">&lt;-</span> <span class="n">getDirectoryFiles</span> <span class="s">&quot;&quot;</span> <span class="p">[</span><span class="s">&quot;yaml_types//*.yaml&quot;</span><span class="p">]</span>
+</span><span class='line'>      <span class="n">need</span> <span class="n">yamlFiles</span>
+</span><span class='line'>      <span class="n">createHaskellFiles</span> <span class="n">yamlFiles</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>We have to add the oracle to our rules (only once, not per generator). Then we just call our reusable code with specify the output file, the pattern of files out will be generated, and the logic to generate them (including specifying dependencies of the process). </p>
+
+<p>We&#39;re nearly there, but we still have a problem. We called <code>getDirectoryFiles</code> on the Haskell source files in our Haskell compile build rule! It turns out that it&#39;s not just in the Rules for the generated files themselves that you need to be careful: you just can&#39;t reliably call <code>getDirectoryFiles</code> on generated files anywhere in your build specification.</p>
+
+<p>We can get around that in two ways. One is that we can separate depending on source files (call <code>getDirectoryFiles</code> with a pattern that doesn&#39;t include any of the generated files) from the generated files, and add a helper like the one below to get which files have been generated:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'><span class="nf">getGeneratedFiles</span> <span class="ow">::</span> <span class="kt">FilePath</span> <span class="ow">-&gt;</span> <span class="kt">Action</span> <span class="p">[</span><span class="kt">FilePath</span><span class="p">]</span>
+</span><span class='line'><span class="nf">getGeneratedFiles</span> <span class="n">out</span> <span class="ow">=</span> <span class="kr">do</span>
+</span><span class='line'>  <span class="n">need</span> <span class="p">[</span><span class="n">out</span><span class="p">]</span>
+</span><span class='line'>  <span class="n">recordFile</span> <span class="ow">&lt;-</span> <span class="n">decode</span> <span class="o">&lt;$&gt;</span> <span class="n">liftIO</span> <span class="p">(</span><span class="kt">B</span><span class="o">.</span><span class="n">readFile</span> <span class="n">out</span><span class="p">)</span>
+</span><span class='line'>  <span class="kr">case</span> <span class="n">recordFile</span> <span class="kr">of</span>
+</span><span class='line'>    <span class="kt">Just</span> <span class="p">(</span><span class="kr">_</span> <span class="ow">::</span> <span class="kt">UUID</span><span class="o">.</span><span class="kt">UUID</span><span class="p">,</span> <span class="n">rf</span><span class="p">)</span> <span class="ow">-&gt;</span>
+</span><span class='line'>      <span class="n">pure</span> <span class="n">rf</span>
+</span><span class='line'>    <span class="kt">Nothing</span> <span class="ow">-&gt;</span>
+</span><span class='line'>      <span class="n">fail</span> <span class="s">&quot;&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Usefully, this also ensures that if you ask for the list of generated files the file generation rule will be called!</p>
+
+<p>Alternatively, if we&#39;re happy that all of our input files have now been created, we can often get our tools themselves to tell us what they used. Shake allows us to call the <code>needed</code> function here to record a dependency that we&#39;ve already used. Be aware though that this will error if anything changes the <code>needed</code> file after you used it!</p>
+
+<p>As an example, we can combine the use of <code>ghc</code>&#39;s dependency generation flag and Shake&#39;s makefile parser to rewrite our Haskell rule to the following:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'>  <span class="s">&quot;_build&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main&quot;</span> <span class="o">&lt;.&gt;</span> <span class="n">exe</span> <span class="o">%&gt;</span> <span class="nf">\</span><span class="n">out</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
+</span><span class='line'>    <span class="n">need</span> <span class="p">[</span><span class="s">&quot;_build/haskell_generation.log&quot;</span><span class="p">]</span>
+</span><span class='line'>    <span class="n">cmd_</span>
+</span><span class='line'>      <span class="s">&quot;ghc&quot;</span>
+</span><span class='line'>      <span class="p">(</span><span class="s">&quot;src&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main.hs&quot;</span><span class="p">)</span>
+</span><span class='line'>      <span class="s">&quot;-isrc&quot;</span>
+</span><span class='line'>      <span class="s">&quot;-dep-suffix hs&quot;</span>
+</span><span class='line'>      <span class="s">&quot;-outputdir&quot;</span>
+</span><span class='line'>      <span class="s">&quot;_build&quot;</span>
+</span><span class='line'>      <span class="s">&quot;-o&quot;</span>
+</span><span class='line'>      <span class="n">out</span>
+</span><span class='line'>    <span class="n">withTempFile</span>
+</span><span class='line'>      <span class="p">(</span> <span class="nf">\</span><span class="n">tmpFile</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
+</span><span class='line'>        <span class="n">cmd_</span>
+</span><span class='line'>          <span class="kt">Shell</span>
+</span><span class='line'>          <span class="s">&quot;ghc&quot;</span>
+</span><span class='line'>          <span class="p">(</span><span class="s">&quot;src&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main.hs&quot;</span><span class="p">)</span>
+</span><span class='line'>          <span class="s">&quot;-isrc&quot;</span>
+</span><span class='line'>          <span class="s">&quot;-outputdir&quot;</span>
+</span><span class='line'>          <span class="s">&quot;_build&quot;</span>
+</span><span class='line'>          <span class="s">&quot;-o&quot;</span>
+</span><span class='line'>          <span class="n">out</span>
+</span><span class='line'>          <span class="s">&quot;-dep-makefile&quot;</span>
+</span><span class='line'>          <span class="n">tmpFile</span>
+</span><span class='line'>          <span class="s">&quot;-dep-suffix &#39;&#39;&quot;</span>
+</span><span class='line'>          <span class="s">&quot;-M&quot;</span>
+</span><span class='line'>        <span class="n">makeStuff</span> <span class="ow">&lt;-</span> <span class="n">liftIO</span> <span class="o">$</span> <span class="n">readFile</span> <span class="n">tmpFile</span>
+</span><span class='line'>        <span class="n">putNormal</span> <span class="n">makeStuff</span>
+</span><span class='line'>        <span class="n">neededMakefileDependencies</span> <span class="n">tmpFile</span>
+</span><span class='line'>      <span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>This runs the compile process, and then calls <code>ghc</code> telling it to write all of the dependencies it used to a temporary makefile. We then use <code>neededMakefileDependencies</code> to specify that we did use those files, even if we didn&#39;t know we were going to before building.</p>
+
+<p>Just make sure that you&#39;ve needed anything that the build system needs to create/update before you run your compile action though!</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Shake: Linting and Formatting]]></title>
+    <link href="https://blog.mavnn.co.uk/shake-linting/"/>
+    <updated>2019-09-09T16:00:00+01:00</updated>
+    <id>https://blog.mavnn.co.uk/shake-linting</id>
+    <content type="html"><![CDATA[<blockquote>
+<p>This post is part of a series! If you haven&#39;t already, check out <a href="https://blog.mavnn.co.uk/shake-the-intro/">the introduction</a> so you know what&#39;s going on.</p>
+</blockquote>
+
+<p>There&#39;s a bunch of nice tools out there these days that operate on your source code itself, such as auto-formatting and linting tools.</p>
+
+<p>How to configure rules for this kind of thing in Shake isn&#39;t immediately obvious when you&#39;re new to using it. The first time I did it, I ended up with something that looked like this (only showing relevant rules):</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'>  <span class="s">&quot;_build&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main&quot;</span> <span class="o">&lt;.&gt;</span> <span class="n">exe</span> <span class="o">%&gt;</span> <span class="nf">\</span><span class="n">out</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
+</span><span class='line'>    <span class="n">src</span> <span class="ow">&lt;-</span> <span class="n">getDirectoryFiles</span> <span class="s">&quot;&quot;</span> <span class="p">[</span><span class="s">&quot;src//*.hs&quot;</span><span class="p">]</span>
+</span><span class='line'>    <span class="n">cmd_</span>
+</span><span class='line'>      <span class="s">&quot;hlint&quot;</span>
+</span><span class='line'>      <span class="n">src</span>
+</span><span class='line'>    <span class="n">need</span> <span class="n">src</span>
+</span><span class='line'>    <span class="n">cmd_</span>
+</span><span class='line'>      <span class="s">&quot;ghc&quot;</span>
+</span><span class='line'>      <span class="p">(</span><span class="s">&quot;src&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main.hs&quot;</span><span class="p">)</span>
+</span><span class='line'>      <span class="s">&quot;-isrc&quot;</span>
+</span><span class='line'>      <span class="s">&quot;-outputdir&quot;</span>
+</span><span class='line'>      <span class="s">&quot;_build&quot;</span>
+</span><span class='line'>      <span class="s">&quot;-o&quot;</span>
+</span><span class='line'>      <span class="n">out</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Which at first glance looks great! I&#39;ve made sure that I find and run <code>hlint</code> (a Haskell linting tool) on the source files before I &quot;need&quot; them - remember, once a file has been &quot;needed&quot; in Shake it should not be changed. The code is simple and easy to read. <code>hlint</code> gets efficiently run on the whole list of source files all at once.</p>
+
+<p>What&#39;s not to like?</p>
+
+<!-- More -->
+
+<p>Well: there can be a couple of issues here. One (doesn&#39;t happen often in Haskell, but happens a lot in dynamic languages!) is that several targets could all depend on the same source file. Do all of the targets run the formatter? Who gets there first?</p>
+
+<p>The other problem is that if any source file changes, the command has to be re-run on all of them: if you have a lot of source files and a slow linter or formatter, that&#39;s a big problem. In fact, avoiding that kind of thing is the reason most people start using Shake in the first place!</p>
+
+<p>So we need to move the formatting/linting into the rule for the source file itself: this is the only way to guarantee that whoever uses the file, whenever they use it in the build process, the file will already be formatted before it&#39;s read.</p>
+
+<p>Version two of my code ends up looking like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'>  <span class="c1">-- actually build the executable</span>
+</span><span class='line'>  <span class="s">&quot;_build&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main&quot;</span> <span class="o">&lt;.&gt;</span> <span class="n">exe</span> <span class="o">%&gt;</span> <span class="nf">\</span><span class="n">out</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
+</span><span class='line'>    <span class="n">src</span> <span class="ow">&lt;-</span> <span class="n">getDirectoryFiles</span> <span class="s">&quot;&quot;</span> <span class="p">[</span><span class="s">&quot;src//*.hs&quot;</span><span class="p">]</span>
+</span><span class='line'>    <span class="n">need</span> <span class="n">src</span>
+</span><span class='line'>    <span class="n">cmd_</span>
+</span><span class='line'>      <span class="s">&quot;ghc&quot;</span>
+</span><span class='line'>      <span class="p">(</span><span class="s">&quot;src&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main.hs&quot;</span><span class="p">)</span>
+</span><span class='line'>      <span class="s">&quot;-isrc&quot;</span>
+</span><span class='line'>      <span class="s">&quot;-outputdir&quot;</span>
+</span><span class='line'>      <span class="s">&quot;_build&quot;</span>
+</span><span class='line'>      <span class="s">&quot;-o&quot;</span>
+</span><span class='line'>      <span class="n">out</span>
+</span><span class='line'>  <span class="c1">-- nicely format and lint all our source files</span>
+</span><span class='line'>  <span class="s">&quot;//*.hs&quot;</span> <span class="o">%&gt;</span> <span class="nf">\</span><span class="n">out</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
+</span><span class='line'>    <span class="n">disableHistory</span>
+</span><span class='line'>    <span class="n">cmd_</span> <span class="s">&quot;ormolu&quot;</span> <span class="s">&quot;-m&quot;</span> <span class="s">&quot;inplace&quot;</span> <span class="n">out</span>
+</span><span class='line'>    <span class="n">cmd_</span> <span class="s">&quot;hlint&quot;</span> <span class="n">out</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>This is Shake at its best: super explicit, clear and easy to read. The only slightly quirky thing here is the call to <code>disableHistory</code>; rules where the output and the input are the same file don&#39;t play nicely with Shake&#39;s optional caching system (<code>shakeShare</code> and in the future <code>shakeCloud</code>) so we specify that this rule shouldn&#39;t try and use cached results.</p>
+
+<p>Unfortunately, we do still have a problem: formatting/linting software is often very fast per file, but normally has a short start up time. When you&#39;re starting to format 1,000s of files, that start up time becomes a problem. So now we have technically correct, but unusable code.</p>
+
+<p>Fortunately, the authors of Shake have come across this issue before, and included the amazingly useful <code>batch</code> helpers.</p>
+
+<p>To use <code>batch</code> we need a few things:</p>
+
+<ul>
+<li>a maximum batch size</li>
+<li>a &quot;match&quot; function to specify which files this batch handles</li>
+<li>a &quot;preparation&quot; function that carries out any actions that should be run on the files individually (<code>a -&gt; Action b</code>)</li>
+<li>a &quot;batch&quot; function to process a batch of outputs from the preparation function (<code>[b] -&gt; Action a</code>)</li>
+</ul>
+
+<p>Behind the scenes, the first time that Shake finds that a target is supplied by a batch function, it doesn&#39;t queue building that target immediately. Instead, it runs any preparation steps and then punts the batch to the end of the queue. It keeps on doing this until it either a) runs out of work to do that isn&#39;t in the batch (at which point it will start with whatever size batch it has) or b) the maximum batch size has been queued. Then it will run the batch command.</p>
+
+<p>It looks like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'>  <span class="c1">-- Build our Haskell application</span>
+</span><span class='line'>  <span class="s">&quot;_build&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main&quot;</span> <span class="o">&lt;.&gt;</span> <span class="n">exe</span> <span class="o">%&gt;</span> <span class="nf">\</span><span class="n">out</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
+</span><span class='line'>    <span class="n">src</span> <span class="ow">&lt;-</span> <span class="n">getDirectoryFiles</span> <span class="s">&quot;&quot;</span> <span class="p">[</span><span class="s">&quot;src//*.hs&quot;</span><span class="p">]</span>
+</span><span class='line'>    <span class="n">need</span> <span class="n">src</span>
+</span><span class='line'>    <span class="n">cmd_</span>
+</span><span class='line'>      <span class="s">&quot;ghc&quot;</span>
+</span><span class='line'>      <span class="p">(</span><span class="s">&quot;src&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main.hs&quot;</span><span class="p">)</span>
+</span><span class='line'>      <span class="s">&quot;-isrc&quot;</span>
+</span><span class='line'>      <span class="s">&quot;-outputdir&quot;</span>
+</span><span class='line'>      <span class="s">&quot;_build&quot;</span>
+</span><span class='line'>      <span class="s">&quot;-o&quot;</span>
+</span><span class='line'>      <span class="n">out</span>
+</span><span class='line'>  <span class="c1">-- Format and lint our source files</span>
+</span><span class='line'>  <span class="n">batch</span> <span class="mi">10</span> <span class="p">(</span><span class="s">&quot;//*.hs&quot;</span> <span class="o">%&gt;</span><span class="p">)</span>
+</span><span class='line'>    <span class="p">(</span> <span class="nf">\</span><span class="n">out</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
+</span><span class='line'>      <span class="n">historyDisable</span>
+</span><span class='line'>      <span class="c1">-- called per file as ormolu</span>
+</span><span class='line'>      <span class="c1">-- processes files one at a time</span>
+</span><span class='line'>      <span class="n">cmd_</span> <span class="s">&quot;ormolu&quot;</span> <span class="s">&quot;-m&quot;</span> <span class="s">&quot;inplace&quot;</span> <span class="n">out</span>
+</span><span class='line'>      <span class="n">pure</span> <span class="n">out</span>
+</span><span class='line'>    <span class="p">)</span>
+</span><span class='line'>    <span class="c1">-- lint all the files in batches</span>
+</span><span class='line'>    <span class="p">(</span><span class="n">cmd_</span> <span class="s">&quot;hlint&quot;</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Voilà! Correct, fast code.</p>
+
+<p>Of course, engineering reality is full of trade offs, and we have made one here. Because the <code>batch</code> action is run on a list of files, that means that if any one file fails the batch, the entire batch is counted as failing. This is also true if an other rule fails while a batch is processing and Shake cancels the batch.</p>
+
+<p>So while it might be tempting to just turn the batch number up and run the whole lot at once, it might be a better idea to spend a little time tuning the numbers to match the size of your code base and the speed of each batch.</p>
+
+<p>Next up: working with <a href="https://blog.mavnn.co.uk/shake-generated-files/">generated files</a>.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Shake: The Intro]]></title>
+    <link href="https://blog.mavnn.co.uk/shake-the-intro/"/>
+    <updated>2019-09-09T15:00:00+01:00</updated>
+    <id>https://blog.mavnn.co.uk/shake-the-intro</id>
+    <content type="html"><![CDATA[<p>At <a href="http://noredink.com">NoRedInk</a> we&#39;ve been looking into using <a href="https://shakebuild.com/">Shake</a> to incrementally build large polyglot projects. In general, it&#39;s been a great tool to work with, but there were a few things that caught us out, so I wanted to capture some of that learning before it got lost.</p>
+
+<p>Shake is basically a domain specific language built on top of Haskell, so knowing Haskell can definitely help you unlock it&#39;s full power. But you can get a long way for basic builds by just working with some simple building blocks. You will have to jump through some extra hoops to get it installed and write your scripts with editor support if you&#39;re not using Haskell anyway - but we are, so that wasn&#39;t much of an obstacle for us!</p>
+
+<p>I&#39;m not going to go into the really basic ideas behind Shake: the main website (linked above) has a good introductory demo, and Neil Mitchell (who wrote Shake) has given numerous (very well done) talks on the ideas behind it. What I&#39;m going to do over a few posts is look at some of the things which caught us out, and what you can do about them. I&#39;ll try and remember to link each post here as it comes out!</p>
+
+<!-- more -->
+
+<p>In this introduction, I&#39;m going to show you the mini-example project that we&#39;ll be using in each of the following blog posts. All of the examples can be seen in full (with runnable code!) at <a href="https://github.com/mavnn/shake-examples">https://github.com/mavnn/shake-examples</a>, but if you want just want to follow along you can pretend and just read the Shake files here.</p>
+
+<p>Our &quot;base&quot; Shake file just knows how to build a Haskell project from a group of &quot;*.hs&quot; files in the <code>src</code> directory - everything else will build up from there! This is our starter <code>Shakefile.hs</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'><span class="kr">module</span> <span class="nn">Shakefile</span>
+</span><span class='line'>  <span class="p">(</span> <span class="nf">main</span>
+</span><span class='line'>  <span class="p">)</span>
+</span><span class='line'><span class="kr">where</span>
+</span><span class='line'>
+</span><span class='line'><span class="kr">import</span> <span class="nn">Development.Shake</span>
+</span><span class='line'><span class="kr">import</span> <span class="nn">Development.Shake.FilePath</span>
+</span><span class='line'>
+</span><span class='line'><span class="nf">main</span> <span class="ow">::</span> <span class="kt">IO</span> <span class="nb">()</span>
+</span><span class='line'><span class="nf">main</span> <span class="ow">=</span>
+</span><span class='line'>  <span class="n">shakeArgs</span>
+</span><span class='line'>    <span class="n">shakeOptions</span>
+</span><span class='line'>      <span class="p">{</span> <span class="n">shakeFiles</span> <span class="ow">=</span> <span class="s">&quot;_build&quot;</span>
+</span><span class='line'>      <span class="p">,</span> <span class="n">shakeChange</span> <span class="ow">=</span> <span class="kt">ChangeModtimeAndDigest</span>
+</span><span class='line'>      <span class="p">,</span> <span class="n">shakeColor</span> <span class="ow">=</span> <span class="kt">True</span>
+</span><span class='line'>      <span class="p">,</span> <span class="n">shakeThreads</span> <span class="ow">=</span> <span class="mi">4</span> <span class="c1">-- default to multicore!</span>
+</span><span class='line'>      <span class="p">}</span> <span class="o">$</span> <span class="kr">do</span>
+</span><span class='line'>    <span class="n">want</span>
+</span><span class='line'>      <span class="p">[</span> <span class="s">&quot;_build&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main&quot;</span> <span class="o">&lt;.&gt;</span> <span class="n">exe</span>
+</span><span class='line'>      <span class="p">]</span>
+</span><span class='line'>    <span class="n">rules</span>
+</span><span class='line'>
+</span><span class='line'><span class="nf">rules</span> <span class="ow">::</span> <span class="kt">Rules</span> <span class="nb">()</span>
+</span><span class='line'><span class="nf">rules</span> <span class="ow">=</span> <span class="kr">do</span>
+</span><span class='line'>  <span class="c1">-- Clean build artifacts (including shake history)</span>
+</span><span class='line'>  <span class="n">phony</span> <span class="s">&quot;clean&quot;</span> <span class="o">$</span> <span class="kr">do</span>
+</span><span class='line'>    <span class="n">putNormal</span> <span class="s">&quot;Cleaning _build&quot;</span>
+</span><span class='line'>    <span class="n">removeFilesAfter</span> <span class="s">&quot;_build&quot;</span> <span class="p">[</span><span class="s">&quot;//*&quot;</span><span class="p">]</span>
+</span><span class='line'>  <span class="c1">-- Build our Haskell application</span>
+</span><span class='line'>  <span class="s">&quot;_build&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main&quot;</span> <span class="o">&lt;.&gt;</span> <span class="n">exe</span> <span class="o">%&gt;</span> <span class="nf">\</span><span class="n">out</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
+</span><span class='line'>    <span class="n">src</span> <span class="ow">&lt;-</span> <span class="n">getDirectoryFiles</span> <span class="s">&quot;&quot;</span> <span class="p">[</span><span class="s">&quot;src//*.hs&quot;</span><span class="p">]</span>
+</span><span class='line'>    <span class="n">need</span> <span class="n">src</span>
+</span><span class='line'>    <span class="n">cmd_</span>
+</span><span class='line'>      <span class="s">&quot;ghc&quot;</span>
+</span><span class='line'>      <span class="p">(</span><span class="s">&quot;src&quot;</span> <span class="o">&lt;/&gt;</span> <span class="s">&quot;main.hs&quot;</span><span class="p">)</span>
+</span><span class='line'>      <span class="s">&quot;-isrc&quot;</span>
+</span><span class='line'>      <span class="s">&quot;-outputdir&quot;</span>
+</span><span class='line'>      <span class="s">&quot;_build&quot;</span>
+</span><span class='line'>      <span class="s">&quot;-o&quot;</span>
+</span><span class='line'>      <span class="n">out</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>What does this do? Well, there&#39;s a bit of boilerplate to import the <code>Shake</code> libraries and configure Shake. We also set the wanted output of a default build in this <code>main</code> function: in this case an executable called <code>main</code> in the <code>_build</code> directory (or <code>main.exe</code> on Windows).</p>
+
+<p>Then we have two rules:</p>
+
+<ul>
+<li>one &#39;phony&#39; rule (it doesn&#39;t create a file) that knows how to delete our build artifacts</li>
+<li>a rule that knows how to build the desired output file</li>
+</ul>
+
+<p>This second rule goes through a few steps:</p>
+
+<ul>
+<li>It calls <code>getDirectoryFiles</code> to get <em>and depend on</em> the list of &quot;*.hs&quot; files in the src directory. If any *.hs files are added or removed, the rule will be re-run.</li>
+<li>It <code>need</code>s all of the *.hs files it found. This means that if the content of any of those files changes, the rule will be re-run.</li>
+<li>Finally, it calls <code>ghc</code>, a Haskell compiler, telling it to put all of it&#39;s build artifacts and the output file in the <code>_build</code> directory.</li>
+</ul>
+
+<p>Now: let&#39;s start looking at how to build in some more troublesome (or at least, less obvious) functionality you might want in a larger project.</p>
+
+<ol>
+<li><a href="https://blog.mavnn.co.uk/shake-linting">Linting And Formatting</a></li>
+<li><a href="https://blog.mavnn.co.uk/shake-generated-files/">Generated Files</a></li>
+</ol>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Property Based Testing at NDC Oslo 2018]]></title>
@@ -4212,1095 +5032,6 @@ Right here! There&#8217;s an early bird discount which runs to the end of March,
 <h2>Wrap!</h2>
 
 <p>All in all, I very much enjoyed ProgNet and I&#39;m hoping to be involved again next year - apart from the sessions there was also plentiful coffee, chats, and opportunities to catch up with interesting people.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Building Solid Systems in F#]]></title>
-    <link href="https://blog.mavnn.co.uk/building-solid-systems-in-f-number/"/>
-    <updated>2017-09-13T14:19:21+01:00</updated>
-    <id>https://blog.mavnn.co.uk/building-solid-systems-in-f-number</id>
-    <content type="html"><![CDATA[<blockquote>
-<p>Update: The original venue sold out - more tickets are available for the 8th - 9th March 2018 on <a href="https://www.eventbrite.co.uk/e/building-solid-systems-in-f-tickets-42416619250">EventBrite</a>!</p>
-</blockquote>
-
-<p>We are running another course, and I&#39;m officially stoked! Read on for the details&#8230;</p>
-
-<h2>Building Solid Systems in F#</h2>
-
-<p>Writing code is only the first part of putting software into production - to run, maintain and scale your product, you&#39;ll need to understand and design the overall system.</p>
-
-<p>This 2 day course will take you through best practice in both writing an F# based, distributed system and running it in production - including sensible inter-operation with components written in other languages.</p>
-
-<p>To fit this into 2 days, we&#39;ll need to make some opinionated decisions (such as using F#!), but many of the ideas and concepts will be transferable. </p>
-
-<h2>We&#39;ll cover:</h2>
-
-<ul class="org-ul">
-<li>Writing reliable code using F#&#8217;s unique language features</li>
-<li>Learn how to apply SOLID (like) principles in a functional style</li>
-<li>How to instrument distributed services</li>
-<li>Continuous Improvement: 
-<ul class="org-ul">
-<li>Unit testing</li>
-<li>Performance measurement</li>
-</ul></li>
-<li>Running distributed systems in development</li>
-<li>Deploying distributed systems to production</li>
-<li>Good practice in dependency management and code organization</li>
-</ul>
-
-<h2>You&#39;ll come away with:</h2>
-
-<p>
-A git repository of your completed work, which will include:
-</p>
-
-<ul class="org-ul">
-<li>Nicely instrumented, benchmarked and unit tested F# services</li>
-<li>A scripted, deterministic deployment process for the overall distributed system</li>
-<li>Real time centralized logging, metrics and health feedback from the system, whether running on the dev machine or in production</li>
-<li>Zero down time continuous deployment for the overall system</li>
-</ul>
-
-<h2>Prerequisites:</h2>
-
-<p>
-You need to have:
-</p>
-
-<ul class="org-ul">
-<li>a basic knowledge of F# syntax</li>
-<li>a reasonable background knowledge of software development</li>
-</ul>
-
-<p>
-You need to bring laptop with:
-</p>
-
-<ul class="org-ul">
-<li>a relatively recent F# development environment (you&#8217;ll need to be able to build dotnet core 2.0 apps)</li>
-<li>Minikube and kubectl installed</li>
-</ul>
-
-<p>
-We&#8217;ll also ask you to pre-download some code and containers in advance so that we can hit the ground running on the first day; we&#8217;ll pass you the details of that before the event. 
-</p>
-
-<h2>Is this a replacement for Level Up Your F#?</h2>
-
-<p>No; <a href="https://blog.mavnn.co.uk/level-up-your-f-number-skills/">Level Up Your F#</a> focussed on the details of the F# language, this course is focussed on building systems. We will be running Level Up Your F# again in the future.</p>
-
-<h2>Where/when will it happen?</h2>
-
-<p><del>At the <a href="https://wellcomecollection.org/">Wellcome Collection</a></del> Sold out!</p>
-
-<p><a href="https://www.theskiff.org/">The Skiff</a>, in Brighton on the 8th and 9th Manch 2018</p>
-
-<h2>Where can I get tickets?</h2>
-
-<p><a href="https://www.eventbrite.co.uk/e/building-solid-systems-in-f-tickets-42416619250">EventBrite</a> or email <a href="mailto:us@mavnn.co.uk">us@mavnn.co.uk</a> and we&#39;ll sort you out an invoice.</p>
-
-<h2>What have other people said about your courses?</h2>
-
-<p>Hassan Ezzahir, Lead developer (Contractor) at BNP Paribas</p>
-
-<blockquote>
-<p>I’ve been trying to learn F# for several years now and got almost all
-the existing books on the subjects.</p>
-
-<p>Yet, I felt there was a gap between my good understanding of the
-language and actually applying it on bigger “real” projects.</p>
-
-<p>Michael’s great training skills has enabled me to quickly practice some
-advanced topics I was less familiar with.</p>
-
-<p>With my newly acquired knowledge, I’m confident I will be able achieve
-some great (and fun) developments with F#</p>
-</blockquote>
-
-<p>Alexander Battisti, Senior Software Developer (Machine Learning) at Freeletics GmbH</p>
-
-<blockquote>
-<p>I found &quot;Level Up your F#&quot; a good course teaching advanced topics in
-F# that are commonly ignored or glossed over when you are on your own,
-but are useful enough so you shouldn&#39;t ignore them. The exercises were
-difficult in a good way and engaging. I definitely recommend the
-course for anybody after they took their first serious steps in
-learning F#.</p>
-</blockquote>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[System.Console Is Why We Can't Have Nice Things]]></title>
-    <link href="https://blog.mavnn.co.uk/system-dot-console-is-why-we-cant-have-nice-things/"/>
-    <updated>2017-08-31T16:30:18+01:00</updated>
-    <id>https://blog.mavnn.co.uk/system-dot-console-is-why-we-cant-have-nice-things</id>
-    <content type="html"><![CDATA[<p>In writing a simple tutorial for this years <a href="https://skillsmatter.com/conferences/8268-progressive-dot-net-2017#program">Progressive .Net</a> I thought I&#39;d use the Console to allow some nice visual feedback with requiring a dependency.</p>
-
-<p>TD;LR: <code>System.Console</code> (at least on dotnet core 2.0) is not as threadsafe as you&#39;d hope, and means that writing any simple cross platform console UI is nearly impossible.</p>
-
-<!-- more -->
-
-<p>So, I started with a draw method like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">Coord</span> <span class="o">=</span>
-</span><span class='line'>    <span class="o">{</span> <span class="nc">X</span> <span class="o">:</span> <span class="kt">int</span>
-</span><span class='line'>      <span class="nc">Y</span> <span class="o">:</span> <span class="kt">int</span> <span class="o">}</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="n">draw</span> <span class="n">changes</span> <span class="o">=</span>
-</span><span class='line'>    <span class="n">changes</span>
-</span><span class='line'>    <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">iter</span> <span class="o">(</span><span class="k">fun</span> <span class="o">(</span><span class="n">coord</span><span class="o">,</span> <span class="n">item</span> <span class="o">:</span> <span class="kt">char</span><span class="o">)</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="nn">Console</span><span class="p">.</span><span class="nc">CursorLeft</span> <span class="o">&lt;-</span> <span class="n">coord</span><span class="o">.</span><span class="nc">X</span>
-</span><span class='line'>        <span class="nn">Console</span><span class="p">.</span><span class="nc">CursorTop</span> <span class="o">&lt;-</span> <span class="n">coord</span><span class="o">.</span><span class="nc">Y</span>
-</span><span class='line'>        <span class="nn">Console</span><span class="p">.</span><span class="nc">Write</span> <span class="n">item</span><span class="o">)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>This method just takes a sequence of coordinates and characters to write in them, and then moves the cursor around the console to write your inputs. And it works fine.</p>
-
-<p>Then I wanted a sequence of keys pressed by the user:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">Directions</span> <span class="o">=</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">Up</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">Down</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">Left</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">Right</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">Stay</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="n">inputUnfolder</span> <span class="n">prev</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">let</span> <span class="n">read</span> <span class="o">=</span> <span class="nn">Console</span><span class="p">.</span><span class="nc">ReadKey</span><span class="o">(</span><span class="bp">true</span><span class="o">)</span>
-</span><span class='line'>    <span class="k">match</span> <span class="n">read</span><span class="o">.</span><span class="nc">Key</span> <span class="k">with</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nn">ConsoleKey</span><span class="p">.</span><span class="nc">UpArrow</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="nc">Some</span> <span class="o">(</span><span class="nc">Up</span><span class="o">,</span> <span class="nc">Up</span><span class="o">)</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nn">ConsoleKey</span><span class="p">.</span><span class="nc">DownArrow</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="nc">Some</span> <span class="o">(</span><span class="nc">Down</span><span class="o">,</span> <span class="nc">Down</span><span class="o">)</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nn">ConsoleKey</span><span class="p">.</span><span class="nc">LeftArrow</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="nc">Some</span> <span class="o">(</span><span class="nc">Left</span><span class="o">,</span> <span class="nc">Down</span><span class="o">)</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nn">ConsoleKey</span><span class="p">.</span><span class="nc">RightArrow</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="nc">Some</span> <span class="o">(</span><span class="nc">Right</span><span class="o">,</span> <span class="nc">Right</span><span class="o">)</span>
-</span><span class='line'>    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="nc">Some</span> <span class="o">(</span><span class="n">prev</span><span class="o">,</span> <span class="n">prev</span><span class="o">)</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="n">keysPressed</span> <span class="o">=</span>
-</span><span class='line'>    <span class="nn">Seq</span><span class="p">.</span><span class="n">unfold</span> <span class="n">inputUnfolder</span> <span class="nc">Stay</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>Again, this works fine. And as long as you take one item from the input stream, do all your drawing and then take the next item everything continues to be good.</p>
-
-<p>But&#8230; this story doesn&#39;t end here. What I was really after was accepting key presses on one thread, and drawing on another.</p>
-
-<p>First problem: it turns out that calling <code>Console.ReadKey</code> on one thread, and setting <code>Console.CursorTop/Left</code> on another causes a deadlock.</p>
-
-<p>A bit of research led to the <code>Console.KeyAvailable</code> property, and rewriting <code>inputFolder</code>:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="k">rec</span> <span class="n">inputUnfolder</span> <span class="n">prev</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">if</span> <span class="nn">Console</span><span class="p">.</span><span class="nc">KeyAvailable</span> <span class="k">then</span>
-</span><span class='line'>        <span class="k">let</span> <span class="n">read</span> <span class="o">=</span> <span class="nn">Console</span><span class="p">.</span><span class="nc">ReadKey</span><span class="o">(</span><span class="bp">true</span><span class="o">)</span>
-</span><span class='line'>        <span class="k">match</span> <span class="n">read</span><span class="o">.</span><span class="nc">Key</span> <span class="k">with</span>
-</span><span class='line'>        <span class="o">|</span> <span class="nn">ConsoleKey</span><span class="p">.</span><span class="nc">UpArrow</span> <span class="o">-&gt;</span>
-</span><span class='line'>            <span class="nc">Some</span> <span class="o">(</span><span class="nc">Up</span><span class="o">,</span> <span class="nc">Up</span><span class="o">)</span>
-</span><span class='line'>        <span class="o">|</span> <span class="nn">ConsoleKey</span><span class="p">.</span><span class="nc">DownArrow</span> <span class="o">-&gt;</span>
-</span><span class='line'>            <span class="nc">Some</span> <span class="o">(</span><span class="nc">Down</span><span class="o">,</span> <span class="nc">Down</span><span class="o">)</span>
-</span><span class='line'>        <span class="o">|</span> <span class="nn">ConsoleKey</span><span class="p">.</span><span class="nc">LeftArrow</span> <span class="o">-&gt;</span>
-</span><span class='line'>            <span class="nc">Some</span> <span class="o">(</span><span class="nc">Left</span><span class="o">,</span> <span class="nc">Down</span><span class="o">)</span>
-</span><span class='line'>        <span class="o">|</span> <span class="nn">ConsoleKey</span><span class="p">.</span><span class="nc">RightArrow</span> <span class="o">-&gt;</span>
-</span><span class='line'>            <span class="nc">Some</span> <span class="o">(</span><span class="nc">Right</span><span class="o">,</span> <span class="nc">Right</span><span class="o">)</span>
-</span><span class='line'>        <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
-</span><span class='line'>            <span class="nc">Some</span> <span class="o">(</span><span class="n">prev</span><span class="o">,</span> <span class="n">prev</span><span class="o">)</span>
-</span><span class='line'>    <span class="k">else</span>
-</span><span class='line'>        <span class="nn">Async</span><span class="p">.</span><span class="nc">Sleep</span> <span class="mi">1</span> <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">RunSynchronously</span>
-</span><span class='line'>        <span class="n">inputUnfolder</span> <span class="n">prev</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>Yeah! Spin loop. That looks totally healthy.</p>
-
-<p>Unfortunately, we now have the issue that because <code>Console.ReadKey</code> is not actively blocking at the moment the key is pressed, the input key is printed directly to the console. There doesn&#39;t appear to be anyway of blocking this.</p>
-
-<p>The real pity about all of this is not that it&#39;s just wasted a couple of hours of my life writing a &quot;simple&quot; tutorial (although that&#39;s pretty annoying!); it&#39;s the fact that with dotnet core being genuinely cross platform, I was hoping to use it to write a few nice console UI based applications. It turns out that apart from the well know performance issues of <code>System.Console</code>, it doesn&#39;t currently appear to be possible at all.</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[An in Memory Message Bus in 100 Lines or Less]]></title>
-    <link href="https://blog.mavnn.co.uk/an-in-memory-message-bus-in-100-lines-or-less/"/>
-    <updated>2017-08-17T15:15:43+01:00</updated>
-    <id>https://blog.mavnn.co.uk/an-in-memory-message-bus-in-100-lines-or-less</id>
-    <content type="html"><![CDATA[<p>In reimplementing an <a href="https://blog.mavnn.co.uk/process-management-in-easynetq/">EasyNetQ process manager</a> one of the things I wanted to keep from the original project was an in memory message bus that could be used for testing without requiring a running RabbitMQ server. The code has ended up being pleasingly short and also uses a few techniques that seemed interesting, so I thought I&#39;d document it here as part of the design process.</p>
-
-<p>Please note we&#39;re not going for a full re-implementation of RabbitMQ in memory here, but this does give us enough to do some useful testing!</p>
-
-<!-- more -->
-
-<blockquote>
-<p>Author&#39;s note: since this post was written, this code was updated to be async. I&#39;ve added the new version as appendix 2</p>
-</blockquote>
-
-<h2>What are we building?</h2>
-
-<p>In the main process manager library, I&#39;m starting to hash out the underlying types which will drive the various abstractions in play. As a consumer of the library, you&#39;ll probably never have cause to use these types directly.</p>
-
-<p>One of these is an interface class representing a message bus which routes on a combination of <a href="https://github.com/EasyNetQ/EasyNetQ/wiki/Topic-Based-Routing">topic</a> and .net type (i.e. how EasyNetQ routes by default). It looks like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">Topic</span> <span class="o">=</span> <span class="nc">Topic</span> <span class="k">of</span> <span class="kt">string</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">type</span> <span class="nc">ProcessManagerBus</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">inherit</span> <span class="nc">IDisposable</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">Publish</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
-</span><span class='line'>        <span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="nc">TimeSpan</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
-</span><span class='line'>    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">TopicPublish</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
-</span><span class='line'>        <span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="nc">Topic</span> <span class="o">-&gt;</span> <span class="nc">TimeSpan</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
-</span><span class='line'>    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">Subscribe</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
-</span><span class='line'>        <span class="nc">SubscriptionId</span> <span class="o">-&gt;</span> <span class="o">(</span><span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="kt">unit</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
-</span><span class='line'>    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">TopicSubscribe</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
-</span><span class='line'>        <span class="nc">SubscriptionId</span> <span class="o">-&gt;</span> <span class="nc">Topic</span> <span class="o">-&gt;</span> <span class="o">(</span><span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="kt">unit</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>Production code will wrap an instance of an EasyNetQ <code>IBus</code> here, but for testing we&#39;re going to build an in memory version.</p>
-
-<h2>Underlying concepts</h2>
-
-<p>What concepts are we going to have in play here? Well, there&#39;s going to be subscribers, who should have an action called when a relevant message is published. And we&#39;re going to want to be able to actually publish the messages.</p>
-
-<p>It makes sense to model the message bus as an agent which can have commands sent to it (a <code>MailboxProcessor</code> in F# terms), so let&#39;s model the commands we want to be able to send first:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nc">MemoryBus</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">open</span> <span class="nc">System</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nc">Types</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">type</span> <span class="k">private</span> <span class="nc">Subscriber</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Action</span> <span class="o">:</span> <span class="n">obj</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
-</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Type</span> <span class="o">:</span> <span class="nc">Type</span>
-</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Binding</span> <span class="o">:</span> <span class="kt">string</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">type</span> <span class="k">private</span> <span class="nc">Subscriber</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span> <span class="o">=</span>
-</span><span class='line'>    <span class="o">{</span> <span class="nc">SubscriptionId</span> <span class="o">:</span> <span class="nc">SubscriptionId</span>
-</span><span class='line'>      <span class="nc">Binding</span> <span class="o">:</span> <span class="kt">string</span>
-</span><span class='line'>      <span class="nc">Action</span> <span class="o">:</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="kt">unit</span> <span class="o">}</span>
-</span><span class='line'>    <span class="k">interface</span> <span class="nc">Subscriber</span> <span class="k">with</span>
-</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Action</span> <span class="n">o</span> <span class="o">=</span>
-</span><span class='line'>            <span class="n">o</span> <span class="o">|&gt;</span> <span class="n">unbox</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span> <span class="o">|&gt;</span> <span class="n">x</span><span class="o">.</span><span class="nc">Action</span>
-</span><span class='line'>        <span class="k">member</span> <span class="o">__.</span><span class="nc">Type</span> <span class="o">=</span>
-</span><span class='line'>            <span class="n">typeof</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span>
-</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Binding</span> <span class="o">=</span>
-</span><span class='line'>            <span class="n">x</span><span class="o">.</span><span class="nc">Binding</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">type</span> <span class="k">private</span> <span class="nc">BusMessage</span> <span class="o">=</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">Publish</span> <span class="k">of</span> <span class="n">obj</span> <span class="o">*</span> <span class="nc">Type</span> <span class="o">*</span> <span class="nc">DateTime</span> <span class="o">*</span> <span class="nc">Topic</span> <span class="n">option</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">Subscribe</span> <span class="k">of</span> <span class="nc">Subscriber</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">Stop</span> <span class="k">of</span> <span class="nc">AsyncReplyChannel</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>So, a subscriber knows what topic it is binding to (which might include wildcards, we&#39;ll get there in a moment), which <code>type</code> it is listening for, and an action to call when that type arrives. The agent will need to store a list of subscribers, so we wrap our generic <code>Subscriber&lt;&#39;a&gt;</code> type in a non-generic interface (<code>Subscriber</code>).</p>
-
-<p>The <code>BusMessage</code> type then reflects the three things that we might ask the agent to do: publish a message to current subscribers, add a subscriber, or shut down and reply when shutting down is complete.</p>
-
-<h2>Add the logic</h2>
-
-<p>We&#39;ll also need some logic for determining whether a topic published to match a topic which has been bound to by a subscriber. Topics in RabbitMQ are multipart strings with <code>.</code> separators - &quot;one.two.three&quot;, and messages must be published to a specific topic. But when you bind a subscriber, you can bind with two types of wildcard. A <code>*</code> matches a &quot;section&quot; (so binding to &quot;*.two&quot; will receive messages published to &quot;one.two&quot; and &quot;1.two&quot;), while a <code>#</code> finishes a binding string and matches any number of sections (so binding to &quot;one.#&quot; will match &quot;one.two&quot;, &quot;one.2&quot; and &quot;one.two.three&quot;).</p>
-
-<p>Our logic ends up looking like this:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">compareSection</span> <span class="o">(</span><span class="n">topicSection</span> <span class="o">:</span> <span class="kt">string</span><span class="o">,</span> <span class="n">bindingSection</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">match</span> <span class="n">bindingSection</span> <span class="k">with</span>
-</span><span class='line'>    <span class="o">|</span> <span class="s2">&quot;#&quot;</span> <span class="o">|</span> <span class="s2">&quot;*&quot;</span> <span class="o">-&gt;</span> <span class="bp">true</span>
-</span><span class='line'>    <span class="o">|</span> <span class="o">_</span> <span class="k">when</span> <span class="n">bindingSection</span> <span class="o">=</span> <span class="n">topicSection</span> <span class="o">-&gt;</span> <span class="bp">true</span>
-</span><span class='line'>    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">false</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">topicBindingMatch</span> <span class="n">topicOpt</span> <span class="o">(</span><span class="n">binding</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">match</span> <span class="n">topicOpt</span> <span class="k">with</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">Some</span> <span class="o">(</span><span class="nc">Topic</span> <span class="n">topic</span><span class="o">)</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="k">let</span> <span class="n">topicSections</span> <span class="o">=</span> <span class="n">topic</span><span class="o">.</span><span class="nc">Split</span> <span class="sc">&#39;.&#39;</span>
-</span><span class='line'>        <span class="k">let</span> <span class="n">bindingSections</span> <span class="o">=</span> <span class="n">binding</span><span class="o">.</span><span class="nc">Split</span> <span class="sc">&#39;.&#39;</span>
-</span><span class='line'>        <span class="k">if</span> <span class="n">bindingSections</span><span class="o">.[</span><span class="n">bindingSections</span><span class="o">.</span><span class="nc">Length</span> <span class="o">-</span> <span class="mi">1</span><span class="o">]</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span> <span class="k">then</span>
-</span><span class='line'>            <span class="c1">// Seq.zip truncates the longer sequence of the two</span>
-</span><span class='line'>            <span class="c1">// provided - so here we ignore any sections beyond</span>
-</span><span class='line'>            <span class="c1">// the &quot;#&quot;</span>
-</span><span class='line'>            <span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">topicSections</span> <span class="n">bindingSections</span>
-</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">forall</span> <span class="n">compareSection</span>
-</span><span class='line'>        <span class="k">else</span>
-</span><span class='line'>            <span class="c1">// If there&#39;s no &quot;#&quot; at the end of the binding, there</span>
-</span><span class='line'>            <span class="c1">// can only be a match if there is exactly the same number</span>
-</span><span class='line'>            <span class="c1">// of sections; check that before zipping the sections</span>
-</span><span class='line'>            <span class="c1">// together to compare</span>
-</span><span class='line'>            <span class="k">if</span> <span class="n">bindingSections</span><span class="o">.</span><span class="nc">Length</span> <span class="o">=</span> <span class="n">topicSections</span><span class="o">.</span><span class="nc">Length</span> <span class="k">then</span>
-</span><span class='line'>                <span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">topicSections</span> <span class="n">bindingSections</span>
-</span><span class='line'>                <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">forall</span> <span class="n">compareSection</span>
-</span><span class='line'>            <span class="k">else</span>
-</span><span class='line'>                <span class="bp">false</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="c1">// If there is no publish topic, the only binding which can match</span>
-</span><span class='line'>        <span class="c1">// is &quot;#&quot; as there are no sections to compare.</span>
-</span><span class='line'>        <span class="n">binding</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<h2>Build the agent</h2>
-
-<p>We now have all of the logic our agent requires. Let&#39;s put into together into an <code>Async</code> recursive function listening for commands.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">let</span> <span class="k">rec</span> <span class="k">private</span> <span class="n">loop</span> <span class="n">subscribers</span> <span class="o">(</span><span class="n">agent</span> <span class="o">:</span> <span class="nc">MailboxProcessor</span><span class="o">&lt;</span><span class="nc">BusMessage</span><span class="o">&gt;)</span> <span class="o">=</span>
-</span><span class='line'>    <span class="n">async</span> <span class="o">{</span>
-</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">msg</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="nc">Receive</span><span class="bp">()</span>
-</span><span class='line'>        <span class="k">match</span> <span class="n">msg</span> <span class="k">with</span>
-</span><span class='line'>        <span class="o">|</span> <span class="nc">Stop</span> <span class="n">chan</span> <span class="o">-&gt;</span>
-</span><span class='line'>            <span class="n">chan</span><span class="o">.</span><span class="nc">Reply</span> <span class="bp">()</span>
-</span><span class='line'>            <span class="k">return</span> <span class="bp">()</span>
-</span><span class='line'>        <span class="o">|</span> <span class="nc">Subscribe</span> <span class="n">s</span> <span class="o">-&gt;</span>
-</span><span class='line'>            <span class="k">return</span><span class="o">!</span> <span class="n">loop</span> <span class="o">(</span><span class="n">s</span><span class="o">::</span><span class="n">subscribers</span><span class="o">)</span> <span class="n">agent</span>
-</span><span class='line'>        <span class="o">|</span> <span class="nc">Publish</span> <span class="o">(</span><span class="n">message</span><span class="o">,</span> <span class="k">type&#39;</span><span class="o">,</span> <span class="n">expireTime</span><span class="o">,</span> <span class="n">topic</span><span class="o">)</span> <span class="o">-&gt;</span>
-</span><span class='line'>            <span class="k">if</span> <span class="n">expireTime</span> <span class="o">&gt;</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">UtcNow</span> <span class="k">then</span>
-</span><span class='line'>                <span class="n">subscribers</span>
-</span><span class='line'>                <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">filter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">x</span> <span class="o">-&gt;</span> <span class="k">type&#39;</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="nc">Type</span>
-</span><span class='line'>                                           <span class="o">&amp;&amp;</span> <span class="n">topicBindingMatch</span> <span class="n">topic</span> <span class="n">x</span><span class="o">.</span><span class="nc">Binding</span><span class="o">)</span>
-</span><span class='line'>                <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">iter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">x</span> <span class="o">-&gt;</span> <span class="n">x</span><span class="o">.</span><span class="nc">Action</span> <span class="n">message</span><span class="o">)</span>
-</span><span class='line'>            <span class="k">return</span><span class="o">!</span> <span class="n">loop</span> <span class="n">subscribers</span> <span class="n">agent</span>
-</span><span class='line'>    <span class="o">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>With the correct types to guide us, this function ends up almost trivial. If we receive a stop message, we reply to say we&#39;re stopped and then return <code>unit</code>, meaning we&#39;ll process no further messages.</p>
-
-<p>If we receive a subscriber, we just add it to the list of subscribers and call back into the loop.</p>
-
-<p>And finally, if there&#39;s a request to publish we check the message hasn&#39;t expired and then call of the subscribers that have the correct type and a matching binding (before calling back into the loop).</p>
-
-<h2>Wrap it all in the correct interface</h2>
-
-<p>Now we just need a type which implements the <code>ProcessManagerBus</code> interface and we&#39;re done. We want <code>Dispose</code> to stop the underlying agent, and the other methods are straight forward translations. The only real thing of note here is the line <code>do agent.Error.Add raise</code>. This is needed because by default exceptions thrown in <code>MailboxProcessor</code>s kill the background thread the agent loop is running on, but are not propagated up to the overall process. That&#39;s not the behaviour we want here: if a subscriber throws, we want to know about the error.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">type</span> <span class="nc">MemoryBus</span> <span class="bp">()</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">let</span> <span class="n">agent</span> <span class="o">=</span> <span class="nn">MailboxProcessor</span><span class="p">.</span><span class="nc">Start</span><span class="o">(</span><span class="n">loop</span> <span class="bp">[]</span><span class="o">)</span>
-</span><span class='line'>    <span class="k">do</span> <span class="n">agent</span><span class="o">.</span><span class="nn">Error</span><span class="p">.</span><span class="nc">Add</span> <span class="n">raise</span>
-</span><span class='line'>    <span class="k">interface</span> <span class="nc">IDisposable</span> <span class="k">with</span>
-</span><span class='line'>        <span class="k">member</span> <span class="o">__.</span><span class="nc">Dispose</span><span class="bp">()</span> <span class="o">=</span>
-</span><span class='line'>            <span class="n">agent</span><span class="o">.</span><span class="nc">PostAndReply</span> <span class="nc">Stop</span>
-</span><span class='line'>    <span class="k">interface</span> <span class="nc">ProcessManagerBus</span> <span class="k">with</span>
-</span><span class='line'>        <span class="k">member</span> <span class="o">__.</span><span class="nc">Publish</span> <span class="o">(</span><span class="n">message</span> <span class="o">:</span> <span class="k">&#39;</span><span class="n">a</span><span class="o">)</span> <span class="n">expiry</span> <span class="o">=</span>
-</span><span class='line'>            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Publish</span> <span class="o">(</span><span class="n">box</span> <span class="n">message</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;,</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">UtcNow</span> <span class="o">+</span> <span class="n">expiry</span><span class="o">,</span> <span class="nc">None</span><span class="o">))</span>
-</span><span class='line'>        <span class="k">member</span> <span class="o">__.</span><span class="nc">TopicPublish</span> <span class="o">(</span><span class="n">message</span> <span class="o">:</span> <span class="k">&#39;</span><span class="n">a</span><span class="o">)</span> <span class="n">topic</span> <span class="n">expiry</span> <span class="o">=</span>
-</span><span class='line'>            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Publish</span> <span class="o">(</span><span class="n">box</span> <span class="n">message</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;,</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">UtcNow</span> <span class="o">+</span> <span class="n">expiry</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">topic</span><span class="o">))</span>
-</span><span class='line'>        <span class="k">member</span> <span class="o">__.</span><span class="nc">Subscribe</span> <span class="n">sid</span> <span class="n">action</span> <span class="o">=</span>
-</span><span class='line'>            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Subscribe</span> <span class="o">{</span> <span class="nc">SubscriptionId</span> <span class="o">=</span> <span class="n">sid</span><span class="o">;</span> <span class="nc">Binding</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span><span class="o">;</span> <span class="nc">Action</span> <span class="o">=</span> <span class="n">action</span> <span class="o">})</span>
-</span><span class='line'>        <span class="k">member</span> <span class="o">__.</span><span class="nc">TopicSubscribe</span> <span class="n">sid</span> <span class="o">(</span><span class="nc">Topic</span> <span class="n">binding</span><span class="o">)</span> <span class="n">action</span> <span class="o">=</span>
-</span><span class='line'>            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Subscribe</span> <span class="o">{</span> <span class="nc">SubscriptionId</span> <span class="o">=</span> <span class="n">sid</span><span class="o">;</span> <span class="nc">Binding</span> <span class="o">=</span> <span class="n">binding</span><span class="o">;</span> <span class="nc">Action</span> <span class="o">=</span> <span class="n">action</span> <span class="o">})</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<h2>Fin</h2>
-
-<p>And there you have it! An in memory message bus in 100 lines or less of F# code. For bonus points, here&#39;s a simple set of test cases for it so you can see what it looks like in action.</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-<span class='line-number'>41</span>
-<span class='line-number'>42</span>
-<span class='line-number'>43</span>
-<span class='line-number'>44</span>
-<span class='line-number'>45</span>
-<span class='line-number'>46</span>
-<span class='line-number'>47</span>
-<span class='line-number'>48</span>
-<span class='line-number'>49</span>
-<span class='line-number'>50</span>
-<span class='line-number'>51</span>
-<span class='line-number'>52</span>
-<span class='line-number'>53</span>
-<span class='line-number'>54</span>
-<span class='line-number'>55</span>
-<span class='line-number'>56</span>
-<span class='line-number'>57</span>
-<span class='line-number'>58</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nn">Tests</span><span class="p">.</span><span class="nc">MemoryBus</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">open</span> <span class="nc">System</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nc">Types</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nc">MemoryBus</span>
-</span><span class='line'><span class="k">open</span> <span class="nc">Expecto</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">type</span> <span class="nc">T1</span> <span class="o">=</span> <span class="nc">T1</span> <span class="k">of</span> <span class="kt">string</span>
-</span><span class='line'><span class="k">type</span> <span class="nc">T2</span> <span class="o">=</span> <span class="nc">T2</span> <span class="k">of</span> <span class="kt">string</span>
-</span><span class='line'>
-</span><span class='line'><span class="o">[&lt;</span><span class="nc">Tests</span><span class="o">&gt;]</span>
-</span><span class='line'><span class="k">let</span> <span class="n">memoryBusTests</span> <span class="o">=</span>
-</span><span class='line'>    <span class="n">testList</span> <span class="s2">&quot;memory bus tests&quot;</span> <span class="o">[</span>
-</span><span class='line'>        <span class="n">testCase</span> <span class="s2">&quot;Basic send/subscibe works&quot;</span> <span class="o">&lt;|</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span>
-</span><span class='line'>            <span class="k">let</span> <span class="n">receivedMessage</span> <span class="o">=</span> <span class="n">ref</span> <span class="nc">None</span>
-</span><span class='line'>            <span class="k">let</span> <span class="n">bus</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">MemoryBus</span><span class="bp">()</span> <span class="o">:&gt;</span> <span class="nc">ProcessManagerBus</span>
-</span><span class='line'>            <span class="k">let</span> <span class="n">subId</span> <span class="o">=</span> <span class="nc">SubscriptionId</span> <span class="s2">&quot;t1&quot;</span>
-</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">Subscribe</span><span class="o">&lt;</span><span class="nc">T1</span><span class="o">&gt;</span> <span class="n">subId</span> <span class="o">(</span><span class="k">fun</span> <span class="o">(</span><span class="nc">T1</span> <span class="n">m</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="n">receivedMessage</span> <span class="o">:=</span> <span class="nc">Some</span> <span class="n">m</span><span class="o">)</span>
-</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">Publish</span> <span class="o">(</span><span class="nc">T1</span> <span class="s2">&quot;message&quot;</span><span class="o">)</span> <span class="o">(</span><span class="nn">TimeSpan</span><span class="p">.</span><span class="nc">FromMinutes</span> <span class="mi">1</span><span class="o">.)</span>
-</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
-</span><span class='line'>            <span class="nn">Expect</span><span class="p">.</span><span class="n">equal</span> <span class="o">(!</span><span class="n">receivedMessage</span><span class="o">)</span> <span class="o">(</span><span class="nc">Some</span> <span class="s2">&quot;message&quot;</span><span class="o">)</span> <span class="s2">&quot;Should match&quot;</span>
-</span><span class='line'>
-</span><span class='line'>        <span class="n">testCase</span> <span class="s2">&quot;Subscribe filters correctly by type&quot;</span> <span class="o">&lt;|</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span>
-</span><span class='line'>            <span class="k">let</span> <span class="n">receivedMessage</span> <span class="o">=</span> <span class="n">ref</span> <span class="nc">None</span>
-</span><span class='line'>            <span class="k">let</span> <span class="n">bus</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">MemoryBus</span><span class="bp">()</span> <span class="o">:&gt;</span> <span class="nc">ProcessManagerBus</span>
-</span><span class='line'>            <span class="k">let</span> <span class="n">subId</span> <span class="o">=</span> <span class="nc">SubscriptionId</span> <span class="s2">&quot;t1&quot;</span>
-</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">Subscribe</span><span class="o">&lt;</span><span class="nc">T2</span><span class="o">&gt;</span> <span class="n">subId</span> <span class="o">(</span><span class="k">fun</span> <span class="o">(</span><span class="nc">T2</span> <span class="n">m</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="n">receivedMessage</span> <span class="o">:=</span> <span class="nc">Some</span> <span class="n">m</span><span class="o">)</span>
-</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">Publish</span> <span class="o">(</span><span class="nc">T1</span> <span class="s2">&quot;message&quot;</span><span class="o">)</span> <span class="o">(</span><span class="nn">TimeSpan</span><span class="p">.</span><span class="nc">FromMinutes</span> <span class="mi">1</span><span class="o">.)</span>
-</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
-</span><span class='line'>            <span class="nn">Expect</span><span class="p">.</span><span class="n">equal</span> <span class="o">(!</span><span class="n">receivedMessage</span><span class="o">)</span> <span class="nc">None</span> <span class="s2">&quot;Should match&quot;</span>
-</span><span class='line'>
-</span><span class='line'>        <span class="n">testCase</span> <span class="s2">&quot;Can publish to topic&quot;</span> <span class="o">&lt;|</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span>
-</span><span class='line'>            <span class="k">let</span> <span class="n">receivedMessage</span> <span class="o">=</span> <span class="n">ref</span> <span class="nc">None</span>
-</span><span class='line'>            <span class="k">let</span> <span class="n">bus</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">MemoryBus</span><span class="bp">()</span> <span class="o">:&gt;</span> <span class="nc">ProcessManagerBus</span>
-</span><span class='line'>            <span class="k">let</span> <span class="n">subId</span> <span class="o">=</span> <span class="nc">SubscriptionId</span> <span class="s2">&quot;t1&quot;</span>
-</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">TopicSubscribe</span><span class="o">&lt;</span><span class="nc">T1</span><span class="o">&gt;</span> <span class="n">subId</span> <span class="o">(</span><span class="nc">Topic</span> <span class="s2">&quot;one.two&quot;</span><span class="o">)</span> <span class="o">(</span><span class="k">fun</span> <span class="o">(</span><span class="nc">T1</span> <span class="n">m</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="n">receivedMessage</span> <span class="o">:=</span> <span class="nc">Some</span> <span class="n">m</span><span class="o">)</span>
-</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">TopicPublish</span> <span class="o">(</span><span class="nc">T1</span> <span class="s2">&quot;message&quot;</span><span class="o">)</span> <span class="o">(</span><span class="nc">Topic</span> <span class="s2">&quot;one.two&quot;</span><span class="o">)</span> <span class="o">(</span><span class="nn">TimeSpan</span><span class="p">.</span><span class="nc">FromMinutes</span> <span class="mi">1</span><span class="o">.)</span>
-</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
-</span><span class='line'>            <span class="nn">Expect</span><span class="p">.</span><span class="n">equal</span> <span class="o">(!</span><span class="n">receivedMessage</span><span class="o">)</span> <span class="o">(</span><span class="nc">Some</span> <span class="s2">&quot;message&quot;</span><span class="o">)</span> <span class="s2">&quot;Should match&quot;</span>
-</span><span class='line'>
-</span><span class='line'>        <span class="n">testCase</span> <span class="s2">&quot;Only receives from matching topic&quot;</span> <span class="o">&lt;|</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span>
-</span><span class='line'>            <span class="k">let</span> <span class="n">receivedMessage</span> <span class="o">=</span> <span class="n">ref</span> <span class="nc">None</span>
-</span><span class='line'>            <span class="k">let</span> <span class="n">bus</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">MemoryBus</span><span class="bp">()</span> <span class="o">:&gt;</span> <span class="nc">ProcessManagerBus</span>
-</span><span class='line'>            <span class="k">let</span> <span class="n">subId</span> <span class="o">=</span> <span class="nc">SubscriptionId</span> <span class="s2">&quot;t1&quot;</span>
-</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">TopicSubscribe</span><span class="o">&lt;</span><span class="nc">T1</span><span class="o">&gt;</span> <span class="n">subId</span> <span class="o">(</span><span class="nc">Topic</span> <span class="s2">&quot;one.two&quot;</span><span class="o">)</span> <span class="o">(</span><span class="k">fun</span> <span class="o">(</span><span class="nc">T1</span> <span class="n">m</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="n">receivedMessage</span> <span class="o">:=</span> <span class="nc">Some</span> <span class="n">m</span><span class="o">)</span>
-</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">TopicPublish</span> <span class="o">(</span><span class="nc">T1</span> <span class="s2">&quot;message&quot;</span><span class="o">)</span> <span class="o">(</span><span class="nc">Topic</span> <span class="s2">&quot;two.one&quot;</span><span class="o">)</span> <span class="o">(</span><span class="nn">TimeSpan</span><span class="p">.</span><span class="nc">FromMinutes</span> <span class="mi">1</span><span class="o">.)</span>
-</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
-</span><span class='line'>            <span class="nn">Expect</span><span class="p">.</span><span class="n">equal</span> <span class="o">(!</span><span class="n">receivedMessage</span><span class="o">)</span> <span class="nc">None</span> <span class="s2">&quot;Should match&quot;</span>
-</span><span class='line'>
-</span><span class='line'>        <span class="n">testCase</span> <span class="s2">&quot;Matching wildcard topic is matched&quot;</span> <span class="o">&lt;|</span> <span class="k">fun</span> <span class="o">_</span> <span class="o">-&gt;</span>
-</span><span class='line'>            <span class="k">let</span> <span class="n">receivedMessage</span> <span class="o">=</span> <span class="n">ref</span> <span class="nc">None</span>
-</span><span class='line'>            <span class="k">let</span> <span class="n">bus</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">MemoryBus</span><span class="bp">()</span> <span class="o">:&gt;</span> <span class="nc">ProcessManagerBus</span>
-</span><span class='line'>            <span class="k">let</span> <span class="n">subId</span> <span class="o">=</span> <span class="nc">SubscriptionId</span> <span class="s2">&quot;t1&quot;</span>
-</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">TopicSubscribe</span><span class="o">&lt;</span><span class="nc">T1</span><span class="o">&gt;</span> <span class="n">subId</span> <span class="o">(</span><span class="nc">Topic</span> <span class="s2">&quot;*.two&quot;</span><span class="o">)</span> <span class="o">(</span><span class="k">fun</span> <span class="o">(</span><span class="nc">T1</span> <span class="n">m</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="n">receivedMessage</span> <span class="o">:=</span> <span class="nc">Some</span> <span class="n">m</span><span class="o">)</span>
-</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">TopicPublish</span> <span class="o">(</span><span class="nc">T1</span> <span class="s2">&quot;message&quot;</span><span class="o">)</span> <span class="o">(</span><span class="nc">Topic</span> <span class="s2">&quot;one.two&quot;</span><span class="o">)</span> <span class="o">(</span><span class="nn">TimeSpan</span><span class="p">.</span><span class="nc">FromMinutes</span> <span class="mi">1</span><span class="o">.)</span>
-</span><span class='line'>            <span class="n">bus</span><span class="o">.</span><span class="nc">Dispose</span><span class="bp">()</span>
-</span><span class='line'>            <span class="nn">Expect</span><span class="p">.</span><span class="n">equal</span> <span class="o">(!</span><span class="n">receivedMessage</span><span class="o">)</span> <span class="o">(</span><span class="nc">Some</span> <span class="s2">&quot;message&quot;</span><span class="o">)</span> <span class="s2">&quot;Should match&quot;</span>
-</span><span class='line'>    <span class="o">]</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<h2>Appendix 1</h2>
-
-<p>Just to round everything off, here&#39;s a listing of the complete implementation from beginning to end.</p>
-
-<p>File 1:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nc">Types</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">open</span> <span class="nc">System</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">type</span> <span class="nc">SubscriptionId</span> <span class="o">=</span> <span class="nc">SubscriptionId</span> <span class="k">of</span> <span class="kt">string</span>
-</span><span class='line'><span class="k">type</span> <span class="nc">Topic</span> <span class="o">=</span> <span class="nc">Topic</span> <span class="k">of</span> <span class="kt">string</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">type</span> <span class="nc">ProcessManagerBus</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">inherit</span> <span class="nc">IDisposable</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">Publish</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
-</span><span class='line'>        <span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="nc">TimeSpan</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
-</span><span class='line'>    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">TopicPublish</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
-</span><span class='line'>        <span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="nc">Topic</span> <span class="o">-&gt;</span> <span class="nc">TimeSpan</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
-</span><span class='line'>    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">Subscribe</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
-</span><span class='line'>        <span class="nc">SubscriptionId</span> <span class="o">-&gt;</span> <span class="o">(</span><span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="kt">unit</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
-</span><span class='line'>    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">TopicSubscribe</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
-</span><span class='line'>        <span class="nc">SubscriptionId</span> <span class="o">-&gt;</span> <span class="nc">Topic</span> <span class="o">-&gt;</span> <span class="o">(</span><span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="kt">unit</span><span class="o">)</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>File 2:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-<span class='line-number'>41</span>
-<span class='line-number'>42</span>
-<span class='line-number'>43</span>
-<span class='line-number'>44</span>
-<span class='line-number'>45</span>
-<span class='line-number'>46</span>
-<span class='line-number'>47</span>
-<span class='line-number'>48</span>
-<span class='line-number'>49</span>
-<span class='line-number'>50</span>
-<span class='line-number'>51</span>
-<span class='line-number'>52</span>
-<span class='line-number'>53</span>
-<span class='line-number'>54</span>
-<span class='line-number'>55</span>
-<span class='line-number'>56</span>
-<span class='line-number'>57</span>
-<span class='line-number'>58</span>
-<span class='line-number'>59</span>
-<span class='line-number'>60</span>
-<span class='line-number'>61</span>
-<span class='line-number'>62</span>
-<span class='line-number'>63</span>
-<span class='line-number'>64</span>
-<span class='line-number'>65</span>
-<span class='line-number'>66</span>
-<span class='line-number'>67</span>
-<span class='line-number'>68</span>
-<span class='line-number'>69</span>
-<span class='line-number'>70</span>
-<span class='line-number'>71</span>
-<span class='line-number'>72</span>
-<span class='line-number'>73</span>
-<span class='line-number'>74</span>
-<span class='line-number'>75</span>
-<span class='line-number'>76</span>
-<span class='line-number'>77</span>
-<span class='line-number'>78</span>
-<span class='line-number'>79</span>
-<span class='line-number'>80</span>
-<span class='line-number'>81</span>
-<span class='line-number'>82</span>
-<span class='line-number'>83</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nc">MemoryBus</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">open</span> <span class="nc">System</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nc">Types</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">type</span> <span class="k">private</span> <span class="nc">Subscriber</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Action</span> <span class="o">:</span> <span class="n">obj</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
-</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Type</span> <span class="o">:</span> <span class="nc">Type</span>
-</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Binding</span> <span class="o">:</span> <span class="kt">string</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">type</span> <span class="k">private</span> <span class="nc">Subscriber</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span> <span class="o">=</span>
-</span><span class='line'>    <span class="o">{</span> <span class="nc">SubscriptionId</span> <span class="o">:</span> <span class="nc">SubscriptionId</span>
-</span><span class='line'>      <span class="nc">Binding</span> <span class="o">:</span> <span class="kt">string</span>
-</span><span class='line'>      <span class="nc">Action</span> <span class="o">:</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="kt">unit</span> <span class="o">}</span>
-</span><span class='line'>    <span class="k">interface</span> <span class="nc">Subscriber</span> <span class="k">with</span>
-</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Action</span> <span class="n">o</span> <span class="o">=</span>
-</span><span class='line'>            <span class="n">o</span> <span class="o">|&gt;</span> <span class="n">unbox</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span> <span class="o">|&gt;</span> <span class="n">x</span><span class="o">.</span><span class="nc">Action</span>
-</span><span class='line'>        <span class="k">member</span> <span class="o">__.</span><span class="nc">Type</span> <span class="o">=</span>
-</span><span class='line'>            <span class="n">typeof</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span>
-</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Binding</span> <span class="o">=</span>
-</span><span class='line'>            <span class="n">x</span><span class="o">.</span><span class="nc">Binding</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">type</span> <span class="k">private</span> <span class="nc">BusMessage</span> <span class="o">=</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">Publish</span> <span class="k">of</span> <span class="n">obj</span> <span class="o">*</span> <span class="nc">Type</span> <span class="o">*</span> <span class="nc">DateTime</span> <span class="o">*</span> <span class="nc">Topic</span> <span class="n">option</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">Subscribe</span> <span class="k">of</span> <span class="nc">Subscriber</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">Stop</span> <span class="k">of</span> <span class="nc">AsyncReplyChannel</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">compareSection</span> <span class="o">(</span><span class="n">topicSection</span> <span class="o">:</span> <span class="kt">string</span><span class="o">,</span> <span class="n">bindingSection</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">match</span> <span class="n">bindingSection</span> <span class="k">with</span>
-</span><span class='line'>    <span class="o">|</span> <span class="s2">&quot;#&quot;</span> <span class="o">|</span> <span class="s2">&quot;*&quot;</span> <span class="o">-&gt;</span> <span class="bp">true</span>
-</span><span class='line'>    <span class="o">|</span> <span class="o">_</span> <span class="k">when</span> <span class="n">bindingSection</span> <span class="o">=</span> <span class="n">topicSection</span> <span class="o">-&gt;</span> <span class="bp">true</span>
-</span><span class='line'>    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">false</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">topicBindingMatch</span> <span class="n">topicOpt</span> <span class="o">(</span><span class="n">binding</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">match</span> <span class="n">topicOpt</span> <span class="k">with</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">Some</span> <span class="o">(</span><span class="nc">Topic</span> <span class="n">topic</span><span class="o">)</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="k">let</span> <span class="n">topicSections</span> <span class="o">=</span> <span class="n">topic</span><span class="o">.</span><span class="nc">Split</span> <span class="sc">&#39;.&#39;</span>
-</span><span class='line'>        <span class="k">let</span> <span class="n">bindingSections</span> <span class="o">=</span> <span class="n">binding</span><span class="o">.</span><span class="nc">Split</span> <span class="sc">&#39;.&#39;</span>
-</span><span class='line'>        <span class="k">if</span> <span class="n">bindingSections</span><span class="o">.[</span><span class="n">bindingSections</span><span class="o">.</span><span class="nc">Length</span> <span class="o">-</span> <span class="mi">1</span><span class="o">]</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span> <span class="k">then</span>
-</span><span class='line'>            <span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">topicSections</span> <span class="n">bindingSections</span>
-</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">forall</span> <span class="n">compareSection</span>
-</span><span class='line'>        <span class="k">else</span>
-</span><span class='line'>            <span class="k">if</span> <span class="n">bindingSections</span><span class="o">.</span><span class="nc">Length</span> <span class="o">=</span> <span class="n">topicSections</span><span class="o">.</span><span class="nc">Length</span> <span class="k">then</span>
-</span><span class='line'>                <span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">topicSections</span> <span class="n">bindingSections</span>
-</span><span class='line'>                <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">forall</span> <span class="n">compareSection</span>
-</span><span class='line'>            <span class="k">else</span>
-</span><span class='line'>                <span class="bp">false</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="n">binding</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="k">rec</span> <span class="k">private</span> <span class="n">loop</span> <span class="n">subscribers</span> <span class="o">(</span><span class="n">agent</span> <span class="o">:</span> <span class="nc">MailboxProcessor</span><span class="o">&lt;</span><span class="nc">BusMessage</span><span class="o">&gt;)</span> <span class="o">=</span>
-</span><span class='line'>    <span class="n">async</span> <span class="o">{</span>
-</span><span class='line'>        <span class="k">let</span><span class="o">!</span> <span class="n">msg</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="nc">Receive</span><span class="bp">()</span>
-</span><span class='line'>        <span class="k">match</span> <span class="n">msg</span> <span class="k">with</span>
-</span><span class='line'>        <span class="o">|</span> <span class="nc">Stop</span> <span class="n">chan</span> <span class="o">-&gt;</span>
-</span><span class='line'>            <span class="n">chan</span><span class="o">.</span><span class="nc">Reply</span> <span class="bp">()</span>
-</span><span class='line'>            <span class="k">return</span> <span class="bp">()</span>
-</span><span class='line'>        <span class="o">|</span> <span class="nc">Subscribe</span> <span class="n">s</span> <span class="o">-&gt;</span>
-</span><span class='line'>            <span class="k">return</span><span class="o">!</span> <span class="n">loop</span> <span class="o">(</span><span class="n">s</span><span class="o">::</span><span class="n">subscribers</span><span class="o">)</span> <span class="n">agent</span>
-</span><span class='line'>        <span class="o">|</span> <span class="nc">Publish</span> <span class="o">(</span><span class="n">message</span><span class="o">,</span> <span class="k">type&#39;</span><span class="o">,</span> <span class="n">expireTime</span><span class="o">,</span> <span class="n">topic</span><span class="o">)</span> <span class="o">-&gt;</span>
-</span><span class='line'>            <span class="k">if</span> <span class="n">expireTime</span> <span class="o">&gt;</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">UtcNow</span> <span class="k">then</span>
-</span><span class='line'>                <span class="n">subscribers</span>
-</span><span class='line'>                <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">filter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">x</span> <span class="o">-&gt;</span> <span class="k">type&#39;</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="nc">Type</span>
-</span><span class='line'>                                           <span class="o">&amp;&amp;</span> <span class="n">topicBindingMatch</span> <span class="n">topic</span> <span class="n">x</span><span class="o">.</span><span class="nc">Binding</span><span class="o">)</span>
-</span><span class='line'>                <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">iter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">x</span> <span class="o">-&gt;</span> <span class="n">x</span><span class="o">.</span><span class="nc">Action</span> <span class="n">message</span><span class="o">)</span>
-</span><span class='line'>            <span class="k">return</span><span class="o">!</span> <span class="n">loop</span> <span class="n">subscribers</span> <span class="n">agent</span>
-</span><span class='line'>    <span class="o">}</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">type</span> <span class="nc">MemoryBus</span> <span class="bp">()</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">let</span> <span class="n">agent</span> <span class="o">=</span> <span class="nn">MailboxProcessor</span><span class="p">.</span><span class="nc">Start</span><span class="o">(</span><span class="n">loop</span> <span class="bp">[]</span><span class="o">)</span>
-</span><span class='line'>    <span class="k">do</span> <span class="n">agent</span><span class="o">.</span><span class="nn">Error</span><span class="p">.</span><span class="nc">Add</span> <span class="n">raise</span>
-</span><span class='line'>    <span class="k">interface</span> <span class="nc">IDisposable</span> <span class="k">with</span>
-</span><span class='line'>        <span class="k">member</span> <span class="o">__.</span><span class="nc">Dispose</span><span class="bp">()</span> <span class="o">=</span>
-</span><span class='line'>            <span class="n">agent</span><span class="o">.</span><span class="nc">PostAndReply</span> <span class="nc">Stop</span>
-</span><span class='line'>    <span class="k">interface</span> <span class="nc">ProcessManagerBus</span> <span class="k">with</span>
-</span><span class='line'>        <span class="k">member</span> <span class="o">__.</span><span class="nc">Publish</span> <span class="o">(</span><span class="n">message</span> <span class="o">:</span> <span class="k">&#39;</span><span class="n">a</span><span class="o">)</span> <span class="n">expiry</span> <span class="o">=</span>
-</span><span class='line'>            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Publish</span> <span class="o">(</span><span class="n">box</span> <span class="n">message</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;,</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">UtcNow</span> <span class="o">+</span> <span class="n">expiry</span><span class="o">,</span> <span class="nc">None</span><span class="o">))</span>
-</span><span class='line'>        <span class="k">member</span> <span class="o">__.</span><span class="nc">TopicPublish</span> <span class="o">(</span><span class="n">message</span> <span class="o">:</span> <span class="k">&#39;</span><span class="n">a</span><span class="o">)</span> <span class="n">topic</span> <span class="n">expiry</span> <span class="o">=</span>
-</span><span class='line'>            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Publish</span> <span class="o">(</span><span class="n">box</span> <span class="n">message</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;,</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">UtcNow</span> <span class="o">+</span> <span class="n">expiry</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">topic</span><span class="o">))</span>
-</span><span class='line'>        <span class="k">member</span> <span class="o">__.</span><span class="nc">Subscribe</span> <span class="n">sid</span> <span class="n">action</span> <span class="o">=</span>
-</span><span class='line'>            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Subscribe</span> <span class="o">{</span> <span class="nc">SubscriptionId</span> <span class="o">=</span> <span class="n">sid</span><span class="o">;</span> <span class="nc">Binding</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span><span class="o">;</span> <span class="nc">Action</span> <span class="o">=</span> <span class="n">action</span> <span class="o">})</span>
-</span><span class='line'>        <span class="k">member</span> <span class="o">__.</span><span class="nc">TopicSubscribe</span> <span class="n">sid</span> <span class="o">(</span><span class="nc">Topic</span> <span class="n">binding</span><span class="o">)</span> <span class="n">action</span> <span class="o">=</span>
-</span><span class='line'>            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Subscribe</span> <span class="o">{</span> <span class="nc">SubscriptionId</span> <span class="o">=</span> <span class="n">sid</span><span class="o">;</span> <span class="nc">Binding</span> <span class="o">=</span> <span class="n">binding</span><span class="o">;</span> <span class="nc">Action</span> <span class="o">=</span> <span class="n">action</span> <span class="o">})</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<h2>Appendix 1</h2>
-
-<p>The async version!</p>
-
-<p>File 1:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nc">Types</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">open</span> <span class="nc">System</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">type</span> <span class="nc">SubscriptionId</span> <span class="o">=</span> <span class="nc">SubscriptionId</span> <span class="k">of</span> <span class="kt">string</span>
-</span><span class='line'><span class="k">type</span> <span class="nc">Topic</span> <span class="o">=</span> <span class="nc">Topic</span> <span class="k">of</span> <span class="kt">string</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">type</span> <span class="nc">ProcessManagerBus</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">inherit</span> <span class="nc">IDisposable</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">Publish</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
-</span><span class='line'>        <span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="nc">TimeSpan</span> <span class="o">-&gt;</span> <span class="nc">Async</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span>
-</span><span class='line'>    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">TopicPublish</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
-</span><span class='line'>        <span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="nc">Topic</span> <span class="o">-&gt;</span> <span class="nc">TimeSpan</span> <span class="o">-&gt;</span> <span class="nc">Async</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span>
-</span><span class='line'>    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">Subscribe</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
-</span><span class='line'>        <span class="nc">SubscriptionId</span> <span class="o">-&gt;</span> <span class="o">(</span><span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="nc">Async</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;)</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
-</span><span class='line'>    <span class="k">abstract</span> <span class="k">member</span> <span class="nc">TopicSubscribe</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span> <span class="k">when</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">:</span> <span class="ow">not</span> <span class="k">struct</span><span class="o">&gt;</span> <span class="o">:</span>
-</span><span class='line'>        <span class="nc">SubscriptionId</span> <span class="o">-&gt;</span> <span class="nc">Topic</span> <span class="o">-&gt;</span> <span class="o">(</span><span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="nc">Async</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;)</span> <span class="o">-&gt;</span> <span class="kt">unit</span>
-</span></code></pre></td></tr></table></div></figure>
-
-<p>File 2:</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-<span class='line-number'>36</span>
-<span class='line-number'>37</span>
-<span class='line-number'>38</span>
-<span class='line-number'>39</span>
-<span class='line-number'>40</span>
-<span class='line-number'>41</span>
-<span class='line-number'>42</span>
-<span class='line-number'>43</span>
-<span class='line-number'>44</span>
-<span class='line-number'>45</span>
-<span class='line-number'>46</span>
-<span class='line-number'>47</span>
-<span class='line-number'>48</span>
-<span class='line-number'>49</span>
-<span class='line-number'>50</span>
-<span class='line-number'>51</span>
-<span class='line-number'>52</span>
-<span class='line-number'>53</span>
-<span class='line-number'>54</span>
-<span class='line-number'>55</span>
-<span class='line-number'>56</span>
-<span class='line-number'>57</span>
-<span class='line-number'>58</span>
-<span class='line-number'>59</span>
-<span class='line-number'>60</span>
-<span class='line-number'>61</span>
-<span class='line-number'>62</span>
-<span class='line-number'>63</span>
-<span class='line-number'>64</span>
-<span class='line-number'>65</span>
-<span class='line-number'>66</span>
-<span class='line-number'>67</span>
-<span class='line-number'>68</span>
-<span class='line-number'>69</span>
-<span class='line-number'>70</span>
-<span class='line-number'>71</span>
-<span class='line-number'>72</span>
-<span class='line-number'>73</span>
-<span class='line-number'>74</span>
-<span class='line-number'>75</span>
-<span class='line-number'>76</span>
-<span class='line-number'>77</span>
-<span class='line-number'>78</span>
-<span class='line-number'>79</span>
-<span class='line-number'>80</span>
-<span class='line-number'>81</span>
-<span class='line-number'>82</span>
-<span class='line-number'>83</span>
-<span class='line-number'>84</span>
-<span class='line-number'>85</span>
-<span class='line-number'>86</span>
-<span class='line-number'>87</span>
-<span class='line-number'>88</span>
-<span class='line-number'>89</span>
-<span class='line-number'>90</span>
-</pre></td><td class='code'><pre><code class='fsharp'><span class='line'><span class="k">module</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nc">MemoryBus</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">open</span> <span class="nc">System</span>
-</span><span class='line'><span class="k">open</span> <span class="nn">EasyNetQ</span><span class="p">.</span><span class="nn">ProcessManager</span><span class="p">.</span><span class="nc">Types</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">type</span> <span class="k">private</span> <span class="nc">Subscriber</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Action</span> <span class="o">:</span> <span class="n">obj</span> <span class="o">-&gt;</span> <span class="nc">Async</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span>
-</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Type</span> <span class="o">:</span> <span class="nc">Type</span>
-</span><span class='line'>    <span class="k">abstract</span> <span class="nc">Binding</span> <span class="o">:</span> <span class="kt">string</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">type</span> <span class="k">private</span> <span class="nc">Subscriber</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span> <span class="o">=</span>
-</span><span class='line'>    <span class="o">{</span> <span class="nc">SubscriptionId</span> <span class="o">:</span> <span class="nc">SubscriptionId</span>
-</span><span class='line'>      <span class="nc">Binding</span> <span class="o">:</span> <span class="kt">string</span>
-</span><span class='line'>      <span class="nc">Action</span> <span class="o">:</span> <span class="k">&#39;</span><span class="n">a</span> <span class="o">-&gt;</span> <span class="nc">Async</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span> <span class="o">}</span>
-</span><span class='line'>    <span class="k">interface</span> <span class="nc">Subscriber</span> <span class="k">with</span>
-</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Action</span> <span class="n">o</span> <span class="o">=</span>
-</span><span class='line'>            <span class="n">o</span> <span class="o">|&gt;</span> <span class="n">unbox</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span> <span class="o">|&gt;</span> <span class="n">x</span><span class="o">.</span><span class="nc">Action</span>
-</span><span class='line'>        <span class="k">member</span> <span class="o">__.</span><span class="nc">Type</span> <span class="o">=</span>
-</span><span class='line'>            <span class="n">typeof</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;</span>
-</span><span class='line'>        <span class="k">member</span> <span class="n">x</span><span class="o">.</span><span class="nc">Binding</span> <span class="o">=</span>
-</span><span class='line'>            <span class="n">x</span><span class="o">.</span><span class="nc">Binding</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">type</span> <span class="k">private</span> <span class="nc">BusMessage</span> <span class="o">=</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">Publish</span> <span class="k">of</span> <span class="n">obj</span> <span class="o">*</span> <span class="nc">Type</span> <span class="o">*</span> <span class="nc">DateTime</span> <span class="o">*</span> <span class="nc">Topic</span> <span class="n">option</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">Subscribe</span> <span class="k">of</span> <span class="nc">Subscriber</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">Stop</span> <span class="k">of</span> <span class="nc">AsyncReplyChannel</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">compareSection</span> <span class="o">(</span><span class="n">topicSection</span> <span class="o">:</span> <span class="kt">string</span><span class="o">,</span> <span class="n">bindingSection</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">match</span> <span class="n">bindingSection</span> <span class="k">with</span>
-</span><span class='line'>    <span class="o">|</span> <span class="s2">&quot;#&quot;</span> <span class="o">|</span> <span class="s2">&quot;*&quot;</span> <span class="o">-&gt;</span> <span class="bp">true</span>
-</span><span class='line'>    <span class="o">|</span> <span class="o">_</span> <span class="k">when</span> <span class="n">bindingSection</span> <span class="o">=</span> <span class="n">topicSection</span> <span class="o">-&gt;</span> <span class="bp">true</span>
-</span><span class='line'>    <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span> <span class="bp">false</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="k">private</span> <span class="n">topicBindingMatch</span> <span class="n">topicOpt</span> <span class="o">(</span><span class="n">binding</span> <span class="o">:</span> <span class="kt">string</span><span class="o">)</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">match</span> <span class="n">topicOpt</span> <span class="k">with</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">Some</span> <span class="o">(</span><span class="nc">Topic</span> <span class="n">topic</span><span class="o">)</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="k">let</span> <span class="n">topicSections</span> <span class="o">=</span> <span class="n">topic</span><span class="o">.</span><span class="nc">Split</span> <span class="sc">&#39;.&#39;</span>
-</span><span class='line'>        <span class="k">let</span> <span class="n">bindingSections</span> <span class="o">=</span> <span class="n">binding</span><span class="o">.</span><span class="nc">Split</span> <span class="sc">&#39;.&#39;</span>
-</span><span class='line'>        <span class="k">if</span> <span class="n">bindingSections</span><span class="o">.[</span><span class="n">bindingSections</span><span class="o">.</span><span class="nc">Length</span> <span class="o">-</span> <span class="mi">1</span><span class="o">]</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span> <span class="k">then</span>
-</span><span class='line'>            <span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">topicSections</span> <span class="n">bindingSections</span>
-</span><span class='line'>            <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">forall</span> <span class="n">compareSection</span>
-</span><span class='line'>        <span class="k">else</span>
-</span><span class='line'>            <span class="k">if</span> <span class="n">bindingSections</span><span class="o">.</span><span class="nc">Length</span> <span class="o">=</span> <span class="n">topicSections</span><span class="o">.</span><span class="nc">Length</span> <span class="k">then</span>
-</span><span class='line'>                <span class="nn">Seq</span><span class="p">.</span><span class="n">zip</span> <span class="n">topicSections</span> <span class="n">bindingSections</span>
-</span><span class='line'>                <span class="o">|&gt;</span> <span class="nn">Seq</span><span class="p">.</span><span class="n">forall</span> <span class="n">compareSection</span>
-</span><span class='line'>            <span class="k">else</span>
-</span><span class='line'>                <span class="bp">false</span>
-</span><span class='line'>    <span class="o">|</span> <span class="nc">None</span> <span class="o">-&gt;</span>
-</span><span class='line'>        <span class="n">binding</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">let</span> <span class="k">rec</span> <span class="k">private</span> <span class="n">loop</span> <span class="n">subscribers</span> <span class="o">(</span><span class="n">exiting</span> <span class="o">:</span> <span class="nc">AsyncReplyChannel</span><span class="o">&lt;</span><span class="kt">unit</span><span class="o">&gt;</span> <span class="n">option</span><span class="o">)</span> <span class="o">(</span><span class="n">agent</span> <span class="o">:</span> <span class="nc">MailboxProcessor</span><span class="o">&lt;</span><span class="nc">BusMessage</span><span class="o">&gt;)</span> <span class="o">=</span>
-</span><span class='line'>    <span class="n">async</span> <span class="o">{</span>
-</span><span class='line'>        <span class="k">match</span> <span class="n">exiting</span> <span class="k">with</span>
-</span><span class='line'>        <span class="o">|</span> <span class="nc">Some</span> <span class="n">chan</span> <span class="k">when</span> <span class="n">agent</span><span class="o">.</span><span class="nc">CurrentQueueLength</span> <span class="o">=</span> <span class="mi">0</span> <span class="o">-&gt;</span>
-</span><span class='line'>            <span class="k">return</span> <span class="n">chan</span><span class="o">.</span><span class="nc">Reply</span><span class="bp">()</span>
-</span><span class='line'>        <span class="o">|</span> <span class="o">_</span> <span class="o">-&gt;</span>
-</span><span class='line'>            <span class="k">let</span><span class="o">!</span> <span class="n">msg</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="nc">Receive</span><span class="bp">()</span>
-</span><span class='line'>            <span class="k">match</span> <span class="n">msg</span> <span class="k">with</span>
-</span><span class='line'>            <span class="o">|</span> <span class="nc">Stop</span> <span class="n">chan</span> <span class="o">-&gt;</span>
-</span><span class='line'>                <span class="k">return</span><span class="o">!</span> <span class="n">loop</span> <span class="n">subscribers</span> <span class="o">(</span><span class="nc">Some</span> <span class="n">chan</span><span class="o">)</span> <span class="n">agent</span>
-</span><span class='line'>            <span class="o">|</span> <span class="nc">Subscribe</span> <span class="n">s</span> <span class="o">-&gt;</span>
-</span><span class='line'>                <span class="k">return</span><span class="o">!</span> <span class="n">loop</span> <span class="o">(</span><span class="n">s</span><span class="o">::</span><span class="n">subscribers</span><span class="o">)</span> <span class="n">exiting</span> <span class="n">agent</span>
-</span><span class='line'>            <span class="o">|</span> <span class="nc">Publish</span> <span class="o">(</span><span class="n">message</span><span class="o">,</span> <span class="k">type&#39;</span><span class="o">,</span> <span class="n">expireTime</span><span class="o">,</span> <span class="n">topic</span><span class="o">)</span> <span class="o">-&gt;</span>
-</span><span class='line'>                <span class="k">if</span> <span class="n">expireTime</span> <span class="o">&gt;</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">UtcNow</span> <span class="k">then</span>
-</span><span class='line'>                    <span class="k">let</span> <span class="n">matchingSubs</span> <span class="o">=</span>
-</span><span class='line'>                        <span class="n">subscribers</span>
-</span><span class='line'>                        <span class="o">|&gt;</span> <span class="nn">List</span><span class="p">.</span><span class="n">filter</span> <span class="o">(</span><span class="k">fun</span> <span class="n">x</span> <span class="o">-&gt;</span> <span class="k">type&#39;</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="nc">Type</span>
-</span><span class='line'>                                                  <span class="o">&amp;&amp;</span> <span class="n">topicBindingMatch</span> <span class="n">topic</span> <span class="n">x</span><span class="o">.</span><span class="nc">Binding</span><span class="o">)</span>
-</span><span class='line'>                    <span class="k">for</span> <span class="n">sub</span> <span class="k">in</span> <span class="n">matchingSubs</span> <span class="k">do</span>
-</span><span class='line'>                        <span class="n">sub</span><span class="o">.</span><span class="nc">Action</span> <span class="n">message</span> <span class="o">|&gt;</span> <span class="nn">Async</span><span class="p">.</span><span class="nc">StartImmediate</span>
-</span><span class='line'>                <span class="k">return</span><span class="o">!</span> <span class="n">loop</span> <span class="n">subscribers</span> <span class="n">exiting</span> <span class="n">agent</span>
-</span><span class='line'>    <span class="o">}</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">type</span> <span class="nc">MemoryBus</span> <span class="bp">()</span> <span class="o">=</span>
-</span><span class='line'>    <span class="k">let</span> <span class="n">agent</span> <span class="o">=</span> <span class="nn">MailboxProcessor</span><span class="p">.</span><span class="nc">Start</span><span class="o">(</span><span class="n">loop</span> <span class="bp">[]</span> <span class="nc">None</span><span class="o">)</span>
-</span><span class='line'>    <span class="k">do</span> <span class="n">agent</span><span class="o">.</span><span class="nn">Error</span><span class="p">.</span><span class="nc">Add</span> <span class="n">raise</span>
-</span><span class='line'>    <span class="k">interface</span> <span class="nc">IDisposable</span> <span class="k">with</span>
-</span><span class='line'>        <span class="k">member</span> <span class="o">__.</span><span class="nc">Dispose</span><span class="bp">()</span> <span class="o">=</span>
-</span><span class='line'>            <span class="n">agent</span><span class="o">.</span><span class="nc">PostAndReply</span> <span class="nc">Stop</span>
-</span><span class='line'>    <span class="k">interface</span> <span class="nc">ProcessManagerBus</span> <span class="k">with</span>
-</span><span class='line'>        <span class="k">member</span> <span class="o">__.</span><span class="nc">Publish</span> <span class="o">(</span><span class="n">message</span> <span class="o">:</span> <span class="k">&#39;</span><span class="n">a</span><span class="o">)</span> <span class="n">expiry</span> <span class="o">=</span>
-</span><span class='line'>            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Publish</span> <span class="o">(</span><span class="n">box</span> <span class="n">message</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;,</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">UtcNow</span> <span class="o">+</span> <span class="n">expiry</span><span class="o">,</span> <span class="nc">None</span><span class="o">))</span>
-</span><span class='line'>            <span class="n">async</span><span class="o">.</span><span class="nc">Zero</span><span class="bp">()</span>
-</span><span class='line'>        <span class="k">member</span> <span class="o">__.</span><span class="nc">TopicPublish</span> <span class="o">(</span><span class="n">message</span> <span class="o">:</span> <span class="k">&#39;</span><span class="n">a</span><span class="o">)</span> <span class="n">topic</span> <span class="n">expiry</span> <span class="o">=</span>
-</span><span class='line'>            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Publish</span> <span class="o">(</span><span class="n">box</span> <span class="n">message</span><span class="o">,</span> <span class="n">typeof</span><span class="o">&lt;</span><span class="k">&#39;</span><span class="n">a</span><span class="o">&gt;,</span> <span class="nn">DateTime</span><span class="p">.</span><span class="nc">UtcNow</span> <span class="o">+</span> <span class="n">expiry</span><span class="o">,</span> <span class="nc">Some</span> <span class="n">topic</span><span class="o">))</span>
-</span><span class='line'>            <span class="n">async</span><span class="o">.</span><span class="nc">Zero</span><span class="bp">()</span>
-</span><span class='line'>        <span class="k">member</span> <span class="o">__.</span><span class="nc">Subscribe</span> <span class="n">sid</span> <span class="n">action</span> <span class="o">=</span>
-</span><span class='line'>            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Subscribe</span> <span class="o">{</span> <span class="nc">SubscriptionId</span> <span class="o">=</span> <span class="n">sid</span><span class="o">;</span> <span class="nc">Binding</span> <span class="o">=</span> <span class="s2">&quot;#&quot;</span><span class="o">;</span> <span class="nc">Action</span> <span class="o">=</span> <span class="n">action</span> <span class="o">})</span>
-</span><span class='line'>        <span class="k">member</span> <span class="o">__.</span><span class="nc">TopicSubscribe</span> <span class="n">sid</span> <span class="o">(</span><span class="nc">Topic</span> <span class="n">binding</span><span class="o">)</span> <span class="n">action</span> <span class="o">=</span>
-</span><span class='line'>            <span class="n">agent</span><span class="o">.</span><span class="nc">Post</span> <span class="o">(</span><span class="nc">Subscribe</span> <span class="o">{</span> <span class="nc">SubscriptionId</span> <span class="o">=</span> <span class="n">sid</span><span class="o">;</span> <span class="nc">Binding</span> <span class="o">=</span> <span class="n">binding</span><span class="o">;</span> <span class="nc">Action</span> <span class="o">=</span> <span class="n">action</span> <span class="o">})</span>
-</span></code></pre></td></tr></table></div></figure>
 ]]></content>
   </entry>
   

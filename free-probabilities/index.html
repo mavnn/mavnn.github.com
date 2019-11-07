@@ -1,0 +1,947 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Free Probabilities - Mavnn's blog</title>
+  <meta name="author" content="mavnn">
+
+  
+  <meta name="description" content="As the Monty Python crew would say: &quot;Now for something completely different!&quot; TL;DR: I&#39;m going to turn a Monad of probabilities into a &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+  <link rel="canonical" href="https://blog.mavnn.co.uk/free-probabilities/">
+  <link href="/favicon.ico" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Mavnn's blog" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="https://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="https://fonts.googleapis.com/css?family=Fira+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="https://fonts.googleapis.com/css?family=Fira+Mono:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+<!-- Google Analytics -->
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-37561687-1', 'auto');
+ga('send', 'pageview');
+
+</script>
+<!-- End Google Analytics -->
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <a href="https://mavnn.co.uk"><img class="swirl-logo" src="/images/swirl.svg"/></a>
+  <h1><a href="/">Mavnn's blog</a></h1>
+  
+    <h2>Stuff from my brain</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="#" method="get" id="searchbox" >
+  <fieldset role="search">
+    <input type="hidden" id="site_query" value="site:blog.mavnn.co.uk" />
+    <input class="search" type="text" name="q" results="0" id="search_query" placeholder="Search"/>
+  </fieldset>
+</form>
+<ul class="main-navigation">
+  <li><a href="https://mavnn.co.uk">Main Site</a></li>
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+
+<!-- for the course -->
+<!-- <h5>We're running <a href="/cloud-native-net/">Cloud Native .NET</a> in Brighton, 26th-27th April 2018. High quality training for building .NET Core, distributed, production ready systems.</h5> -->
+<!-- take it out up to here... -->
+
+
+
+  <header>
+    
+      <h1 class="entry-title">Free Probabilities</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2019-11-06T18:37:04+00:00" pubdate data-updated="true">Nov 6<span>th</span>, 2019</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>As the Monty Python crew would say: &quot;Now for something completely different!&quot;</p>
+
+<blockquote>
+<p>TL;DR: I&#39;m going to turn a <code>Monad</code> of probabilities into a <code>Free Monad</code> of probabilities and this is not nearly so scary as it sounds. Also, it&#39;s actually useful!</p>
+</blockquote>
+
+<p>I&#39;ve been using a bit more Haskell recently, and after watching a demo from a <a href="https://twitter.com/schtoeffel">colleague</a> I wanted to solve a problem that&#39;s been bouncing around my brain for a while.</p>
+
+<p>I do a fair bit of both game playing and game design (in the board game and tabletop roleplaying sense of &#39;game&#39;), and I&#39;m often interested in either generating random values or investigating how likely the result of a random process is.</p>
+
+<p>Let&#39;s give an example; if I model a dice roll with the &quot;spread&quot; of possible outcomes, it might look like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'><span class="cm">{-# LANGUAGE DeriveFunctor #-}</span>
+</span><span class='line'>
+</span><span class='line'><span class="kr">import</span> <span class="nn">Protolude</span>
+</span><span class='line'><span class="kr">import</span> <span class="nn">Data.Ratio</span>
+</span><span class='line'>
+</span><span class='line'><span class="kr">type</span> <span class="kt">Probability</span> <span class="ow">=</span> <span class="kt">Ratio</span> <span class="kt">Integer</span>
+</span><span class='line'>
+</span><span class='line'><span class="kr">newtype</span> <span class="kt">Spread</span> <span class="n">a</span> <span class="ow">=</span>
+</span><span class='line'>  <span class="kt">Spread</span> <span class="p">[(</span><span class="n">a</span><span class="p">,</span> <span class="kt">Probability</span><span class="p">)]</span>
+</span><span class='line'>  <span class="kr">deriving</span> <span class="p">(</span><span class="kt">Show</span><span class="p">,</span> <span class="kt">Eq</span><span class="p">,</span> <span class="kt">Functor</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="nf">dice</span> <span class="ow">::</span> <span class="kt">Spread</span> <span class="kt">Integer</span>
+</span><span class='line'><span class="nf">dice</span> <span class="ow">=</span> <span class="kt">Spread</span> <span class="p">[(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span> <span class="o">%</span> <span class="mi">6</span><span class="p">)</span>
+</span><span class='line'>              <span class="p">,(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span> <span class="o">%</span> <span class="mi">6</span><span class="p">)</span>
+</span><span class='line'>              <span class="p">,(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span> <span class="o">%</span> <span class="mi">6</span><span class="p">)</span>
+</span><span class='line'>              <span class="p">,(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">1</span> <span class="o">%</span> <span class="mi">6</span><span class="p">)</span>
+</span><span class='line'>              <span class="p">,(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">1</span> <span class="o">%</span> <span class="mi">6</span><span class="p">)</span>
+</span><span class='line'>              <span class="p">,(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">1</span> <span class="o">%</span> <span class="mi">6</span><span class="p">)</span>
+</span><span class='line'>              <span class="p">]</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<!-- more -->
+
+<p>This basically just means that if I roll that dice, I have a 1 in 6 chance of rolling any of the 6 numbers. Now, there are rules for combining conditional probabilities: let&#39;s start adding these in.</p>
+
+<p>Haskell has basically given us one for free; if something always happens, we can adjust all of the potential outcomes to incorporate the &quot;something&quot;. This can be modeled by being able to <code>map</code> over the values in our <code>Spread</code>.</p>
+
+<p>Let&#39;s add 10 to our dice roll, regardless of what&#39;s rolled:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'><span class="c1">-- λ&gt; fmap ((+) 10) dice</span>
+</span><span class='line'><span class="kt">Spread</span> <span class="p">[(</span><span class="mi">11</span><span class="p">,</span><span class="mi">1</span> <span class="o">%</span> <span class="mi">6</span><span class="p">),(</span><span class="mi">12</span><span class="p">,</span><span class="mi">1</span> <span class="o">%</span> <span class="mi">6</span><span class="p">),(</span><span class="mi">13</span><span class="p">,</span><span class="mi">1</span> <span class="o">%</span> <span class="mi">6</span><span class="p">),(</span><span class="mi">14</span><span class="p">,</span><span class="mi">1</span> <span class="o">%</span> <span class="mi">6</span><span class="p">),(</span><span class="mi">15</span><span class="p">,</span><span class="mi">1</span> <span class="o">%</span> <span class="mi">6</span><span class="p">),(</span><span class="mi">16</span><span class="p">,</span><span class="mi">1</span> <span class="o">%</span> <span class="mi">6</span><span class="p">)]</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>So far, so good. Let&#39;s see if we can take this a bit further; turn <code>Spread</code> into an <code>Applicative</code>.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'><span class="kr">instance</span> <span class="kt">Applicative</span> <span class="kt">Spread</span> <span class="kr">where</span>
+</span><span class='line'>  <span class="n">pure</span> <span class="n">v</span> <span class="ow">=</span> <span class="kt">Spread</span> <span class="p">[(</span><span class="n">v</span><span class="p">,</span> <span class="mi">1</span> <span class="o">%</span> <span class="mi">1</span><span class="p">)]</span>
+</span><span class='line'>  <span class="p">(</span><span class="kt">Spread</span> <span class="n">fs</span><span class="p">)</span> <span class="o">&lt;*&gt;</span> <span class="p">(</span><span class="kt">Spread</span> <span class="n">xs</span><span class="p">)</span> <span class="ow">=</span>
+</span><span class='line'>    <span class="kt">Spread</span> <span class="p">[(</span><span class="n">f</span> <span class="n">x</span><span class="p">,</span> <span class="n">p1</span> <span class="o">*</span> <span class="n">p2</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">p1</span><span class="p">)</span> <span class="ow">&lt;-</span> <span class="n">fs</span><span class="p">,</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">p2</span><span class="p">)</span> <span class="ow">&lt;-</span> <span class="n">xs</span><span class="p">]</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Here we set up two things; first, <code>pure</code> enables us to take any individual value and turn into a <code>Spread</code> of that value. From a logical point of view, the total probability of all of the items in a spread must add up to &quot;1&quot; (we&#39;ll enforce that with smart constructors later) so there&#39;s only one choice here. <code>pure</code> returns a <code>Spread</code> with a single item in it - probability of that outcome? Certain.</p>
+
+<p><code>&lt;*&gt;</code> is the operator that allows us to take a <code>Spread</code> of functions <code>a -&gt; b</code> and a <code>Spread</code> of inputs <code>a</code> and return a <code>Spread b</code>. Hmm. How should that work?</p>
+
+<p>Well, to work out the probability of an event A which is conditional on event B, you just multiply the two probabilities together. So <code>&lt;*&gt;</code> turns out to be reasonably straight forward: you take all possible combinations of functions and inputs, and return each output with a probability of (probability of function * probability of input).</p>
+
+<p>So that&#39;s done, but doesn&#39;t look immediately useful. It does, however, allow us to escalate one more level: <code>Monad</code>.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'><span class="kr">instance</span> <span class="kt">Monad</span> <span class="kt">Spread</span> <span class="kr">where</span>
+</span><span class='line'>  <span class="p">(</span><span class="o">&gt;&gt;=</span><span class="p">)</span> <span class="ow">=</span> <span class="n">bind</span>
+</span><span class='line'>
+</span><span class='line'><span class="nf">bind</span> <span class="ow">::</span> <span class="kt">Spread</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="p">(</span><span class="n">a</span> <span class="ow">-&gt;</span> <span class="kt">Spread</span> <span class="n">b</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="kt">Spread</span> <span class="n">b</span>
+</span><span class='line'><span class="nf">bind</span> <span class="p">(</span><span class="kt">Spread</span> <span class="n">xs</span><span class="p">)</span> <span class="n">f</span> <span class="ow">=</span> <span class="kt">Spread</span> <span class="o">$</span> <span class="n">concatMap</span> <span class="n">concatinate</span> <span class="n">xs</span>
+</span><span class='line'>  <span class="kr">where</span>
+</span><span class='line'>    <span class="n">combineConditional</span> <span class="p">(</span><span class="kt">Spread</span> <span class="n">children</span><span class="p">,</span> <span class="n">parentProb</span><span class="p">)</span> <span class="ow">=</span>
+</span><span class='line'>      <span class="n">map</span> <span class="p">(</span><span class="nf">\</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">prob</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">parentProb</span> <span class="o">*</span> <span class="n">prob</span><span class="p">))</span> <span class="n">children</span>
+</span><span class='line'>    <span class="n">concatinate</span> <span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span> <span class="ow">=</span> <span class="n">combineConditional</span> <span class="p">(</span><span class="n">f</span> <span class="n">v</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>So we&#39;re back on conditional probabilities again. We take each of our values from the input spread and apply our function to it. Then we multiply the probability of the outcome in the &quot;child&quot; spread with the probability of the &quot;parent&quot; input - and finally we concatinate the whole lot back together into a single list and wrap it up in <code>Spread</code> again.</p>
+
+<p>The way the laws of probability (and, well, fraction multiplication) work, if the total probability in each of our <code>Spread</code>s is 1, the total probability across all of our outcomes after a bind will also be 1. Neat! Now we have something we can use.</p>
+
+<p>Let&#39;s add 10 to every dice that rolls more than 3!</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'><span class="nf">weirdRoll</span> <span class="ow">::</span> <span class="kt">Spread</span> <span class="kt">Integer</span>
+</span><span class='line'><span class="nf">weirdRoll</span> <span class="ow">=</span> <span class="kr">do</span>
+</span><span class='line'>  <span class="n">roll</span> <span class="ow">&lt;-</span> <span class="n">dice</span>
+</span><span class='line'>  <span class="kr">if</span> <span class="n">roll</span> <span class="o">&gt;</span> <span class="mi">3</span> <span class="kr">then</span>
+</span><span class='line'>    <span class="n">pure</span> <span class="p">(</span><span class="n">roll</span> <span class="o">+</span> <span class="mi">10</span><span class="p">)</span>
+</span><span class='line'>  <span class="kr">else</span>
+</span><span class='line'>    <span class="n">pure</span> <span class="n">roll</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">-- Spread [(1,1 % 6),(2,1 % 6),(3,1 % 6),(14,1 % 6),(15,1 % 6),(16,1 % 6)]</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>This is starting to look good.</p>
+
+<p>We do have a problem though: this is a very useful representation for when we want to know every possible outcome and it&#39;s probability of happening - but that&#39;s not always desirable, or possible.</p>
+
+<p>Let&#39;s take a famous example; a game where you flip a coin. If it comes up tails it pays out £1.00 - if you get heads you pay again with double the pay out. How much do you want to pay to take part in this game?</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'><span class="nf">doubleOnHeads</span> <span class="ow">::</span> <span class="kt">Integer</span> <span class="ow">-&gt;</span> <span class="kt">Spread</span> <span class="kt">Integer</span>
+</span><span class='line'><span class="nf">doubleOnHeads</span> <span class="n">last</span> <span class="ow">=</span> <span class="kr">do</span>
+</span><span class='line'>  <span class="n">isTails</span> <span class="ow">&lt;-</span> <span class="kt">Spread</span> <span class="p">[(</span><span class="kt">True</span><span class="p">,</span> <span class="mi">1</span> <span class="o">%</span> <span class="mi">2</span><span class="p">),</span> <span class="p">(</span><span class="kt">False</span><span class="p">,</span> <span class="mi">1</span> <span class="o">%</span> <span class="mi">2</span><span class="p">)]</span>
+</span><span class='line'>  <span class="kr">if</span> <span class="n">isTails</span> <span class="kr">then</span>
+</span><span class='line'>    <span class="n">pure</span> <span class="n">last</span>
+</span><span class='line'>  <span class="kr">else</span>
+</span><span class='line'>    <span class="n">doubleOnHeads</span> <span class="p">(</span><span class="n">last</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Which promptly creates an infinite last of possible outcome states. In an other use case, it can be nice to just pick an outcome from the sample space. For example, if I want to model how much damage a warrior in my Pathfinder game does with a long sword I may want to look at the probability spread&#8230; or I might just want to pick a result at random.</p>
+
+<p>So I want to take this existing monadic data structure, but execute it with different execution strategies. Which meant when someone at work mentioned <code>Free</code> monads in a demo and mentioned that they capture the shape of a monad without executing it, my ears pricked up.</p>
+
+<p>The theory says that we can take any <code>Functor</code> and turn it into a <code>Free Monad</code>; so turning a <code>Monad</code> into a <code>Free Monad</code> must be even easier, no?</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'><span class="kr">import</span> <span class="nn">Control.Monad.Free</span>
+</span><span class='line'>
+</span><span class='line'><span class="kr">type</span> <span class="kt">Prob</span> <span class="ow">=</span> <span class="kt">Free</span> <span class="kt">Spread</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Well, the first step is pretty straight forward. Now we can create <code>Prob</code> representations of dependent probabilities just like before!</p>
+
+<p>Let&#39;s have a few functions to create <code>Spread</code>s which are both guaranteed to be &quot;meaningful&quot; and lifted into our new <code>Prob</code> type.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'><span class="c1">-- Turn a list of equally likely outcomes into a `Prob`</span>
+</span><span class='line'><span class="nf">ofList</span> <span class="ow">::</span> <span class="p">[</span><span class="n">a</span><span class="p">]</span> <span class="ow">-&gt;</span> <span class="kt">Prob</span> <span class="n">a</span>
+</span><span class='line'><span class="nf">ofList</span> <span class="n">xs</span> <span class="ow">=</span>
+</span><span class='line'>  <span class="kr">let</span> <span class="n">denom</span> <span class="ow">=</span> <span class="n">fromIntegral</span> <span class="o">$</span> <span class="n">length</span> <span class="n">xs</span>
+</span><span class='line'>   <span class="kr">in</span> <span class="n">lift</span> <span class="o">$</span> <span class="kt">Spread</span> <span class="o">$</span> <span class="n">map</span> <span class="p">(,</span> <span class="mi">1</span> <span class="o">%</span> <span class="n">denom</span><span class="p">)</span> <span class="n">xs</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">-- Turn a single outcome into a one item `Prob` with likelyhood of &quot;1&quot;</span>
+</span><span class='line'><span class="nf">certain</span> <span class="ow">::</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="kt">Prob</span> <span class="n">a</span>
+</span><span class='line'><span class="nf">certain</span> <span class="ow">=</span> <span class="n">pure</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">-- Turn a list of outcomes with relative likehood to each other</span>
+</span><span class='line'><span class="c1">-- into a `Prob`</span>
+</span><span class='line'><span class="nf">ofWeightedList</span> <span class="ow">::</span> <span class="p">[(</span><span class="n">a</span><span class="p">,</span> <span class="kt">Integer</span><span class="p">)]</span> <span class="ow">-&gt;</span> <span class="kt">Prob</span> <span class="n">a</span>
+</span><span class='line'><span class="nf">ofWeightedList</span> <span class="n">xs</span> <span class="ow">=</span>
+</span><span class='line'>  <span class="kr">let</span> <span class="n">denom</span> <span class="ow">=</span> <span class="n">sum</span> <span class="o">$</span> <span class="n">map</span> <span class="n">snd</span> <span class="n">xs</span>
+</span><span class='line'>   <span class="kr">in</span> <span class="n">lift</span> <span class="o">$</span> <span class="kt">Spread</span> <span class="o">$</span> <span class="n">map</span> <span class="p">(</span><span class="nf">\</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">w</span> <span class="o">%</span> <span class="n">denom</span><span class="p">))</span> <span class="n">xs</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Now we can rewrite our previous example:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'><span class="nf">weirdRoll2</span> <span class="ow">::</span> <span class="kt">Prob</span> <span class="kt">Integer</span>
+</span><span class='line'><span class="nf">weirdRoll2</span> <span class="ow">=</span> <span class="kr">do</span>
+</span><span class='line'>  <span class="n">roll</span> <span class="ow">&lt;-</span> <span class="n">ofList</span> <span class="p">[</span><span class="mi">1</span><span class="o">..</span><span class="mi">6</span><span class="p">]</span>
+</span><span class='line'>  <span class="kr">if</span> <span class="n">roll</span> <span class="o">&gt;</span> <span class="mi">3</span> <span class="kr">then</span>
+</span><span class='line'>    <span class="n">pure</span> <span class="p">(</span><span class="n">roll</span> <span class="o">+</span> <span class="mi">10</span><span class="p">)</span>
+</span><span class='line'>  <span class="kr">else</span>
+</span><span class='line'>    <span class="n">pure</span> <span class="n">roll</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Success! Kind of. This looks great, and type checks, but I can&#39;t actually evaluate the result any more.</p>
+
+<p>Let&#39;s see if we can deal with that. The <code>Control.Monad.Free</code> library provides a hopefully named function called <code>iterM</code>.</p>
+
+<p>The full type annotation looks like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'><span class="nf">iterM</span> <span class="ow">::</span> <span class="p">(</span><span class="kt">Monad</span> <span class="n">m</span><span class="p">,</span> <span class="kt">Functor</span> <span class="n">f</span><span class="p">)</span> <span class="ow">=&gt;</span> <span class="p">(</span><span class="n">f</span> <span class="p">(</span><span class="n">m</span> <span class="n">a</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="n">m</span> <span class="n">a</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="kt">Free</span> <span class="n">f</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">m</span> <span class="n">a</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Ouch. Well, we have a <code>Monad</code> we want to turn things into (<code>Spread</code>). And we have the <code>Functor</code> which our <code>Free Spread</code> is created from which is&#8230; <code>Spread</code>. So let&#39;s start plugging in names:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'><span class="nf">iterM</span> <span class="ow">::</span> <span class="p">(</span><span class="kt">Spread</span> <span class="p">(</span><span class="kt">Spread</span> <span class="n">a</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="kt">Spread</span> <span class="n">a</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="kt">Free</span> <span class="kt">Spread</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="kt">Spread</span> <span class="n">a</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Looking carefully, it looks like all I actually need to supply is a function <code>(Spread (Spread a)) -&gt; Spread a</code>. Let&#39;s see if we can find an easy way to do that in <a href="https://hoogle.haskell.org/">Hoogle</a>, a search engine that allows us to search for function signatures.</p>
+
+<p>Searching for <a href="https://hoogle.haskell.org/?hoogle=Monad%20m%20%3D%3E%20(m%20(m%20a))%20-%3E%20m%20a">Monad m =&gt; (m (m a)) -&gt; m a</a> turns up <code>join</code> which is already part of the <code>Monad</code> type class. Abstraction for the win!</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'><span class="nf">getSpread</span> <span class="ow">::</span> <span class="kt">Prob</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="kt">Spread</span> <span class="n">a</span>
+</span><span class='line'><span class="nf">getSpread</span> <span class="ow">=</span> <span class="n">iterM</span> <span class="n">join</span>
+</span><span class='line'>
+</span><span class='line'><span class="nf">isWorking</span> <span class="ow">::</span> <span class="kt">Bool</span>
+</span><span class='line'><span class="nf">isWorking</span> <span class="ow">=</span> <span class="n">getSpread</span> <span class="n">weirdRoll2</span> <span class="o">==</span> <span class="n">weirdRoll</span>
+</span><span class='line'><span class="c1">-- True</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Good stuff. Now life gets really interesting. Let&#39;s add in ways of picking a single sample out of a <code>Prob</code> without evaluating the entire outcome space.</p>
+
+<p>First, we need a way of picking a single outcome from a <code>Spread</code>. We&#39;ll break it down into two functions; <code>pickFromSpread</code> starts from the knowledge that the probabilities in a <code>Spread</code> always add up to 1:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'><span class="nf">pickFromSpread</span> <span class="ow">::</span> <span class="kt">Spread</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="kt">IO</span> <span class="n">a</span>
+</span><span class='line'><span class="nf">pickFromSpread</span> <span class="p">(</span><span class="kt">Spread</span> <span class="n">xs</span><span class="p">)</span> <span class="ow">=</span>
+</span><span class='line'>  <span class="n">pickSample</span> <span class="p">(</span><span class="mi">1</span> <span class="o">%</span> <span class="mi">1</span><span class="p">)</span> <span class="n">xs</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>It has a return type of <code>IO a</code> because picking a random value means the function is not referentially transparent.</p>
+
+<p>Our second function decides whether to take pick the first sample from a list of <code>[(a, Probability)]</code> based on the Probability of the first item compared to the total of all of the Probabilities in the list. We pass in the total of the remaining probabilities as an argument each time, as the list may be infinite so we don&#39;t want to <code>sum</code> across it.</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'><span class="kr">import</span> <span class="s">&quot;random&quot;</span> <span class="nn">System.Random</span>
+</span><span class='line'>
+</span><span class='line'><span class="nf">pickSample</span> <span class="ow">::</span> <span class="kt">Probability</span> <span class="ow">-&gt;</span> <span class="p">[(</span><span class="n">a</span><span class="p">,</span> <span class="kt">Probability</span><span class="p">)]</span> <span class="ow">-&gt;</span> <span class="kt">IO</span> <span class="n">a</span>
+</span><span class='line'><span class="nf">pickSample</span> <span class="n">totalProb</span> <span class="p">((</span><span class="n">outcome</span><span class="p">,</span> <span class="n">prob</span><span class="p">)</span><span class="kt">:</span><span class="n">rest</span><span class="p">)</span> <span class="ow">=</span> <span class="kr">do</span>
+</span><span class='line'>  <span class="c1">-- rescale our probability to be out of &quot;1&quot;</span>
+</span><span class='line'>  <span class="kr">let</span> <span class="n">actualProbability</span> <span class="ow">=</span> <span class="n">prob</span> <span class="o">/</span> <span class="n">totalProb</span>
+</span><span class='line'>  <span class="kr">let</span> <span class="n">n</span> <span class="ow">=</span> <span class="n">numerator</span> <span class="n">actualProbability</span>
+</span><span class='line'>  <span class="kr">let</span> <span class="n">d</span> <span class="ow">=</span> <span class="n">denominator</span> <span class="n">actualProbability</span>
+</span><span class='line'>  <span class="n">pick</span> <span class="ow">&lt;-</span> <span class="n">randomRIO</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+</span><span class='line'>  <span class="kr">if</span> <span class="n">pick</span> <span class="o">&lt;=</span> <span class="n">n</span>
+</span><span class='line'>    <span class="kr">then</span> <span class="n">pure</span> <span class="n">outcome</span>
+</span><span class='line'>    <span class="kr">else</span> <span class="n">pickSample</span> <span class="p">(</span><span class="n">totalProb</span> <span class="o">-</span> <span class="n">prob</span><span class="p">)</span> <span class="n">rest</span>
+</span><span class='line'><span class="nf">pickSample</span> <span class="kr">_</span> <span class="kt">[]</span> <span class="ow">=</span> <span class="n">panic</span> <span class="s">&quot;This shouldn&#39;t ever happen! Oops.&quot;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>We can now go from <code>Spread a</code> to <code>IO a</code>. Let&#39;s plug that into <code>iterM</code>&#39;s type signature again and see what we get:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'><span class="nf">iterM</span> <span class="ow">::</span> <span class="p">(</span><span class="kt">Monad</span> <span class="n">m</span><span class="p">,</span> <span class="kt">Functor</span> <span class="n">f</span><span class="p">)</span> <span class="ow">=&gt;</span> <span class="p">(</span><span class="n">f</span> <span class="p">(</span><span class="n">m</span> <span class="n">a</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="n">m</span> <span class="n">a</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="kt">Free</span> <span class="n">f</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="n">m</span> <span class="n">a</span>
+</span><span class='line'>
+</span><span class='line'><span class="p">(</span><span class="n">m</span> <span class="ow">=</span> <span class="kt">IO</span> <span class="n">a</span><span class="p">,</span> <span class="n">f</span> <span class="ow">=</span> <span class="kt">Spread</span> <span class="n">a</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="nf">iterM</span> <span class="ow">::</span> <span class="p">(</span><span class="kt">Spread</span> <span class="p">(</span><span class="kt">IO</span> <span class="n">a</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="kt">IO</span> <span class="n">a</span><span class="p">)</span> <span class="ow">-&gt;</span> <span class="kt">Free</span> <span class="kt">Spread</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="kt">IO</span> <span class="n">a</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>This looks pretty similar to before, where we used <code>join</code> to unwrap nested <code>Spread</code> structures. If we could turn that <code>Spread (IO a)</code> into a <code>IO (IO a)</code> than we could call <code>join</code> with it - which we can, because that&#39;s exactly what <code>pickFromSpread</code> does!</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'><span class="nf">getSample</span> <span class="ow">::</span> <span class="kt">Prob</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="kt">IO</span> <span class="n">a</span>
+</span><span class='line'><span class="nf">getSample</span> <span class="ow">=</span> <span class="n">iterM</span> <span class="p">(</span><span class="n">join</span> <span class="o">.</span> <span class="n">pickFromSpread</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Now we can call start pulling random samples out of a <code>Prob</code>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'><span class="c1">-- λ&gt; getSample weirdRoll2</span>
+</span><span class='line'><span class="mi">15</span>
+</span><span class='line'><span class="c1">-- λ&gt; getSample weirdRoll2</span>
+</span><span class='line'><span class="mi">2</span>
+</span><span class='line'><span class="c1">-- λ&gt; getSample weirdRoll2</span>
+</span><span class='line'><span class="mi">3</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>This is very fast, and even works well on infinitely recursive definitions like our coin flip above:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'><span class="c1">-- λ&gt; getSample $ lift (doubleOnHeads 1)</span>
+</span><span class='line'><span class="mi">1</span>
+</span><span class='line'><span class="c1">-- λ&gt; getSample $ lift (doubleOnHeads 1)</span>
+</span><span class='line'><span class="mi">32</span>
+</span><span class='line'><span class="c1">-- λ&gt; getSample $ lift (doubleOnHeads 1)</span>
+</span><span class='line'><span class="mi">4</span>
+</span><span class='line'><span class="c1">-- λ&gt; getSample $ lift (doubleOnHeads 1)</span>
+</span><span class='line'><span class="mi">2</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>This technique begins to look interesting when you realize that this technique allows you to take <em>anything</em> implemented as a <code>Functor</code> and supply an alternative execution method. Want to supply test values in your test instead of values from <code>IO</code>? This might just let you do that.</p>
+
+<p>That&#39;s basically all for now, but I will leave you with a final example.</p>
+
+<p>First, a function that makes all of this usable in practice; the <code>normalize</code> function takes a <code>Spread</code> and groups together repeats of the same outcome into a single value:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'><span class="kr">import</span> <span class="k">qualified</span> <span class="nn">Data.HashMap.Strict</span> <span class="k">as</span> <span class="n">HM</span>
+</span><span class='line'>
+</span><span class='line'><span class="nf">normalize</span> <span class="ow">::</span> <span class="p">(</span><span class="kt">Eq</span> <span class="n">a</span><span class="p">,</span> <span class="kt">Hashable</span> <span class="n">a</span><span class="p">)</span> <span class="ow">=&gt;</span> <span class="kt">Prob</span> <span class="n">a</span> <span class="ow">-&gt;</span> <span class="kt">Prob</span> <span class="n">a</span>
+</span><span class='line'><span class="nf">normalize</span> <span class="ow">=</span>
+</span><span class='line'>  <span class="kr">let</span> <span class="n">spreadNorm</span> <span class="p">(</span><span class="kt">Spread</span> <span class="n">xs</span><span class="p">)</span> <span class="ow">=</span>
+</span><span class='line'>        <span class="kt">Spread</span> <span class="o">$</span>
+</span><span class='line'>        <span class="kt">HM</span><span class="o">.</span><span class="n">toList</span> <span class="o">$</span> <span class="n">foldr</span> <span class="p">(</span><span class="nf">\</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span> <span class="n">acc</span> <span class="ow">-&gt;</span> <span class="kt">HM</span><span class="o">.</span><span class="n">insertWith</span> <span class="p">(</span><span class="o">+</span><span class="p">)</span> <span class="n">v</span> <span class="n">p</span> <span class="n">acc</span><span class="p">)</span> <span class="kt">HM</span><span class="o">.</span><span class="n">empty</span> <span class="n">xs</span>
+</span><span class='line'>   <span class="kr">in</span> <span class="n">lift</span> <span class="o">.</span> <span class="n">spreadNorm</span> <span class="o">.</span> <span class="n">retract</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>Then a model of an attack in Pathfinder (1st edition), modeling a strike with a weapon against a foe and building in things like critical hits:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+<span class='line-number'>85</span>
+<span class='line-number'>86</span>
+<span class='line-number'>87</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'><span class="kr">import</span> <span class="nn">Probability</span> <span class="c1">-- the code from above</span>
+</span><span class='line'><span class="kr">import</span> <span class="nn">Protolude</span>
+</span><span class='line'>
+</span><span class='line'><span class="nf">diceRoll</span> <span class="ow">::</span> <span class="kt">Integer</span> <span class="ow">-&gt;</span> <span class="kt">Prob</span> <span class="kt">Integer</span>
+</span><span class='line'><span class="nf">diceRoll</span> <span class="n">faces</span> <span class="ow">=</span> <span class="n">ofList</span> <span class="p">[</span><span class="mi">1</span> <span class="o">..</span> <span class="n">faces</span><span class="p">]</span>
+</span><span class='line'>
+</span><span class='line'><span class="nf">d4</span> <span class="ow">::</span> <span class="kt">Prob</span> <span class="kt">Integer</span>
+</span><span class='line'><span class="nf">d4</span> <span class="ow">=</span> <span class="n">diceRoll</span> <span class="mi">4</span>
+</span><span class='line'>
+</span><span class='line'><span class="nf">d6</span> <span class="ow">::</span> <span class="kt">Prob</span> <span class="kt">Integer</span>
+</span><span class='line'><span class="nf">d6</span> <span class="ow">=</span> <span class="n">diceRoll</span> <span class="mi">6</span>
+</span><span class='line'>
+</span><span class='line'><span class="nf">d8</span> <span class="ow">::</span> <span class="kt">Prob</span> <span class="kt">Integer</span>
+</span><span class='line'><span class="nf">d8</span> <span class="ow">=</span> <span class="n">diceRoll</span> <span class="mi">8</span>
+</span><span class='line'>
+</span><span class='line'><span class="nf">d10</span> <span class="ow">::</span> <span class="kt">Prob</span> <span class="kt">Integer</span>
+</span><span class='line'><span class="nf">d10</span> <span class="ow">=</span> <span class="n">diceRoll</span> <span class="mi">10</span>
+</span><span class='line'>
+</span><span class='line'><span class="nf">d12</span> <span class="ow">::</span> <span class="kt">Prob</span> <span class="kt">Integer</span>
+</span><span class='line'><span class="nf">d12</span> <span class="ow">=</span> <span class="n">diceRoll</span> <span class="mi">12</span>
+</span><span class='line'>
+</span><span class='line'><span class="nf">d20</span> <span class="ow">::</span> <span class="kt">Prob</span> <span class="kt">Integer</span>
+</span><span class='line'><span class="nf">d20</span> <span class="ow">=</span> <span class="n">diceRoll</span> <span class="mi">20</span>
+</span><span class='line'>
+</span><span class='line'><span class="nf">roll</span> <span class="ow">::</span> <span class="kt">Integer</span> <span class="ow">-&gt;</span> <span class="kt">Prob</span> <span class="kt">Integer</span> <span class="ow">-&gt;</span> <span class="kt">Integer</span> <span class="ow">-&gt;</span> <span class="kt">Prob</span> <span class="kt">Integer</span>
+</span><span class='line'><span class="nf">roll</span> <span class="n">numDice</span> <span class="n">dice</span> <span class="n">mod&#39;</span> <span class="ow">=</span>
+</span><span class='line'>  <span class="n">normalize</span> <span class="o">$</span> <span class="kr">do</span>
+</span><span class='line'>    <span class="n">dieRolls</span> <span class="ow">&lt;-</span> <span class="n">traverse</span> <span class="n">identity</span> <span class="p">(</span><span class="n">replicate</span> <span class="p">(</span><span class="n">fromIntegral</span> <span class="n">numDice</span><span class="p">)</span> <span class="n">dice</span><span class="p">)</span>
+</span><span class='line'>    <span class="n">pure</span> <span class="o">$</span> <span class="n">sum</span> <span class="n">dieRolls</span> <span class="o">+</span> <span class="n">mod&#39;</span>
+</span><span class='line'>
+</span><span class='line'><span class="kr">data</span> <span class="kt">Attack</span> <span class="ow">=</span> <span class="kt">Attack</span>
+</span><span class='line'>  <span class="p">{</span> <span class="n">attackDamage</span> <span class="ow">::</span> <span class="kt">Prob</span> <span class="kt">Integer</span>
+</span><span class='line'>  <span class="p">,</span> <span class="n">attackCritRange</span> <span class="ow">::</span> <span class="kt">Integer</span>
+</span><span class='line'>  <span class="p">,</span> <span class="n">attackCritMult</span> <span class="ow">::</span> <span class="kt">Integer</span>
+</span><span class='line'>  <span class="p">,</span> <span class="n">attackAccuracy</span> <span class="ow">::</span> <span class="kt">Integer</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="kr">data</span> <span class="kt">Defense</span> <span class="ow">=</span> <span class="kt">Defense</span>
+</span><span class='line'>  <span class="p">{</span> <span class="n">armorClass</span> <span class="ow">::</span> <span class="kt">Integer</span>
+</span><span class='line'>  <span class="p">,</span> <span class="n">damageReduction</span> <span class="ow">::</span> <span class="kt">Integer</span>
+</span><span class='line'>  <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="nf">longSword</span> <span class="ow">::</span> <span class="kt">Integer</span> <span class="ow">-&gt;</span> <span class="kt">Integer</span> <span class="ow">-&gt;</span> <span class="kt">Attack</span>
+</span><span class='line'><span class="nf">longSword</span> <span class="n">accBonus</span> <span class="n">damBonus</span> <span class="ow">=</span>
+</span><span class='line'>  <span class="kt">Attack</span>
+</span><span class='line'>    <span class="p">{</span> <span class="n">attackDamage</span> <span class="ow">=</span> <span class="n">roll</span> <span class="mi">1</span> <span class="n">d8</span> <span class="n">damBonus</span>
+</span><span class='line'>    <span class="p">,</span> <span class="n">attackCritRange</span> <span class="ow">=</span> <span class="mi">19</span>
+</span><span class='line'>    <span class="p">,</span> <span class="n">attackCritMult</span> <span class="ow">=</span> <span class="mi">2</span>
+</span><span class='line'>    <span class="p">,</span> <span class="n">attackAccuracy</span> <span class="ow">=</span> <span class="n">accBonus</span>
+</span><span class='line'>    <span class="p">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="kr">data</span> <span class="kt">HitResult</span>
+</span><span class='line'>  <span class="ow">=</span> <span class="kt">Critical</span>
+</span><span class='line'>  <span class="o">|</span> <span class="kt">Hit</span>
+</span><span class='line'>  <span class="o">|</span> <span class="kt">Miss</span>
+</span><span class='line'>
+</span><span class='line'><span class="nf">isHit</span> <span class="ow">::</span> <span class="kt">Attack</span> <span class="ow">-&gt;</span> <span class="kt">Defense</span> <span class="ow">-&gt;</span> <span class="kt">Prob</span> <span class="kt">HitResult</span>
+</span><span class='line'><span class="nf">isHit</span> <span class="n">attack</span> <span class="n">defense</span> <span class="ow">=</span> <span class="kr">do</span>
+</span><span class='line'>  <span class="kr">let</span> <span class="n">doesHit</span> <span class="n">rollToHit</span> <span class="ow">=</span>
+</span><span class='line'>        <span class="kr">case</span> <span class="n">rollToHit</span> <span class="kr">of</span>
+</span><span class='line'>          <span class="mi">1</span> <span class="ow">-&gt;</span> <span class="kt">False</span>
+</span><span class='line'>          <span class="mi">20</span> <span class="ow">-&gt;</span> <span class="kt">True</span>
+</span><span class='line'>          <span class="n">x</span> <span class="ow">-&gt;</span> <span class="n">x</span> <span class="o">+</span> <span class="n">attackAccuracy</span> <span class="n">attack</span> <span class="o">&gt;</span> <span class="n">armorClass</span> <span class="n">defense</span>
+</span><span class='line'>  <span class="n">toHit</span> <span class="ow">&lt;-</span> <span class="n">roll</span> <span class="mi">1</span> <span class="n">d20</span> <span class="mi">0</span>
+</span><span class='line'>  <span class="kr">if</span> <span class="n">doesHit</span> <span class="n">toHit</span>
+</span><span class='line'>    <span class="kr">then</span> <span class="kr">do</span>
+</span><span class='line'>      <span class="n">confirmCrit</span> <span class="ow">&lt;-</span> <span class="n">roll</span> <span class="mi">1</span> <span class="n">d20</span> <span class="mi">0</span>
+</span><span class='line'>      <span class="kr">if</span> <span class="n">doesHit</span> <span class="n">confirmCrit</span>
+</span><span class='line'>        <span class="kr">then</span> <span class="n">pure</span> <span class="kt">Critical</span>
+</span><span class='line'>        <span class="kr">else</span> <span class="n">pure</span> <span class="kt">Hit</span>
+</span><span class='line'>    <span class="kr">else</span> <span class="n">pure</span> <span class="kt">Miss</span>
+</span><span class='line'>
+</span><span class='line'><span class="nf">resolveAttack</span> <span class="ow">::</span> <span class="kt">Attack</span> <span class="ow">-&gt;</span> <span class="kt">Defense</span> <span class="ow">-&gt;</span> <span class="kt">Prob</span> <span class="kt">Integer</span>
+</span><span class='line'><span class="nf">resolveAttack</span> <span class="n">attack</span> <span class="n">defense</span> <span class="ow">=</span>
+</span><span class='line'>  <span class="n">normalize</span> <span class="o">$</span> <span class="kr">do</span>
+</span><span class='line'>    <span class="n">hit</span> <span class="ow">&lt;-</span> <span class="n">isHit</span> <span class="n">attack</span> <span class="n">defense</span>
+</span><span class='line'>    <span class="kr">case</span> <span class="n">hit</span> <span class="kr">of</span>
+</span><span class='line'>      <span class="kt">Miss</span> <span class="ow">-&gt;</span> <span class="n">pure</span> <span class="mi">0</span>
+</span><span class='line'>      <span class="kt">Hit</span> <span class="ow">-&gt;</span> <span class="n">attackDamage</span> <span class="n">attack</span>
+</span><span class='line'>      <span class="kt">Critical</span> <span class="ow">-&gt;</span> <span class="kr">do</span>
+</span><span class='line'>        <span class="n">damages</span> <span class="ow">&lt;-</span>
+</span><span class='line'>          <span class="n">traverse</span>
+</span><span class='line'>            <span class="n">identity</span>
+</span><span class='line'>            <span class="p">(</span><span class="n">replicate</span>
+</span><span class='line'>               <span class="p">(</span><span class="n">fromIntegral</span> <span class="o">$</span> <span class="n">attackCritMult</span> <span class="n">attack</span><span class="p">)</span>
+</span><span class='line'>               <span class="p">(</span><span class="n">attackDamage</span> <span class="n">attack</span><span class="p">))</span>
+</span><span class='line'>        <span class="n">pure</span> <span class="o">$</span> <span class="n">max</span> <span class="mi">0</span> <span class="p">(</span><span class="n">sum</span> <span class="n">damages</span> <span class="o">-</span> <span class="n">damageReduction</span> <span class="n">defense</span><span class="p">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>With some results:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'><span class="c1">-- λ&gt; getSpread $ resolveAttack (longSword 5 2) (Defense 15 0)</span>
+</span><span class='line'><span class="kt">Spread</span>
+</span><span class='line'>  <span class="p">[(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span> <span class="o">%</span> <span class="mi">2</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">,(</span><span class="mi">16</span><span class="p">,</span><span class="mi">5</span> <span class="o">%</span> <span class="mi">256</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">,(</span><span class="mi">17</span><span class="p">,</span><span class="mi">1</span> <span class="o">%</span> <span class="mi">64</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">,(</span><span class="mi">18</span><span class="p">,</span><span class="mi">3</span> <span class="o">%</span> <span class="mi">256</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">,(</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span> <span class="o">%</span> <span class="mi">32</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">,(</span><span class="mi">19</span><span class="p">,</span><span class="mi">1</span> <span class="o">%</span> <span class="mi">128</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">,(</span><span class="mi">4</span><span class="p">,</span><span class="mi">1</span> <span class="o">%</span> <span class="mi">32</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">,(</span><span class="mi">20</span><span class="p">,</span><span class="mi">1</span> <span class="o">%</span> <span class="mi">256</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">,(</span><span class="mi">5</span><span class="p">,</span><span class="mi">1</span> <span class="o">%</span> <span class="mi">32</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">,(</span><span class="mi">6</span><span class="p">,</span><span class="mi">9</span> <span class="o">%</span> <span class="mi">256</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">,(</span><span class="mi">7</span><span class="p">,</span><span class="mi">5</span> <span class="o">%</span> <span class="mi">128</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">,(</span><span class="mi">8</span><span class="p">,</span><span class="mi">11</span> <span class="o">%</span> <span class="mi">256</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">,(</span><span class="mi">9</span><span class="p">,</span><span class="mi">3</span> <span class="o">%</span> <span class="mi">64</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">,(</span><span class="mi">10</span><span class="p">,</span><span class="mi">13</span> <span class="o">%</span> <span class="mi">256</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">,(</span><span class="mi">11</span><span class="p">,</span><span class="mi">3</span> <span class="o">%</span> <span class="mi">128</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">,(</span><span class="mi">12</span><span class="p">,</span><span class="mi">7</span> <span class="o">%</span> <span class="mi">256</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">,(</span><span class="mi">13</span><span class="p">,</span><span class="mi">1</span> <span class="o">%</span> <span class="mi">32</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">,(</span><span class="mi">14</span><span class="p">,</span><span class="mi">7</span> <span class="o">%</span> <span class="mi">256</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">,(</span><span class="mi">15</span><span class="p">,</span><span class="mi">3</span> <span class="o">%</span> <span class="mi">128</span><span class="p">)</span>
+</span><span class='line'>  <span class="p">]</span>
+</span><span class='line'>
+</span><span class='line'><span class="c1">-- λ&gt; getSample $ resolveAttack (longSword 5 2) (Defense 15 0)</span>
+</span><span class='line'><span class="mi">12</span>
+</span><span class='line'><span class="c1">-- λ&gt; getSample $ resolveAttack (longSword 5 2) (Defense 15 0)</span>
+</span><span class='line'><span class="mi">15</span>
+</span><span class='line'><span class="c1">-- λ&gt; getSample $ resolveAttack (longSword 5 2) (Defense 15 0)</span>
+</span><span class='line'><span class="mi">0</span>
+</span><span class='line'><span class="c1">-- λ&gt; getSample $ resolveAttack (longSword 5 2) (Defense 15 0)</span>
+</span><span class='line'><span class="mi">0</span>
+</span></code></pre></td></tr></table></div></figure>
+
+<p>I hope you&#39;ve enjoyed this brief visit to useful abstractions in Haskell; it&#39;s definitely a language where as you learn it you realise that you have great power, and great responsibility to the next maintainer!</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">mavnn</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2019-11-06T18:37:04+00:00" pubdate data-updated="true">Nov 6<span>th</span>, 2019</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/haskell/'>haskell</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="https://blog.mavnn.co.uk/free-probabilities/" data-via="mavnn" data-counturl="https://blog.mavnn.co.uk/free-probabilities/" >Tweet</a>
+  
+  
+  <div class="g-plusone" data-size="medium"></div>
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/shake-generated-files/" title="Previous Post: Shake: Generated Files">&laquo; Shake: Generated Files</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Hire the Author</h1>
+  <p>
+    Want some help in any of the areas you've read about? Hop across to
+    <a href="https://mavnn.co.uk">mavnn.co.uk</a> where you can hire the
+    author.
+  </p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/free-probabilities/">Free Probabilities</a>
+      </li>
+    
+      <li class="post">
+        <a href="/shake-generated-files/">Shake: Generated Files</a>
+      </li>
+    
+      <li class="post">
+        <a href="/shake-linting/">Shake: Linting and Formatting</a>
+      </li>
+    
+      <li class="post">
+        <a href="/shake-the-intro/">Shake: The Intro</a>
+      </li>
+    
+      <li class="post">
+        <a href="/property-based-testing-at-ndc-oslo-2018/">Property Based Testing at NDC Oslo 2018</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/mavnn">@mavnn</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'mavnn',
+            count: 3,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2019 - mavnn -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<div id="disqus_thread"></div>
+<script>
+    var disqus_config = function () {
+        this.page.url = 'https://blog.mavnn.co.uk/free-probabilities/';
+        this.page.identifier = 'https://blog.mavnn.co.uk/free-probabilities/';
+    };
+    (function() {  // DON'T EDIT BELOW THIS LINE
+        var d = document, s = d.createElement('script');
+        s.src = 'https://mavnn.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function() {
+      var script = document.createElement('script'); script.type = 'text/javascript'; script.async = true;
+      script.src = 'https://apis.google.com/js/plusone.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(script, s);
+    })();
+  </script>
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+<script type="text/javascript">
+ (function() {
+   const searchbox = document.getElementById("searchbox");
+   const site_query = document.getElementById("site_query").value;
+   const search_query = document.getElementById("search_query");
+
+   searchbox.onsubmit = function() {
+     const q = encodeURIComponent(search_query.value);
+     document.location.assign("https://google.com/search?q=" + site_query + "+" + q);
+     return false;
+   };
+ })()
+</script>
+
+
+</body>
+</html>

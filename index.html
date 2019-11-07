@@ -9,7 +9,7 @@
   <meta name="author" content="mavnn">
 
   
-  <meta name="description" content="This post is part of a series! If you haven&#39;t already, check out the introduction so you know what&#39;s going on. It&#39;s fairly obvious how &hellip;">
+  <meta name="description" content="As the Monty Python crew would say: &quot;Now for something completely different!&quot; TL;DR: I&#39;m going to turn a Monad of probabilities into a &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -80,6 +80,98 @@ ga('send', 'pageview');
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+
+  <header>
+    
+      <h1 class="entry-title"><a href="/free-probabilities/">Free Probabilities</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2019-11-06T18:37:04+00:00" pubdate data-updated="true">Nov 6<span>th</span>, 2019</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>As the Monty Python crew would say: &quot;Now for something completely different!&quot;</p>
+
+<blockquote>
+<p>TL;DR: I&#39;m going to turn a <code>Monad</code> of probabilities into a <code>Free Monad</code> of probabilities and this is not nearly so scary as it sounds. Also, it&#39;s actually useful!</p>
+</blockquote>
+
+<p>I&#39;ve been using a bit more Haskell recently, and after watching a demo from a <a href="https://twitter.com/schtoeffel">colleague</a> I wanted to solve a problem that&#39;s been bouncing around my brain for a while.</p>
+
+<p>I do a fair bit of both game playing and game design (in the board game and tabletop roleplaying sense of &#39;game&#39;), and I&#39;m often interested in either generating random values or investigating how likely the result of a random process is.</p>
+
+<p>Let&#39;s give an example; if I model a dice roll with the &quot;spread&quot; of possible outcomes, it might look like this:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='haskell'><span class='line'><span class="cm">{-# LANGUAGE DeriveFunctor #-}</span>
+</span><span class='line'>
+</span><span class='line'><span class="kr">import</span> <span class="nn">Protolude</span>
+</span><span class='line'><span class="kr">import</span> <span class="nn">Data.Ratio</span>
+</span><span class='line'>
+</span><span class='line'><span class="kr">type</span> <span class="kt">Probability</span> <span class="ow">=</span> <span class="kt">Ratio</span> <span class="kt">Integer</span>
+</span><span class='line'>
+</span><span class='line'><span class="kr">newtype</span> <span class="kt">Spread</span> <span class="n">a</span> <span class="ow">=</span>
+</span><span class='line'>  <span class="kt">Spread</span> <span class="p">[(</span><span class="n">a</span><span class="p">,</span> <span class="kt">Probability</span><span class="p">)]</span>
+</span><span class='line'>  <span class="kr">deriving</span> <span class="p">(</span><span class="kt">Show</span><span class="p">,</span> <span class="kt">Eq</span><span class="p">,</span> <span class="kt">Functor</span><span class="p">)</span>
+</span><span class='line'>
+</span><span class='line'><span class="nf">dice</span> <span class="ow">::</span> <span class="kt">Spread</span> <span class="kt">Integer</span>
+</span><span class='line'><span class="nf">dice</span> <span class="ow">=</span> <span class="kt">Spread</span> <span class="p">[(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span> <span class="o">%</span> <span class="mi">6</span><span class="p">)</span>
+</span><span class='line'>              <span class="p">,(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span> <span class="o">%</span> <span class="mi">6</span><span class="p">)</span>
+</span><span class='line'>              <span class="p">,(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span> <span class="o">%</span> <span class="mi">6</span><span class="p">)</span>
+</span><span class='line'>              <span class="p">,(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">1</span> <span class="o">%</span> <span class="mi">6</span><span class="p">)</span>
+</span><span class='line'>              <span class="p">,(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">1</span> <span class="o">%</span> <span class="mi">6</span><span class="p">)</span>
+</span><span class='line'>              <span class="p">,(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">1</span> <span class="o">%</span> <span class="mi">6</span><span class="p">)</span>
+</span><span class='line'>              <span class="p">]</span>
+</span></code></pre></td></tr></table></div></figure>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/free-probabilities/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
   
   
     <article>
@@ -598,50 +690,6 @@ ga('send', 'pageview');
 
     </article>
   
-  
-    <article>
-      
-
-  <header>
-    
-      <h1 class="entry-title"><a href="/token-bearer-authentication-in-freya/">Token Bearer Authentication in Freya</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2018-01-10T11:03:48+00:00" pubdate data-updated="true">Jan 10<span>th</span>, 2018</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>As part of my <a href="/building-solid-systems-in-f-number/">Building Solid Systems</a> course, I&#39;ll be talking about authentication in distributed systems. I wanted a practical demonstration that people could play with, so I added token bearer authentication to a Freya API.</p>
-
-<p>Here&#39;s how.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/token-bearer-authentication-in-freya/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -665,6 +713,10 @@ ga('send', 'pageview');
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/free-probabilities/">Free Probabilities</a>
+      </li>
+    
+      <li class="post">
         <a href="/shake-generated-files/">Shake: Generated Files</a>
       </li>
     
@@ -678,10 +730,6 @@ ga('send', 'pageview');
     
       <li class="post">
         <a href="/property-based-testing-at-ndc-oslo-2018/">Property Based Testing at NDC Oslo 2018</a>
-      </li>
-    
-      <li class="post">
-        <a href="/working-with-noredink/">Working With NoRedInk</a>
       </li>
     
   </ul>

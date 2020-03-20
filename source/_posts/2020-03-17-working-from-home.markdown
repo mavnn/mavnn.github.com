@@ -60,28 +60,28 @@ This is probably the bit you’re here for: practical hints and tips from people
 * No one will be asking you if you want a coffee. Make sure you have water to hand, and set times to go and get a drink.
 * Be careful with snacks! Don’t leave food out (if you’re like me, if it is visible you will eat it)
 * It’s okay to have your pets around, especially if you live on your own.
-* If your cat wants to sit on your laptop you can always distract it with a hot water bottle in a blanket.
+  * If your cat wants to sit on your laptop you can always distract it with a hot water bottle in a blanket.
 * Make sure you do some exercise. You’d be surprised how active most people’s commutes are; you’ll need to be deliberate in doing something else to make up for it.
 * Be deliberate to physically move throughout the day. In the office, when a meeting starts or ends you get up and move around. At home, you plug in some headphones. If you find yourself sitting around for extended periods, set a timer to remind yourself to move.
 * Reach out to people frequently. There’s a section below on communication in general, but do not sit around at home feeling lonely: we’re aiming to be physically distant, but not emotionally/socially distant.
 * Video calls (especially one to one) can be very socially intense, even more so than in person meetings. If you are an introvert, try not to book multiple video calls back to back.
 * Your children are important, and they are dealing with a stressful unexpected change of circumstances. There will be times where they interrupt your work, have meltdowns, need a hug, or just will not sleep. Do what needs to be done for them, and decide in advance that you’re not going to feel guilty about it when it delays your work production (harder than it sounds).
-* *Managers:* please explicitly support this. You cannot believe how much of a difference it made to my mental health to start working in a remote environment where looking after the family was explicitly affirmed.
+  * *Managers:* please explicitly support this. You cannot believe how much of a difference it made to my mental health to start working in a remote environment where looking after the family was explicitly affirmed.
 
 ### Communication (for Introverts and Extroverts)
 * If your job doesn't already have a strong remote culture, communicate until you feel like you're overcommunicating. (although that's true even if you do have a strong remote culture.)
 * Set up a shared document where each person tracks a high level list of what they’re working on for the day. Google Docs or Dropbox Paper are perfect for this.
 * Set up a text based chat channel for your team. Ask everyone to check it regularly during the day (maybe once per hour) so that your team can communicate without interrupting each other. It’s best not to set up alerts on this channel if you can avoid it.
-* Post anything in here; this is not a replacement for email, this is a replacement for “what did you do last weekend”
+  * Post anything in here; this is not a replacement for email, this is a replacement for “what did you do last weekend”
 * When using text chat, don’t get too fine grained. You might not get a reply for 30-60minutes, so don’t say “Hi Bob” and wait for a response. Post your actual question/information straight away.
 * Video chat is pretty good for face to face meetings these days: we use Zoom (https://zoom.us/) but most of the major providers are good. We do find Zoom copes better with large groups compared to the competitors we’ve tried.
 * If you end up doing this for the long haul, set up check-ins with coworkers. Like, literally put 15 or 30 minute meetings on their calendars where you just talk about life.
 * “I enjoy hopping on a zoom with colleagues even if we're not collaborating to feel like I'm in a community / to have the opportunity for office banter.”
 * Put together a “Social Contact Cheatsheet” for yourself, and share it (even better, have a directory for everyone who’s remoting).
-* It should have things like: preference order for contact methods (“i.e. email, then chat, then video”)
-* Your contact hours (see section below on choosing working hours)
-* Whether you like to be warned before voice/video contact (with the family around, people often need a moment to set up before accepting a call)
-* Let people know if you prefer to work mostly “alone”, in a shared social channel (i.e. group video call of people hanging out but not directly collaborating) or to actively pair work with a team member
+  * It should have things like: preference order for contact methods (“i.e. email, then chat, then video”)
+  * Your contact hours (see section below on choosing working hours)
+  * Whether you like to be warned before voice/video contact (with the family around, people often need a moment to set up before accepting a call)
+  * Let people know if you prefer to work mostly “alone”, in a shared social channel (i.e. group video call of people hanging out but not directly collaborating) or to actively pair work with a team member
 * *Managers:* It is much, much easier to build a good remote working communication environment if the whole team/department/company is remote working. If there are groups of people staying office based, make sure that you insist they take part in the remote communication channels or you will lose things between the gaps.
 
 ### Processes/Routine

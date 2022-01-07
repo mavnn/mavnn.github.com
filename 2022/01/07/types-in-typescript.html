@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2022-01-07 Fri 23:40 -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why your Typescript compiles when you thought you were safe</title>
+<meta name="generator" content="Org mode">
+<link rel="stylesheet" href="/org.css" type="text/css">
+<script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2020 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+</head>
+<body>
+<div id="org-div-home-and-up">
+ <a accesskey="h" href=""> UP </a>
+ |
+ <a accesskey="H" href="/"> HOME </a>
+</div><div id="content">
+<h1 class="title">Why your Typescript compiles when you thought you were safe</h1>
+
+<div id="outline-container-orgadc6de9" class="outline-2">
+<h2 id="orgadc6de9">These are not the types you are looking for</h2>
+<div class="outline-text-2" id="text-orgadc6de9">
+<p>
+TypeScript's compiler will let you write code that looks illegal - but compiles just fine.
+</p>
+
+<p>
+This is the story of one such piece of code, and the epiphany it led me to: TypeScript doesn't use your type definitions to decide if a type is compatible, it uses the JavaScript that could represent that type.
+</p>
+
+<p>
+Let's walk through what that means.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org1ca5c43" class="outline-2">
+<h2 id="org1ca5c43">The code</h2>
+<div class="outline-text-2" id="text-org1ca5c43">
+<p>
+I'm writing code to make defining GraphQL resolvers a type safe experience (earlier developer feedback for the win). You don't need to know the details of GQL to follow this example though; all you need to know is that I have a type for defining the configuration of a resolver, and once certain information is supplied, I know the config is valid.
+</p>
+
+<p>
+Let's have a look at some code:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-typescript"><span style="color: #859900; font-weight: bold;">type</span> <span style="color: #b58900;">ConfigValid</span> = <span style="color: #2aa198;">"valid"</span> | <span style="color: #2aa198;">"invalid"</span>
+
+<span style="color: #859900; font-weight: bold;">class</span> <span style="color: #b58900;">Config</span>&lt;<span style="color: #b58900;">T</span> <span style="color: #859900; font-weight: bold;">extends</span> <span style="color: #b58900;">ConfigValid</span>&gt; <span style="color: #2aa198;">{</span>
+  <span style="color: #859900; font-weight: bold;">private</span> myConfig: <span style="color: #859900; font-weight: bold;">string</span> | <span style="color: #859900; font-weight: bold;">null</span> = <span style="color: #859900; font-weight: bold;">null</span>
+
+  <span style="color: #859900; font-weight: bold;">private</span> <span style="color: #859900; font-weight: bold;">constructor</span><span style="color: #b58900;">()</span> <span style="color: #b58900;">{}</span>
+
+  <span style="color: #859900; font-weight: bold;">public</span> <span style="color: #859900; font-weight: bold;">static</span> <span style="color: #268bd2;">make</span><span style="color: #b58900;">()</span>: <span style="color: #b58900;">Config</span>&lt;<span style="color: #2aa198;">"invalid"</span>&gt; <span style="color: #b58900;">{</span>
+    <span style="color: #859900; font-weight: bold;">return</span> <span style="color: #859900; font-weight: bold;">new</span> <span style="color: #b58900;">Config</span>&lt;<span style="color: #2aa198;">"invalid"</span>&gt;<span style="color: #268bd2;">()</span>
+  <span style="color: #b58900;">}</span>
+
+  <span style="color: #586e75;">// </span><span style="color: #586e75;">I want this function to only accept valid configurations, and I want to</span>
+  <span style="color: #586e75;">// </span><span style="color: #586e75;">check if they are valid *at compile time*</span>
+  <span style="color: #859900; font-weight: bold;">public</span> <span style="color: #859900; font-weight: bold;">static</span> <span style="color: #268bd2;">build</span><span style="color: #b58900;">(</span>config: <span style="color: #b58900;">Config</span>&lt;<span style="color: #2aa198;">"valid"</span>&gt;<span style="color: #b58900;">)</span> <span style="color: #b58900;">{</span>
+    <span style="color: #586e75;">// </span><span style="color: #586e75;">do stuff!</span>
+    <span style="color: #b58900;">console</span>.<span style="color: #268bd2;">log</span><span style="color: #268bd2;">(</span>config.myConfig<span style="color: #268bd2;">)</span>
+  <span style="color: #b58900;">}</span>
+<span style="color: #2aa198;">}</span>
+</pre>
+</div>
+
+<p>
+Pop quiz: <code>Config.make</code> always returns a <code>Config&lt;"invalid"&gt;</code>, and <code>Config.build</code> only takes a <code>Config&lt;"valid"&gt;</code>. Will the code <code>Config.build(Config.make())</code> compile or not?
+</p>
+
+<p>
+Given I'm asking, you've probably guessed that it <b>does</b> compile, breaking both my intuition&#x2026; and my code.
+</p>
+
+<p>
+Why?
+</p>
+</div>
+</div>
+
+<div id="outline-container-org542a1f4" class="outline-2">
+<h2 id="org542a1f4">What actually <span class="underline">is</span> TypeScript anyway?</h2>
+<div class="outline-text-2" id="text-org542a1f4">
+<p>
+Don't get whiplash, I'm going somewhere with this.
+</p>
+
+<p>
+What is TypeScript?
+</p>
+
+<p>
+Let's hit the <a href="https://www.typescriptlang.org/">TypeScript website</a>. It starts with "TypeScript is JavaScript with syntax for types", and then continues with "TypeScript is a strongly typed programming language that builds on JavaScript, giving you better tooling at any scale". 
+</p>
+
+<p>
+To my way of thinking, that first quote looks accurate. The second is a lie.
+</p>
+
+<p>
+Okay, okay: "strongly typed" has <a href="https://en.wikipedia.org/wiki/Strong_and_weak_typing">"no precise technical definition"</a> so you can argue that it's half true; I wouldn't agree, given the code above, but you can argue it. But what I'm really calling a lie is the statement that TypeScript is a programming language.
+</p>
+
+<p>
+I would instead argue that TypeScript is an inline theorem prover for JavaScript. Because anything that <b>does</b> something in your code is really JavaScript - after all, TypeScript compiles to JavaScript, and all your lovely types are erased. While all of the <i>TypeScript</i> in your code (anything that isn't valid JavaScript) is just there trying to prove that your code is correct. 
+</p>
+
+<p>
+TypeScript has been designed to make demonstrating correctness as easy as possible when dealing with existing (untyped) JavaScript. (Apart from when you just give up, shrug, and use <code>any</code>.))
+</p>
+</div>
+</div>
+
+<div id="outline-container-org4cdb575" class="outline-2">
+<h2 id="org4cdb575">Erm&#x2026; what's this got to do with the code above?</h2>
+<div class="outline-text-2" id="text-org4cdb575">
+<p>
+We're not there yet. Stage 2 in our journey is structural typing.
+</p>
+
+<p>
+Most strongly typed programming languages use "nominal" typing. Roughly, it's the "name" of the type that matters and if you give two types two different names (not aliases, actual different names), the compiler will keep track of which one you use where and treat them as different things - <i>even if they hold exactly the same data</i>.
+</p>
+
+<p>
+So in, for example, F#, the following two types are not the same, and a function that accepts one will not accept the other:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span style="color: #859900; font-weight: bold;">type</span> <span style="color: #b58900;">FirstRecord</span> = <span style="color: #2aa198;">{</span>
+    name: <span style="color: #b58900;">string</span>
+<span style="color: #2aa198;">}</span>
+
+<span style="color: #859900; font-weight: bold;">type</span> <span style="color: #b58900;">SecondRecord</span> = <span style="color: #2aa198;">{</span>
+    name: <span style="color: #b58900;">string</span>
+<span style="color: #2aa198;">}</span>
+
+<span style="color: #859900; font-weight: bold;">let</span> <span style="color: #268bd2;">withFirstRecord</span> <span style="color: #2aa198;">(</span><span style="color: #268bd2;">record</span>: <span style="color: #b58900;">FirstRecord</span><span style="color: #2aa198;">)</span> =
+  record.name
+</pre>
+</div>
+
+<p>
+Trying to send a record of <code>SecondRecord</code> to <code>withFirstRecord</code> would be a compile time error. Now, in F# there's an alternative; the function below will accept any type with a member called <code>name</code>:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span style="color: #859900; font-weight: bold;">let</span> <span style="color: #859900; font-weight: bold;">inline</span> <span style="color: #268bd2;">withName</span> <span style="color: #268bd2;">arg</span> =
+  <span style="color: #2aa198;">(</span>^a : <span style="color: #b58900;">(</span><span style="color: #859900; font-weight: bold;">member</span> <span style="color: #268bd2;">name</span> : <span style="color: #b58900;">string</span><span style="color: #b58900;">)</span> arg<span style="color: #2aa198;">)</span>
+</pre>
+</div>
+
+<p>
+Notice a few things here:
+</p>
+
+<ul class="org-ul">
+<li>That syntax is horrific; turns out this is a deliberate choice to discourage overuse (see the rest of the bullets for why)</li>
+<li>I had to add the <code>inline</code> keyword to get it to compile. This literally means that in each place this method is used, the compiler will inline a version that uses the type inferred in that location in the code base. This can be good or bad.</li>
+<li>You can probably imagine that the error messages from this type of code become explosively unreadable if you nest several layers of functions using this technique, and the constraints start to grow. F# can no longer tell you "you need to give my a <code>FirstRecord</code>"; instead it has to resort to "here's a list of constraints, find me something that meets them all."</li>
+</ul>
+
+<p>
+This is structural typing, checking types based on the type of data that they hold. And here we wrap back around to TypeScript, which always uses structural typing. 
+</p>
+
+<p>
+The question is: <i>what</i> are we comparing to see if things are structurally compatible? And this is where my intuition was broken.
+</p>
+
+<p>
+In F#, we're comparing the <span class="underline">type definition</span> to the constraints. But in TypeScript, we're comparing the <span class="underline">JavaScript representation of the type</span> to the constraints <i>because TypeScript exists to make JavaScript safer</i>, not to be a programming language in its own right.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org1367620" class="outline-2">
+<h2 id="org1367620">The mystery resolved</h2>
+<div class="outline-text-2" id="text-org1367620">
+<p>
+Back to our code:   
+</p>
+
+<div class="org-src-container">
+<pre class="src src-typescript"><span style="color: #859900; font-weight: bold;">type</span> <span style="color: #b58900;">ConfigValid</span> = <span style="color: #2aa198;">"valid"</span> | <span style="color: #2aa198;">"invalid"</span>
+
+<span style="color: #859900; font-weight: bold;">class</span> <span style="color: #b58900;">Config</span>&lt;<span style="color: #b58900;">T</span> <span style="color: #859900; font-weight: bold;">extends</span> <span style="color: #b58900;">ConfigValid</span>&gt; <span style="color: #2aa198;">{</span>
+  <span style="color: #859900; font-weight: bold;">private</span> myConfig: <span style="color: #859900; font-weight: bold;">string</span> | <span style="color: #859900; font-weight: bold;">null</span> = <span style="color: #859900; font-weight: bold;">null</span>
+
+  <span style="color: #859900; font-weight: bold;">private</span> <span style="color: #859900; font-weight: bold;">constructor</span><span style="color: #b58900;">()</span> <span style="color: #b58900;">{}</span>
+
+  <span style="color: #859900; font-weight: bold;">public</span> <span style="color: #859900; font-weight: bold;">static</span> <span style="color: #268bd2;">make</span><span style="color: #b58900;">()</span>: <span style="color: #b58900;">Config</span>&lt;<span style="color: #2aa198;">"invalid"</span>&gt; <span style="color: #b58900;">{</span>
+    <span style="color: #859900; font-weight: bold;">return</span> <span style="color: #859900; font-weight: bold;">new</span> <span style="color: #b58900;">Config</span>&lt;<span style="color: #2aa198;">"invalid"</span>&gt;<span style="color: #268bd2;">()</span>
+  <span style="color: #b58900;">}</span>
+
+  <span style="color: #586e75;">// </span><span style="color: #586e75;">I want this function to only accept valid configurations, and I want to</span>
+  <span style="color: #586e75;">// </span><span style="color: #586e75;">check if they are valid *at compile time*</span>
+  <span style="color: #859900; font-weight: bold;">public</span> <span style="color: #859900; font-weight: bold;">static</span> <span style="color: #268bd2;">build</span><span style="color: #b58900;">(</span>config: <span style="color: #b58900;">Config</span>&lt;<span style="color: #2aa198;">"valid"</span>&gt;<span style="color: #b58900;">)</span> <span style="color: #b58900;">{</span>
+    <span style="color: #586e75;">// </span><span style="color: #586e75;">do stuff!</span>
+    <span style="color: #b58900;">console</span>.<span style="color: #268bd2;">log</span><span style="color: #268bd2;">(</span>config.myConfig<span style="color: #268bd2;">)</span>
+  <span style="color: #b58900;">}</span>
+<span style="color: #2aa198;">}</span>
+</pre>
+</div>
+
+<p>
+What is the difference between the JavaScript representations of <code>Config&lt;"invalid"&gt;</code> and <code>Config&lt;"valid"&gt;</code>?
+</p>
+
+<p>
+Answer: nothing.
+</p>
+
+<p>
+The generic parameter on the type is not used or stored at runtime (i.e. in JavaScript) on <code>Config</code>, and therefore it gets completely erased when we compile to JavaScript. Suddenly, it becomes no surprise that the compiler is perfectly happy to allow the use of <code>Config&lt;"invalid"&gt;</code> anywhere we specify <code>Config&lt;"valid"&gt;</code> - by TypeScript's standards they are structurally equivalent.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orge450308" class="outline-2">
+<h2 id="orge450308">But: the safety?!</h2>
+<div class="outline-text-2" id="text-orge450308">
+<p>
+Okay, so the code above doesn't work. But now we know what the problem actually is, so&#x2026; let's fix it!
+</p>
+
+<div class="org-src-container">
+<pre class="src src-typescript"><span style="color: #859900; font-weight: bold;">type</span> <span style="color: #b58900;">ConfigValid</span> = <span style="color: #2aa198;">"valid"</span> | <span style="color: #2aa198;">"invalid"</span>
+
+<span style="color: #859900; font-weight: bold;">class</span> <span style="color: #b58900;">Config</span>&lt;<span style="color: #b58900;">T</span> <span style="color: #859900; font-weight: bold;">extends</span> <span style="color: #b58900;">ConfigValid</span>&gt; <span style="color: #2aa198;">{</span>
+  <span style="color: #859900; font-weight: bold;">private</span> myConfig: <span style="color: #859900; font-weight: bold;">string</span> | <span style="color: #859900; font-weight: bold;">null</span> = <span style="color: #859900; font-weight: bold;">null</span>
+  <span style="color: #859900; font-weight: bold;">private</span> _isValid: T
+
+  <span style="color: #859900; font-weight: bold;">private</span> <span style="color: #859900; font-weight: bold;">constructor</span><span style="color: #b58900;">(</span>isValid: T<span style="color: #b58900;">)</span> <span style="color: #b58900;">{</span>
+    <span style="color: #859900; font-weight: bold;">this</span>._isValid = isValid
+  <span style="color: #b58900;">}</span>
+
+  <span style="color: #859900; font-weight: bold;">public</span> <span style="color: #859900; font-weight: bold;">static</span> <span style="color: #268bd2;">make</span><span style="color: #b58900;">()</span>: <span style="color: #b58900;">Config</span>&lt;<span style="color: #2aa198;">"invalid"</span>&gt; <span style="color: #b58900;">{</span>
+    <span style="color: #859900; font-weight: bold;">return</span> <span style="color: #859900; font-weight: bold;">new</span> <span style="color: #b58900;">Config</span>&lt;<span style="color: #2aa198;">"invalid"</span>&gt;<span style="color: #268bd2;">(</span><span style="color: #2aa198;">"invalid"</span><span style="color: #268bd2;">)</span>
+  <span style="color: #b58900;">}</span>
+
+  <span style="color: #586e75;">// </span><span style="color: #586e75;">I want this function to only accept valid configurations, and I want to</span>
+  <span style="color: #586e75;">// </span><span style="color: #586e75;">check if they are valid *at compile time*</span>
+  <span style="color: #859900; font-weight: bold;">public</span> <span style="color: #859900; font-weight: bold;">static</span> <span style="color: #268bd2;">build</span><span style="color: #b58900;">(</span>config: <span style="color: #b58900;">Config</span>&lt;<span style="color: #2aa198;">"valid"</span>&gt;<span style="color: #b58900;">)</span> <span style="color: #b58900;">{</span>
+    <span style="color: #586e75;">// </span><span style="color: #586e75;">do stuff!</span>
+    <span style="color: #b58900;">console</span>.<span style="color: #268bd2;">log</span><span style="color: #268bd2;">(</span>config.myConfig<span style="color: #268bd2;">)</span>
+  <span style="color: #b58900;">}</span>
+<span style="color: #2aa198;">}</span>
+</pre>
+</div>
+
+<p>
+You see that <code>_isValid</code> field? Now we're storing a value in that field, and that value will exist at runtime in the compiled JavaScript. Now TypeScript cares about it, and now we can call~Config.build~ safe in the knowledge it will only take a valid configuration instance.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org9a131e1" class="outline-2">
+<h2 id="org9a131e1">That's a wrap</h2>
+<div class="outline-text-2" id="text-org9a131e1">
+<p>
+I hope you've enjoyed this little journey into making <a href="https://blog.janestreet.com/effective-ml-revisited/">making illegal states unrepresentable</a>, and if you think you could enjoy this kind of thing (or even using the results to just build stuff!) I'm currently working with Blissfully and we're <a href="https://www.blissfully.com/careers/">currently hiring</a> (it says backend developers, but we're also hiring for our Elm frontend where making illegal states unrepresentable is even easier&#x2026;).
+</p>
+
+<p>
+If you feel a burning need to comment on this post, or suggest a correction, you can <a href="https://github.com/mavnn/blog/blob/master/2022/01/07/types-in-typescript.org">submit suggestions for changes</a> (GitHub account required). Just hit the "edit this file button" and go from there.
+</p>
+
+<p>
+With special thanks to <a href="https://twitter.com/mech_elephant">Matthew Griffith</a> and <a href="https://twitter.com/aaronwhite">Aaron White</a> for reading, pushing for and suggesting a stronger title and introductory paragraph.
+</p>
+</div>
+</div>
+</div>
+</body>
+</html>

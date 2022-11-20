@@ -1,70 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- 2022-01-07 Fri 23:59 -->
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- 2022-11-16 Wed 16:53 -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Why your Typescript compiles when you thought you were safe</title>
-<meta name="generator" content="Org mode">
+<meta name="generator" content="Org Mode" />
 <link rel="stylesheet" href="/org.css" type="text/css">
-<script type="text/javascript">
-/*
-@licstart  The following is the entire license notice for the
-JavaScript code in this tag.
-
-Copyright (C) 2012-2020 Free Software Foundation, Inc.
-
-The JavaScript code in this tag is free software: you can
-redistribute it and/or modify it under the terms of the GNU
-General Public License (GNU GPL) as published by the Free Software
-Foundation, either version 3 of the License, or (at your option)
-any later version.  The code is distributed WITHOUT ANY WARRANTY;
-without even the implied warranty of MERCHANTABILITY or FITNESS
-FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
-
-As additional permission under GNU GPL version 3 section 7, you
-may distribute non-source (e.g., minimized or compacted) forms of
-that code without the copy of the GNU GPL normally required by
-section 4, provided you include this license notice and a URL
-through which recipients can access the Corresponding Source.
-
-
-@licend  The above is the entire license notice
-for the JavaScript code in this tag.
-*/
-<!--/*--><![CDATA[/*><!--*/
- function CodeHighlightOn(elem, id)
- {
-   var target = document.getElementById(id);
-   if(null != target) {
-     elem.cacheClassElem = elem.className;
-     elem.cacheClassTarget = target.className;
-     target.className = "code-highlighted";
-     elem.className   = "code-highlighted";
-   }
- }
- function CodeHighlightOff(elem, id)
- {
-   var target = document.getElementById(id);
-   if(elem.cacheClassElem)
-     elem.className = elem.cacheClassElem;
-   if(elem.cacheClassTarget)
-     target.className = elem.cacheClassTarget;
- }
-/*]]>*///-->
-</script>
 </head>
 <body>
 <div id="org-div-home-and-up">
  <a accesskey="h" href=""> UP </a>
  |
  <a accesskey="H" href="/"> HOME </a>
-</div><div id="content">
+</div><div id="content" class="content">
 <h1 class="title">Why your Typescript compiles when you thought you were safe</h1>
 
-<div id="outline-container-orgadc6de9" class="outline-2">
-<h2 id="orgadc6de9">These are not the types you are looking for</h2>
-<div class="outline-text-2" id="text-orgadc6de9">
+<div id="outline-container-org65ef3d4" class="outline-2">
+<h2 id="org65ef3d4">These are not the types you are looking for</h2>
+<div class="outline-text-2" id="text-org65ef3d4">
 <p>
 TypeScript's compiler will let you write code that looks illegal - but compiles just fine.
 </p>
@@ -79,9 +33,9 @@ Let's walk through what that means.
 </div>
 </div>
 
-<div id="outline-container-org1ca5c43" class="outline-2">
-<h2 id="org1ca5c43">The code</h2>
-<div class="outline-text-2" id="text-org1ca5c43">
+<div id="outline-container-org4deba61" class="outline-2">
+<h2 id="org4deba61">The code</h2>
+<div class="outline-text-2" id="text-org4deba61">
 <p>
 I'm writing code to make defining GraphQL resolvers a type safe experience (earlier developer feedback for the win). You don't need to know the details of GQL to follow this example though; all you need to know is that I have a type for defining the configuration of a resolver, and once certain information is supplied, I know the config is valid.
 </p>
@@ -91,24 +45,24 @@ Let's have a look at some code:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-typescript"><span style="color: #859900; font-weight: bold;">type</span> <span style="color: #b58900;">ConfigValid</span> = <span style="color: #2aa198;">"valid"</span> | <span style="color: #2aa198;">"invalid"</span>
+<pre class="src src-typescript"><span class="org-keyword">type</span> <span class="org-type">ConfigValid</span> = <span class="org-string">"valid"</span> | <span class="org-string">"invalid"</span>
 
-<span style="color: #859900; font-weight: bold;">class</span> <span style="color: #b58900;">Config</span>&lt;<span style="color: #b58900;">T</span> <span style="color: #859900; font-weight: bold;">extends</span> <span style="color: #b58900;">ConfigValid</span>&gt; <span style="color: #2aa198;">{</span>
-  <span style="color: #859900; font-weight: bold;">private</span> myConfig: <span style="color: #859900; font-weight: bold;">string</span> | <span style="color: #859900; font-weight: bold;">null</span> = <span style="color: #859900; font-weight: bold;">null</span>
+<span class="org-keyword">class</span> <span class="org-type">Config</span>&lt;<span class="org-type">T</span> <span class="org-typescript-access-modifier">extends</span> <span class="org-type">ConfigValid</span>&gt; <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-typescript-access-modifier">private</span> myConfig: <span class="org-typescript-primitive">string</span> | <span class="org-constant">null</span> = <span class="org-constant">null</span>
 
-  <span style="color: #859900; font-weight: bold;">private</span> <span style="color: #859900; font-weight: bold;">constructor</span><span style="color: #b58900;">()</span> <span style="color: #b58900;">{}</span>
+  <span class="org-typescript-access-modifier">private</span> <span class="org-keyword">constructor</span><span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-rainbow-delimiters-depth-2">{}</span>
 
-  <span style="color: #859900; font-weight: bold;">public</span> <span style="color: #859900; font-weight: bold;">static</span> <span style="color: #268bd2;">make</span><span style="color: #b58900;">()</span>: <span style="color: #b58900;">Config</span>&lt;<span style="color: #2aa198;">"invalid"</span>&gt; <span style="color: #b58900;">{</span>
-    <span style="color: #859900; font-weight: bold;">return</span> <span style="color: #859900; font-weight: bold;">new</span> <span style="color: #b58900;">Config</span>&lt;<span style="color: #2aa198;">"invalid"</span>&gt;<span style="color: #268bd2;">()</span>
-  <span style="color: #b58900;">}</span>
+  <span class="org-typescript-access-modifier">public</span> <span class="org-typescript-access-modifier">static</span> <span class="org-function-name">make</span><span class="org-rainbow-delimiters-depth-2">()</span>: <span class="org-type">Config</span>&lt;<span class="org-string">"invalid"</span>&gt; <span class="org-rainbow-delimiters-depth-2">{</span>
+    <span class="org-keyword">return</span> <span class="org-keyword">new</span> <span class="org-type">Config</span>&lt;<span class="org-string">"invalid"</span>&gt;<span class="org-rainbow-delimiters-depth-3">()</span>
+  <span class="org-rainbow-delimiters-depth-2">}</span>
 
-  <span style="color: #586e75;">// </span><span style="color: #586e75;">I want this function to only accept valid configurations, and I want to</span>
-  <span style="color: #586e75;">// </span><span style="color: #586e75;">check if they are valid *at compile time*</span>
-  <span style="color: #859900; font-weight: bold;">public</span> <span style="color: #859900; font-weight: bold;">static</span> <span style="color: #268bd2;">build</span><span style="color: #b58900;">(</span>config: <span style="color: #b58900;">Config</span>&lt;<span style="color: #2aa198;">"valid"</span>&gt;<span style="color: #b58900;">)</span> <span style="color: #b58900;">{</span>
-    <span style="color: #586e75;">// </span><span style="color: #586e75;">do stuff!</span>
-    <span style="color: #b58900;">console</span>.<span style="color: #268bd2;">log</span><span style="color: #268bd2;">(</span>config.myConfig<span style="color: #268bd2;">)</span>
-  <span style="color: #b58900;">}</span>
-<span style="color: #2aa198;">}</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">I want this function to only accept valid configurations, and I want to</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">check if they are valid *at compile time*</span>
+  <span class="org-typescript-access-modifier">public</span> <span class="org-typescript-access-modifier">static</span> <span class="org-function-name">build</span><span class="org-rainbow-delimiters-depth-2">(</span><span class="org-variable-name">config</span>: <span class="org-type">Config</span>&lt;<span class="org-string">"valid"</span>&gt;<span class="org-rainbow-delimiters-depth-2">)</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+    <span class="org-comment-delimiter">// </span><span class="org-comment">do stuff!</span>
+    <span class="org-type">console</span>.<span class="org-function-name">log</span><span class="org-rainbow-delimiters-depth-3">(</span>config.myConfig<span class="org-rainbow-delimiters-depth-3">)</span>
+  <span class="org-rainbow-delimiters-depth-2">}</span>
+<span class="org-rainbow-delimiters-depth-1">}</span>
 </pre>
 </div>
 
@@ -126,9 +80,9 @@ Why?
 </div>
 </div>
 
-<div id="outline-container-org542a1f4" class="outline-2">
-<h2 id="org542a1f4">What actually <span class="underline">is</span> TypeScript anyway?</h2>
-<div class="outline-text-2" id="text-org542a1f4">
+<div id="outline-container-org90461a6" class="outline-2">
+<h2 id="org90461a6">What actually <span class="underline">is</span> TypeScript anyway?</h2>
+<div class="outline-text-2" id="text-org90461a6">
 <p>
 Don't get whiplash, I'm going somewhere with this.
 </p>
@@ -159,9 +113,9 @@ TypeScript has been designed to make demonstrating correctness as easy as possib
 </div>
 </div>
 
-<div id="outline-container-org4cdb575" class="outline-2">
-<h2 id="org4cdb575">Erm&#x2026; what's this got to do with the code above?</h2>
-<div class="outline-text-2" id="text-org4cdb575">
+<div id="outline-container-orgff97268" class="outline-2">
+<h2 id="orgff97268">Erm&#x2026; what's this got to do with the code above?</h2>
+<div class="outline-text-2" id="text-orgff97268">
 <p>
 We're not there yet. Stage 2 in our journey is structural typing.
 </p>
@@ -175,15 +129,15 @@ So in, for example, F#, the following two types are not the same, and a function
 </p>
 
 <div class="org-src-container">
-<pre class="src src-fsharp"><span style="color: #859900; font-weight: bold;">type</span> <span style="color: #b58900;">FirstRecord</span> = <span style="color: #2aa198;">{</span>
-    name: <span style="color: #b58900;">string</span>
-<span style="color: #2aa198;">}</span>
+<pre class="src src-fsharp"><span class="org-keyword">type</span> <span class="org-type">FirstRecord</span> = <span class="org-rainbow-delimiters-depth-1">{</span>
+    name: <span class="org-type">string</span>
+<span class="org-rainbow-delimiters-depth-1">}</span>
 
-<span style="color: #859900; font-weight: bold;">type</span> <span style="color: #b58900;">SecondRecord</span> = <span style="color: #2aa198;">{</span>
-    name: <span style="color: #b58900;">string</span>
-<span style="color: #2aa198;">}</span>
+<span class="org-keyword">type</span> <span class="org-type">SecondRecord</span> = <span class="org-rainbow-delimiters-depth-1">{</span>
+    name: <span class="org-type">string</span>
+<span class="org-rainbow-delimiters-depth-1">}</span>
 
-<span style="color: #859900; font-weight: bold;">let</span> <span style="color: #268bd2;">withFirstRecord</span> <span style="color: #2aa198;">(</span><span style="color: #268bd2;">record</span>: <span style="color: #b58900;">FirstRecord</span><span style="color: #2aa198;">)</span> =
+<span class="org-keyword">let</span> <span class="org-function-name">withFirstRecord</span> <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-variable-name">record</span>: <span class="org-type">FirstRecord</span><span class="org-rainbow-delimiters-depth-1">)</span> =
   record.name
 </pre>
 </div>
@@ -193,8 +147,8 @@ Trying to send a record of <code>SecondRecord</code> to <code>withFirstRecord</c
 </p>
 
 <div class="org-src-container">
-<pre class="src src-fsharp"><span style="color: #859900; font-weight: bold;">let</span> <span style="color: #859900; font-weight: bold;">inline</span> <span style="color: #268bd2;">withName</span> <span style="color: #268bd2;">arg</span> =
-  <span style="color: #2aa198;">(</span>^a : <span style="color: #b58900;">(</span><span style="color: #859900; font-weight: bold;">member</span> <span style="color: #268bd2;">name</span> : <span style="color: #b58900;">string</span><span style="color: #b58900;">)</span> arg<span style="color: #2aa198;">)</span>
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-keyword">inline</span> <span class="org-function-name">withName</span> <span class="org-variable-name">arg</span> =
+  <span class="org-rainbow-delimiters-depth-1">(</span>^a : <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">member</span> <span class="org-function-name">name</span> : <span class="org-type">string</span><span class="org-rainbow-delimiters-depth-2">)</span> arg<span class="org-rainbow-delimiters-depth-1">)</span>
 </pre>
 </div>
 
@@ -222,32 +176,32 @@ In F#, we're comparing the <span class="underline">type definition</span> to the
 </div>
 </div>
 
-<div id="outline-container-org1367620" class="outline-2">
-<h2 id="org1367620">The mystery resolved</h2>
-<div class="outline-text-2" id="text-org1367620">
+<div id="outline-container-org80f54c0" class="outline-2">
+<h2 id="org80f54c0">The mystery resolved</h2>
+<div class="outline-text-2" id="text-org80f54c0">
 <p>
 Back to our code:   
 </p>
 
 <div class="org-src-container">
-<pre class="src src-typescript"><span style="color: #859900; font-weight: bold;">type</span> <span style="color: #b58900;">ConfigValid</span> = <span style="color: #2aa198;">"valid"</span> | <span style="color: #2aa198;">"invalid"</span>
+<pre class="src src-typescript"><span class="org-keyword">type</span> <span class="org-type">ConfigValid</span> = <span class="org-string">"valid"</span> | <span class="org-string">"invalid"</span>
 
-<span style="color: #859900; font-weight: bold;">class</span> <span style="color: #b58900;">Config</span>&lt;<span style="color: #b58900;">T</span> <span style="color: #859900; font-weight: bold;">extends</span> <span style="color: #b58900;">ConfigValid</span>&gt; <span style="color: #2aa198;">{</span>
-  <span style="color: #859900; font-weight: bold;">private</span> myConfig: <span style="color: #859900; font-weight: bold;">string</span> | <span style="color: #859900; font-weight: bold;">null</span> = <span style="color: #859900; font-weight: bold;">null</span>
+<span class="org-keyword">class</span> <span class="org-type">Config</span>&lt;<span class="org-type">T</span> <span class="org-typescript-access-modifier">extends</span> <span class="org-type">ConfigValid</span>&gt; <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-typescript-access-modifier">private</span> myConfig: <span class="org-typescript-primitive">string</span> | <span class="org-constant">null</span> = <span class="org-constant">null</span>
 
-  <span style="color: #859900; font-weight: bold;">private</span> <span style="color: #859900; font-weight: bold;">constructor</span><span style="color: #b58900;">()</span> <span style="color: #b58900;">{}</span>
+  <span class="org-typescript-access-modifier">private</span> <span class="org-keyword">constructor</span><span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-rainbow-delimiters-depth-2">{}</span>
 
-  <span style="color: #859900; font-weight: bold;">public</span> <span style="color: #859900; font-weight: bold;">static</span> <span style="color: #268bd2;">make</span><span style="color: #b58900;">()</span>: <span style="color: #b58900;">Config</span>&lt;<span style="color: #2aa198;">"invalid"</span>&gt; <span style="color: #b58900;">{</span>
-    <span style="color: #859900; font-weight: bold;">return</span> <span style="color: #859900; font-weight: bold;">new</span> <span style="color: #b58900;">Config</span>&lt;<span style="color: #2aa198;">"invalid"</span>&gt;<span style="color: #268bd2;">()</span>
-  <span style="color: #b58900;">}</span>
+  <span class="org-typescript-access-modifier">public</span> <span class="org-typescript-access-modifier">static</span> <span class="org-function-name">make</span><span class="org-rainbow-delimiters-depth-2">()</span>: <span class="org-type">Config</span>&lt;<span class="org-string">"invalid"</span>&gt; <span class="org-rainbow-delimiters-depth-2">{</span>
+    <span class="org-keyword">return</span> <span class="org-keyword">new</span> <span class="org-type">Config</span>&lt;<span class="org-string">"invalid"</span>&gt;<span class="org-rainbow-delimiters-depth-3">()</span>
+  <span class="org-rainbow-delimiters-depth-2">}</span>
 
-  <span style="color: #586e75;">// </span><span style="color: #586e75;">I want this function to only accept valid configurations, and I want to</span>
-  <span style="color: #586e75;">// </span><span style="color: #586e75;">check if they are valid *at compile time*</span>
-  <span style="color: #859900; font-weight: bold;">public</span> <span style="color: #859900; font-weight: bold;">static</span> <span style="color: #268bd2;">build</span><span style="color: #b58900;">(</span>config: <span style="color: #b58900;">Config</span>&lt;<span style="color: #2aa198;">"valid"</span>&gt;<span style="color: #b58900;">)</span> <span style="color: #b58900;">{</span>
-    <span style="color: #586e75;">// </span><span style="color: #586e75;">do stuff!</span>
-    <span style="color: #b58900;">console</span>.<span style="color: #268bd2;">log</span><span style="color: #268bd2;">(</span>config.myConfig<span style="color: #268bd2;">)</span>
-  <span style="color: #b58900;">}</span>
-<span style="color: #2aa198;">}</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">I want this function to only accept valid configurations, and I want to</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">check if they are valid *at compile time*</span>
+  <span class="org-typescript-access-modifier">public</span> <span class="org-typescript-access-modifier">static</span> <span class="org-function-name">build</span><span class="org-rainbow-delimiters-depth-2">(</span><span class="org-variable-name">config</span>: <span class="org-type">Config</span>&lt;<span class="org-string">"valid"</span>&gt;<span class="org-rainbow-delimiters-depth-2">)</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+    <span class="org-comment-delimiter">// </span><span class="org-comment">do stuff!</span>
+    <span class="org-type">console</span>.<span class="org-function-name">log</span><span class="org-rainbow-delimiters-depth-3">(</span>config.myConfig<span class="org-rainbow-delimiters-depth-3">)</span>
+  <span class="org-rainbow-delimiters-depth-2">}</span>
+<span class="org-rainbow-delimiters-depth-1">}</span>
 </pre>
 </div>
 
@@ -265,35 +219,35 @@ The generic parameter on the type is not used or stored at runtime (i.e. in Java
 </div>
 </div>
 
-<div id="outline-container-orge450308" class="outline-2">
-<h2 id="orge450308">But: the safety?!</h2>
-<div class="outline-text-2" id="text-orge450308">
+<div id="outline-container-org719e245" class="outline-2">
+<h2 id="org719e245">But: the safety?!</h2>
+<div class="outline-text-2" id="text-org719e245">
 <p>
 Okay, so the code above doesn't work. But now we know what the problem actually is, so&#x2026; let's fix it!
 </p>
 
 <div class="org-src-container">
-<pre class="src src-typescript"><span style="color: #859900; font-weight: bold;">type</span> <span style="color: #b58900;">ConfigValid</span> = <span style="color: #2aa198;">"valid"</span> | <span style="color: #2aa198;">"invalid"</span>
+<pre class="src src-typescript"><span class="org-keyword">type</span> <span class="org-type">ConfigValid</span> = <span class="org-string">"valid"</span> | <span class="org-string">"invalid"</span>
 
-<span style="color: #859900; font-weight: bold;">class</span> <span style="color: #b58900;">Config</span>&lt;<span style="color: #b58900;">T</span> <span style="color: #859900; font-weight: bold;">extends</span> <span style="color: #b58900;">ConfigValid</span>&gt; <span style="color: #2aa198;">{</span>
-  <span style="color: #859900; font-weight: bold;">private</span> myConfig: <span style="color: #859900; font-weight: bold;">string</span> | <span style="color: #859900; font-weight: bold;">null</span> = <span style="color: #859900; font-weight: bold;">null</span>
-  <span style="color: #859900; font-weight: bold;">private</span> _isValid: T
+<span class="org-keyword">class</span> <span class="org-type">Config</span>&lt;<span class="org-type">T</span> <span class="org-typescript-access-modifier">extends</span> <span class="org-type">ConfigValid</span>&gt; <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-typescript-access-modifier">private</span> myConfig: <span class="org-typescript-primitive">string</span> | <span class="org-constant">null</span> = <span class="org-constant">null</span>
+  <span class="org-typescript-access-modifier">private</span> _isValid: T
 
-  <span style="color: #859900; font-weight: bold;">private</span> <span style="color: #859900; font-weight: bold;">constructor</span><span style="color: #b58900;">(</span>isValid: T<span style="color: #b58900;">)</span> <span style="color: #b58900;">{</span>
-    <span style="color: #859900; font-weight: bold;">this</span>._isValid = isValid
-  <span style="color: #b58900;">}</span>
+  <span class="org-typescript-access-modifier">private</span> <span class="org-keyword">constructor</span><span class="org-rainbow-delimiters-depth-2">(</span>isValid: T<span class="org-rainbow-delimiters-depth-2">)</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+    <span class="org-typescript-this">this</span>._isValid = isValid
+  <span class="org-rainbow-delimiters-depth-2">}</span>
 
-  <span style="color: #859900; font-weight: bold;">public</span> <span style="color: #859900; font-weight: bold;">static</span> <span style="color: #268bd2;">make</span><span style="color: #b58900;">()</span>: <span style="color: #b58900;">Config</span>&lt;<span style="color: #2aa198;">"invalid"</span>&gt; <span style="color: #b58900;">{</span>
-    <span style="color: #859900; font-weight: bold;">return</span> <span style="color: #859900; font-weight: bold;">new</span> <span style="color: #b58900;">Config</span>&lt;<span style="color: #2aa198;">"invalid"</span>&gt;<span style="color: #268bd2;">(</span><span style="color: #2aa198;">"invalid"</span><span style="color: #268bd2;">)</span>
-  <span style="color: #b58900;">}</span>
+  <span class="org-typescript-access-modifier">public</span> <span class="org-typescript-access-modifier">static</span> <span class="org-function-name">make</span><span class="org-rainbow-delimiters-depth-2">()</span>: <span class="org-type">Config</span>&lt;<span class="org-string">"invalid"</span>&gt; <span class="org-rainbow-delimiters-depth-2">{</span>
+    <span class="org-keyword">return</span> <span class="org-keyword">new</span> <span class="org-type">Config</span>&lt;<span class="org-string">"invalid"</span>&gt;<span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"invalid"</span><span class="org-rainbow-delimiters-depth-3">)</span>
+  <span class="org-rainbow-delimiters-depth-2">}</span>
 
-  <span style="color: #586e75;">// </span><span style="color: #586e75;">I want this function to only accept valid configurations, and I want to</span>
-  <span style="color: #586e75;">// </span><span style="color: #586e75;">check if they are valid *at compile time*</span>
-  <span style="color: #859900; font-weight: bold;">public</span> <span style="color: #859900; font-weight: bold;">static</span> <span style="color: #268bd2;">build</span><span style="color: #b58900;">(</span>config: <span style="color: #b58900;">Config</span>&lt;<span style="color: #2aa198;">"valid"</span>&gt;<span style="color: #b58900;">)</span> <span style="color: #b58900;">{</span>
-    <span style="color: #586e75;">// </span><span style="color: #586e75;">do stuff!</span>
-    <span style="color: #b58900;">console</span>.<span style="color: #268bd2;">log</span><span style="color: #268bd2;">(</span>config.myConfig<span style="color: #268bd2;">)</span>
-  <span style="color: #b58900;">}</span>
-<span style="color: #2aa198;">}</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">I want this function to only accept valid configurations, and I want to</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">check if they are valid *at compile time*</span>
+  <span class="org-typescript-access-modifier">public</span> <span class="org-typescript-access-modifier">static</span> <span class="org-function-name">build</span><span class="org-rainbow-delimiters-depth-2">(</span><span class="org-variable-name">config</span>: <span class="org-type">Config</span>&lt;<span class="org-string">"valid"</span>&gt;<span class="org-rainbow-delimiters-depth-2">)</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+    <span class="org-comment-delimiter">// </span><span class="org-comment">do stuff!</span>
+    <span class="org-type">console</span>.<span class="org-function-name">log</span><span class="org-rainbow-delimiters-depth-3">(</span>config.myConfig<span class="org-rainbow-delimiters-depth-3">)</span>
+  <span class="org-rainbow-delimiters-depth-2">}</span>
+<span class="org-rainbow-delimiters-depth-1">}</span>
 </pre>
 </div>
 
@@ -303,9 +257,9 @@ You see that <code>_isValid</code> field? Now we're storing a value in that fiel
 </div>
 </div>
 
-<div id="outline-container-org9a131e1" class="outline-2">
-<h2 id="org9a131e1">That's a wrap</h2>
-<div class="outline-text-2" id="text-org9a131e1">
+<div id="outline-container-org08c5d44" class="outline-2">
+<h2 id="org08c5d44">That's a wrap</h2>
+<div class="outline-text-2" id="text-org08c5d44">
 <p>
 I hope you've enjoyed this little journey into making <a href="https://blog.janestreet.com/effective-ml-revisited/">making illegal states unrepresentable</a>, and if you think you could enjoy this kind of thing (or even using the results to just build stuff!) I'm currently working with Blissfully and we're <a href="https://www.blissfully.com/careers/">currently hiring</a> (it says backend developers, but we're also hiring for our Elm frontend where making illegal states unrepresentable is even easier&#x2026;).
 </p>

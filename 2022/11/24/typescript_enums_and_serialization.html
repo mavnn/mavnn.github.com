@@ -1,22 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- 2022-11-25 Fri 16:41 -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>TypeScript Enums and Serialization</title>
 <meta name="generator" content="Org Mode" />
 <link rel="stylesheet" href="/org.css" type="text/css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
 </head>
 <body>
 <div id="org-div-home-and-up">
  <a accesskey="h" href=""> UP </a>
  |
  <a accesskey="H" href="/"> HOME </a>
-</div><div id="content" class="content">
+</div><div id="content" class="container">
+<header>
 <h1 class="title">TypeScript Enums and Serialization</h1>
-<p>
-In general, TypeScript is <a href="2022/10/14/adhd_and_me.html">not its own language</a> - it's a set of annotations that
+</header><p>
+In general, TypeScript is <a href="file:///Users/mavnn/Blog/2022/10/14/adhd_and_me.html">not its own language</a> - it's a set of annotations that
 can be added to JavaScript to help check the "correctness" of you program. The
 authors have been very reluctant to add features to TypeScript that don't exist
 in JavaScript, and so normally you can turn your TypeScript into JavaScript purely
@@ -123,7 +124,7 @@ attached to it.
 
 <p>
 Going back to the implementation, you'll see that's exactly the constraint on
-the argument we pass into `stringEnumDecoder`.
+the argument we pass into <code>stringEnumDecoder</code>.
 </p>
 
 <div class="org-src-container">
@@ -134,10 +135,10 @@ the argument we pass into `stringEnumDecoder`.
 
 <p>
 Then some slightly weird magic happens: when you pass an enum into the function,
-the TypeScript compiler infers that the type of the argument is the `typeof` the
+the TypeScript compiler infers that the type of the argument is the <code>typeof</code> the
 enum you passed in. Whatever is happening internally here, it keeps track of the
 fact that the keys of this type are the types of the valid enum cases, so it
-turns `Enum[keyof Enum]` into the union type of each of the possible enum value
+turns <code>Enum[keyof Enum]</code> into the union type of each of the possible enum value
 types which is, if you squint hard enough, actually the enum itself. We then
 return a decoder that accepts a string, checks that said string is actually one
 of the <i>values</i> stored in the enum object, and then tells the compiler that this

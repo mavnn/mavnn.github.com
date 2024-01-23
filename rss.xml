@@ -1,0 +1,871 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0"
+	   xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	   xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	   xmlns:dc="http://purl.org/dc/elements/1.1/"
+	   xmlns:atom="http://www.w3.org/2005/Atom"
+	   xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+	   xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+	   xmlns:georss="http://www.georss.org/georss"
+     xmlns:geo="http://www.w3.org/2003/01/geo/wgs84_pos#"
+     xmlns:media="http://search.yahoo.com/mrss/"><channel>
+  <title>Mavnn's blog</title>
+  <atom:link href="https://blog.mavnn.co.uk/rss.xml" rel="self" type="application/rss+xml" />
+  <link>https://blog.mavnn.co.uk/</link>
+  <description><![CDATA[]]></description>
+  <language>en</language>
+  <pubDate>Tue, 23 Jan 2024 11:05:52 +0100</pubDate>
+  <lastBuildDate>Tue, 23 Jan 2024 11:05:52 +0100</lastBuildDate>
+  <generator>Emacs 29.1 Org-mode 9.6.6</generator>
+  <webMaster>michael@mavnn.eu (Michael Newton)</webMaster>
+  <image>
+    <url>http://blog.mavnn.co.uk/images/swirl.svg</url>
+    <title>Mavnn's blog</title>
+    <link>https://blog.mavnn.co.uk/</link>
+  </image>
+
+
+  <item>
+    <title>TypeScript Enums and Serialization</title>
+    <link>https://blog.mavnn.co.uk/2022/11/24/typescript_enums_and_serialization.html</link>
+    <author>michael@mavnn.eu (Michael Newton)</author>
+    <guid isPermaLink="false">https://blog.mavnn.co.uk/2022/11/24/typescript_enums_and_serialization.html</guid>
+    <pubDate>Thu, 24 Nov 2022 00:00:00 +0100</pubDate>
+
+    <description><![CDATA[<p>
+    In general, TypeScript is <a href="../../../2022/01/07/types-in-typescript.html">not its own language</a> - it's a set of annotations that
+    can be added to JavaScript to help check the "correctness" of you program. The
+    authors have been very reluctant to add features to TypeScript that don't exist
+    in JavaScript, and so normally you can turn your TypeScript into JavaScript purely
+    by <i>deleting</i> the type annotations that you've added.
+    </p>
+
+    <p>
+    Enums, though, are a bit different. They actually generate JavaScript code based on
+    the TypeScript you write. Today, we're going to look at a piece of code that allows
+    you to deserialize enums with string values in a type safe manner. And we're going
+    to take advantage of the fact that enums (according to the TypeScript compiler) are
+    both a type, and a value with a different type - at the same time.
+    </p>
+
+    <p>
+    For context, we're going to be using <a href="https://www.npmjs.com/package/schemawax">SchemaWax</a> to create our decoder, so we can
+    build it into a larger contextual decoder as needed.
+    </p>
+
+    <p>
+    First: the code! If you already know SchemaWax, you don't care about types, and
+    you're here because it was a hit for "deserialize any enum" on Google this is
+    the bit to cut and paste.
+    </p>
+
+    <div class="org-src-container">
+    <pre class="src src-typescript"><span class="org-keyword">import</span> * <span class="org-keyword">as</span> D <span class="org-keyword">from</span> <span class="org-string">"schemawax"</span>
+
+    <span class="org-comment-delimiter">// </span><span class="org-comment">This is only type safe if passed a Enum with string values.</span>
+    <span class="org-comment-delimiter">// </span><span class="org-comment">I don't think there's anyway to stop someone passing { "boo": "broken" }</span>
+    <span class="org-comment-delimiter">// </span><span class="org-comment">in TypeScripts type system :(</span>
+    <span class="org-comment-delimiter">// </span><span class="org-comment">At least this stops us from rewriting the same unsafe code every time though.</span>
+    <span class="org-keyword">export</span> <span class="org-keyword">const</span> <span class="org-variable-name">stringEnumDecoder</span> = &lt;Enum <span class="org-typescript-access-modifier">extends</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-rainbow-delimiters-depth-2">[</span>name: <span class="org-typescript-primitive">string</span><span class="org-rainbow-delimiters-depth-2">]</span>: <span class="org-typescript-primitive">string</span> <span class="org-rainbow-delimiters-depth-1">}</span>&gt;<span class="org-rainbow-delimiters-depth-1">(</span>
+    targetEnum: <span class="org-type">Enum</span>,
+    <span class="org-rainbow-delimiters-depth-1">)</span>: D.Decoder&lt;<span class="org-type">Enum</span><span class="org-rainbow-delimiters-depth-1">[</span><span class="org-type">keyof</span> <span class="org-type">Enum</span><span class="org-rainbow-delimiters-depth-1">]</span>&gt; <span class="org-keyword">=&gt;</span> <span class="org-type">D</span>.<span class="org-function-name">literalUnion</span><span class="org-rainbow-delimiters-depth-1">(</span>...<span class="org-type">Object</span>.<span class="org-function-name">values</span><span class="org-rainbow-delimiters-depth-2">(</span><span class="org-type">targetEnum</span><span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span> <span class="org-type">as</span> <span class="org-type">D</span>.<span class="org-type">Decoder</span>&lt;<span class="org-type">Enum</span><span class="org-rainbow-delimiters-depth-1">[</span><span class="org-type">keyof</span> <span class="org-type">Enum</span><span class="org-rainbow-delimiters-depth-1">]</span>&gt;
+    </pre>
+    </div>
+
+    <p>
+    That's it. The whole thing. How do you use it?
+    </p>
+
+    <p>
+    Like this:
+    </p>
+
+    <div class="org-src-container">
+    <pre class="src src-typescript"><span class="org-keyword">import</span> * <span class="org-keyword">as</span> D <span class="org-keyword">from</span> <span class="org-string">"schemawax"</span>
+    <span class="org-keyword">import</span> <span class="org-rainbow-delimiters-depth-1">{</span> stringEnumDecoder <span class="org-rainbow-delimiters-depth-1">}</span> <span class="org-keyword">from</span> <span class="org-string">"./enum"</span>
+
+    <span class="org-keyword">enum</span> <span class="org-type">TestEnum1</span> <span class="org-rainbow-delimiters-depth-1">{</span>
+    <span class="org-string">"why"</span> = <span class="org-string">"would"</span>,
+    <span class="org-string">"anyone"</span> = <span class="org-string">"do"</span>,
+    <span class="org-string">"this"</span> = <span class="org-string">"!"</span>,
+    <span class="org-rainbow-delimiters-depth-1">}</span>
+
+    <span class="org-keyword">type</span> <span class="org-type">ObjectWithEnumField</span> = <span class="org-rainbow-delimiters-depth-1">{</span>
+    testEnum: <span class="org-type">TestEnum1</span>
+    name: <span class="org-typescript-primitive">string</span>
+    age?: <span class="org-typescript-primitive">number</span>
+    <span class="org-rainbow-delimiters-depth-1">}</span>
+
+    <span class="org-function-name">describe</span><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-string">"stringEnumDecoder"</span>, <span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-keyword">=&gt;</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+    <span class="org-function-name">it</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"decodes string enums"</span>, <span class="org-rainbow-delimiters-depth-4">()</span> <span class="org-keyword">=&gt;</span> <span class="org-rainbow-delimiters-depth-4">{</span>
+    <span class="org-keyword">const</span> <span class="org-variable-name">result</span> = <span class="org-function-name">stringEnumDecoder</span><span class="org-rainbow-delimiters-depth-5">(</span>TestEnum1<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">forceDecode</span><span class="org-rainbow-delimiters-depth-5">(</span><span class="org-string">"!"</span><span class="org-rainbow-delimiters-depth-5">)</span>
+    <span class="org-function-name">expect</span><span class="org-rainbow-delimiters-depth-5">(</span>result<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">toEqual</span><span class="org-rainbow-delimiters-depth-5">(</span>TestEnum1.<span class="org-constant">this</span><span class="org-rainbow-delimiters-depth-5">)</span>
+    <span class="org-rainbow-delimiters-depth-4">}</span><span class="org-rainbow-delimiters-depth-3">)</span>
+    <span class="org-function-name">it</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"rejects invalid enum values"</span>, <span class="org-rainbow-delimiters-depth-4">()</span> <span class="org-keyword">=&gt;</span> <span class="org-rainbow-delimiters-depth-4">{</span>
+    <span class="org-keyword">const</span> <span class="org-variable-name">result</span> = <span class="org-function-name">stringEnumDecoder</span><span class="org-rainbow-delimiters-depth-5">(</span>TestEnum1<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">decode</span><span class="org-rainbow-delimiters-depth-5">(</span><span class="org-string">"this"</span><span class="org-rainbow-delimiters-depth-5">)</span>
+    <span class="org-function-name">expect</span><span class="org-rainbow-delimiters-depth-5">(</span>result<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">toBeNull</span><span class="org-rainbow-delimiters-depth-5">()</span>
+    <span class="org-rainbow-delimiters-depth-4">}</span><span class="org-rainbow-delimiters-depth-3">)</span>
+
+    <span class="org-function-name">it</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"can be used in larger decoders"</span>, <span class="org-rainbow-delimiters-depth-4">()</span> <span class="org-keyword">=&gt;</span> <span class="org-rainbow-delimiters-depth-4">{</span>
+    <span class="org-keyword">const</span> <span class="org-variable-name">objectDecoder</span>: D.Decoder&lt;<span class="org-type">ObjectWithEnumField</span>&gt; = D.<span class="org-function-name">object</span><span class="org-rainbow-delimiters-depth-5">(</span><span class="org-rainbow-delimiters-depth-6">{</span>
+    required: <span class="org-rainbow-delimiters-depth-7">{</span>
+    testEnum: <span class="org-function-name">stringEnumDecoder</span><span class="org-rainbow-delimiters-depth-8">(</span>TestEnum1<span class="org-rainbow-delimiters-depth-8">)</span>,
+    name: D.<span class="org-typescript-primitive">string</span>,
+    <span class="org-rainbow-delimiters-depth-7">}</span>,
+    optional: <span class="org-rainbow-delimiters-depth-7">{</span>
+    dateOfBirth: D.<span class="org-typescript-primitive">string</span>.<span class="org-function-name">andThen</span><span class="org-rainbow-delimiters-depth-8">(</span><span class="org-rainbow-delimiters-depth-9">(</span>str<span class="org-rainbow-delimiters-depth-9">)</span> <span class="org-keyword">=&gt;</span> <span class="org-keyword">new</span> <span class="org-type">Date</span><span class="org-rainbow-delimiters-depth-9">(</span>str<span class="org-rainbow-delimiters-depth-9">)</span><span class="org-rainbow-delimiters-depth-8">)</span>,
+    <span class="org-rainbow-delimiters-depth-7">}</span>,
+    <span class="org-rainbow-delimiters-depth-6">}</span><span class="org-rainbow-delimiters-depth-5">)</span>
+
+    <span class="org-keyword">const</span> <span class="org-variable-name">inputFromApi</span> = <span class="org-string">`{ "testEnum": "!", "name": "bob", "dateOfBirth": "2022-11-24"}`</span>
+    <span class="org-keyword">const</span> <span class="org-variable-name">result1</span> = objectDecoder.<span class="org-function-name">decode</span><span class="org-rainbow-delimiters-depth-5">(</span>JSON.<span class="org-function-name">parse</span><span class="org-rainbow-delimiters-depth-6">(</span>inputFromApi<span class="org-rainbow-delimiters-depth-6">)</span><span class="org-rainbow-delimiters-depth-5">)</span>
+    <span class="org-function-name">expect</span><span class="org-rainbow-delimiters-depth-5">(</span>result1<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">toEqual</span><span class="org-rainbow-delimiters-depth-5">(</span><span class="org-rainbow-delimiters-depth-6">{</span> testEnum: <span class="org-type">TestEnum1</span>.<span class="org-constant">this</span>, name: <span class="org-string">"bob"</span>, dateOfBirth: <span class="org-keyword">new</span> <span class="org-type">Date</span><span class="org-rainbow-delimiters-depth-7">(</span><span class="org-string">"2022-11-24"</span><span class="org-rainbow-delimiters-depth-7">)</span> <span class="org-rainbow-delimiters-depth-6">}</span><span class="org-rainbow-delimiters-depth-5">)</span>
+    <span class="org-rainbow-delimiters-depth-4">}</span><span class="org-rainbow-delimiters-depth-3">)</span>
+    <span class="org-rainbow-delimiters-depth-2">}</span><span class="org-rainbow-delimiters-depth-1">)</span>
+    </pre>
+    </div>
+
+    <p>
+    How does this work? How can we write a function that can take an enum type as an
+    argument, and then generate a decoder? (Feel free to drop out if you were just
+    here to solve your immediate problem!)
+    </p>
+
+    <p>
+    If you type an enum into the online TypeScript playground (<a href="https://www.typescriptlang.org/play?#code/KYOwrgtgBAYg9nKBvAUFKB5EwoF4oBEc2BANGlACoDui+BALrWSgL4pA">here's one I prepared
+    earlier</a>), you'll see that the enum (with string values) is, in fact, compiled
+    into a variable that ends up with a simple record with string keys and values
+    attached to it.
+    </p>
+
+    <p>
+    Going back to the implementation, you'll see that's exactly the constraint on
+    the argument we pass into <code>stringEnumDecoder</code>.
+    </p>
+
+    <div class="org-src-container">
+    <pre class="src src-typescript">...
+    <span class="org-keyword">export</span> <span class="org-keyword">const</span> <span class="org-variable-name">stringEnumDecoder</span> = &lt;Enum <span class="org-typescript-access-modifier">extends</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-rainbow-delimiters-depth-2">[</span>name: <span class="org-typescript-primitive">string</span><span class="org-rainbow-delimiters-depth-2">]</span>: <span class="org-typescript-primitive">string</span> <span class="org-rainbow-delimiters-depth-1">}</span>&gt;<span class="org-rainbow-delimiters-depth-1">(</span>... rest <span class="org-keyword">of</span> implementation<span class="org-rainbow-delimiters-depth-1">)</span>
+    </pre>
+    </div>
+
+    <p>
+    Then some slightly weird magic happens: when you pass an enum into the function,
+    the TypeScript compiler infers that the type of the argument is the <code>typeof</code> the
+    enum you passed in. Whatever is happening internally here, it keeps track of the
+    fact that the keys of this type are the types of the valid enum cases, so it
+    turns <code>Enum[keyof Enum]</code> into the union type of each of the possible enum value
+    types which is, if you squint hard enough, actually the enum itself. We then
+    return a decoder that accepts a string, checks that said string is actually one
+    of the <i>values</i> stored in the enum object, and then tells the compiler that this
+    decoder will only ever return valid enum values. Unfortunately with a cast - but
+    the full context we need to check this cast is valid is contained within this
+    one line of code.
+    </p>
+
+    <p>
+    So there you have it: a safe way to deserialize strings into enums, and it even
+    composes nicely into more complex decoders.
+    </p>
+
+    <p>
+    Until next time!
+    </p>
+
+    <p>
+    Want to comment on something you've read here? <a href="https://mastodon.sdf.org/@mavnn/109400451463740531">This mastodon post</a> is the
+    official commenting point!
+    </p>
+    ]]></description>
+</item>
+<item>
+  <title>ADHD and me</title>
+  <link>https://blog.mavnn.co.uk/2022/10/14/adhd_and_me.html</link>
+  <author>michael@mavnn.eu (Michael Newton)</author>
+  <guid isPermaLink="false">https://blog.mavnn.co.uk/2022/10/14/adhd_and_me.html</guid>
+  <pubDate>Fri, 14 Oct 2022 00:00:00 +0200</pubDate>
+
+  <description><![CDATA[<p>
+  This morning, I did the washing up.
+  </p>
+
+  <p>
+  Now: your first response might be "Michael: why do I care? Do I look like a
+  washing up blog reader?"
+  </p>
+
+  <p>
+  But that would miss the point. This morning I did the washing up, and only the
+  washing up. I didn't procrastinate with some Twitter or YouTube videos first. I
+  didn't need to listen to a podcast at the same time to avoid getting lost
+  staring off into space thinking about something completely different.
+  </p>
+
+  <p>
+  Most importantly: no crushing feeling of overwhelm about needing to do this task
+  that both feels insurmountable but is obviously (objectively) trivial. It's
+  embarrassing to admit that I've been repeatedly reduced to tears by the need to
+  do the washing up.
+  </p>
+
+  <p>
+  This change, it appears, is the impact of methylphenidate (Ritalin®) on my
+  brain. I was recently diagnosed with ADHD, and yesterday I undertook a series of
+  "challenge tests" to see if I am one of the <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2732009/">75% of adult's with ADHD whose
+  symptoms are helped by the drug</a>.
+  </p>
+
+  <p>
+  I did the same series of tests twice: once in the morning, before taking
+  methylphenidate; the other in the afternoon an hour after taking the first trial
+  intake under observation (methylphenidate is a controlled substance here in
+  Italy).
+  </p>
+
+  <p>
+  It was a strange, and almost disturbing, experience to feel my brain acting
+  differently. Recall was smoother. Free association on a topic easier because my
+  brain stayed on <i>that</i> topic, without veering away onto side lines that I needed
+  to filter out from what I was saying. My thoughts were still my own, but
+  with... less in the way.
+  </p>
+
+  <p>
+  You see: trying to do stuff (and by stuff I mean pretty much <i>anything</i> that you
+  need to choose to do, rather than that you happen to start because it distracted
+  you...) with ADHD is hard. I didn't realize how hard until some of that effort
+  was lifted.
+  </p>
+
+  <p>
+  The closest I've come to being able to describe it is that having ADHD is like
+  your brain wearing an ancient near eastern tunic to work a farm.
+  </p>
+
+  <p>
+  Ever hear the phrase "gird your loins"? It's the <a href="https://www.artofmanliness.com/skills/manly-know-how/how-to-gird-up-your-loins-an-illustrated-guide/">process of tying up your tunic</a>
+  (designed primarily to keep you cool) so that you can run, or fight, or carry
+  out hard physical labour at ground level without the 'skirt' of the tunic
+  getting in the way and tripping you up.
+  </p>
+
+  <p>
+  My brain wears a tunic: I need to put effort into preparing to do things before
+  I can even start doing them. So it takes energy and effort just to <i>get ready to
+  start</i>. And if you make a mistake in the girding, or the knot slips? Well, now
+  you're half way through your task with a bunch of cloth swishing around your
+  legs and getting in the way.
+  </p>
+
+  <p>
+  Methylphenidate is the equivalent of putting on jeans.<sup><a id="fnr.1" class="footref" href="#fn.1" role="doc-backlink">1</a></sup> You can be casual still,
+  but you can also just... do stuff? Finish your morning coffee, look across the
+  kitchen, and go: "I need to do the washing up."
+  </p>
+
+  <p>
+  This morning, I did the washing up.
+  </p>
+  ]]></description>
+</item>
+<item>
+  <title>Teaching (coding) wisdom</title>
+  <link>https://blog.mavnn.co.uk/2022/06/20/teaching-coding-wisdom.html</link>
+  <author>michael@mavnn.eu (Michael Newton)</author>
+  <guid isPermaLink="false">https://blog.mavnn.co.uk/2022/06/20/teaching-coding-wisdom.html</guid>
+  <pubDate>Mon, 20 Jun 2022 00:00:00 +0200</pubDate>
+
+  <description><![CDATA[<blockquote>
+  <p>
+  [talking about the teaching of wisdom]
+  </p>
+
+  <p>
+  There are these distillations that we get throughout the story, like in the ten commandments or in the Sermon on the Mount. At points, it’s very clear: “Don’t murder.” “Honor your ma and pa.” “Do to others what you want them to do to you.” But if you really think about it, you don’t want a list. You might want a list for a certain season that will train your moral compass. Then, when you confront really complex situations, like Joshua or Moses, and it’s not clear, and there’s no list, you’ve been shaped to be the kind of person who knows how to figure out the right way forward. Lists will not help you do that. Wisdom will help you do that.
+  </p>
+
+  <p>
+  --- <a href="https://bibleproject.com/podcast/wisdom-lifes-complexity/">https://bibleproject.com/podcast/wisdom-lifes-complexity/</a>
+  </p>
+  </blockquote>
+
+  <p>
+  Listening to the podcast above earlier and thinking that it feels very similar to how to teach good coding practices. We use the short hand of rules, and lists of recommendations… sometimes. But that doesn’t teach you how to deal with the complex situations, the edge cases, the actual real problems that need solving.
+  </p>
+
+  <p>
+  The flip side being that as soon as you’re guided by wisdom, by the stories of what works, the shaping of thinking, you start getting into interpretation and ambiguity because you’re actually needing to think about the decisions you’re making. It can become hard to explain why you’re doing things, and different experiences will have coloured the “wisdom” that you’ve formed over the years. Which is why it becomes so important to have a variety of backgrounds and a willingness to communicate in a technical team that’s actually going to get things done. Why the lists and rules (microservices rule the world! TDD is the one true way! pure code is the only real code!) only get you so far, and should be starting points - not ending points.
+  </p>
+
+  <p>
+  If you'd like to comment on this post, or suggest a correction, you can <a href="https://github.com/mavnn/blog/blob/master/2022/06/20/teaching-coding-wisdom.org">submit suggestions for changes</a> (GitHub account required). Just hit the "edit this file button" and go from there - or log an issue on the repository.
+  </p>
+  ]]></description>
+</item>
+<item>
+  <title>Why your Typescript compiles when you thought you were safe</title>
+  <link>https://blog.mavnn.co.uk/2022/01/07/types-in-typescript.html</link>
+  <author>michael@mavnn.eu (Michael Newton)</author>
+  <guid isPermaLink="false">https://blog.mavnn.co.uk/2022/01/07/types-in-typescript.html</guid>
+  <pubDate>Fri, 07 Jan 2022 00:00:00 +0100</pubDate>
+
+  <description><![CDATA[
+  <div id="outline-container-org2fb0ba6" class="outline-3">
+  <h3 id="org2fb0ba6"><span class="section-number-3">4.1.</span> These are not the types you are looking for</h3>
+  <div class="outline-text-3" id="text-4-1">
+  <p>
+  TypeScript's compiler will let you write code that looks illegal - but compiles just fine.
+  </p>
+
+  <p>
+  This is the story of one such piece of code, and the epiphany it led me to: TypeScript doesn't use your type definitions to decide if a type is compatible, it uses the JavaScript that could represent that type.
+  </p>
+
+  <p>
+  Let's walk through what that means.
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-orgb41427d" class="outline-3">
+  <h3 id="orgb41427d"><span class="section-number-3">4.2.</span> The code</h3>
+  <div class="outline-text-3" id="text-4-2">
+  <p>
+  I'm writing code to make defining GraphQL resolvers a type safe experience (earlier developer feedback for the win). You don't need to know the details of GQL to follow this example though; all you need to know is that I have a type for defining the configuration of a resolver, and once certain information is supplied, I know the config is valid.
+  </p>
+
+  <p>
+  Let's have a look at some code:
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-typescript"><span class="org-keyword">type</span> <span class="org-type">ConfigValid</span> = <span class="org-string">"valid"</span> | <span class="org-string">"invalid"</span>
+
+  <span class="org-keyword">class</span> <span class="org-type">Config</span>&lt;<span class="org-type">T</span> <span class="org-typescript-access-modifier">extends</span> <span class="org-type">ConfigValid</span>&gt; <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-typescript-access-modifier">private</span> myConfig: <span class="org-typescript-primitive">string</span> | <span class="org-constant">null</span> = <span class="org-constant">null</span>
+
+  <span class="org-typescript-access-modifier">private</span> <span class="org-keyword">constructor</span><span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-rainbow-delimiters-depth-2">{}</span>
+
+  <span class="org-typescript-access-modifier">public</span> <span class="org-typescript-access-modifier">static</span> <span class="org-function-name">make</span><span class="org-rainbow-delimiters-depth-2">()</span>: <span class="org-type">Config</span>&lt;<span class="org-string">"invalid"</span>&gt; <span class="org-rainbow-delimiters-depth-2">{</span>
+  <span class="org-keyword">return</span> <span class="org-keyword">new</span> <span class="org-type">Config</span>&lt;<span class="org-string">"invalid"</span>&gt;<span class="org-rainbow-delimiters-depth-3">()</span>
+  <span class="org-rainbow-delimiters-depth-2">}</span>
+
+  <span class="org-comment-delimiter">// </span><span class="org-comment">I want this function to only accept valid configurations, and I want to</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">check if they are valid *at compile time*</span>
+  <span class="org-typescript-access-modifier">public</span> <span class="org-typescript-access-modifier">static</span> <span class="org-function-name">build</span><span class="org-rainbow-delimiters-depth-2">(</span><span class="org-variable-name">config</span>: <span class="org-type">Config</span>&lt;<span class="org-string">"valid"</span>&gt;<span class="org-rainbow-delimiters-depth-2">)</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">do stuff!</span>
+  <span class="org-type">console</span>.<span class="org-function-name">log</span><span class="org-rainbow-delimiters-depth-3">(</span>config.myConfig<span class="org-rainbow-delimiters-depth-3">)</span>
+  <span class="org-rainbow-delimiters-depth-2">}</span>
+  <span class="org-rainbow-delimiters-depth-1">}</span>
+  </pre>
+  </div>
+
+  <p>
+  Pop quiz: <code>Config.make</code> always returns a <code>Config&lt;"invalid"&gt;</code>, and <code>Config.build</code> only takes a <code>Config&lt;"valid"&gt;</code>. Will the code <code>Config.build(Config.make())</code> compile or not?
+  </p>
+
+  <p>
+  Given I'm asking, you've probably guessed that it <b>does</b> compile, breaking both my intuition&#x2026; and my code.
+  </p>
+
+  <p>
+  Why?
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-orgdf4abca" class="outline-3">
+  <h3 id="orgdf4abca"><span class="section-number-3">4.3.</span> What actually <i>is</i> TypeScript anyway?</h3>
+  <div class="outline-text-3" id="text-4-3">
+  <p>
+  Don't get whiplash, I'm going somewhere with this.
+  </p>
+
+  <p>
+  What is TypeScript?
+  </p>
+
+  <p>
+  Let's hit the <a href="https://www.typescriptlang.org/">TypeScript website</a>. It starts with "TypeScript is JavaScript with syntax for types", and then continues with "TypeScript is a strongly typed programming language that builds on JavaScript, giving you better tooling at any scale". 
+  </p>
+
+  <p>
+  To my way of thinking, that first quote looks accurate. The second is a lie.
+  </p>
+
+  <p>
+  Okay, okay: "strongly typed" has <a href="https://en.wikipedia.org/wiki/Strong_and_weak_typing">"no precise technical definition"</a> so you can argue that it's half true; I wouldn't agree, given the code above, but you can argue it. But what I'm really calling a lie is the statement that TypeScript is a programming language.
+  </p>
+
+  <p>
+  I would instead argue that TypeScript is an inline theorem prover for JavaScript. Because anything that <b>does</b> something in your code is really JavaScript - after all, TypeScript compiles to JavaScript, and all your lovely types are erased. While all of the <i>TypeScript</i> in your code (anything that isn't valid JavaScript) is just there trying to prove that your code is correct. 
+  </p>
+
+  <p>
+  TypeScript has been designed to make demonstrating correctness as easy as possible when dealing with existing (untyped) JavaScript. (Hint: as easy as possible doesn't mean easy&#x2026;)
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-org0b7c8a6" class="outline-3">
+  <h3 id="org0b7c8a6"><span class="section-number-3">4.4.</span> Erm&#x2026; what's this got to do with the code above?</h3>
+  <div class="outline-text-3" id="text-4-4">
+  <p>
+  We're not there yet. Stage 2 in our journey is structural typing.
+  </p>
+
+  <p>
+  Most strongly typed programming languages use "nominal" typing. Roughly, it's the "name" of the type that matters and if you give two types two different names (not aliases, actual different names), the compiler will keep track of which one you use where and treat them as different things - <i>even if they hold exactly the same data</i>.
+  </p>
+
+  <p>
+  So in, for example, F#, the following two types are not the same, and a function that accepts one will not accept the other:
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-fsharp"><span class="org-keyword">type</span> <span class="org-type">FirstRecord</span> = <span class="org-rainbow-delimiters-depth-1">{</span>
+  name: <span class="org-type">string</span>
+  <span class="org-rainbow-delimiters-depth-1">}</span>
+
+  <span class="org-keyword">type</span> <span class="org-type">SecondRecord</span> = <span class="org-rainbow-delimiters-depth-1">{</span>
+  name: <span class="org-type">string</span>
+  <span class="org-rainbow-delimiters-depth-1">}</span>
+
+  <span class="org-keyword">let</span> <span class="org-function-name">withFirstRecord</span> <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-variable-name">record</span>: <span class="org-type">FirstRecord</span><span class="org-rainbow-delimiters-depth-1">)</span> =
+  record.name
+  </pre>
+  </div>
+
+  <p>
+  Trying to send a record of <code>SecondRecord</code> to <code>withFirstRecord</code> would be a compile time error. Now, in F# there's an alternative; the function below will accept any type with a member called <code>name</code>:
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-keyword">inline</span> <span class="org-function-name">withName</span> <span class="org-variable-name">arg</span> =
+  <span class="org-rainbow-delimiters-depth-1">(</span>^a : <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">member</span> <span class="org-function-name">name</span> : <span class="org-type">string</span><span class="org-rainbow-delimiters-depth-2">)</span> arg<span class="org-rainbow-delimiters-depth-1">)</span>
+  </pre>
+  </div>
+
+  <p>
+  Notice a few things here:
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-orgacc93da" class="outline-3">
+  <h3 id="orgacc93da"><span class="section-number-3">4.5.</span> That syntax is horrific; turns out this is a deliberate choice to discourage overuse (see the rest of the bullets for why)</h3>
+  <div class="outline-text-3" id="text-4-5">
+  </div>
+  </div>
+  <div id="outline-container-org6cdd47c" class="outline-3">
+  <h3 id="org6cdd47c"><span class="section-number-3">4.6.</span> I had to add the <code>inline</code> keyword to get it to compile. This literally means that in each place this method is used, the compiler will inline a version that uses the type inferred in that location in the code base. This can be good or bad.</h3>
+  <div class="outline-text-3" id="text-4-6">
+  </div>
+  </div>
+  <div id="outline-container-org7bb633a" class="outline-3">
+  <h3 id="org7bb633a"><span class="section-number-3">4.7.</span> You can probably imagine that the error messages from this type of code become explosively unreadable if you nest several layers of functions using this technique, and the constraints start to grow. F# can no longer tell you "you need to give my a <code>FirstRecord</code>"; instead it has to resort to "here's a list of constraints, find me something that meets them all."</h3>
+  <div class="outline-text-3" id="text-4-7">
+  <p>
+  This is structural typing, checking types based on the type of data that they hold. And here we wrap back around to TypeScript, which always uses structural typing. 
+  </p>
+
+  <p>
+  The question is: <i>what</i> are we comparing to see if things are structurally compatible? And this is where my intuition was broken.
+  </p>
+
+  <p>
+  In F#, we're comparing the <b>type definition</b> to the constraints. But in TypeScript, we're comparing the <b>JavaScript representation of the type</b> to the constraints <i>because TypeScript exists to make JavaScript safer</i>, not to be a programming language in its own right.
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-orgb18c018" class="outline-3">
+  <h3 id="orgb18c018"><span class="section-number-3">4.8.</span> The mystery resolved</h3>
+  <div class="outline-text-3" id="text-4-8">
+  <p>
+  Back to our code:   
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-typescript"><span class="org-keyword">type</span> <span class="org-type">ConfigValid</span> = <span class="org-string">"valid"</span> | <span class="org-string">"invalid"</span>
+
+  <span class="org-keyword">class</span> <span class="org-type">Config</span>&lt;<span class="org-type">T</span> <span class="org-typescript-access-modifier">extends</span> <span class="org-type">ConfigValid</span>&gt; <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-typescript-access-modifier">private</span> myConfig: <span class="org-typescript-primitive">string</span> | <span class="org-constant">null</span> = <span class="org-constant">null</span>
+
+  <span class="org-typescript-access-modifier">private</span> <span class="org-keyword">constructor</span><span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-rainbow-delimiters-depth-2">{}</span>
+
+  <span class="org-typescript-access-modifier">public</span> <span class="org-typescript-access-modifier">static</span> <span class="org-function-name">make</span><span class="org-rainbow-delimiters-depth-2">()</span>: <span class="org-type">Config</span>&lt;<span class="org-string">"invalid"</span>&gt; <span class="org-rainbow-delimiters-depth-2">{</span>
+  <span class="org-keyword">return</span> <span class="org-keyword">new</span> <span class="org-type">Config</span>&lt;<span class="org-string">"invalid"</span>&gt;<span class="org-rainbow-delimiters-depth-3">()</span>
+  <span class="org-rainbow-delimiters-depth-2">}</span>
+
+  <span class="org-comment-delimiter">// </span><span class="org-comment">I want this function to only accept valid configurations, and I want to</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">check if they are valid *at compile time*</span>
+  <span class="org-typescript-access-modifier">public</span> <span class="org-typescript-access-modifier">static</span> <span class="org-function-name">build</span><span class="org-rainbow-delimiters-depth-2">(</span><span class="org-variable-name">config</span>: <span class="org-type">Config</span>&lt;<span class="org-string">"valid"</span>&gt;<span class="org-rainbow-delimiters-depth-2">)</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">do stuff!</span>
+  <span class="org-type">console</span>.<span class="org-function-name">log</span><span class="org-rainbow-delimiters-depth-3">(</span>config.myConfig<span class="org-rainbow-delimiters-depth-3">)</span>
+  <span class="org-rainbow-delimiters-depth-2">}</span>
+  <span class="org-rainbow-delimiters-depth-1">}</span>
+  </pre>
+  </div>
+
+  <p>
+  What is the difference between the JavaScript representations of <code>Config&lt;"invalid"&gt;</code> and <code>Config&lt;"valid"&gt;</code>?
+  </p>
+
+  <p>
+  Answer: nothing.
+  </p>
+
+  <p>
+  The generic parameter on the type is not used or stored at runtime (i.e. in JavaScript) on <code>Config</code>, and therefore it gets completely erased when we compile to JavaScript. Suddenly, it becomes no surprise that the compiler is perfectly happy to allow the use of <code>Config&lt;"invalid"&gt;</code> anywhere we specify <code>Config&lt;"valid"&gt;</code> - by TypeScript's standards they are structurally equivalent.
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-orgaf23d12" class="outline-3">
+  <h3 id="orgaf23d12"><span class="section-number-3">4.9.</span> But: the safety?!</h3>
+  <div class="outline-text-3" id="text-4-9">
+  <p>
+  Okay, so the code above doesn't work. But now we know what the problem actually is, so&#x2026; let's fix it!
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-typescript"><span class="org-keyword">type</span> <span class="org-type">ConfigValid</span> = <span class="org-string">"valid"</span> | <span class="org-string">"invalid"</span>
+
+  <span class="org-keyword">class</span> <span class="org-type">Config</span>&lt;<span class="org-type">T</span> <span class="org-typescript-access-modifier">extends</span> <span class="org-type">ConfigValid</span>&gt; <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-typescript-access-modifier">private</span> myConfig: <span class="org-typescript-primitive">string</span> | <span class="org-constant">null</span> = <span class="org-constant">null</span>
+  <span class="org-typescript-access-modifier">private</span> _isValid: T
+
+  <span class="org-typescript-access-modifier">private</span> <span class="org-keyword">constructor</span><span class="org-rainbow-delimiters-depth-2">(</span>isValid: T<span class="org-rainbow-delimiters-depth-2">)</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+  <span class="org-typescript-this">this</span>._isValid = isValid
+  <span class="org-rainbow-delimiters-depth-2">}</span>
+
+  <span class="org-typescript-access-modifier">public</span> <span class="org-typescript-access-modifier">static</span> <span class="org-function-name">make</span><span class="org-rainbow-delimiters-depth-2">()</span>: <span class="org-type">Config</span>&lt;<span class="org-string">"invalid"</span>&gt; <span class="org-rainbow-delimiters-depth-2">{</span>
+  <span class="org-keyword">return</span> <span class="org-keyword">new</span> <span class="org-type">Config</span>&lt;<span class="org-string">"invalid"</span>&gt;<span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"invalid"</span><span class="org-rainbow-delimiters-depth-3">)</span>
+  <span class="org-rainbow-delimiters-depth-2">}</span>
+
+  <span class="org-comment-delimiter">// </span><span class="org-comment">I want this function to only accept valid configurations, and I want to</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">check if they are valid *at compile time*</span>
+  <span class="org-typescript-access-modifier">public</span> <span class="org-typescript-access-modifier">static</span> <span class="org-function-name">build</span><span class="org-rainbow-delimiters-depth-2">(</span><span class="org-variable-name">config</span>: <span class="org-type">Config</span>&lt;<span class="org-string">"valid"</span>&gt;<span class="org-rainbow-delimiters-depth-2">)</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">do stuff!</span>
+  <span class="org-type">console</span>.<span class="org-function-name">log</span><span class="org-rainbow-delimiters-depth-3">(</span>config.myConfig<span class="org-rainbow-delimiters-depth-3">)</span>
+  <span class="org-rainbow-delimiters-depth-2">}</span>
+  <span class="org-rainbow-delimiters-depth-1">}</span>
+  </pre>
+  </div>
+
+  <p>
+  You see that <code>_isValid</code> field? Now we're storing a value in that field, and that value will exist at runtime in the compiled JavaScript. Now TypeScript cares about it, and now we can call <code>Config.build</code> safe in the knowledge it will only take a valid configuration instance.
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-org81dbc2f" class="outline-3">
+  <h3 id="org81dbc2f"><span class="section-number-3">4.10.</span> That's a wrap</h3>
+  <div class="outline-text-3" id="text-4-10">
+  <p>
+  I hope you've enjoyed this little journey into making <a href="https://blog.janestreet.com/effective-ml-revisited/">making illegal states unrepresentable</a>, and if you think you could enjoy this kind of thing (or even using the results to just build stuff!) I'm currently working with Blissfully and we're <a href="https://www.blissfully.com/careers/">currently hiring</a> (it says backend developers, but we're also hiring for our Elm frontend where making illegal states unrepresentable is even easier&#x2026;).
+  </p>
+
+  <p>
+  If you feel a burning need to comment on this post, or suggest a correction, you can <a href="https://github.com/mavnn/blog/blob/master/2022/01/07/types-in-typescript.org">submit suggestions for changes</a> (GitHub account required). Just hit the "edit this file button" and go from there.
+  </p>
+
+  <p>
+  With special thanks to <a href="https://twitter.com/mech_elephant">Matthew Griffith</a> and <a href="https://twitter.com/aaronwhite">Aaron White</a> for reading, pushing for and suggesting a stronger title and introductory paragraph.
+  </p>
+  </div>
+  </div>
+  ]]></description>
+</item>
+<item>
+  <title>Literate CSS</title>
+  <link>https://blog.mavnn.co.uk/2021/10/04/LiterateCSS.html</link>
+  <author>michael@mavnn.eu (Michael Newton)</author>
+  <guid isPermaLink="false">https://blog.mavnn.co.uk/2021/10/04/LiterateCSS.html</guid>
+  <pubDate>Mon, 04 Oct 2021 00:00:00 +0200</pubDate>
+
+  <description><![CDATA[<p>
+  One of the benefits of writing my blog in Org-Mode in Emacs, is that my blog posts are a functional literate programming environment. Which is pretty handy for keeping track of things like "how does my CSS work", for example.
+  </p>
+
+  <p>
+  Well, in general Org-Mode injects a basic set of CSS into web pages as it exports them, but I'm planning to amend that slightly as I go forward. Meaning this blog post will be a bit of a living document, evolving over time. Hi, future me! Hope you like it.
+  </p>
+
+  <p>
+  We're going to cheat a bit and use a "classless CSS framework" (<a href="https://github.com/kognise/water.css">water.css</a> is going to be my first attempt). This means we can remove a lot of default styling, and focus only on the more specific classes org adds.
+  </p>
+
+  <p>
+  Let's make sure that images are a decent size. I might drop this rule in the future; I'm not sure how universal it really is.
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-css"><span class="org-css-selector">img</span> <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-css-property">width</span>: <span class="org-highlight-numbers-number">750px</span>;
+  <span class="org-css-property">border-radius</span>: <span class="org-highlight-numbers-number">10px</span>;
+  <span class="org-rainbow-delimiters-depth-1">}</span>
+  </pre>
+  </div>
+
+  <p>
+  Code colouring. There's a slightly interesting quirk here as each language can define its own custom token types as well as the more general shared set.
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-css"><span class="org-comment-delimiter">/* </span><span class="org-comment">This class is applied to a wrapper div around code blocks</span><span class="org-comment-delimiter"> */</span>
+  <span class="org-css-selector">.org-src-container</span> <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-css-property">border</span>: <span class="org-highlight-numbers-number">1px</span> <span class="custom-10">black</span>;
+  <span class="org-css-property">color</span>: <span class="custom-9">#555</span>;
+  <span class="org-css-property">background-color</span>: <span class="custom-8">#f6f7f9</span>;
+  <span class="org-css-property">word-wrap</span>: normal;
+  <span class="org-css-property">overflow-x</span>: auto;
+  <span class="org-css-property">padding</span>: <span class="org-highlight-numbers-number">8pt</span>;
+  <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src</span> <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-css-property">font-family</span>: monospace;
+  <span class="org-css-property">position</span>: relative;
+  <span class="org-css-property">white-space</span>: pre;
+  <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-comment-delimiter">/* </span><span class="org-comment">Based on the mccarthy theme:</span>
+  <span class="org-comment">    https://github.com/owainlewis/emacs-color-themes/blob/master/themes/mccarthy-theme.el</span>
+  <span class="org-comment-delimiter">*/</span>
+  <span class="org-css-selector">.org-keyword</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">color</span>: <span class="custom-7">#3b5998</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.org-constant</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">color</span>: <span class="custom-6">#008080</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.org-string</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">color</span>: <span class="custom-5">#e9c</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.org-number</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">color</span>: <span class="custom-4">#5b93fc</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.org-type</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">color</span>: <span class="custom-3">#d14</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.org-function-name</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">color</span>: <span class="custom-2">#1b1e2b</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.org-variable-name</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">color</span>: <span class="custom-3">#d14</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.org-comment</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">color</span>: <span class="custom-1">#2c5115</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.org-comment-delimiter</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">color</span>: <span class="custom-1">#2c5115</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.org-rainbow-delimiters-depth-1</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">color</span>: <span class="custom">#2c3140</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.org-rainbow-delimiters-depth-2</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">color</span>: <span class="custom">#2c3140</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.org-rainbow-delimiters-depth-3</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">color</span>: <span class="custom">#2c3140</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.org-rainbow-delimiters-depth-4</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">color</span>: <span class="custom">#2c3140</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.org-rainbow-delimiters-depth-5</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">color</span>: <span class="custom">#2c3140</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.org-rainbow-delimiters-depth-6</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">color</span>: <span class="custom">#2c3140</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.org-rainbow-delimiters-depth-7</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">color</span>: <span class="custom">#2c3140</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.org-rainbow-delimiters-depth-8</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">color</span>: <span class="custom">#2c3140</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.org-rainbow-delimiters-depth-9</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">color</span>: <span class="custom">#2c3140</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+
+  <span class="org-css-selector">.org-typescript-access-modifier</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">color</span>: <span class="custom-7">#3b5998</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.org-typescript-primitive</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">color</span>: <span class="custom">#2c3140</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  </pre>
+  </div>
+
+  <p>
+  Everything below this point is modified from the default org style sheet, that normally gets embedded into every page. I'm going to separate it out here so that I can start hacking on it, and then set the export not to inject it every time.
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-css"><span class="org-css-selector">.todo</span>   <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">font-family</span>: monospace; <span class="org-css-property">color</span>: <span class="custom-10">red</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.done</span>   <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">font-family</span>: monospace; <span class="org-css-property">color</span>: <span class="custom-9">green</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.priority</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">font-family</span>: monospace; <span class="org-css-property">color</span>: <span class="custom-8">orange</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.tag</span>    <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">background-color</span>: <span class="custom-7">#eee</span>; <span class="org-css-property">font-family</span>: monospace;
+  <span class="org-css-property">padding</span>: <span class="org-highlight-numbers-number">2px</span>; <span class="org-css-property">font-size</span>: <span class="org-highlight-numbers-number">80</span>%; <span class="org-css-property">font-weight</span>: normal; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.timestamp</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">color</span>: <span class="custom-6">#bebebe</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.timestamp-kwd</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">color</span>: <span class="custom-5">#5f9ea0</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.org-right</span>  <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">margin-left</span>: auto; <span class="org-css-property">margin-right</span>: <span class="org-highlight-numbers-number">0px</span>;  <span class="org-css-property">text-align</span>: right; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.org-left</span>   <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">margin-left</span>: <span class="org-highlight-numbers-number">0px</span>;  <span class="org-css-property">margin-right</span>: auto; <span class="org-css-property">text-align</span>: left; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.org-center</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">margin-left</span>: auto; <span class="org-css-property">margin-right</span>: auto; <span class="org-css-property">text-align</span>: center; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">#postamble p, #preamble p</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">font-size</span>: <span class="org-highlight-numbers-number">90</span>%; <span class="org-css-property">margin</span>: .2em; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">p.verse</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">margin-left</span>: <span class="org-highlight-numbers-number">3</span>%; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src:before</span> <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-css-property">display</span>: none;
+  <span class="org-css-property">position</span>: absolute;
+  <span class="org-css-property">background-color</span>: <span class="custom-4">white</span>;
+  <span class="org-css-property">top</span>: <span class="org-highlight-numbers-number">10px</span>;
+  <span class="org-css-property">right</span>: <span class="org-highlight-numbers-number">10px</span>;
+  <span class="org-css-property">padding</span>: <span class="org-highlight-numbers-number">3px</span>;
+  <span class="org-css-property">border</span>: <span class="org-highlight-numbers-number">1px</span> solid <span class="custom-3">black</span>;
+  <span class="org-rainbow-delimiters-depth-1">}</span>
+  pre.src:hover:before <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">display</span>: inline;<span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-comment-delimiter">/* </span><span class="org-comment">Languages per Org manual</span><span class="org-comment-delimiter"> */</span>
+  <span class="org-css-selector">pre.src-asymptote:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Asymptote'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-awk:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Awk'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-C:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'C'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-comment-delimiter">/* </span><span class="org-comment">pre.src-C++ doesn't work in CSS</span><span class="org-comment-delimiter"> */</span>
+  <span class="org-css-selector">pre.src-clojure:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Clojure'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-css:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'CSS'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-D:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'D'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-ditaa:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'ditaa'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-dot:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Graphviz'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-calc:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Emacs Calc'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-emacs-lisp:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Emacs Lisp'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-fortran:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Fortran'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-gnuplot:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'gnuplot'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-haskell:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Haskell'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-hledger:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'hledger'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-java:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Java'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-js:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Javascript'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-latex:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'LaTeX'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-ledger:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Ledger'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-lisp:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Lisp'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-lilypond:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Lilypond'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-lua:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Lua'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-matlab:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'MATLAB'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-mscgen:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Mscgen'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-ocaml:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Objective Caml'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-octave:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Octave'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-org:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Org mode'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-oz:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'OZ'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-plantuml:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Plantuml'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-processing:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Processing.js'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-python:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Python'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-R:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'R'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-ruby:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Ruby'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-sass:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Sass'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-scheme:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Scheme'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-screen:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Gnu Screen'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-sed:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Sed'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-sh:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'shell'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-sql:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'SQL'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-sqlite:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'SQLite'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-comment-delimiter">/* </span><span class="org-comment">additional languages in org.el's org-babel-load-languages alist</span><span class="org-comment-delimiter"> */</span>
+  <span class="org-css-selector">pre.src-forth:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Forth'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-io:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'IO'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-J:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'J'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-makefile:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Makefile'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-maxima:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Maxima'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-perl:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Perl'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-picolisp:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Pico Lisp'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-scala:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Scala'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-shell:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Shell Script'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-ebnf2ps:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'ebfn2ps'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-comment-delimiter">/* </span><span class="org-comment">additional language identifiers per "defun org-babel-execute"</span>
+  <span class="org-comment">     in ob-*.el</span><span class="org-comment-delimiter"> */</span>
+  <span class="org-css-selector">pre.src-cpp:before</span>  <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'C++'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-abc:before</span>  <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'ABC'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-coq:before</span>  <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Coq'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-groovy:before</span>  <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Groovy'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-comment-delimiter">/* </span><span class="org-comment">additional language identifiers from org-babel-shell-names in</span>
+  <span class="org-comment">   ob-shell.el: ob-shell is the only babel language using a lambda to put</span>
+  <span class="org-comment">   the execution function name together.</span><span class="org-comment-delimiter"> */</span>
+  <span class="org-css-selector">pre.src-bash:before</span>  <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'bash'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-csh:before</span>  <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'csh'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-ash:before</span>  <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'ash'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-dash:before</span>  <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'dash'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-ksh:before</span>  <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'ksh'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-mksh:before</span>  <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'mksh'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-posh:before</span>  <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'posh'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-comment-delimiter">/* </span><span class="org-comment">Additional Emacs modes also supported by the LaTeX listings package</span><span class="org-comment-delimiter"> */</span>
+  <span class="org-css-selector">pre.src-ada:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Ada'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-asm:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Assembler'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-caml:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Caml'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-delphi:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Delphi'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-html:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'HTML'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-idl:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'IDL'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-mercury:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Mercury'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-metapost:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'MetaPost'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-modula-2:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Modula-2'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-pascal:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Pascal'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-ps:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'PostScript'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-prolog:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Prolog'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-simula:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Simula'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-tcl:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'tcl'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-tex:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'TeX'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-plain-tex:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Plain TeX'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-verilog:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Verilog'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-vhdl:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'VHDL'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-xml:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'XML'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-nxml:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'XML'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-comment-delimiter">/* </span><span class="org-comment">add a generic configuration mode; LaTeX export needs an additional</span>
+  <span class="org-comment">   (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs</span><span class="org-comment-delimiter"> */</span>
+  <span class="org-css-selector">pre.src-conf:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'Configuration File'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+
+  <span class="org-comment-delimiter">/* </span><span class="org-comment">added manually after generation</span><span class="org-comment-delimiter"> */</span>
+  <span class="org-css-selector">pre.src-typescript:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'TypeScript'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">pre.src-fsharp:before</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">content</span>: <span class="org-string">'F#'</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+
+  <span class="org-css-selector">caption.t-above</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">caption-side</span>: top; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">caption.t-bottom</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">caption-side</span>: bottom; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">th.org-right</span>  <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">text-align</span>: center;  <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">th.org-left</span>   <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">text-align</span>: center;   <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">th.org-center</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">text-align</span>: center; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">td.org-right</span>  <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">text-align</span>: right;  <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">td.org-left</span>   <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">text-align</span>: left;   <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">td.org-center</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">text-align</span>: center; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.footpara</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">display</span>: inline; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.footdef</span>  <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">margin-bottom</span>: <span class="org-highlight-numbers-number">1em</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.figure</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">padding</span>: <span class="org-highlight-numbers-number">1em</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.figure p</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">text-align</span>: center; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.equation-container</span> <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-css-property">display</span>: table;
+  <span class="org-css-property">text-align</span>: center;
+  <span class="org-css-property">width</span>: <span class="org-highlight-numbers-number">100</span>%;
+  <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.equation</span> <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-css-property">vertical-align</span>: middle;
+  <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.equation-label</span> <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-css-property">display</span>: table-cell;
+  <span class="org-css-property">text-align</span>: right;
+  <span class="org-css-property">vertical-align</span>: middle;
+  <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.inlinetask</span> <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-css-property">padding</span>: <span class="org-highlight-numbers-number">10px</span>;
+  <span class="org-css-property">border</span>: <span class="org-highlight-numbers-number">2px</span> solid <span class="custom-2">gray</span>;
+  <span class="org-css-property">margin</span>: <span class="org-highlight-numbers-number">10px</span>;
+  <span class="org-css-property">background</span>: <span class="custom-1">#ffffcc</span>;
+  <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">#org-div-home-and-up</span>
+  <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">text-align</span>: right; <span class="org-css-property">font-size</span>: <span class="org-highlight-numbers-number">70</span>%; <span class="org-css-property">white-space</span>: nowrap; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.linenr</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">font-size</span>: smaller <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.code-highlighted</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">background-color</span>: <span class="custom">#ffff00</span>; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.org-info-js_info-navigation</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">border-style</span>: none; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">#org-info-js_console-label</span>
+  <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">font-size</span>: <span class="org-highlight-numbers-number">10px</span>; <span class="org-css-property">font-weight</span>: bold; <span class="org-css-property">white-space</span>: nowrap; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.org-info-js_search-highlight</span>
+  <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">background-color</span>: <span class="custom">#ffff00</span>; <span class="org-css-property">color</span>: <span class="custom-3">#000000</span>; <span class="org-css-property">font-weight</span>: bold; <span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-css-selector">.org-svg</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-css-property">width</span>: <span class="org-highlight-numbers-number">90</span>%; <span class="org-rainbow-delimiters-depth-1">}</span>
+  </pre>
+  </div>
+  ]]></description>
+</item>
+<item>
+  <title>New Beginnings</title>
+  <link>https://blog.mavnn.co.uk/2021/09/22/NewBeginnings.html</link>
+  <author>michael@mavnn.eu (Michael Newton)</author>
+  <guid isPermaLink="false">https://blog.mavnn.co.uk/2021/09/22/NewBeginnings.html</guid>
+  <pubDate>Wed, 22 Sep 2021 00:00:00 +0200</pubDate>
+
+  <description><![CDATA[<p>
+  This is just a short test; I'm beginning to publish my blog via Emacs Org mode rather than Jekyll because... well, because I don't enjoy updating Ruby, and blogging is something that I (partially) do for my own relaxation and enjoyment.
+  </p>
+
+  <p>
+  So... welcome to the new blog. To those few of you subscribed to my blog as a feed, apologies for the largely content free post.
+  </p>
+
+  <p>
+  If this works I'll be updating as I go along with actual posts, as well as the obligatory posts on how the blog works and why I've set it up as I'm planning to.
+  </p>
+
+  <p>
+  Remind me why every developer feels the need to do that, again?
+  </p>
+
+  <p>
+  If you feel a burning need to comment on this post, or suggest a correction, you can <a href="https://github.com/mavnn/blog/blob/master/2021/09/22/NewBeginnings.org">submit suggestions for changes</a> (GitHub account required). Just hit the "edit this file button" and go from there.
+  </p>
+  ]]></description>
+</item>
+<div id="footnotes">
+  <h2 class="footnotes">Footnotes: </h2>
+  <div id="text-footnotes">
+
+    <div class="footdef"><sup><a id="fn.1" class="footnum" href="#fnr.1" role="doc-backlink">1</a></sup> <div class="footpara" role="doc-footnote"><p class="footpara">
+    Very short lived jeans, at the moment. While slow release versions are
+    available, the version of methylphenidate used while experimenting to find the
+    ideal personal dose has an effect period of about 4-6 hours at the outside and
+    I'm only prescribed one dose a day. So I still get to wear a brain tunic in the
+    afternoons until I reach a stable enough dosage to take the slow release
+    version.
+    </p></div></div>
+
+
+  </div>
+</div></channel>
+</rss>

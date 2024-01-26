@@ -14,8 +14,8 @@
   <link>https://blog.mavnn.co.uk/</link>
   <description><![CDATA[]]></description>
   <language>en</language>
-  <pubDate>Thu, 25 Jan 2024 15:52:01 +0100</pubDate>
-  <lastBuildDate>Thu, 25 Jan 2024 15:52:01 +0100</lastBuildDate>
+  <pubDate>Fri, 26 Jan 2024 13:59:19 +0100</pubDate>
+  <lastBuildDate>Fri, 26 Jan 2024 13:59:19 +0100</lastBuildDate>
   <generator>Emacs 29.1 Org-mode 9.6.6</generator>
   <webMaster>michael@mavnn.eu (Michael Newton)</webMaster>
   <image>
@@ -26,392 +26,157 @@
 
 
   <item>
-    <title>Short term help</title>
-    <link>https://blog.mavnn.co.uk/2024/01/25/short_term_help.html</link>
+    <title>TypeScript Enums and Serialization</title>
+    <link>https://blog.mavnn.co.uk/2022/11/24/typescript_enums_and_serialization.html</link>
     <author>michael@mavnn.eu (Michael Newton)</author>
-    <guid isPermaLink="false">https://blog.mavnn.co.uk/2024/01/25/short_term_help.html</guid>
-    <pubDate>Thu, 25 Jan 2024 00:00:00 +0100</pubDate>
+    <guid isPermaLink="false">https://blog.mavnn.co.uk/2022/11/24/typescript_enums_and_serialization.html</guid>
+    <pubDate>Wed, 24 Jan 2024 00:00:00 +0100</pubDate>
 
     <description><![CDATA[<p>
-    These days I generally work longer term contracts, which means I'm not often available for the more immediate "pay money for a solved problem" services I could offer while I was consulting. Right now though, I'm between long term contracts.
+    In general, TypeScript is <a href="../../../2022/01/07/types-in-typescript.html">not its own language</a> - it's a set of annotations that
+    can be added to JavaScript to help check the "correctness" of you program. The
+    authors have been very reluctant to add features to TypeScript that don't exist
+    in JavaScript, and so normally you can turn your TypeScript into JavaScript purely
+    by <i>deleting</i> the type annotations that you've added.
     </p>
 
     <p>
-    "But Michael," I hear you say, "what problems can I give you money to solve to avoid distracting my own amazing team from actually <b>building the product</b>?"
+    Enums, though, are a bit different. They actually generate JavaScript code based on
+    the TypeScript you write. Today, we're going to look at a piece of code that allows
+    you to deserialize enums with string values in a type safe manner. And we're going
+    to take advantage of the fact that enums (according to the TypeScript compiler) are
+    both a type, and a value with a different type - at the same time.
     </p>
 
     <p>
-    I'm so glad you asked. Or, you know, you can just skip straight to the <a href="#org350d733">logistics</a> section if you already know what you want.
-    </p>
-
-    <nav id="table-of-contents" role="doc-toc">
-    <h2>Table of Contents</h2>
-    <div id="text-table-of-contents" role="doc-toc">
-    <ul>
-    <li><a href="#orgc144544">1. Short term help</a>
-    <ul>
-    <li><a href="#orgac8e834">1.1. The kinds of things I can do for you</a></li>
-    <li><a href="#orga147577">1.2. Build, packaging, and continuous integration</a></li>
-    <li><a href="#org0dc2551">1.3. Making sure that CI/CD is managed <b>in the code repository</b> so that running the build locally and on the build server does the same thing in the same way, and the build can evolve in a safe, version controlled way just like all your other code</a></li>
-    <li><a href="#org603394a">1.4. Helping trace and encode the <i>real</i> dependencies in your code base to unlock incremental, cachable build steps and reduce overall build times with concurrency</a></li>
-    <li><a href="#orgd413c98">1.5. Split your test suite so tests can be run in parallel (yes, even integration tests) and then aggregate the results</a></li>
-    <li><a href="#orge1b4f6f">1.6. Use tools like Nix or multi-step docker/podman builds to create minimal containers that only contain what they really need</a></li>
-    <li><a href="#org1a9978b">1.7. Architecture review</a></li>
-    <li><a href="#orgfde1b6a">1.8. Code review</a></li>
-    <li><a href="#orga0182cb">1.9. Technology evaluation</a></li>
-    <li><a href="#org330d28f">1.10. Domain driven design coaching</a></li>
-    <li><a href="#orgdba37bf">1.11. Event sourcing</a></li>
-    <li><a href="#orgbad4b40">1.12. Teach property based testing</a></li>
-    <li><a href="#org19eb50a">1.13. Build a tool/library</a></li>
-    <li><a href="#org350d733">1.14. Logistics</a></li>
-    <li><a href="#org72a38ec">1.15. I will <i>always</i> want to have an extensive conversation(s) and will normally want to provide a quote before starting a short term piece of work. Book a slot to talk on Calendly or just send me an email (michael at mavnn.eu)</a></li>
-    <li><a href="#org5e40235">1.16. I currently live in Italy, about an hour away from Rome. I can offer all of the services above remotely. Asking me to attend in person will add travel costs and at least 2 billable days of my time. Note: in some situations this is totally worthwhile.</a></li>
-    <li><a href="#org72070e9">1.17. My day rate runs at 1000 euros per day for short term work like this, but in general I will use that to generate a quote and then charge you for the work delivered rather than bill by unit time. I never bill by the hour; I will consider discounts for non-profits, educational sites, friends, etc. It it's easier for you, I can give a quote that includes all expenses (travel etc) rather than reclaiming them separately. (Hint: if you're in a large organization and this is the first time you're arranging to get a consultant in - <i>this will be easier for you</i>)</a></li>
-    <li><a href="#orgc5a7d68">1.18. In the rare occasion where it turns out that I cannot deliver what I promised (I'm just one human - things like illness can happen) I will let you know promptly, and before the work is due to be delivered, so we can renegotiate where to go from the reality of the situation.</a></li>
-    </ul>
-    </li>
-    <li><a href="#orgca87aef">2. TypeScript Enums and Serialization</a></li>
-    <li><a href="#org6ee668c">3. ADHD and me</a></li>
-    <li><a href="#orga713fb2">4. Teaching (coding) wisdom</a></li>
-    </ul>
-    </div>
-    </nav>
-
-    <div id="outline-container-orgac8e834" class="outline-3">
-    <h3 id="orgac8e834"><span class="section-number-3">1.1.</span> The kinds of things I can do for you</h3>
-    <div class="outline-text-3" id="text-1-1">
-    </div>
-    </div>
-
-    <div id="outline-container-orga147577" class="outline-3">
-    <h3 id="orga147577"><span class="section-number-3">1.2.</span> Build, packaging, and continuous integration</h3>
-    <div class="outline-text-3" id="text-1-2">
-    <p>
-    I have spent a <i>lot</i> of time getting build, test, and deployment pipelines up and running. A lot of the advice out there assumes you are using one technology and that you can just use "the build tool" for that stack. Reality tends to be more complicated than that, with many projects involving multiple languages, code generation, and extensive test set up.
+    For context, we're going to be using <a href="https://www.npmjs.com/package/schemawax">SchemaWax</a> to create our decoder, so we can
+    build it into a larger contextual decoder as needed.
     </p>
 
     <p>
-    What kind of things would a CI/CD process I help build give you? It depends on <i>your</i> needs, but things that have really helped in other places include:
+    First: the code! If you already know SchemaWax, you don't care about types, and
+    you're here because it was a hit for "deserialize any enum" on Google this is
+    the bit to cut and paste.
     </p>
-    </div>
+
+    <div class="org-src-container">
+    <pre class="src src-typescript"><span class="org-keyword">import</span> * <span class="org-keyword">as</span> D <span class="org-keyword">from</span> <span class="org-string">"schemawax"</span>
+
+    <span class="org-comment-delimiter">// </span><span class="org-comment">This is only type safe if passed a Enum with string values.</span>
+    <span class="org-comment-delimiter">// </span><span class="org-comment">I don't think there's anyway to stop someone passing { "boo": "broken" }</span>
+    <span class="org-comment-delimiter">// </span><span class="org-comment">in TypeScripts type system :(</span>
+    <span class="org-comment-delimiter">// </span><span class="org-comment">At least this stops us from rewriting the same unsafe code every time though.</span>
+    <span class="org-keyword">export</span> <span class="org-keyword">const</span> <span class="org-variable-name">stringEnumDecoder</span> = &lt;Enum <span class="org-typescript-access-modifier">extends</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-rainbow-delimiters-depth-2">[</span>name: <span class="org-typescript-primitive">string</span><span class="org-rainbow-delimiters-depth-2">]</span>: <span class="org-typescript-primitive">string</span> <span class="org-rainbow-delimiters-depth-1">}</span>&gt;<span class="org-rainbow-delimiters-depth-1">(</span>
+    targetEnum: <span class="org-type">Enum</span>,
+    <span class="org-rainbow-delimiters-depth-1">)</span>: D.Decoder&lt;<span class="org-type">Enum</span><span class="org-rainbow-delimiters-depth-1">[</span><span class="org-type">keyof</span> <span class="org-type">Enum</span><span class="org-rainbow-delimiters-depth-1">]</span>&gt; <span class="org-keyword">=&gt;</span> <span class="org-type">D</span>.<span class="org-function-name">literalUnion</span><span class="org-rainbow-delimiters-depth-1">(</span>...<span class="org-type">Object</span>.<span class="org-function-name">values</span><span class="org-rainbow-delimiters-depth-2">(</span><span class="org-type">targetEnum</span><span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span> <span class="org-type">as</span> <span class="org-type">D</span>.<span class="org-type">Decoder</span>&lt;<span class="org-type">Enum</span><span class="org-rainbow-delimiters-depth-1">[</span><span class="org-type">keyof</span> <span class="org-type">Enum</span><span class="org-rainbow-delimiters-depth-1">]</span>&gt;
+    </pre>
     </div>
 
-    <div id="outline-container-org0dc2551" class="outline-3">
-    <h3 id="org0dc2551"><span class="section-number-3">1.3.</span> Making sure that CI/CD is managed <b>in the code repository</b> so that running the build locally and on the build server does the same thing in the same way, and the build can evolve in a safe, version controlled way just like all your other code</h3>
-    <div class="outline-text-3" id="text-1-3">
-    </div>
-    </div>
-    <div id="outline-container-org603394a" class="outline-3">
-    <h3 id="org603394a"><span class="section-number-3">1.4.</span> Helping trace and encode the <i>real</i> dependencies in your code base to unlock incremental, cachable build steps and reduce overall build times with concurrency</h3>
-    <div class="outline-text-3" id="text-1-4">
-    </div>
-    </div>
-    <div id="outline-container-orgd413c98" class="outline-3">
-    <h3 id="orgd413c98"><span class="section-number-3">1.5.</span> Split your test suite so tests can be run in parallel (yes, even integration tests) and then aggregate the results</h3>
-    <div class="outline-text-3" id="text-1-5">
-    </div>
-    </div>
-    <div id="outline-container-orge1b4f6f" class="outline-3">
-    <h3 id="orge1b4f6f"><span class="section-number-3">1.6.</span> Use tools like Nix or multi-step docker/podman builds to create minimal containers that only contain what they really need</h3>
-    <div class="outline-text-3" id="text-1-6">
-    </div>
-    <div id="outline-container-orgdd56784" class="outline-4">
-    <h4 id="orgdd56784"><span class="section-number-4">1.6.1.</span> bonus extra: doing this with Nix also gives you development environments as code and reproducible deployment artifacts - same code in, same container out</h4>
-    <div class="outline-text-4" id="text-1-6-1">
-    </div>
-    </div>
-    </div>
-
-    <div id="outline-container-org1a9978b" class="outline-3">
-    <h3 id="org1a9978b"><span class="section-number-3">1.7.</span> Architecture review</h3>
-    <div class="outline-text-3" id="text-1-7">
     <p>
-    Putting together a new project, or have a code base that's moving from "minimum viable" to "oh - I've got customers"? I can review your plans, or, given your constraints and objectives I can put together a suggested system architecture for you.
+    That's it. The whole thing. How do you use it?
     </p>
 
     <p>
-    It's worth noting that I don't have a personal axe to grind here. I won't tell you to use a "clean" architecture because that's my thing, or to use microservices because they are fashionable. Different architectural styles exist for a reason, and each has its own trade offs in terms of constraints you accept to gain certain benefits.
+    Like this:
+    </p>
+
+    <div class="org-src-container">
+    <pre class="src src-typescript"><span class="org-keyword">import</span> * <span class="org-keyword">as</span> D <span class="org-keyword">from</span> <span class="org-string">"schemawax"</span>
+    <span class="org-keyword">import</span> <span class="org-rainbow-delimiters-depth-1">{</span> stringEnumDecoder <span class="org-rainbow-delimiters-depth-1">}</span> <span class="org-keyword">from</span> <span class="org-string">"./enum"</span>
+
+    <span class="org-keyword">enum</span> <span class="org-type">TestEnum1</span> <span class="org-rainbow-delimiters-depth-1">{</span>
+    <span class="org-string">"why"</span> = <span class="org-string">"would"</span>,
+    <span class="org-string">"anyone"</span> = <span class="org-string">"do"</span>,
+    <span class="org-string">"this"</span> = <span class="org-string">"!"</span>,
+    <span class="org-rainbow-delimiters-depth-1">}</span>
+
+    <span class="org-keyword">type</span> <span class="org-type">ObjectWithEnumField</span> = <span class="org-rainbow-delimiters-depth-1">{</span>
+    testEnum: <span class="org-type">TestEnum1</span>
+    name: <span class="org-typescript-primitive">string</span>
+    age?: <span class="org-typescript-primitive">number</span>
+    <span class="org-rainbow-delimiters-depth-1">}</span>
+
+    <span class="org-function-name">describe</span><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-string">"stringEnumDecoder"</span>, <span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-keyword">=&gt;</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+    <span class="org-function-name">it</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"decodes string enums"</span>, <span class="org-rainbow-delimiters-depth-4">()</span> <span class="org-keyword">=&gt;</span> <span class="org-rainbow-delimiters-depth-4">{</span>
+    <span class="org-keyword">const</span> <span class="org-variable-name">result</span> = <span class="org-function-name">stringEnumDecoder</span><span class="org-rainbow-delimiters-depth-5">(</span>TestEnum1<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">forceDecode</span><span class="org-rainbow-delimiters-depth-5">(</span><span class="org-string">"!"</span><span class="org-rainbow-delimiters-depth-5">)</span>
+    <span class="org-function-name">expect</span><span class="org-rainbow-delimiters-depth-5">(</span>result<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">toEqual</span><span class="org-rainbow-delimiters-depth-5">(</span>TestEnum1.<span class="org-constant">this</span><span class="org-rainbow-delimiters-depth-5">)</span>
+    <span class="org-rainbow-delimiters-depth-4">}</span><span class="org-rainbow-delimiters-depth-3">)</span>
+    <span class="org-function-name">it</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"rejects invalid enum values"</span>, <span class="org-rainbow-delimiters-depth-4">()</span> <span class="org-keyword">=&gt;</span> <span class="org-rainbow-delimiters-depth-4">{</span>
+    <span class="org-keyword">const</span> <span class="org-variable-name">result</span> = <span class="org-function-name">stringEnumDecoder</span><span class="org-rainbow-delimiters-depth-5">(</span>TestEnum1<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">decode</span><span class="org-rainbow-delimiters-depth-5">(</span><span class="org-string">"this"</span><span class="org-rainbow-delimiters-depth-5">)</span>
+    <span class="org-function-name">expect</span><span class="org-rainbow-delimiters-depth-5">(</span>result<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">toBeNull</span><span class="org-rainbow-delimiters-depth-5">()</span>
+    <span class="org-rainbow-delimiters-depth-4">}</span><span class="org-rainbow-delimiters-depth-3">)</span>
+
+    <span class="org-function-name">it</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"can be used in larger decoders"</span>, <span class="org-rainbow-delimiters-depth-4">()</span> <span class="org-keyword">=&gt;</span> <span class="org-rainbow-delimiters-depth-4">{</span>
+    <span class="org-keyword">const</span> <span class="org-variable-name">objectDecoder</span>: D.Decoder&lt;<span class="org-type">ObjectWithEnumField</span>&gt; = D.<span class="org-function-name">object</span><span class="org-rainbow-delimiters-depth-5">(</span><span class="org-rainbow-delimiters-depth-6">{</span>
+    required: <span class="org-rainbow-delimiters-depth-7">{</span>
+    testEnum: <span class="org-function-name">stringEnumDecoder</span><span class="org-rainbow-delimiters-depth-8">(</span>TestEnum1<span class="org-rainbow-delimiters-depth-8">)</span>,
+    name: D.<span class="org-typescript-primitive">string</span>,
+    <span class="org-rainbow-delimiters-depth-7">}</span>,
+    optional: <span class="org-rainbow-delimiters-depth-7">{</span>
+    dateOfBirth: D.<span class="org-typescript-primitive">string</span>.<span class="org-function-name">andThen</span><span class="org-rainbow-delimiters-depth-8">(</span><span class="org-rainbow-delimiters-depth-9">(</span>str<span class="org-rainbow-delimiters-depth-9">)</span> <span class="org-keyword">=&gt;</span> <span class="org-keyword">new</span> <span class="org-type">Date</span><span class="org-rainbow-delimiters-depth-9">(</span>str<span class="org-rainbow-delimiters-depth-9">)</span><span class="org-rainbow-delimiters-depth-8">)</span>,
+    <span class="org-rainbow-delimiters-depth-7">}</span>,
+    <span class="org-rainbow-delimiters-depth-6">}</span><span class="org-rainbow-delimiters-depth-5">)</span>
+
+    <span class="org-keyword">const</span> <span class="org-variable-name">inputFromApi</span> = <span class="org-string">`{ "testEnum": "!", "name": "bob", "dateOfBirth": "2022-11-24"}`</span>
+    <span class="org-keyword">const</span> <span class="org-variable-name">result1</span> = objectDecoder.<span class="org-function-name">decode</span><span class="org-rainbow-delimiters-depth-5">(</span>JSON.<span class="org-function-name">parse</span><span class="org-rainbow-delimiters-depth-6">(</span>inputFromApi<span class="org-rainbow-delimiters-depth-6">)</span><span class="org-rainbow-delimiters-depth-5">)</span>
+    <span class="org-function-name">expect</span><span class="org-rainbow-delimiters-depth-5">(</span>result1<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">toEqual</span><span class="org-rainbow-delimiters-depth-5">(</span><span class="org-rainbow-delimiters-depth-6">{</span> testEnum: <span class="org-type">TestEnum1</span>.<span class="org-constant">this</span>, name: <span class="org-string">"bob"</span>, dateOfBirth: <span class="org-keyword">new</span> <span class="org-type">Date</span><span class="org-rainbow-delimiters-depth-7">(</span><span class="org-string">"2022-11-24"</span><span class="org-rainbow-delimiters-depth-7">)</span> <span class="org-rainbow-delimiters-depth-6">}</span><span class="org-rainbow-delimiters-depth-5">)</span>
+    <span class="org-rainbow-delimiters-depth-4">}</span><span class="org-rainbow-delimiters-depth-3">)</span>
+    <span class="org-rainbow-delimiters-depth-2">}</span><span class="org-rainbow-delimiters-depth-1">)</span>
+    </pre>
+    </div>
+
+    <p>
+    How does this work? How can we write a function that can take an enum type as an
+    argument, and then generate a decoder? (Feel free to drop out if you were just
+    here to solve your immediate problem!)
     </p>
 
     <p>
-    This is a bit of a hybrid service that includes aspects of <a href="#orga0182cb">technology evaluation</a>, <a href="#orgfde1b6a">code review</a>, and <a href="#org330d28f">domain driven design coaching</a> but zoomed out to look at "how do I put this all together."
-    </p>
-    </div>
-    </div>
-
-    <div id="outline-container-orgfde1b6a" class="outline-3">
-    <h3 id="orgfde1b6a"><span class="section-number-3">1.8.</span> Code review</h3>
-    <div class="outline-text-3" id="text-1-8">
-    <p>
-    For ecosystems I've built decent sized projects in (.NET, TypeScript) I can spend some time reviewing your code and pointing out things you may want to improve.
+    If you type an enum into the online TypeScript playground (<a href="https://www.typescriptlang.org/play?#code/KYOwrgtgBAYg9nKBvAUFKB5EwoF4oBEc2BANGlACoDui+BALrWSgL4pA">here's one I prepared
+    earlier</a>), you'll see that the enum (with string values) is, in fact, compiled
+    into a variable that ends up with a simple record with string keys and values
+    attached to it.
     </p>
 
     <p>
-    This isn't the kind of code review you'd do on an individual PR: this is the kind of code review where I can (as an outsider) come in with fresh eyes and point out broader patterns in your code base that may be problematic. I can also help you take your conventions and "traditions" and turn them into a coding style guide with (in many cases) automated tooling to help the team put it into practice.
-    </p>
-    </div>
-    </div>
-
-    <div id="outline-container-orga0182cb" class="outline-3">
-    <h3 id="orga0182cb"><span class="section-number-3">1.9.</span> Technology evaluation</h3>
-    <div class="outline-text-3" id="text-1-9">
-    <p>
-    Considering buying a new service, picking up a new programming language, or changing to a new database library? I can do the research and evaluation you need: I've been helping drive technology choices in organizations for well over a decade now and can help you spot the good, the bad, and the ugly of the options you're considering.
-    </p>
-    </div>
-    </div>
-
-    <div id="outline-container-org330d28f" class="outline-3">
-    <h3 id="org330d28f"><span class="section-number-3">1.10.</span> Domain driven design coaching</h3>
-    <div class="outline-text-3" id="text-1-10">
-    <p>
-    At its heart, the promise of domain driven design is simple: a code base that uses the same language as the people using it do, so that developers and domain experts can accurately share understanding of what the code <i>should</i> do and why.
+    Going back to the implementation, you'll see that's exactly the constraint on
+    the argument we pass into <code>stringEnumDecoder</code>.
     </p>
 
-    <p>
-    Actually <i>doing</i> domain driven design is not simple at all, because it is a process to help you model reality and it turns out <a href="http://johnsalvatier.org/blog/2017/reality-has-a-surprising-amount-of-detail">reality has a surprising amount of detail</a>.
-    </p>
-
-    <p>
-    I can help with the process of getting started with DDD, help lead the early exploratory meetings between developers and domain experts, and give advice at how to capture what you discover in code while keeping everything maintainable.
-    </p>
-    </div>
+    <div class="org-src-container">
+    <pre class="src src-typescript">...
+    <span class="org-keyword">export</span> <span class="org-keyword">const</span> <span class="org-variable-name">stringEnumDecoder</span> = &lt;Enum <span class="org-typescript-access-modifier">extends</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-rainbow-delimiters-depth-2">[</span>name: <span class="org-typescript-primitive">string</span><span class="org-rainbow-delimiters-depth-2">]</span>: <span class="org-typescript-primitive">string</span> <span class="org-rainbow-delimiters-depth-1">}</span>&gt;<span class="org-rainbow-delimiters-depth-1">(</span>... rest <span class="org-keyword">of</span> implementation<span class="org-rainbow-delimiters-depth-1">)</span>
+    </pre>
     </div>
 
-    <div id="outline-container-orgdba37bf" class="outline-3">
-    <h3 id="orgdba37bf"><span class="section-number-3">1.11.</span> Event sourcing</h3>
-    <div class="outline-text-3" id="text-1-11">
     <p>
-    Event sourcing is a technique for capturing all the events that "have happened" and using those to calculate the current state of your system.
+    Then some slightly weird magic happens: when you pass an enum into the function,
+    the TypeScript compiler infers that the type of the argument is the <code>typeof</code> the
+    enum you passed in. Whatever is happening internally here, it keeps track of the
+    fact that the keys of this type are the types of the valid enum cases, so it
+    turns <code>Enum[keyof Enum]</code> into the union type of each of the possible enum value
+    types which is, if you squint hard enough, actually the enum itself. We then
+    return a decoder that accepts a string, checks that said string is actually one
+    of the <i>values</i> stored in the enum object, and then tells the compiler that this
+    decoder will only ever return valid enum values. Unfortunately with a cast - but
+    the full context we need to check this cast is valid is contained within this
+    one line of code.
     </p>
 
     <p>
-    For example, if a customer of yours moves you may publish a <code>CustomerHasMoved</code> event when they tell you, and a <code>CustomerAddressHasChanged</code> event when you have finished the business process that manages customers moving.
+    So there you have it: a safe way to deserialize strings into enums, and it even
+    composes nicely into more complex decoders.
     </p>
 
     <p>
-    This has enormous benefits for auditing, for being able to look at how the system has changed over time, and for being able to fix bugs "retroactively" as you don't only have the current state of the system but also all of the steps that got you here.
+    Until next time!
     </p>
 
     <p>
-    It <i>also</i> requires a slightly different way of thinking about your code base and some specific tooling to avoid a system that slows down over time. And it affects how you think about business constraints like data retention and <a href="https://www.dataprotection.ie/en/individuals/know-your-rights/right-erasure-articles-17-19-gdpr">the right to erasure</a>.
+    Want to comment on something you've read here? <a href="https://mastodon.sdf.org/@mavnn/109400451463740531">This mastodon post</a> is the
+    official commenting point!
     </p>
-
-    <p>
-    As the saying goes: been there, done that. I can help you do it too.
-    </p>
-    </div>
-    </div>
-
-    <div id="outline-container-orgbad4b40" class="outline-3">
-    <h3 id="orgbad4b40"><span class="section-number-3">1.12.</span> Teach property based testing</h3>
-    <div class="outline-text-3" id="text-1-12">
-    <p>
-    I'm a huge fan of property based testing, and I'm more than happy to give interactive workshops on getting started with it in .NET, TypeScript, and probably other languages if you ask nicely. Why pay for this when you could download a conference talk about it for free (including ones I've given myself)? Because I'll use a piece of <i>your</i> code to get started with, so that you walk away with an up and running example in your code base and we all talk about the reality of doing this rather than seeing the nice, easy, examples you tend to be shown in a 45 minute talk.
-    </p>
-    </div>
-    </div>
-
-    <div id="outline-container-org19eb50a" class="outline-3">
-    <h3 id="org19eb50a"><span class="section-number-3">1.13.</span> Build a tool/library</h3>
-    <div class="outline-text-3" id="text-1-13">
-    <p>
-    I do just write good code as well. If you need a self contained library or a small solution built, I can do that for you.
-    </p>
-    </div>
-    </div>
-
-    <div id="outline-container-org350d733" class="outline-3">
-    <h3 id="org350d733"><span class="section-number-3">1.14.</span> Logistics</h3>
-    <div class="outline-text-3" id="text-1-14">
-    <p>
-    Let's cover the basics. Neither of us has time to waste, so I'm going to keep this blunt and simple:
-    </p>
-    </div>
-    </div>
-
-    <div id="outline-container-org72a38ec" class="outline-3">
-    <h3 id="org72a38ec"><span class="section-number-3">1.15.</span> I will <i>always</i> want to have an extensive conversation(s) and will normally want to provide a quote before starting a short term piece of work. Book a slot to talk on <a href="https://calendly.com/mavnn/1-hour-slot">Calendly</a> or just send me an email (michael at mavnn.eu)</h3>
-    <div class="outline-text-3" id="text-1-15">
-    </div>
-    </div>
-    <div id="outline-container-org5e40235" class="outline-3">
-    <h3 id="org5e40235"><span class="section-number-3">1.16.</span> I currently live in Italy, about an hour away from Rome. I can offer all of the services above remotely. Asking me to attend in person will add travel costs and at least 2 billable days of my time. Note: in some situations this is totally worthwhile.</h3>
-    <div class="outline-text-3" id="text-1-16">
-    </div>
-    </div>
-    <div id="outline-container-org72070e9" class="outline-3">
-    <h3 id="org72070e9"><span class="section-number-3">1.17.</span> My day rate runs at 1000 euros per day for short term work like this, but in general I will use that to generate a quote and then charge you for the work delivered rather than bill by unit time. I never bill by the hour; I will consider discounts for non-profits, educational sites, friends, etc. It it's easier for you, I can give a quote that includes all expenses (travel etc) rather than reclaiming them separately. (Hint: if you're in a large organization and this is the first time you're arranging to get a consultant in - <i>this will be easier for you</i>)</h3>
-    <div class="outline-text-3" id="text-1-17">
-    </div>
-    <div id="outline-container-org3ae6922" class="outline-4">
-    <h4 id="org3ae6922"><span class="section-number-4">1.17.1.</span> If you are in the EU, note that I am VAT registered</h4>
-    <div class="outline-text-4" id="text-1-17-1">
-    </div>
-    </div>
-    </div>
-    <div id="outline-container-orgc5a7d68" class="outline-3">
-    <h3 id="orgc5a7d68"><span class="section-number-3">1.18.</span> In the rare occasion where it turns out that I cannot deliver what I promised (I'm just one human - things like illness can happen) I will let you know promptly, and before the work is due to be delivered, so we can renegotiate where to go from the reality of the situation.</h3>
-    <div class="outline-text-3" id="text-1-18">
-    <p>
-    That's about everything, I think.
-    </p>
-    </div>
-    </div>
     ]]></description>
-</item>
-<item>
-  <title>TypeScript Enums and Serialization</title>
-  <link>https://blog.mavnn.co.uk/2022/11/24/typescript_enums_and_serialization.html</link>
-  <author>michael@mavnn.eu (Michael Newton)</author>
-  <guid isPermaLink="false">https://blog.mavnn.co.uk/2022/11/24/typescript_enums_and_serialization.html</guid>
-  <pubDate>Wed, 24 Jan 2024 00:00:00 +0100</pubDate>
-
-  <description><![CDATA[<p>
-  In general, TypeScript is <a href="../../../2022/01/07/types-in-typescript.html">not its own language</a> - it's a set of annotations that
-  can be added to JavaScript to help check the "correctness" of you program. The
-  authors have been very reluctant to add features to TypeScript that don't exist
-  in JavaScript, and so normally you can turn your TypeScript into JavaScript purely
-  by <i>deleting</i> the type annotations that you've added.
-  </p>
-
-  <p>
-  Enums, though, are a bit different. They actually generate JavaScript code based on
-  the TypeScript you write. Today, we're going to look at a piece of code that allows
-  you to deserialize enums with string values in a type safe manner. And we're going
-  to take advantage of the fact that enums (according to the TypeScript compiler) are
-  both a type, and a value with a different type - at the same time.
-  </p>
-
-  <p>
-  For context, we're going to be using <a href="https://www.npmjs.com/package/schemawax">SchemaWax</a> to create our decoder, so we can
-  build it into a larger contextual decoder as needed.
-  </p>
-
-  <p>
-  First: the code! If you already know SchemaWax, you don't care about types, and
-  you're here because it was a hit for "deserialize any enum" on Google this is
-  the bit to cut and paste.
-  </p>
-
-  <div class="org-src-container">
-  <pre class="src src-typescript"><span class="org-keyword">import</span> * <span class="org-keyword">as</span> D <span class="org-keyword">from</span> <span class="org-string">"schemawax"</span>
-
-  <span class="org-comment-delimiter">// </span><span class="org-comment">This is only type safe if passed a Enum with string values.</span>
-  <span class="org-comment-delimiter">// </span><span class="org-comment">I don't think there's anyway to stop someone passing { "boo": "broken" }</span>
-  <span class="org-comment-delimiter">// </span><span class="org-comment">in TypeScripts type system :(</span>
-  <span class="org-comment-delimiter">// </span><span class="org-comment">At least this stops us from rewriting the same unsafe code every time though.</span>
-  <span class="org-keyword">export</span> <span class="org-keyword">const</span> <span class="org-variable-name">stringEnumDecoder</span> = &lt;Enum <span class="org-typescript-access-modifier">extends</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-rainbow-delimiters-depth-2">[</span>name: <span class="org-typescript-primitive">string</span><span class="org-rainbow-delimiters-depth-2">]</span>: <span class="org-typescript-primitive">string</span> <span class="org-rainbow-delimiters-depth-1">}</span>&gt;<span class="org-rainbow-delimiters-depth-1">(</span>
-  targetEnum: <span class="org-type">Enum</span>,
-  <span class="org-rainbow-delimiters-depth-1">)</span>: D.Decoder&lt;<span class="org-type">Enum</span><span class="org-rainbow-delimiters-depth-1">[</span><span class="org-type">keyof</span> <span class="org-type">Enum</span><span class="org-rainbow-delimiters-depth-1">]</span>&gt; <span class="org-keyword">=&gt;</span> <span class="org-type">D</span>.<span class="org-function-name">literalUnion</span><span class="org-rainbow-delimiters-depth-1">(</span>...<span class="org-type">Object</span>.<span class="org-function-name">values</span><span class="org-rainbow-delimiters-depth-2">(</span><span class="org-type">targetEnum</span><span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span> <span class="org-type">as</span> <span class="org-type">D</span>.<span class="org-type">Decoder</span>&lt;<span class="org-type">Enum</span><span class="org-rainbow-delimiters-depth-1">[</span><span class="org-type">keyof</span> <span class="org-type">Enum</span><span class="org-rainbow-delimiters-depth-1">]</span>&gt;
-  </pre>
-  </div>
-
-  <p>
-  That's it. The whole thing. How do you use it?
-  </p>
-
-  <p>
-  Like this:
-  </p>
-
-  <div class="org-src-container">
-  <pre class="src src-typescript"><span class="org-keyword">import</span> * <span class="org-keyword">as</span> D <span class="org-keyword">from</span> <span class="org-string">"schemawax"</span>
-  <span class="org-keyword">import</span> <span class="org-rainbow-delimiters-depth-1">{</span> stringEnumDecoder <span class="org-rainbow-delimiters-depth-1">}</span> <span class="org-keyword">from</span> <span class="org-string">"./enum"</span>
-
-  <span class="org-keyword">enum</span> <span class="org-type">TestEnum1</span> <span class="org-rainbow-delimiters-depth-1">{</span>
-  <span class="org-string">"why"</span> = <span class="org-string">"would"</span>,
-  <span class="org-string">"anyone"</span> = <span class="org-string">"do"</span>,
-  <span class="org-string">"this"</span> = <span class="org-string">"!"</span>,
-  <span class="org-rainbow-delimiters-depth-1">}</span>
-
-  <span class="org-keyword">type</span> <span class="org-type">ObjectWithEnumField</span> = <span class="org-rainbow-delimiters-depth-1">{</span>
-  testEnum: <span class="org-type">TestEnum1</span>
-  name: <span class="org-typescript-primitive">string</span>
-  age?: <span class="org-typescript-primitive">number</span>
-  <span class="org-rainbow-delimiters-depth-1">}</span>
-
-  <span class="org-function-name">describe</span><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-string">"stringEnumDecoder"</span>, <span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-keyword">=&gt;</span> <span class="org-rainbow-delimiters-depth-2">{</span>
-  <span class="org-function-name">it</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"decodes string enums"</span>, <span class="org-rainbow-delimiters-depth-4">()</span> <span class="org-keyword">=&gt;</span> <span class="org-rainbow-delimiters-depth-4">{</span>
-  <span class="org-keyword">const</span> <span class="org-variable-name">result</span> = <span class="org-function-name">stringEnumDecoder</span><span class="org-rainbow-delimiters-depth-5">(</span>TestEnum1<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">forceDecode</span><span class="org-rainbow-delimiters-depth-5">(</span><span class="org-string">"!"</span><span class="org-rainbow-delimiters-depth-5">)</span>
-  <span class="org-function-name">expect</span><span class="org-rainbow-delimiters-depth-5">(</span>result<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">toEqual</span><span class="org-rainbow-delimiters-depth-5">(</span>TestEnum1.<span class="org-constant">this</span><span class="org-rainbow-delimiters-depth-5">)</span>
-  <span class="org-rainbow-delimiters-depth-4">}</span><span class="org-rainbow-delimiters-depth-3">)</span>
-  <span class="org-function-name">it</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"rejects invalid enum values"</span>, <span class="org-rainbow-delimiters-depth-4">()</span> <span class="org-keyword">=&gt;</span> <span class="org-rainbow-delimiters-depth-4">{</span>
-  <span class="org-keyword">const</span> <span class="org-variable-name">result</span> = <span class="org-function-name">stringEnumDecoder</span><span class="org-rainbow-delimiters-depth-5">(</span>TestEnum1<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">decode</span><span class="org-rainbow-delimiters-depth-5">(</span><span class="org-string">"this"</span><span class="org-rainbow-delimiters-depth-5">)</span>
-  <span class="org-function-name">expect</span><span class="org-rainbow-delimiters-depth-5">(</span>result<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">toBeNull</span><span class="org-rainbow-delimiters-depth-5">()</span>
-  <span class="org-rainbow-delimiters-depth-4">}</span><span class="org-rainbow-delimiters-depth-3">)</span>
-
-  <span class="org-function-name">it</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"can be used in larger decoders"</span>, <span class="org-rainbow-delimiters-depth-4">()</span> <span class="org-keyword">=&gt;</span> <span class="org-rainbow-delimiters-depth-4">{</span>
-  <span class="org-keyword">const</span> <span class="org-variable-name">objectDecoder</span>: D.Decoder&lt;<span class="org-type">ObjectWithEnumField</span>&gt; = D.<span class="org-function-name">object</span><span class="org-rainbow-delimiters-depth-5">(</span><span class="org-rainbow-delimiters-depth-6">{</span>
-  required: <span class="org-rainbow-delimiters-depth-7">{</span>
-  testEnum: <span class="org-function-name">stringEnumDecoder</span><span class="org-rainbow-delimiters-depth-8">(</span>TestEnum1<span class="org-rainbow-delimiters-depth-8">)</span>,
-  name: D.<span class="org-typescript-primitive">string</span>,
-  <span class="org-rainbow-delimiters-depth-7">}</span>,
-  optional: <span class="org-rainbow-delimiters-depth-7">{</span>
-  dateOfBirth: D.<span class="org-typescript-primitive">string</span>.<span class="org-function-name">andThen</span><span class="org-rainbow-delimiters-depth-8">(</span><span class="org-rainbow-delimiters-depth-9">(</span>str<span class="org-rainbow-delimiters-depth-9">)</span> <span class="org-keyword">=&gt;</span> <span class="org-keyword">new</span> <span class="org-type">Date</span><span class="org-rainbow-delimiters-depth-9">(</span>str<span class="org-rainbow-delimiters-depth-9">)</span><span class="org-rainbow-delimiters-depth-8">)</span>,
-  <span class="org-rainbow-delimiters-depth-7">}</span>,
-  <span class="org-rainbow-delimiters-depth-6">}</span><span class="org-rainbow-delimiters-depth-5">)</span>
-
-  <span class="org-keyword">const</span> <span class="org-variable-name">inputFromApi</span> = <span class="org-string">`{ "testEnum": "!", "name": "bob", "dateOfBirth": "2022-11-24"}`</span>
-  <span class="org-keyword">const</span> <span class="org-variable-name">result1</span> = objectDecoder.<span class="org-function-name">decode</span><span class="org-rainbow-delimiters-depth-5">(</span>JSON.<span class="org-function-name">parse</span><span class="org-rainbow-delimiters-depth-6">(</span>inputFromApi<span class="org-rainbow-delimiters-depth-6">)</span><span class="org-rainbow-delimiters-depth-5">)</span>
-  <span class="org-function-name">expect</span><span class="org-rainbow-delimiters-depth-5">(</span>result1<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">toEqual</span><span class="org-rainbow-delimiters-depth-5">(</span><span class="org-rainbow-delimiters-depth-6">{</span> testEnum: <span class="org-type">TestEnum1</span>.<span class="org-constant">this</span>, name: <span class="org-string">"bob"</span>, dateOfBirth: <span class="org-keyword">new</span> <span class="org-type">Date</span><span class="org-rainbow-delimiters-depth-7">(</span><span class="org-string">"2022-11-24"</span><span class="org-rainbow-delimiters-depth-7">)</span> <span class="org-rainbow-delimiters-depth-6">}</span><span class="org-rainbow-delimiters-depth-5">)</span>
-  <span class="org-rainbow-delimiters-depth-4">}</span><span class="org-rainbow-delimiters-depth-3">)</span>
-  <span class="org-rainbow-delimiters-depth-2">}</span><span class="org-rainbow-delimiters-depth-1">)</span>
-  </pre>
-  </div>
-
-  <p>
-  How does this work? How can we write a function that can take an enum type as an
-  argument, and then generate a decoder? (Feel free to drop out if you were just
-  here to solve your immediate problem!)
-  </p>
-
-  <p>
-  If you type an enum into the online TypeScript playground (<a href="https://www.typescriptlang.org/play?#code/KYOwrgtgBAYg9nKBvAUFKB5EwoF4oBEc2BANGlACoDui+BALrWSgL4pA">here's one I prepared
-  earlier</a>), you'll see that the enum (with string values) is, in fact, compiled
-  into a variable that ends up with a simple record with string keys and values
-  attached to it.
-  </p>
-
-  <p>
-  Going back to the implementation, you'll see that's exactly the constraint on
-  the argument we pass into <code>stringEnumDecoder</code>.
-  </p>
-
-  <div class="org-src-container">
-  <pre class="src src-typescript">...
-  <span class="org-keyword">export</span> <span class="org-keyword">const</span> <span class="org-variable-name">stringEnumDecoder</span> = &lt;Enum <span class="org-typescript-access-modifier">extends</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-rainbow-delimiters-depth-2">[</span>name: <span class="org-typescript-primitive">string</span><span class="org-rainbow-delimiters-depth-2">]</span>: <span class="org-typescript-primitive">string</span> <span class="org-rainbow-delimiters-depth-1">}</span>&gt;<span class="org-rainbow-delimiters-depth-1">(</span>... rest <span class="org-keyword">of</span> implementation<span class="org-rainbow-delimiters-depth-1">)</span>
-  </pre>
-  </div>
-
-  <p>
-  Then some slightly weird magic happens: when you pass an enum into the function,
-  the TypeScript compiler infers that the type of the argument is the <code>typeof</code> the
-  enum you passed in. Whatever is happening internally here, it keeps track of the
-  fact that the keys of this type are the types of the valid enum cases, so it
-  turns <code>Enum[keyof Enum]</code> into the union type of each of the possible enum value
-  types which is, if you squint hard enough, actually the enum itself. We then
-  return a decoder that accepts a string, checks that said string is actually one
-  of the <i>values</i> stored in the enum object, and then tells the compiler that this
-  decoder will only ever return valid enum values. Unfortunately with a cast - but
-  the full context we need to check this cast is valid is contained within this
-  one line of code.
-  </p>
-
-  <p>
-  So there you have it: a safe way to deserialize strings into enums, and it even
-  composes nicely into more complex decoders.
-  </p>
-
-  <p>
-  Until next time!
-  </p>
-
-  <p>
-  Want to comment on something you've read here? <a href="https://mastodon.sdf.org/@mavnn/109400451463740531">This mastodon post</a> is the
-  official commenting point!
-  </p>
-  ]]></description>
 </item>
 <item>
   <title>ADHD and me</title>
@@ -493,7 +258,7 @@
   </p>
 
   <p>
-  Methylphenidate is the equivalent of putting on jeans.<sup><a id="fnr.1" class="footref" href="#fn.1" role="doc-backlink">1</a></sup> You can be casual still,
+  Methylphenidate is the equivalent of putting on jeans.You can be casual still,
   but you can also just... do stuff? Finish your morning coffee, look across the
   kitchen, and go: "I need to do the washing up."
   </p>
@@ -537,20 +302,281 @@
   </p>
   ]]></description>
 </item>
-<div id="footnotes">
-  <h2 class="footnotes">Footnotes: </h2>
-  <div id="text-footnotes">
+<item>
+  <title>Why your Typescript compiles when you thought you were safe</title>
+  <link>https://blog.mavnn.co.uk/2022/01/07/types-in-typescript.html</link>
+  <author>michael@mavnn.eu (Michael Newton)</author>
+  <guid isPermaLink="false">https://blog.mavnn.co.uk/2022/01/07/types-in-typescript.html</guid>
+  <pubDate>Fri, 07 Jan 2022 00:00:00 +0100</pubDate>
 
-    <div class="footdef"><sup><a id="fn.1" class="footnum" href="#fnr.1" role="doc-backlink">1</a></sup> <div class="footpara" role="doc-footnote"><p class="footpara">
-    Very short lived jeans, at the moment. While slow release versions are
-    available, the version of methylphenidate used while experimenting to find the
-    ideal personal dose has an effect period of about 4-6 hours at the outside and
-    I'm only prescribed one dose a day. So I still get to wear a brain tunic in the
-    afternoons until I reach a stable enough dosage to take the slow release
-    version.
-    </p></div></div>
+  <description><![CDATA[
+  <div id="outline-container-org2a09ba8" class="outline-3">
+  <h3 id="org2a09ba8"><span class="section-number-3">4.1.</span> These are not the types you are looking for</h3>
+  <div class="outline-text-3" id="text-4-1">
+  <p>
+  TypeScript's compiler will let you write code that looks illegal - but compiles just fine.
+  </p>
 
+  <p>
+  This is the story of one such piece of code, and the epiphany it led me to: TypeScript doesn't use your type definitions to decide if a type is compatible, it uses the JavaScript that could represent that type.
+  </p>
 
+  <p>
+  Let's walk through what that means.
+  </p>
   </div>
-</div></channel>
+  </div>
+
+  <div id="outline-container-orged6a0cd" class="outline-3">
+  <h3 id="orged6a0cd"><span class="section-number-3">4.2.</span> The code</h3>
+  <div class="outline-text-3" id="text-4-2">
+  <p>
+  I'm writing code to make defining GraphQL resolvers a type safe experience (earlier developer feedback for the win). You don't need to know the details of GQL to follow this example though; all you need to know is that I have a type for defining the configuration of a resolver, and once certain information is supplied, I know the config is valid.
+  </p>
+
+  <p>
+  Let's have a look at some code:
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-typescript"><span class="org-keyword">type</span> <span class="org-type">ConfigValid</span> = <span class="org-string">"valid"</span> | <span class="org-string">"invalid"</span>
+
+  <span class="org-keyword">class</span> <span class="org-type">Config</span>&lt;<span class="org-type">T</span> <span class="org-typescript-access-modifier">extends</span> <span class="org-type">ConfigValid</span>&gt; <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-typescript-access-modifier">private</span> myConfig: <span class="org-typescript-primitive">string</span> | <span class="org-constant">null</span> = <span class="org-constant">null</span>
+
+  <span class="org-typescript-access-modifier">private</span> <span class="org-keyword">constructor</span><span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-rainbow-delimiters-depth-2">{}</span>
+
+  <span class="org-typescript-access-modifier">public</span> <span class="org-typescript-access-modifier">static</span> <span class="org-function-name">make</span><span class="org-rainbow-delimiters-depth-2">()</span>: <span class="org-type">Config</span>&lt;<span class="org-string">"invalid"</span>&gt; <span class="org-rainbow-delimiters-depth-2">{</span>
+  <span class="org-keyword">return</span> <span class="org-keyword">new</span> <span class="org-type">Config</span>&lt;<span class="org-string">"invalid"</span>&gt;<span class="org-rainbow-delimiters-depth-3">()</span>
+  <span class="org-rainbow-delimiters-depth-2">}</span>
+
+  <span class="org-comment-delimiter">// </span><span class="org-comment">I want this function to only accept valid configurations, and I want to</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">check if they are valid *at compile time*</span>
+  <span class="org-typescript-access-modifier">public</span> <span class="org-typescript-access-modifier">static</span> <span class="org-function-name">build</span><span class="org-rainbow-delimiters-depth-2">(</span><span class="org-variable-name">config</span>: <span class="org-type">Config</span>&lt;<span class="org-string">"valid"</span>&gt;<span class="org-rainbow-delimiters-depth-2">)</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">do stuff!</span>
+  <span class="org-type">console</span>.<span class="org-function-name">log</span><span class="org-rainbow-delimiters-depth-3">(</span>config.myConfig<span class="org-rainbow-delimiters-depth-3">)</span>
+  <span class="org-rainbow-delimiters-depth-2">}</span>
+  <span class="org-rainbow-delimiters-depth-1">}</span>
+  </pre>
+  </div>
+
+  <p>
+  Pop quiz: <code>Config.make</code> always returns a <code>Config&lt;"invalid"&gt;</code>, and <code>Config.build</code> only takes a <code>Config&lt;"valid"&gt;</code>. Will the code <code>Config.build(Config.make())</code> compile or not?
+  </p>
+
+  <p>
+  Given I'm asking, you've probably guessed that it <b>does</b> compile, breaking both my intuition&#x2026; and my code.
+  </p>
+
+  <p>
+  Why?
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-org2ae3611" class="outline-3">
+  <h3 id="org2ae3611"><span class="section-number-3">4.3.</span> What actually <i>is</i> TypeScript anyway?</h3>
+  <div class="outline-text-3" id="text-4-3">
+  <p>
+  Don't get whiplash, I'm going somewhere with this.
+  </p>
+
+  <p>
+  What is TypeScript?
+  </p>
+
+  <p>
+  Let's hit the <a href="https://www.typescriptlang.org/">TypeScript website</a>. It starts with "TypeScript is JavaScript with syntax for types", and then continues with "TypeScript is a strongly typed programming language that builds on JavaScript, giving you better tooling at any scale". 
+  </p>
+
+  <p>
+  To my way of thinking, that first quote looks accurate. The second is a lie.
+  </p>
+
+  <p>
+  Okay, okay: "strongly typed" has <a href="https://en.wikipedia.org/wiki/Strong_and_weak_typing">"no precise technical definition"</a> so you can argue that it's half true; I wouldn't agree, given the code above, but you can argue it. But what I'm really calling a lie is the statement that TypeScript is a programming language.
+  </p>
+
+  <p>
+  I would instead argue that TypeScript is an inline theorem prover for JavaScript. Because anything that <b>does</b> something in your code is really JavaScript - after all, TypeScript compiles to JavaScript, and all your lovely types are erased. While all of the <i>TypeScript</i> in your code (anything that isn't valid JavaScript) is just there trying to prove that your code is correct. 
+  </p>
+
+  <p>
+  TypeScript has been designed to make demonstrating correctness as easy as possible when dealing with existing (untyped) JavaScript. (Hint: as easy as possible doesn't mean easy&#x2026;)
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-org615302b" class="outline-3">
+  <h3 id="org615302b"><span class="section-number-3">4.4.</span> Erm&#x2026; what's this got to do with the code above?</h3>
+  <div class="outline-text-3" id="text-4-4">
+  <p>
+  We're not there yet. Stage 2 in our journey is structural typing.
+  </p>
+
+  <p>
+  Most strongly typed programming languages use "nominal" typing. Roughly, it's the "name" of the type that matters and if you give two types two different names (not aliases, actual different names), the compiler will keep track of which one you use where and treat them as different things - <i>even if they hold exactly the same data</i>.
+  </p>
+
+  <p>
+  So in, for example, F#, the following two types are not the same, and a function that accepts one will not accept the other:
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-fsharp"><span class="org-keyword">type</span> <span class="org-type">FirstRecord</span> = <span class="org-rainbow-delimiters-depth-1">{</span>
+  name: <span class="org-type">string</span>
+  <span class="org-rainbow-delimiters-depth-1">}</span>
+
+  <span class="org-keyword">type</span> <span class="org-type">SecondRecord</span> = <span class="org-rainbow-delimiters-depth-1">{</span>
+  name: <span class="org-type">string</span>
+  <span class="org-rainbow-delimiters-depth-1">}</span>
+
+  <span class="org-keyword">let</span> <span class="org-function-name">withFirstRecord</span> <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-variable-name">record</span>: <span class="org-type">FirstRecord</span><span class="org-rainbow-delimiters-depth-1">)</span> =
+  record.name
+  </pre>
+  </div>
+
+  <p>
+  Trying to send a record of <code>SecondRecord</code> to <code>withFirstRecord</code> would be a compile time error. Now, in F# there's an alternative; the function below will accept any type with a member called <code>name</code>:
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-keyword">inline</span> <span class="org-function-name">withName</span> <span class="org-variable-name">arg</span> =
+  <span class="org-rainbow-delimiters-depth-1">(</span>^a : <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">member</span> <span class="org-function-name">name</span> : <span class="org-type">string</span><span class="org-rainbow-delimiters-depth-2">)</span> arg<span class="org-rainbow-delimiters-depth-1">)</span>
+  </pre>
+  </div>
+
+  <p>
+  Notice a few things here:
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-orgd1ce7ed" class="outline-3">
+  <h3 id="orgd1ce7ed"><span class="section-number-3">4.5.</span> That syntax is horrific; turns out this is a deliberate choice to discourage overuse (see the rest of the bullets for why)</h3>
+  <div class="outline-text-3" id="text-4-5">
+  </div>
+  </div>
+  <div id="outline-container-org9cfba3d" class="outline-3">
+  <h3 id="org9cfba3d"><span class="section-number-3">4.6.</span> I had to add the <code>inline</code> keyword to get it to compile. This literally means that in each place this method is used, the compiler will inline a version that uses the type inferred in that location in the code base. This can be good or bad.</h3>
+  <div class="outline-text-3" id="text-4-6">
+  </div>
+  </div>
+  <div id="outline-container-org8c36e62" class="outline-3">
+  <h3 id="org8c36e62"><span class="section-number-3">4.7.</span> You can probably imagine that the error messages from this type of code become explosively unreadable if you nest several layers of functions using this technique, and the constraints start to grow. F# can no longer tell you "you need to give my a <code>FirstRecord</code>"; instead it has to resort to "here's a list of constraints, find me something that meets them all."</h3>
+  <div class="outline-text-3" id="text-4-7">
+  <p>
+  This is structural typing, checking types based on the type of data that they hold. And here we wrap back around to TypeScript, which always uses structural typing. 
+  </p>
+
+  <p>
+  The question is: <i>what</i> are we comparing to see if things are structurally compatible? And this is where my intuition was broken.
+  </p>
+
+  <p>
+  In F#, we're comparing the <b>type definition</b> to the constraints. But in TypeScript, we're comparing the <b>JavaScript representation of the type</b> to the constraints <i>because TypeScript exists to make JavaScript safer</i>, not to be a programming language in its own right.
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-org49a9ce1" class="outline-3">
+  <h3 id="org49a9ce1"><span class="section-number-3">4.8.</span> The mystery resolved</h3>
+  <div class="outline-text-3" id="text-4-8">
+  <p>
+  Back to our code:   
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-typescript"><span class="org-keyword">type</span> <span class="org-type">ConfigValid</span> = <span class="org-string">"valid"</span> | <span class="org-string">"invalid"</span>
+
+  <span class="org-keyword">class</span> <span class="org-type">Config</span>&lt;<span class="org-type">T</span> <span class="org-typescript-access-modifier">extends</span> <span class="org-type">ConfigValid</span>&gt; <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-typescript-access-modifier">private</span> myConfig: <span class="org-typescript-primitive">string</span> | <span class="org-constant">null</span> = <span class="org-constant">null</span>
+
+  <span class="org-typescript-access-modifier">private</span> <span class="org-keyword">constructor</span><span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-rainbow-delimiters-depth-2">{}</span>
+
+  <span class="org-typescript-access-modifier">public</span> <span class="org-typescript-access-modifier">static</span> <span class="org-function-name">make</span><span class="org-rainbow-delimiters-depth-2">()</span>: <span class="org-type">Config</span>&lt;<span class="org-string">"invalid"</span>&gt; <span class="org-rainbow-delimiters-depth-2">{</span>
+  <span class="org-keyword">return</span> <span class="org-keyword">new</span> <span class="org-type">Config</span>&lt;<span class="org-string">"invalid"</span>&gt;<span class="org-rainbow-delimiters-depth-3">()</span>
+  <span class="org-rainbow-delimiters-depth-2">}</span>
+
+  <span class="org-comment-delimiter">// </span><span class="org-comment">I want this function to only accept valid configurations, and I want to</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">check if they are valid *at compile time*</span>
+  <span class="org-typescript-access-modifier">public</span> <span class="org-typescript-access-modifier">static</span> <span class="org-function-name">build</span><span class="org-rainbow-delimiters-depth-2">(</span><span class="org-variable-name">config</span>: <span class="org-type">Config</span>&lt;<span class="org-string">"valid"</span>&gt;<span class="org-rainbow-delimiters-depth-2">)</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">do stuff!</span>
+  <span class="org-type">console</span>.<span class="org-function-name">log</span><span class="org-rainbow-delimiters-depth-3">(</span>config.myConfig<span class="org-rainbow-delimiters-depth-3">)</span>
+  <span class="org-rainbow-delimiters-depth-2">}</span>
+  <span class="org-rainbow-delimiters-depth-1">}</span>
+  </pre>
+  </div>
+
+  <p>
+  What is the difference between the JavaScript representations of <code>Config&lt;"invalid"&gt;</code> and <code>Config&lt;"valid"&gt;</code>?
+  </p>
+
+  <p>
+  Answer: nothing.
+  </p>
+
+  <p>
+  The generic parameter on the type is not used or stored at runtime (i.e. in JavaScript) on <code>Config</code>, and therefore it gets completely erased when we compile to JavaScript. Suddenly, it becomes no surprise that the compiler is perfectly happy to allow the use of <code>Config&lt;"invalid"&gt;</code> anywhere we specify <code>Config&lt;"valid"&gt;</code> - by TypeScript's standards they are structurally equivalent.
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-org881006d" class="outline-3">
+  <h3 id="org881006d"><span class="section-number-3">4.9.</span> But: the safety?!</h3>
+  <div class="outline-text-3" id="text-4-9">
+  <p>
+  Okay, so the code above doesn't work. But now we know what the problem actually is, so&#x2026; let's fix it!
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-typescript"><span class="org-keyword">type</span> <span class="org-type">ConfigValid</span> = <span class="org-string">"valid"</span> | <span class="org-string">"invalid"</span>
+
+  <span class="org-keyword">class</span> <span class="org-type">Config</span>&lt;<span class="org-type">T</span> <span class="org-typescript-access-modifier">extends</span> <span class="org-type">ConfigValid</span>&gt; <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-typescript-access-modifier">private</span> myConfig: <span class="org-typescript-primitive">string</span> | <span class="org-constant">null</span> = <span class="org-constant">null</span>
+  <span class="org-typescript-access-modifier">private</span> _isValid: T
+
+  <span class="org-typescript-access-modifier">private</span> <span class="org-keyword">constructor</span><span class="org-rainbow-delimiters-depth-2">(</span>isValid: T<span class="org-rainbow-delimiters-depth-2">)</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+  <span class="org-typescript-this">this</span>._isValid = isValid
+  <span class="org-rainbow-delimiters-depth-2">}</span>
+
+  <span class="org-typescript-access-modifier">public</span> <span class="org-typescript-access-modifier">static</span> <span class="org-function-name">make</span><span class="org-rainbow-delimiters-depth-2">()</span>: <span class="org-type">Config</span>&lt;<span class="org-string">"invalid"</span>&gt; <span class="org-rainbow-delimiters-depth-2">{</span>
+  <span class="org-keyword">return</span> <span class="org-keyword">new</span> <span class="org-type">Config</span>&lt;<span class="org-string">"invalid"</span>&gt;<span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"invalid"</span><span class="org-rainbow-delimiters-depth-3">)</span>
+  <span class="org-rainbow-delimiters-depth-2">}</span>
+
+  <span class="org-comment-delimiter">// </span><span class="org-comment">I want this function to only accept valid configurations, and I want to</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">check if they are valid *at compile time*</span>
+  <span class="org-typescript-access-modifier">public</span> <span class="org-typescript-access-modifier">static</span> <span class="org-function-name">build</span><span class="org-rainbow-delimiters-depth-2">(</span><span class="org-variable-name">config</span>: <span class="org-type">Config</span>&lt;<span class="org-string">"valid"</span>&gt;<span class="org-rainbow-delimiters-depth-2">)</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">do stuff!</span>
+  <span class="org-type">console</span>.<span class="org-function-name">log</span><span class="org-rainbow-delimiters-depth-3">(</span>config.myConfig<span class="org-rainbow-delimiters-depth-3">)</span>
+  <span class="org-rainbow-delimiters-depth-2">}</span>
+  <span class="org-rainbow-delimiters-depth-1">}</span>
+  </pre>
+  </div>
+
+  <p>
+  You see that <code>_isValid</code> field? Now we're storing a value in that field, and that value will exist at runtime in the compiled JavaScript. Now TypeScript cares about it, and now we can call <code>Config.build</code> safe in the knowledge it will only take a valid configuration instance.
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-org737fd5d" class="outline-3">
+  <h3 id="org737fd5d"><span class="section-number-3">4.10.</span> That's a wrap</h3>
+  <div class="outline-text-3" id="text-4-10">
+  <p>
+  I hope you've enjoyed this little journey into making <a href="https://blog.janestreet.com/effective-ml-revisited/">making illegal states unrepresentable</a>, and if you think you could enjoy this kind of thing (or even using the results to just build stuff!) I'm currently working with Blissfully and we're <a href="https://www.blissfully.com/careers/">currently hiring</a> (it says backend developers, but we're also hiring for our Elm frontend where making illegal states unrepresentable is even easier&#x2026;).
+  </p>
+
+  <p>
+  If you feel a burning need to comment on this post, or suggest a correction, you can <a href="https://github.com/mavnn/blog/blob/master/2022/01/07/types-in-typescript.org">submit suggestions for changes</a> (GitHub account required). Just hit the "edit this file button" and go from there.
+  </p>
+
+  <p>
+  With special thanks to <a href="https://twitter.com/mech_elephant">Matthew Griffith</a> and <a href="https://twitter.com/aaronwhite">Aaron White</a> for reading, pushing for and suggesting a stronger title and introductory paragraph.
+  </p>
+  </div>
+  </div>
+  ]]></description>
+</item>
+</channel>
 </rss>

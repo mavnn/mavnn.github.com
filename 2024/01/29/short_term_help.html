@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Short term help</title>
+<meta name="author" content="Michael Newton" />
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/org.css">
+<script src="/htmx.min.js"></script>
+</head>
+<body hx-boost="true">
+<div id="org-div-home-and-up"><span class="home-text"><a accesskey="H" href="/">HOME</span><img class="home-logo" src="http://blog.mavnn.co.uk/images/swirl.svg" /></a></div><div id="content" class="container">
+<header>
+<h1 class="title">Short term help</h1>
+</header><p>
+These days I generally work longer term contracts, which means I'm not often available for the more immediate "pay money for a solved problem" services I could offer while I was consulting. Right now though, I'm between long term contracts.
+</p>
+
+<p>
+"But Michael," I hear you say, "what problems can I give you money to solve so that I can avoid distracting my own amazing team from actually <b>building the product</b>?"
+</p>
+
+<p>
+I'm so glad you asked. Or, you know, you can just skip straight to the <a href="#org6424e16">logistics</a> section if you already know what you want.
+</p>
+
+<nav id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#orgfaa008b">1. Consulting</a>
+<ul>
+<li><a href="#orgbf1ca1b">1.1. Build, packaging, and continuous integration</a></li>
+<li><a href="#orgcd3d516">1.2. Architecture review</a></li>
+<li><a href="#org8be8804">1.3. Code audit</a></li>
+<li><a href="#orga4b6a6b">1.4. Technology evaluation</a></li>
+</ul>
+</li>
+<li><a href="#org6d70038">2. Workshops and training</a>
+<ul>
+<li><a href="#orgc64a4a1">2.1. Domain driven design coaching</a></li>
+<li><a href="#orgd48173a">2.2. Event sourcing</a></li>
+<li><a href="#org0c5f3ed">2.3. Teach property based testing</a></li>
+</ul>
+</li>
+<li><a href="#orgce9a905">3. Bespoke software creation</a>
+<ul>
+<li><a href="#org7f3ba3c">3.1. Build a tool/library</a></li>
+<li><a href="#org23a1321">3.2. Build a project skeleton</a></li>
+</ul>
+</li>
+<li><a href="#org6424e16">4. Logistics</a></li>
+</ul>
+</div>
+</nav>
+
+<div id="outline-container-orgfaa008b" class="outline-2">
+<h2 id="orgfaa008b"><span class="section-number-2">1.</span> Consulting</h2>
+<div class="outline-text-2" id="text-1">
+</div>
+<div id="outline-container-orgbf1ca1b" class="outline-3">
+<h3 id="orgbf1ca1b"><span class="section-number-3">1.1.</span> Build, packaging, and continuous integration</h3>
+<div class="outline-text-3" id="text-1-1">
+<p>
+I have spent a <i>lot</i> of time getting build, test, and deployment pipelines up and running. Most of the advice out there assumes that you are using one technology and you can just use "the build tool" for that stack. Reality tends to be more complicated than that, with many projects involving multiple languages, code generation, and extensive test set up.
+</p>
+
+<p>
+What kind of things could your CI/CD process do for you? It depends on <i>your</i> needs, but things that have really helped in other places include:
+</p>
+
+<ul class="org-ul">
+<li>Making sure that CI/CD is managed <b>in the code repository</b> so that running the build locally and on the build server does the same thing in the same way, and the build can evolve in a safe, version controlled way just like the rest of your code</li>
+<li>Helping trace and encode the <i>real</i> dependencies in your code base to unlock incremental, cachable build steps and reduce overall build times with concurrency</li>
+<li>Split your test suite so tests can be run in parallel (yes, even integration tests) and then aggregate the results</li>
+<li>Use tools like Nix or multi-step docker/podman builds to create minimal containers that only contain what they really need
+<ul class="org-ul">
+<li>bonus extra: doing this with Nix also gives you development environments as code and reproducible deployment artifacts - same code in, same container out</li>
+</ul></li>
+</ul>
+
+<p>
+If this is a new product/project and you just want someone to make all these considerations go away I can also build you <a href="#org23a1321">a project skeleton</a> with everything set up and ready to go for your preferred CI provider and deployment environment.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgcd3d516" class="outline-3">
+<h3 id="orgcd3d516"><span class="section-number-3">1.2.</span> Architecture review</h3>
+<div class="outline-text-3" id="text-1-2">
+<p>
+Putting together a new project, or have a code base that's moving from "minimum viable" to "oh - I've got customers"? I can review your plans, or, given your constraints and objectives I can put together a suggested system architecture for you.
+</p>
+
+<p>
+It's worth noting that I don't have a personal axe to grind here. I won't tell you to use a "clean" architecture because that's my thing, or to use microservices because they are fashionable. Different architectural styles exist for a reason, and each has its own trade offs in terms of constraints you choose to accept in order to gain certain benefits.
+</p>
+
+<p>
+I have the advantage of having helped architect and design solutions in a variety of styles in production environments.
+</p>
+
+<p>
+This is a bit of a hybrid service that includes aspects of <a href="#orga4b6a6b">technology evaluation</a>, <a href="#org8be8804">code audit</a>, and <a href="#orga4b6a6b">technology evaluation</a> but zoomed out to look at "how do I put this all together."
+</p>
+</div>
+</div>
+
+<div id="outline-container-org8be8804" class="outline-3">
+<h3 id="org8be8804"><span class="section-number-3">1.3.</span> Code audit</h3>
+<div class="outline-text-3" id="text-1-3">
+<p>
+For ecosystems I've built decent sized projects in (.NET, TypeScript) I can spend some time reviewing your code and pointing out things you may want to improve.
+</p>
+
+<p>
+This isn't the kind of code review you'd do on an individual PR: this is the kind of code review where I can (as an outsider) come in with fresh eyes and point out broader patterns in your code base that may be problematic. I can also help you take your conventions and "traditions" and turn them into a coding style guide with (in many cases) automated tooling to help the team put it into practice.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orga4b6a6b" class="outline-3">
+<h3 id="orga4b6a6b"><span class="section-number-3">1.4.</span> Technology evaluation</h3>
+<div class="outline-text-3" id="text-1-4">
+<p>
+Considering buying a new service, picking up a new programming language, or changing to a new database library? I can do the research and evaluation you need based on your requirements. I've been helping drive technology choices in organizations for well over a decade now, and I can help you spot the good, the bad, and the ugly of the options you're considering. I may even be aware of options you haven't considered.
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org6d70038" class="outline-2">
+<h2 id="org6d70038"><span class="section-number-2">2.</span> Workshops and training</h2>
+<div class="outline-text-2" id="text-2">
+<p>
+Unlike more general consultancy, workshops on topics I know well such as the ones below are a fairly fixed commitment. If you're considering using your training budget, you can assume around 2500 euros/day for up to 6 people online. In person will increase the cost but allows for groups of up to 10 people.
+</p>
+
+<p>
+I have also offered bespoke training courses in the past (examples: giving a team of Ruby developers a 5 day crash course in everything they needed to know to take over maintenance of a .NET code base, tailored to the project in question) but that requires significant preparation and a quote.
+</p>
+</div>
+
+<div id="outline-container-orgc64a4a1" class="outline-3">
+<h3 id="orgc64a4a1"><span class="section-number-3">2.1.</span> Domain driven design coaching</h3>
+<div class="outline-text-3" id="text-2-1">
+<p>
+At its heart, the promise of domain driven design is simple: a code base that uses the same language as the people using it do, so that developers and domain experts can accurately share understanding of what the code <i>should</i> do and why.
+</p>
+
+<p>
+Actually <i>doing</i> domain driven design is not simple at all, because it is a process to help you model reality and it turns out <a href="http://johnsalvatier.org/blog/2017/reality-has-a-surprising-amount-of-detail">reality has a surprising amount of detail</a>.
+</p>
+
+<p>
+I can help with the process of getting started with DDD, help lead the early exploratory meetings between developers and domain experts, and give advice on how to capture what you discover in code while keeping everything maintainable.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgd48173a" class="outline-3">
+<h3 id="orgd48173a"><span class="section-number-3">2.2.</span> Event sourcing</h3>
+<div class="outline-text-3" id="text-2-2">
+<p>
+Event sourcing is a technique for capturing all the events that "have happened" and using those to calculate the current state of your system.
+</p>
+
+<p>
+For example, if a customer of yours moves you may publish a <code>CustomerHasMoved</code> event when they tell you, and a <code>CustomerAddressHasChanged</code> event when you have finished the business process that manages customers moving.
+</p>
+
+<p>
+This has enormous benefits for auditing, for being able to look at how the system has changed over time, and for being able to fix bugs "retroactively" as you don't only have the current state of the system but also all of the steps that got you here.
+</p>
+
+<p>
+It <i>also</i> requires a slightly different way of thinking about your code base and some specific tooling to avoid a system that slows down over time. And it affects how you think about business constraints like data retention and <a href="https://www.dataprotection.ie/en/individuals/know-your-rights/right-erasure-articles-17-19-gdpr">the right to erasure</a>.
+</p>
+
+<p>
+As the saying goes: been there, done that. I can help you do it too.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org0c5f3ed" class="outline-3">
+<h3 id="org0c5f3ed"><span class="section-number-3">2.3.</span> Teach property based testing</h3>
+<div class="outline-text-3" id="text-2-3">
+<p>
+I'm a huge fan of property based testing, and I'm more than happy to give interactive workshops on getting started with it in .NET, TypeScript, and probably other languages if you ask nicely. Why pay for this when you could download a conference talk about it for free (including ones I've given myself)? Because I'll use a piece of <i>your</i> code to get started with you will walk away with an up and running example in your code base. This will keep us focused on the reality of doing property based testing in practice rather than seeing the nice, easy, examples you tend to be shown in a 45 minute talk.
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgce9a905" class="outline-2">
+<h2 id="orgce9a905"><span class="section-number-2">3.</span> Bespoke software creation</h2>
+<div class="outline-text-2" id="text-3">
+</div>
+<div id="outline-container-org7f3ba3c" class="outline-3">
+<h3 id="org7f3ba3c"><span class="section-number-3">3.1.</span> Build a tool/library</h3>
+<div class="outline-text-3" id="text-3-1">
+<p>
+I do just write good code as well. If you need a self contained library or a small solution built, I can do that for you. Whether it is parsing an obscure data format, efficient immutable directed graph data structures, or just a nice F# wrapper around a dotnet library, I will make sure it fits the style you're asking for and is well tested. Significant discounts apply if the results are going to be released under an open source licence.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org23a1321" class="outline-3">
+<h3 id="org23a1321"><span class="section-number-3">3.2.</span> Build a project skeleton</h3>
+<div class="outline-text-3" id="text-3-2">
+<p>
+If you're starting a green field project, I can create a "skeleton" repository with a managed developer environment, CI/CD and testing story set up and ready to use. You and your team get to start with actually writing your product.
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org6424e16" class="outline-2">
+<h2 id="org6424e16"><span class="section-number-2">4.</span> Logistics</h2>
+<div class="outline-text-2" id="text-4">
+<p>
+Let's cover the basics. I don't want us to waste time, so I'm going to try and keep this as straight forward as possible:
+</p>
+
+<ul class="org-ul">
+<li>I will <i>always</i> want to have an extensive conversation(s) and will normally want to provide a quote before starting a short term piece of work. Book a slot to talk on <a href="https://calendly.com/mavnn/1-hour-slot">Calendly</a> or just send me an email (michael at mavnn.eu)</li>
+<li>I currently live in Italy, about an hour away from Rome. I can offer all of the services above remotely. Asking me to attend in person will add travel costs and at least 2 billable days of my time.</li>
+<li>You can hire me by the day, but in general for short term work I quote and then charge you for the work delivered rather than bill by unit time. I will consider discounts for non-profits, student organizations, etc. It it's easier for you, I can give a quote that includes all expenses rather than reclaiming them separately. (Hint: if you're in a large organization and this is the first time you're arranging to get a consultant in - <i>this will be easier for you</i>)
+<ul class="org-ul">
+<li>I am VAT registered in the EU</li>
+</ul></li>
+<li>In the rare occasion where it turns out that I cannot deliver what I promised (I'm just one human - things like illness can happen) I will let you know promptly, and before the work is due to be delivered, so we can renegotiate where to go from the reality of the situation.</li>
+</ul>
+
+<p>
+That's about everything, I think.
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<footer id="my-contacts">
+<p hx-boost="false"><a href="https://blog.mavnn.co.uk/rss.xml">RSS</a></p>
+<p><a href="https://mastodon.sdf.org/@mavnn">Mastodon</a></p>
+<p>Git(<a href="https://github.com/mavnn">Hub</a>|<a href="https://gitlab.com/mavnn">Lab</a>)</p>
+</footer>
+</div>
+</body>
+</html>

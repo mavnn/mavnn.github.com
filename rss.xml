@@ -14,8 +14,8 @@
   <link>https://blog.mavnn.co.uk/</link>
   <description><![CDATA[]]></description>
   <language>en</language>
-  <pubDate>Mon, 29 Jan 2024 10:32:59 +0100</pubDate>
-  <lastBuildDate>Mon, 29 Jan 2024 10:32:59 +0100</lastBuildDate>
+  <pubDate>Mon, 29 Jan 2024 12:29:41 +0100</pubDate>
+  <lastBuildDate>Mon, 29 Jan 2024 12:29:41 +0100</lastBuildDate>
   <generator>Emacs 29.1 Org-mode 9.6.6</generator>
   <webMaster>michael@mavnn.eu (Michael Newton)</webMaster>
   <image>
@@ -26,203 +26,476 @@
 
 
   <item>
-    <title>Writing CVs for more senior roles</title>
-    <link>https://blog.mavnn.co.uk/2024/01/26/writing_a_cv.html</link>
+    <title>Short term help</title>
+    <link>https://blog.mavnn.co.uk/2024/01/29/short_term_help.html</link>
     <author>michael@mavnn.eu (Michael Newton)</author>
-    <guid isPermaLink="false">https://blog.mavnn.co.uk/2024/01/26/writing_a_cv.html</guid>
-    <pubDate>Fri, 26 Jan 2024 00:00:00 +0100</pubDate>
+    <guid isPermaLink="false">https://blog.mavnn.co.uk/2024/01/29/short_term_help.html</guid>
+    <pubDate>Mon, 29 Jan 2024 00:00:00 +0100</pubDate>
 
     <description><![CDATA[<p>
-    A while back (<i>checks notes, gulps</i>) I wrote a fairly successful <a href="https://blog.mavnn.co.uk/good-developer-cvs/">blog post on the types of CVs</a> I liked receiving as one of the people screening technical applications, and some of the mistakes I was seeing applicants making.
+    These days I generally work longer term contracts, which means I'm not often available for the more immediate "pay money for a solved problem" services I could offer while I was consulting. Right now though, I'm between long term contracts.
     </p>
 
     <p>
-    What I didn't speak about at all was the "structure" of the CV; how to arrange it, and what sections to include/not include.
+    "But Michael," I hear you say, "what problems can I give you money to solve so that I can avoid distracting my own amazing team from actually <b>building the product</b>?"
     </p>
 
     <p>
-    Today somebody asked me for an actual CV for the first time in... quite a while actually. The last couple of jobs both had their own interview process that didn't include one, so that means it's been at least 5 years.
+    I'm so glad you asked. Or, you know, you can just skip straight to the <a href="#org1e4775f">logistics</a> section if you already know what you want.
+    </p>
+
+    <nav id="table-of-contents" role="doc-toc">
+    <h2>Table of Contents</h2>
+    <div id="text-table-of-contents" role="doc-toc">
+    <ul>
+    <li><a href="#orgb0aa46e">1. Short term help</a>
+    <ul>
+    <li><a href="#orge0ebefa">1.1. Consulting</a></li>
+    <li><a href="#org65ea822">1.2. Build, packaging, and continuous integration</a></li>
+    <li><a href="#org63f24d8">1.3. Making sure that CI/CD is managed <b>in the code repository</b> so that running the build locally and on the build server does the same thing in the same way, and the build can evolve in a safe, version controlled way just like the rest of your code</a></li>
+    <li><a href="#org2e0a0c2">1.4. Helping trace and encode the <i>real</i> dependencies in your code base to unlock incremental, cachable build steps and reduce overall build times with concurrency</a></li>
+    <li><a href="#org0be0e09">1.5. Split your test suite so tests can be run in parallel (yes, even integration tests) and then aggregate the results</a></li>
+    <li><a href="#org6195e1b">1.6. Use tools like Nix or multi-step docker/podman builds to create minimal containers that only contain what they really need</a></li>
+    <li><a href="#orgf26e7d3">1.7. Architecture review</a></li>
+    <li><a href="#org7c473c4">1.8. Code audit</a></li>
+    <li><a href="#orga3c9bab">1.9. Technology evaluation</a></li>
+    <li><a href="#orgbf5bde7">1.10. Workshops and training</a></li>
+    <li><a href="#org5ef916b">1.11. Domain driven design coaching</a></li>
+    <li><a href="#org2e0b436">1.12. Event sourcing</a></li>
+    <li><a href="#orgdcf13be">1.13. Teach property based testing</a></li>
+    <li><a href="#org3f90c1f">1.14. Bespoke software creation</a></li>
+    <li><a href="#org71644e2">1.15. Build a tool/library</a></li>
+    <li><a href="#orgafa0130">1.16. Build a project skeleton</a></li>
+    <li><a href="#org1e4775f">1.17. Logistics</a></li>
+    <li><a href="#orgab39996">1.18. I will <i>always</i> want to have an extensive conversation(s) and will normally want to provide a quote before starting a short term piece of work. Book a slot to talk on Calendly or just send me an email (michael at mavnn.eu)</a></li>
+    <li><a href="#orgfbf2d1c">1.19. I currently live in Italy, about an hour away from Rome. I can offer all of the services above remotely. Asking me to attend in person will add travel costs and at least 2 billable days of my time.</a></li>
+    <li><a href="#orgd6b568d">1.20. You can hire me by the day, but in general for short term work I quote and then charge you for the work delivered rather than bill by unit time. I will consider discounts for non-profits, student organizations, etc. It it's easier for you, I can give a quote that includes all expenses rather than reclaiming them separately. (Hint: if you're in a large organization and this is the first time you're arranging to get a consultant in - <i>this will be easier for you</i>)</a></li>
+    <li><a href="#org4e77990">1.21. In the rare occasion where it turns out that I cannot deliver what I promised (I'm just one human - things like illness can happen) I will let you know promptly, and before the work is due to be delivered, so we can renegotiate where to go from the reality of the situation.</a></li>
+    </ul>
+    </li>
+    <li><a href="#org76c339f">2. Writing CVs for more senior roles</a></li>
+    <li><a href="#org2bd8abf">3. TypeScript Enums and Serialization</a></li>
+    <li><a href="#orgc9042d7">4. ADHD and me</a></li>
+    </ul>
+    </div>
+    </nav>
+
+    <div id="outline-container-orge0ebefa" class="outline-3">
+    <h3 id="orge0ebefa"><span class="section-number-3">1.1.</span> Consulting</h3>
+    <div class="outline-text-3" id="text-1-1">
+    </div>
+    </div>
+
+    <div id="outline-container-org65ea822" class="outline-3">
+    <h3 id="org65ea822"><span class="section-number-3">1.2.</span> Build, packaging, and continuous integration</h3>
+    <div class="outline-text-3" id="text-1-2">
+    <p>
+    I have spent a <i>lot</i> of time getting build, test, and deployment pipelines up and running. Most of the advice out there assumes that you are using one technology and you can just use "the build tool" for that stack. Reality tends to be more complicated than that, with many projects involving multiple languages, code generation, and extensive test set up.
     </p>
 
     <p>
-    Turns out that having been on the other side of the table a few more times now, and hiring for more senior candidates, my CV creation style has changed radically. The result is four broad categories of ways I've been effective in previous jobs, with a brief description of when I became senior enough to start doing that. So rather than having a big timeline of work history and education, I end up with things like:
+    What kind of things could your CI/CD process do for you? It depends on <i>your</i> needs, but things that have really helped in other places include:
+    </p>
+    </div>
+    </div>
+
+    <div id="outline-container-org63f24d8" class="outline-3">
+    <h3 id="org63f24d8"><span class="section-number-3">1.3.</span> Making sure that CI/CD is managed <b>in the code repository</b> so that running the build locally and on the build server does the same thing in the same way, and the build can evolve in a safe, version controlled way just like the rest of your code</h3>
+    <div class="outline-text-3" id="text-1-3">
+    </div>
+    </div>
+    <div id="outline-container-org2e0a0c2" class="outline-3">
+    <h3 id="org2e0a0c2"><span class="section-number-3">1.4.</span> Helping trace and encode the <i>real</i> dependencies in your code base to unlock incremental, cachable build steps and reduce overall build times with concurrency</h3>
+    <div class="outline-text-3" id="text-1-4">
+    </div>
+    </div>
+    <div id="outline-container-org0be0e09" class="outline-3">
+    <h3 id="org0be0e09"><span class="section-number-3">1.5.</span> Split your test suite so tests can be run in parallel (yes, even integration tests) and then aggregate the results</h3>
+    <div class="outline-text-3" id="text-1-5">
+    </div>
+    </div>
+    <div id="outline-container-org6195e1b" class="outline-3">
+    <h3 id="org6195e1b"><span class="section-number-3">1.6.</span> Use tools like Nix or multi-step docker/podman builds to create minimal containers that only contain what they really need</h3>
+    <div class="outline-text-3" id="text-1-6">
+    </div>
+    <div id="outline-container-org43ce386" class="outline-4">
+    <h4 id="org43ce386"><span class="section-number-4">1.6.1.</span> bonus extra: doing this with Nix also gives you development environments as code and reproducible deployment artifacts - same code in, same container out</h4>
+    <div class="outline-text-4" id="text-1-6-1">
+    <p>
+    If this is a new product/project and you just want someone to make all these considerations go away I can also build you <a href="#orgafa0130">a project skeleton</a> with everything set up and ready to go for your preferred CI provider and deployment environment.
+    </p>
+    </div>
+    </div>
+    </div>
+
+    <div id="outline-container-orgf26e7d3" class="outline-3">
+    <h3 id="orgf26e7d3"><span class="section-number-3">1.7.</span> Architecture review</h3>
+    <div class="outline-text-3" id="text-1-7">
+    <p>
+    Putting together a new project, or have a code base that's moving from "minimum viable" to "oh - I've got customers"? I can review your plans, or, given your constraints and objectives I can put together a suggested system architecture for you.
     </p>
 
-    <blockquote>
     <p>
-    <b>Training and mentoring</b>
+    It's worth noting that I don't have a personal axe to grind here. I won't tell you to use a "clean" architecture because that's my thing, or to use microservices because they are fashionable. Different architectural styles exist for a reason, and each has its own trade offs in terms of constraints you choose to accept in order to gain certain benefits.
     </p>
 
     <p>
-    For over a decade I have provided mentoring and training both to team members and as a service offered. This has ranged from people learning to code for the first time (CodeInstitute), to week long courses teaching professional developers new programming languages or architectural styles (@mavnn ltd), to giving talks at conferences on topics from the obscure to the philosophical (SDDConf, NDC, F# Exchange, Lambda Days, etc).
+    I have the advantage of having helped architect and design solutions in a variety of styles in production environments.
     </p>
 
     <p>
-    Apart from formal training I have mentored teams several times during the introduction of new programming languages, libraries, and techniques (15below, NoRedInk, Blissfully/Vendr).
+    This is a bit of a hybrid service that includes aspects of <a href="#orga3c9bab">technology evaluation</a>, <a href="#org7c473c4">code audit</a>, and <a href="#orga3c9bab">technology evaluation</a> but zoomed out to look at "how do I put this all together."
     </p>
-    </blockquote>
+    </div>
+    </div>
+
+    <div id="outline-container-org7c473c4" class="outline-3">
+    <h3 id="org7c473c4"><span class="section-number-3">1.8.</span> Code audit</h3>
+    <div class="outline-text-3" id="text-1-8">
+    <p>
+    For ecosystems I've built decent sized projects in (.NET, TypeScript) I can spend some time reviewing your code and pointing out things you may want to improve.
+    </p>
 
     <p>
-    Again - your mileage may vary; it's not like I've had any feed back on the application yet, or even that a single response tells you much about how the CV be received in general. But I can tell you that from the other side of the table that I'm much more interested in what <b>you</b> think are the areas you've made a difference, or that you're proud of, than I am in the job descriptions of your last 5 posts and where you went to secondary school.
+    This isn't the kind of code review you'd do on an individual PR: this is the kind of code review where I can (as an outsider) come in with fresh eyes and point out broader patterns in your code base that may be problematic. I can also help you take your conventions and "traditions" and turn them into a coding style guide with (in many cases) automated tooling to help the team put it into practice.
+    </p>
+    </div>
+    </div>
+
+    <div id="outline-container-orga3c9bab" class="outline-3">
+    <h3 id="orga3c9bab"><span class="section-number-3">1.9.</span> Technology evaluation</h3>
+    <div class="outline-text-3" id="text-1-9">
+    <p>
+    Considering buying a new service, picking up a new programming language, or changing to a new database library? I can do the research and evaluation you need based on your requirements. I've been helping drive technology choices in organizations for well over a decade now, and I can help you spot the good, the bad, and the ugly of the options you're considering. I may even be aware of options you haven't considered.
+    </p>
+    </div>
+    </div>
+
+    <div id="outline-container-orgbf5bde7" class="outline-3">
+    <h3 id="orgbf5bde7"><span class="section-number-3">1.10.</span> Workshops and training</h3>
+    <div class="outline-text-3" id="text-1-10">
+    <p>
+    Unlike more general consultancy, workshops on topics I know well such as the ones below are a fairly fixed commitment. If you're considering using your training budget, you can assume around 2500 euros/day for up to 6 people online. In person will increase the cost but allows for groups of up to 10 people.
     </p>
 
     <p>
-    One slight caveat: I did include my LinkedIn profile, which has all the gritty dates and things. It just wasn't what I chose to highlight in the part of the process that I can control. Your CV is your chance to control the narrative - take it.
+    I have also offered bespoke training courses in the past (examples: giving a team of Ruby developers a 5 day crash course in everything they needed to know to take over maintenance of a .NET code base, tailored to the project in question) but that requires significant preparation and a quote.
     </p>
+    </div>
+    </div>
+
+    <div id="outline-container-org5ef916b" class="outline-3">
+    <h3 id="org5ef916b"><span class="section-number-3">1.11.</span> Domain driven design coaching</h3>
+    <div class="outline-text-3" id="text-1-11">
+    <p>
+    At its heart, the promise of domain driven design is simple: a code base that uses the same language as the people using it do, so that developers and domain experts can accurately share understanding of what the code <i>should</i> do and why.
+    </p>
+
+    <p>
+    Actually <i>doing</i> domain driven design is not simple at all, because it is a process to help you model reality and it turns out <a href="http://johnsalvatier.org/blog/2017/reality-has-a-surprising-amount-of-detail">reality has a surprising amount of detail</a>.
+    </p>
+
+    <p>
+    I can help with the process of getting started with DDD, help lead the early exploratory meetings between developers and domain experts, and give advice on how to capture what you discover in code while keeping everything maintainable.
+    </p>
+    </div>
+    </div>
+
+    <div id="outline-container-org2e0b436" class="outline-3">
+    <h3 id="org2e0b436"><span class="section-number-3">1.12.</span> Event sourcing</h3>
+    <div class="outline-text-3" id="text-1-12">
+    <p>
+    Event sourcing is a technique for capturing all the events that "have happened" and using those to calculate the current state of your system.
+    </p>
+
+    <p>
+    For example, if a customer of yours moves you may publish a <code>CustomerHasMoved</code> event when they tell you, and a <code>CustomerAddressHasChanged</code> event when you have finished the business process that manages customers moving.
+    </p>
+
+    <p>
+    This has enormous benefits for auditing, for being able to look at how the system has changed over time, and for being able to fix bugs "retroactively" as you don't only have the current state of the system but also all of the steps that got you here.
+    </p>
+
+    <p>
+    It <i>also</i> requires a slightly different way of thinking about your code base and some specific tooling to avoid a system that slows down over time. And it affects how you think about business constraints like data retention and <a href="https://www.dataprotection.ie/en/individuals/know-your-rights/right-erasure-articles-17-19-gdpr">the right to erasure</a>.
+    </p>
+
+    <p>
+    As the saying goes: been there, done that. I can help you do it too.
+    </p>
+    </div>
+    </div>
+
+    <div id="outline-container-orgdcf13be" class="outline-3">
+    <h3 id="orgdcf13be"><span class="section-number-3">1.13.</span> Teach property based testing</h3>
+    <div class="outline-text-3" id="text-1-13">
+    <p>
+    I'm a huge fan of property based testing, and I'm more than happy to give interactive workshops on getting started with it in .NET, TypeScript, and probably other languages if you ask nicely. Why pay for this when you could download a conference talk about it for free (including ones I've given myself)? Because I'll use a piece of <i>your</i> code to get started with you will walk away with an up and running example in your code base. This will keep us focused on the reality of doing property based testing in practice rather than seeing the nice, easy, examples you tend to be shown in a 45 minute talk.
+    </p>
+    </div>
+    </div>
+
+    <div id="outline-container-org3f90c1f" class="outline-3">
+    <h3 id="org3f90c1f"><span class="section-number-3">1.14.</span> Bespoke software creation</h3>
+    <div class="outline-text-3" id="text-1-14">
+    </div>
+    </div>
+
+    <div id="outline-container-org71644e2" class="outline-3">
+    <h3 id="org71644e2"><span class="section-number-3">1.15.</span> Build a tool/library</h3>
+    <div class="outline-text-3" id="text-1-15">
+    <p>
+    I do just write good code as well. If you need a self contained library or a small solution built, I can do that for you. Whether it is parsing an obscure data format, efficient immutable directed graph data structures, or just a nice F# wrapper around a dotnet library, I will make sure it fits the style you're asking for and is well tested. Significant discounts apply if the results are going to be released under an open source licence.
+    </p>
+    </div>
+    </div>
+
+    <div id="outline-container-orgafa0130" class="outline-3">
+    <h3 id="orgafa0130"><span class="section-number-3">1.16.</span> Build a project skeleton</h3>
+    <div class="outline-text-3" id="text-1-16">
+    <p>
+    If you're starting a green field project, I can create a "skeleton" repository with a managed developer environment, CI/CD and testing story set up and ready to use. You and your team get to start with actually writing your product.
+    </p>
+    </div>
+    </div>
+
+    <div id="outline-container-org1e4775f" class="outline-3">
+    <h3 id="org1e4775f"><span class="section-number-3">1.17.</span> Logistics</h3>
+    <div class="outline-text-3" id="text-1-17">
+    <p>
+    Let's cover the basics. I don't want us to waste time, so I'm going to try and keep this as straight forward as possible:
+    </p>
+    </div>
+    </div>
+
+    <div id="outline-container-orgab39996" class="outline-3">
+    <h3 id="orgab39996"><span class="section-number-3">1.18.</span> I will <i>always</i> want to have an extensive conversation(s) and will normally want to provide a quote before starting a short term piece of work. Book a slot to talk on <a href="https://calendly.com/mavnn/1-hour-slot">Calendly</a> or just send me an email (michael at mavnn.eu)</h3>
+    <div class="outline-text-3" id="text-1-18">
+    </div>
+    </div>
+    <div id="outline-container-orgfbf2d1c" class="outline-3">
+    <h3 id="orgfbf2d1c"><span class="section-number-3">1.19.</span> I currently live in Italy, about an hour away from Rome. I can offer all of the services above remotely. Asking me to attend in person will add travel costs and at least 2 billable days of my time.</h3>
+    <div class="outline-text-3" id="text-1-19">
+    </div>
+    </div>
+    <div id="outline-container-orgd6b568d" class="outline-3">
+    <h3 id="orgd6b568d"><span class="section-number-3">1.20.</span> You can hire me by the day, but in general for short term work I quote and then charge you for the work delivered rather than bill by unit time. I will consider discounts for non-profits, student organizations, etc. It it's easier for you, I can give a quote that includes all expenses rather than reclaiming them separately. (Hint: if you're in a large organization and this is the first time you're arranging to get a consultant in - <i>this will be easier for you</i>)</h3>
+    <div class="outline-text-3" id="text-1-20">
+    </div>
+    <div id="outline-container-org09283c9" class="outline-4">
+    <h4 id="org09283c9"><span class="section-number-4">1.20.1.</span> I am VAT registered in the EU</h4>
+    <div class="outline-text-4" id="text-1-20-1">
+    </div>
+    </div>
+    </div>
+    <div id="outline-container-org4e77990" class="outline-3">
+    <h3 id="org4e77990"><span class="section-number-3">1.21.</span> In the rare occasion where it turns out that I cannot deliver what I promised (I'm just one human - things like illness can happen) I will let you know promptly, and before the work is due to be delivered, so we can renegotiate where to go from the reality of the situation.</h3>
+    <div class="outline-text-3" id="text-1-21">
+    <p>
+    That's about everything, I think.
+    </p>
+    </div>
+    </div>
     ]]></description>
-  </item>
-  <item>
-    <title>TypeScript Enums and Serialization</title>
-    <link>https://blog.mavnn.co.uk/2022/11/24/typescript_enums_and_serialization.html</link>
-    <author>michael@mavnn.eu (Michael Newton)</author>
-    <guid isPermaLink="false">https://blog.mavnn.co.uk/2022/11/24/typescript_enums_and_serialization.html</guid>
-    <pubDate>Wed, 24 Jan 2024 00:00:00 +0100</pubDate>
+</item>
+<item>
+  <title>Writing CVs for more senior roles</title>
+  <link>https://blog.mavnn.co.uk/2024/01/26/writing_a_cv.html</link>
+  <author>michael@mavnn.eu (Michael Newton)</author>
+  <guid isPermaLink="false">https://blog.mavnn.co.uk/2024/01/26/writing_a_cv.html</guid>
+  <pubDate>Fri, 26 Jan 2024 00:00:00 +0100</pubDate>
 
-    <description><![CDATA[<p>
-    In general, TypeScript is <a href="../../../2022/01/07/types-in-typescript.html">not its own language</a> - it's a set of annotations that
-    can be added to JavaScript to help check the "correctness" of you program. The
-    authors have been very reluctant to add features to TypeScript that don't exist
-    in JavaScript, and so normally you can turn your TypeScript into JavaScript purely
-    by <i>deleting</i> the type annotations that you've added.
-    </p>
+  <description><![CDATA[<p>
+  A while back (<i>checks notes, gulps</i>) I wrote a fairly successful <a href="https://blog.mavnn.co.uk/good-developer-cvs/">blog post on the types of CVs</a> I liked receiving as one of the people screening technical applications, and some of the mistakes I was seeing applicants making.
+  </p>
 
-    <p>
-    Enums, though, are a bit different. They actually generate JavaScript code based on
-    the TypeScript you write. Today, we're going to look at a piece of code that allows
-    you to deserialize enums with string values in a type safe manner. And we're going
-    to take advantage of the fact that enums (according to the TypeScript compiler) are
-    both a type, and a value with a different type - at the same time.
-    </p>
+  <p>
+  What I didn't speak about at all was the "structure" of the CV; how to arrange it, and what sections to include/not include.
+  </p>
 
-    <p>
-    For context, we're going to be using <a href="https://www.npmjs.com/package/schemawax">SchemaWax</a> to create our decoder, so we can
-    build it into a larger contextual decoder as needed.
-    </p>
+  <p>
+  Today somebody asked me for an actual CV for the first time in... quite a while actually. The last couple of jobs both had their own interview process that didn't include one, so that means it's been at least 5 years.
+  </p>
 
-    <p>
-    First: the code! If you already know SchemaWax, you don't care about types, and
-    you're here because it was a hit for "deserialize any enum" on Google this is
-    the bit to cut and paste.
-    </p>
+  <p>
+  Turns out that having been on the other side of the table a few more times now, and hiring for more senior candidates, my CV creation style has changed radically. The result is four broad categories of ways I've been effective in previous jobs, with a brief description of when I became senior enough to start doing that. So rather than having a big timeline of work history and education, I end up with things like:
+  </p>
 
-    <div class="org-src-container">
-    <pre class="src src-typescript"><span class="org-keyword">import</span> * <span class="org-keyword">as</span> D <span class="org-keyword">from</span> <span class="org-string">"schemawax"</span>
+  <blockquote>
+  <p>
+  <b>Training and mentoring</b>
+  </p>
 
-    <span class="org-comment-delimiter">// </span><span class="org-comment">This is only type safe if passed a Enum with string values.</span>
-    <span class="org-comment-delimiter">// </span><span class="org-comment">I don't think there's anyway to stop someone passing { "boo": "broken" }</span>
-    <span class="org-comment-delimiter">// </span><span class="org-comment">in TypeScripts type system :(</span>
-    <span class="org-comment-delimiter">// </span><span class="org-comment">At least this stops us from rewriting the same unsafe code every time though.</span>
-    <span class="org-keyword">export</span> <span class="org-keyword">const</span> <span class="org-variable-name">stringEnumDecoder</span> = &lt;Enum <span class="org-typescript-access-modifier">extends</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-rainbow-delimiters-depth-2">[</span>name: <span class="org-typescript-primitive">string</span><span class="org-rainbow-delimiters-depth-2">]</span>: <span class="org-typescript-primitive">string</span> <span class="org-rainbow-delimiters-depth-1">}</span>&gt;<span class="org-rainbow-delimiters-depth-1">(</span>
-    targetEnum: <span class="org-type">Enum</span>,
-    <span class="org-rainbow-delimiters-depth-1">)</span>: D.Decoder&lt;<span class="org-type">Enum</span><span class="org-rainbow-delimiters-depth-1">[</span><span class="org-type">keyof</span> <span class="org-type">Enum</span><span class="org-rainbow-delimiters-depth-1">]</span>&gt; <span class="org-keyword">=&gt;</span> <span class="org-type">D</span>.<span class="org-function-name">literalUnion</span><span class="org-rainbow-delimiters-depth-1">(</span>...<span class="org-type">Object</span>.<span class="org-function-name">values</span><span class="org-rainbow-delimiters-depth-2">(</span><span class="org-type">targetEnum</span><span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span> <span class="org-type">as</span> <span class="org-type">D</span>.<span class="org-type">Decoder</span>&lt;<span class="org-type">Enum</span><span class="org-rainbow-delimiters-depth-1">[</span><span class="org-type">keyof</span> <span class="org-type">Enum</span><span class="org-rainbow-delimiters-depth-1">]</span>&gt;
-    </pre>
-    </div>
+  <p>
+  For over a decade I have provided mentoring and training both to team members and as a service offered. This has ranged from people learning to code for the first time (CodeInstitute), to week long courses teaching professional developers new programming languages or architectural styles (@mavnn ltd), to giving talks at conferences on topics from the obscure to the philosophical (SDDConf, NDC, F# Exchange, Lambda Days, etc).
+  </p>
 
-    <p>
-    That's it. The whole thing. How do you use it?
-    </p>
+  <p>
+  Apart from formal training I have mentored teams several times during the introduction of new programming languages, libraries, and techniques (15below, NoRedInk, Blissfully/Vendr).
+  </p>
+  </blockquote>
 
-    <p>
-    Like this:
-    </p>
+  <p>
+  Again - your mileage may vary; it's not like I've had any feed back on the application yet, or even that a single response tells you much about how the CV be received in general. But I can tell you that from the other side of the table that I'm much more interested in what <b>you</b> think are the areas you've made a difference, or that you're proud of, than I am in the job descriptions of your last 5 posts and where you went to secondary school.
+  </p>
 
-    <div class="org-src-container">
-    <pre class="src src-typescript"><span class="org-keyword">import</span> * <span class="org-keyword">as</span> D <span class="org-keyword">from</span> <span class="org-string">"schemawax"</span>
-    <span class="org-keyword">import</span> <span class="org-rainbow-delimiters-depth-1">{</span> stringEnumDecoder <span class="org-rainbow-delimiters-depth-1">}</span> <span class="org-keyword">from</span> <span class="org-string">"./enum"</span>
+  <p>
+  One slight caveat: I did include my LinkedIn profile, which has all the gritty dates and things. It just wasn't what I chose to highlight in the part of the process that I can control. Your CV is your chance to control the narrative - take it.
+  </p>
+  ]]></description>
+</item>
+<item>
+  <title>TypeScript Enums and Serialization</title>
+  <link>https://blog.mavnn.co.uk/2022/11/24/typescript_enums_and_serialization.html</link>
+  <author>michael@mavnn.eu (Michael Newton)</author>
+  <guid isPermaLink="false">https://blog.mavnn.co.uk/2022/11/24/typescript_enums_and_serialization.html</guid>
+  <pubDate>Wed, 24 Jan 2024 00:00:00 +0100</pubDate>
 
-    <span class="org-keyword">enum</span> <span class="org-type">TestEnum1</span> <span class="org-rainbow-delimiters-depth-1">{</span>
-    <span class="org-string">"why"</span> = <span class="org-string">"would"</span>,
-    <span class="org-string">"anyone"</span> = <span class="org-string">"do"</span>,
-    <span class="org-string">"this"</span> = <span class="org-string">"!"</span>,
-    <span class="org-rainbow-delimiters-depth-1">}</span>
+  <description><![CDATA[<p>
+  In general, TypeScript is <a href="../../../2022/01/07/types-in-typescript.html">not its own language</a> - it's a set of annotations that
+  can be added to JavaScript to help check the "correctness" of you program. The
+  authors have been very reluctant to add features to TypeScript that don't exist
+  in JavaScript, and so normally you can turn your TypeScript into JavaScript purely
+  by <i>deleting</i> the type annotations that you've added.
+  </p>
 
-    <span class="org-keyword">type</span> <span class="org-type">ObjectWithEnumField</span> = <span class="org-rainbow-delimiters-depth-1">{</span>
-    testEnum: <span class="org-type">TestEnum1</span>
-    name: <span class="org-typescript-primitive">string</span>
-    age?: <span class="org-typescript-primitive">number</span>
-    <span class="org-rainbow-delimiters-depth-1">}</span>
+  <p>
+  Enums, though, are a bit different. They actually generate JavaScript code based on
+  the TypeScript you write. Today, we're going to look at a piece of code that allows
+  you to deserialize enums with string values in a type safe manner. And we're going
+  to take advantage of the fact that enums (according to the TypeScript compiler) are
+  both a type, and a value with a different type - at the same time.
+  </p>
 
-    <span class="org-function-name">describe</span><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-string">"stringEnumDecoder"</span>, <span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-keyword">=&gt;</span> <span class="org-rainbow-delimiters-depth-2">{</span>
-    <span class="org-function-name">it</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"decodes string enums"</span>, <span class="org-rainbow-delimiters-depth-4">()</span> <span class="org-keyword">=&gt;</span> <span class="org-rainbow-delimiters-depth-4">{</span>
-    <span class="org-keyword">const</span> <span class="org-variable-name">result</span> = <span class="org-function-name">stringEnumDecoder</span><span class="org-rainbow-delimiters-depth-5">(</span>TestEnum1<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">forceDecode</span><span class="org-rainbow-delimiters-depth-5">(</span><span class="org-string">"!"</span><span class="org-rainbow-delimiters-depth-5">)</span>
-    <span class="org-function-name">expect</span><span class="org-rainbow-delimiters-depth-5">(</span>result<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">toEqual</span><span class="org-rainbow-delimiters-depth-5">(</span>TestEnum1.<span class="org-constant">this</span><span class="org-rainbow-delimiters-depth-5">)</span>
-    <span class="org-rainbow-delimiters-depth-4">}</span><span class="org-rainbow-delimiters-depth-3">)</span>
-    <span class="org-function-name">it</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"rejects invalid enum values"</span>, <span class="org-rainbow-delimiters-depth-4">()</span> <span class="org-keyword">=&gt;</span> <span class="org-rainbow-delimiters-depth-4">{</span>
-    <span class="org-keyword">const</span> <span class="org-variable-name">result</span> = <span class="org-function-name">stringEnumDecoder</span><span class="org-rainbow-delimiters-depth-5">(</span>TestEnum1<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">decode</span><span class="org-rainbow-delimiters-depth-5">(</span><span class="org-string">"this"</span><span class="org-rainbow-delimiters-depth-5">)</span>
-    <span class="org-function-name">expect</span><span class="org-rainbow-delimiters-depth-5">(</span>result<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">toBeNull</span><span class="org-rainbow-delimiters-depth-5">()</span>
-    <span class="org-rainbow-delimiters-depth-4">}</span><span class="org-rainbow-delimiters-depth-3">)</span>
+  <p>
+  For context, we're going to be using <a href="https://www.npmjs.com/package/schemawax">SchemaWax</a> to create our decoder, so we can
+  build it into a larger contextual decoder as needed.
+  </p>
 
-    <span class="org-function-name">it</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"can be used in larger decoders"</span>, <span class="org-rainbow-delimiters-depth-4">()</span> <span class="org-keyword">=&gt;</span> <span class="org-rainbow-delimiters-depth-4">{</span>
-    <span class="org-keyword">const</span> <span class="org-variable-name">objectDecoder</span>: D.Decoder&lt;<span class="org-type">ObjectWithEnumField</span>&gt; = D.<span class="org-function-name">object</span><span class="org-rainbow-delimiters-depth-5">(</span><span class="org-rainbow-delimiters-depth-6">{</span>
-    required: <span class="org-rainbow-delimiters-depth-7">{</span>
-    testEnum: <span class="org-function-name">stringEnumDecoder</span><span class="org-rainbow-delimiters-depth-8">(</span>TestEnum1<span class="org-rainbow-delimiters-depth-8">)</span>,
-    name: D.<span class="org-typescript-primitive">string</span>,
-    <span class="org-rainbow-delimiters-depth-7">}</span>,
-    optional: <span class="org-rainbow-delimiters-depth-7">{</span>
-    dateOfBirth: D.<span class="org-typescript-primitive">string</span>.<span class="org-function-name">andThen</span><span class="org-rainbow-delimiters-depth-8">(</span><span class="org-rainbow-delimiters-depth-9">(</span>str<span class="org-rainbow-delimiters-depth-9">)</span> <span class="org-keyword">=&gt;</span> <span class="org-keyword">new</span> <span class="org-type">Date</span><span class="org-rainbow-delimiters-depth-9">(</span>str<span class="org-rainbow-delimiters-depth-9">)</span><span class="org-rainbow-delimiters-depth-8">)</span>,
-    <span class="org-rainbow-delimiters-depth-7">}</span>,
-    <span class="org-rainbow-delimiters-depth-6">}</span><span class="org-rainbow-delimiters-depth-5">)</span>
+  <p>
+  First: the code! If you already know SchemaWax, you don't care about types, and
+  you're here because it was a hit for "deserialize any enum" on Google this is
+  the bit to cut and paste.
+  </p>
 
-    <span class="org-keyword">const</span> <span class="org-variable-name">inputFromApi</span> = <span class="org-string">`{ "testEnum": "!", "name": "bob", "dateOfBirth": "2022-11-24"}`</span>
-    <span class="org-keyword">const</span> <span class="org-variable-name">result1</span> = objectDecoder.<span class="org-function-name">decode</span><span class="org-rainbow-delimiters-depth-5">(</span>JSON.<span class="org-function-name">parse</span><span class="org-rainbow-delimiters-depth-6">(</span>inputFromApi<span class="org-rainbow-delimiters-depth-6">)</span><span class="org-rainbow-delimiters-depth-5">)</span>
-    <span class="org-function-name">expect</span><span class="org-rainbow-delimiters-depth-5">(</span>result1<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">toEqual</span><span class="org-rainbow-delimiters-depth-5">(</span><span class="org-rainbow-delimiters-depth-6">{</span> testEnum: <span class="org-type">TestEnum1</span>.<span class="org-constant">this</span>, name: <span class="org-string">"bob"</span>, dateOfBirth: <span class="org-keyword">new</span> <span class="org-type">Date</span><span class="org-rainbow-delimiters-depth-7">(</span><span class="org-string">"2022-11-24"</span><span class="org-rainbow-delimiters-depth-7">)</span> <span class="org-rainbow-delimiters-depth-6">}</span><span class="org-rainbow-delimiters-depth-5">)</span>
-    <span class="org-rainbow-delimiters-depth-4">}</span><span class="org-rainbow-delimiters-depth-3">)</span>
-    <span class="org-rainbow-delimiters-depth-2">}</span><span class="org-rainbow-delimiters-depth-1">)</span>
-    </pre>
-    </div>
+  <div class="org-src-container">
+  <pre class="src src-typescript"><span class="org-keyword">import</span> * <span class="org-keyword">as</span> D <span class="org-keyword">from</span> <span class="org-string">"schemawax"</span>
 
-    <p>
-    How does this work? How can we write a function that can take an enum type as an
-    argument, and then generate a decoder? (Feel free to drop out if you were just
-    here to solve your immediate problem!)
-    </p>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">This is only type safe if passed a Enum with string values.</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">I don't think there's anyway to stop someone passing { "boo": "broken" }</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">in TypeScripts type system :(</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">At least this stops us from rewriting the same unsafe code every time though.</span>
+  <span class="org-keyword">export</span> <span class="org-keyword">const</span> <span class="org-variable-name">stringEnumDecoder</span> = &lt;Enum <span class="org-typescript-access-modifier">extends</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-rainbow-delimiters-depth-2">[</span>name: <span class="org-typescript-primitive">string</span><span class="org-rainbow-delimiters-depth-2">]</span>: <span class="org-typescript-primitive">string</span> <span class="org-rainbow-delimiters-depth-1">}</span>&gt;<span class="org-rainbow-delimiters-depth-1">(</span>
+  targetEnum: <span class="org-type">Enum</span>,
+  <span class="org-rainbow-delimiters-depth-1">)</span>: D.Decoder&lt;<span class="org-type">Enum</span><span class="org-rainbow-delimiters-depth-1">[</span><span class="org-type">keyof</span> <span class="org-type">Enum</span><span class="org-rainbow-delimiters-depth-1">]</span>&gt; <span class="org-keyword">=&gt;</span> <span class="org-type">D</span>.<span class="org-function-name">literalUnion</span><span class="org-rainbow-delimiters-depth-1">(</span>...<span class="org-type">Object</span>.<span class="org-function-name">values</span><span class="org-rainbow-delimiters-depth-2">(</span><span class="org-type">targetEnum</span><span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span> <span class="org-type">as</span> <span class="org-type">D</span>.<span class="org-type">Decoder</span>&lt;<span class="org-type">Enum</span><span class="org-rainbow-delimiters-depth-1">[</span><span class="org-type">keyof</span> <span class="org-type">Enum</span><span class="org-rainbow-delimiters-depth-1">]</span>&gt;
+  </pre>
+  </div>
 
-    <p>
-    If you type an enum into the online TypeScript playground (<a href="https://www.typescriptlang.org/play?#code/KYOwrgtgBAYg9nKBvAUFKB5EwoF4oBEc2BANGlACoDui+BALrWSgL4pA">here's one I prepared
-    earlier</a>), you'll see that the enum (with string values) is, in fact, compiled
-    into a variable that ends up with a simple record with string keys and values
-    attached to it.
-    </p>
+  <p>
+  That's it. The whole thing. How do you use it?
+  </p>
 
-    <p>
-    Going back to the implementation, you'll see that's exactly the constraint on
-    the argument we pass into <code>stringEnumDecoder</code>.
-    </p>
+  <p>
+  Like this:
+  </p>
 
-    <div class="org-src-container">
-    <pre class="src src-typescript">...
-    <span class="org-keyword">export</span> <span class="org-keyword">const</span> <span class="org-variable-name">stringEnumDecoder</span> = &lt;Enum <span class="org-typescript-access-modifier">extends</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-rainbow-delimiters-depth-2">[</span>name: <span class="org-typescript-primitive">string</span><span class="org-rainbow-delimiters-depth-2">]</span>: <span class="org-typescript-primitive">string</span> <span class="org-rainbow-delimiters-depth-1">}</span>&gt;<span class="org-rainbow-delimiters-depth-1">(</span>... rest <span class="org-keyword">of</span> implementation<span class="org-rainbow-delimiters-depth-1">)</span>
-    </pre>
-    </div>
+  <div class="org-src-container">
+  <pre class="src src-typescript"><span class="org-keyword">import</span> * <span class="org-keyword">as</span> D <span class="org-keyword">from</span> <span class="org-string">"schemawax"</span>
+  <span class="org-keyword">import</span> <span class="org-rainbow-delimiters-depth-1">{</span> stringEnumDecoder <span class="org-rainbow-delimiters-depth-1">}</span> <span class="org-keyword">from</span> <span class="org-string">"./enum"</span>
 
-    <p>
-    Then some slightly weird magic happens: when you pass an enum into the function,
-    the TypeScript compiler infers that the type of the argument is the <code>typeof</code> the
-    enum you passed in. Whatever is happening internally here, it keeps track of the
-    fact that the keys of this type are the types of the valid enum cases, so it
-    turns <code>Enum[keyof Enum]</code> into the union type of each of the possible enum value
-    types which is, if you squint hard enough, actually the enum itself. We then
-    return a decoder that accepts a string, checks that said string is actually one
-    of the <i>values</i> stored in the enum object, and then tells the compiler that this
-    decoder will only ever return valid enum values. Unfortunately with a cast - but
-    the full context we need to check this cast is valid is contained within this
-    one line of code.
-    </p>
+  <span class="org-keyword">enum</span> <span class="org-type">TestEnum1</span> <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-string">"why"</span> = <span class="org-string">"would"</span>,
+  <span class="org-string">"anyone"</span> = <span class="org-string">"do"</span>,
+  <span class="org-string">"this"</span> = <span class="org-string">"!"</span>,
+  <span class="org-rainbow-delimiters-depth-1">}</span>
 
-    <p>
-    So there you have it: a safe way to deserialize strings into enums, and it even
-    composes nicely into more complex decoders.
-    </p>
+  <span class="org-keyword">type</span> <span class="org-type">ObjectWithEnumField</span> = <span class="org-rainbow-delimiters-depth-1">{</span>
+  testEnum: <span class="org-type">TestEnum1</span>
+  name: <span class="org-typescript-primitive">string</span>
+  age?: <span class="org-typescript-primitive">number</span>
+  <span class="org-rainbow-delimiters-depth-1">}</span>
 
-    <p>
-    Until next time!
-    </p>
+  <span class="org-function-name">describe</span><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-string">"stringEnumDecoder"</span>, <span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-keyword">=&gt;</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+  <span class="org-function-name">it</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"decodes string enums"</span>, <span class="org-rainbow-delimiters-depth-4">()</span> <span class="org-keyword">=&gt;</span> <span class="org-rainbow-delimiters-depth-4">{</span>
+  <span class="org-keyword">const</span> <span class="org-variable-name">result</span> = <span class="org-function-name">stringEnumDecoder</span><span class="org-rainbow-delimiters-depth-5">(</span>TestEnum1<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">forceDecode</span><span class="org-rainbow-delimiters-depth-5">(</span><span class="org-string">"!"</span><span class="org-rainbow-delimiters-depth-5">)</span>
+  <span class="org-function-name">expect</span><span class="org-rainbow-delimiters-depth-5">(</span>result<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">toEqual</span><span class="org-rainbow-delimiters-depth-5">(</span>TestEnum1.<span class="org-constant">this</span><span class="org-rainbow-delimiters-depth-5">)</span>
+  <span class="org-rainbow-delimiters-depth-4">}</span><span class="org-rainbow-delimiters-depth-3">)</span>
+  <span class="org-function-name">it</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"rejects invalid enum values"</span>, <span class="org-rainbow-delimiters-depth-4">()</span> <span class="org-keyword">=&gt;</span> <span class="org-rainbow-delimiters-depth-4">{</span>
+  <span class="org-keyword">const</span> <span class="org-variable-name">result</span> = <span class="org-function-name">stringEnumDecoder</span><span class="org-rainbow-delimiters-depth-5">(</span>TestEnum1<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">decode</span><span class="org-rainbow-delimiters-depth-5">(</span><span class="org-string">"this"</span><span class="org-rainbow-delimiters-depth-5">)</span>
+  <span class="org-function-name">expect</span><span class="org-rainbow-delimiters-depth-5">(</span>result<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">toBeNull</span><span class="org-rainbow-delimiters-depth-5">()</span>
+  <span class="org-rainbow-delimiters-depth-4">}</span><span class="org-rainbow-delimiters-depth-3">)</span>
 
-    <p>
-    Want to comment on something you've read here? <a href="https://mastodon.sdf.org/@mavnn/109400451463740531">This mastodon post</a> is the
-    official commenting point!
-    </p>
-    ]]></description>
+  <span class="org-function-name">it</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"can be used in larger decoders"</span>, <span class="org-rainbow-delimiters-depth-4">()</span> <span class="org-keyword">=&gt;</span> <span class="org-rainbow-delimiters-depth-4">{</span>
+  <span class="org-keyword">const</span> <span class="org-variable-name">objectDecoder</span>: D.Decoder&lt;<span class="org-type">ObjectWithEnumField</span>&gt; = D.<span class="org-function-name">object</span><span class="org-rainbow-delimiters-depth-5">(</span><span class="org-rainbow-delimiters-depth-6">{</span>
+  required: <span class="org-rainbow-delimiters-depth-7">{</span>
+  testEnum: <span class="org-function-name">stringEnumDecoder</span><span class="org-rainbow-delimiters-depth-8">(</span>TestEnum1<span class="org-rainbow-delimiters-depth-8">)</span>,
+  name: D.<span class="org-typescript-primitive">string</span>,
+  <span class="org-rainbow-delimiters-depth-7">}</span>,
+  optional: <span class="org-rainbow-delimiters-depth-7">{</span>
+  dateOfBirth: D.<span class="org-typescript-primitive">string</span>.<span class="org-function-name">andThen</span><span class="org-rainbow-delimiters-depth-8">(</span><span class="org-rainbow-delimiters-depth-9">(</span>str<span class="org-rainbow-delimiters-depth-9">)</span> <span class="org-keyword">=&gt;</span> <span class="org-keyword">new</span> <span class="org-type">Date</span><span class="org-rainbow-delimiters-depth-9">(</span>str<span class="org-rainbow-delimiters-depth-9">)</span><span class="org-rainbow-delimiters-depth-8">)</span>,
+  <span class="org-rainbow-delimiters-depth-7">}</span>,
+  <span class="org-rainbow-delimiters-depth-6">}</span><span class="org-rainbow-delimiters-depth-5">)</span>
+
+  <span class="org-keyword">const</span> <span class="org-variable-name">inputFromApi</span> = <span class="org-string">`{ "testEnum": "!", "name": "bob", "dateOfBirth": "2022-11-24"}`</span>
+  <span class="org-keyword">const</span> <span class="org-variable-name">result1</span> = objectDecoder.<span class="org-function-name">decode</span><span class="org-rainbow-delimiters-depth-5">(</span>JSON.<span class="org-function-name">parse</span><span class="org-rainbow-delimiters-depth-6">(</span>inputFromApi<span class="org-rainbow-delimiters-depth-6">)</span><span class="org-rainbow-delimiters-depth-5">)</span>
+  <span class="org-function-name">expect</span><span class="org-rainbow-delimiters-depth-5">(</span>result1<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">toEqual</span><span class="org-rainbow-delimiters-depth-5">(</span><span class="org-rainbow-delimiters-depth-6">{</span> testEnum: <span class="org-type">TestEnum1</span>.<span class="org-constant">this</span>, name: <span class="org-string">"bob"</span>, dateOfBirth: <span class="org-keyword">new</span> <span class="org-type">Date</span><span class="org-rainbow-delimiters-depth-7">(</span><span class="org-string">"2022-11-24"</span><span class="org-rainbow-delimiters-depth-7">)</span> <span class="org-rainbow-delimiters-depth-6">}</span><span class="org-rainbow-delimiters-depth-5">)</span>
+  <span class="org-rainbow-delimiters-depth-4">}</span><span class="org-rainbow-delimiters-depth-3">)</span>
+  <span class="org-rainbow-delimiters-depth-2">}</span><span class="org-rainbow-delimiters-depth-1">)</span>
+  </pre>
+  </div>
+
+  <p>
+  How does this work? How can we write a function that can take an enum type as an
+  argument, and then generate a decoder? (Feel free to drop out if you were just
+  here to solve your immediate problem!)
+  </p>
+
+  <p>
+  If you type an enum into the online TypeScript playground (<a href="https://www.typescriptlang.org/play?#code/KYOwrgtgBAYg9nKBvAUFKB5EwoF4oBEc2BANGlACoDui+BALrWSgL4pA">here's one I prepared
+  earlier</a>), you'll see that the enum (with string values) is, in fact, compiled
+  into a variable that ends up with a simple record with string keys and values
+  attached to it.
+  </p>
+
+  <p>
+  Going back to the implementation, you'll see that's exactly the constraint on
+  the argument we pass into <code>stringEnumDecoder</code>.
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-typescript">...
+  <span class="org-keyword">export</span> <span class="org-keyword">const</span> <span class="org-variable-name">stringEnumDecoder</span> = &lt;Enum <span class="org-typescript-access-modifier">extends</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-rainbow-delimiters-depth-2">[</span>name: <span class="org-typescript-primitive">string</span><span class="org-rainbow-delimiters-depth-2">]</span>: <span class="org-typescript-primitive">string</span> <span class="org-rainbow-delimiters-depth-1">}</span>&gt;<span class="org-rainbow-delimiters-depth-1">(</span>... rest <span class="org-keyword">of</span> implementation<span class="org-rainbow-delimiters-depth-1">)</span>
+  </pre>
+  </div>
+
+  <p>
+  Then some slightly weird magic happens: when you pass an enum into the function,
+  the TypeScript compiler infers that the type of the argument is the <code>typeof</code> the
+  enum you passed in. Whatever is happening internally here, it keeps track of the
+  fact that the keys of this type are the types of the valid enum cases, so it
+  turns <code>Enum[keyof Enum]</code> into the union type of each of the possible enum value
+  types which is, if you squint hard enough, actually the enum itself. We then
+  return a decoder that accepts a string, checks that said string is actually one
+  of the <i>values</i> stored in the enum object, and then tells the compiler that this
+  decoder will only ever return valid enum values. Unfortunately with a cast - but
+  the full context we need to check this cast is valid is contained within this
+  one line of code.
+  </p>
+
+  <p>
+  So there you have it: a safe way to deserialize strings into enums, and it even
+  composes nicely into more complex decoders.
+  </p>
+
+  <p>
+  Until next time!
+  </p>
+
+  <p>
+  Want to comment on something you've read here? <a href="https://mastodon.sdf.org/@mavnn/109400451463740531">This mastodon post</a> is the
+  official commenting point!
+  </p>
+  ]]></description>
 </item>
 <item>
   <title>ADHD and me</title>
@@ -311,40 +584,6 @@
 
   <p>
   This morning, I did the washing up.
-  </p>
-  ]]></description>
-</item>
-<item>
-  <title>Teaching (coding) wisdom</title>
-  <link>https://blog.mavnn.co.uk/2022/06/20/teaching-coding-wisdom.html</link>
-  <author>michael@mavnn.eu (Michael Newton)</author>
-  <guid isPermaLink="false">https://blog.mavnn.co.uk/2022/06/20/teaching-coding-wisdom.html</guid>
-  <pubDate>Mon, 20 Jun 2022 00:00:00 +0200</pubDate>
-
-  <description><![CDATA[<blockquote>
-  <p>
-  [talking about the teaching of wisdom]
-  </p>
-
-  <p>
-  There are these distillations that we get throughout the story, like in the ten commandments or in the Sermon on the Mount. At points, it’s very clear: “Don’t murder.” “Honor your ma and pa.” “Do to others what you want them to do to you.” But if you really think about it, you don’t want a list. You might want a list for a certain season that will train your moral compass. Then, when you confront really complex situations, like Joshua or Moses, and it’s not clear, and there’s no list, you’ve been shaped to be the kind of person who knows how to figure out the right way forward. Lists will not help you do that. Wisdom will help you do that.
-  </p>
-
-  <p>
-  --- <a href="https://bibleproject.com/podcast/wisdom-lifes-complexity/">https://bibleproject.com/podcast/wisdom-lifes-complexity/</a>
-  </p>
-  </blockquote>
-
-  <p>
-  Listening to the podcast above earlier and thinking that it feels very similar to how to teach good coding practices. We use the short hand of rules, and lists of recommendations… sometimes. But that doesn’t teach you how to deal with the complex situations, the edge cases, the actual real problems that need solving.
-  </p>
-
-  <p>
-  The flip side being that as soon as you’re guided by wisdom, by the stories of what works, the shaping of thinking, you start getting into interpretation and ambiguity because you’re actually needing to think about the decisions you’re making. It can become hard to explain why you’re doing things, and different experiences will have coloured the “wisdom” that you’ve formed over the years. Which is why it becomes so important to have a variety of backgrounds and a willingness to communicate in a technical team that’s actually going to get things done. Why the lists and rules (microservices rule the world! TDD is the one true way! pure code is the only real code!) only get you so far, and should be starting points - not ending points.
-  </p>
-
-  <p>
-  If you'd like to comment on this post, or suggest a correction, you can <a href="https://github.com/mavnn/blog/blob/master/2022/06/20/teaching-coding-wisdom.org">submit suggestions for changes</a> (GitHub account required). Just hit the "edit this file button" and go from there - or log an issue on the repository.
   </p>
   ]]></description>
 </item>

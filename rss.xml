@@ -14,8 +14,8 @@
   <link>https://blog.mavnn.co.uk/</link>
   <description><![CDATA[]]></description>
   <language>en</language>
-  <pubDate>Mon, 29 Jan 2024 13:06:14 +0100</pubDate>
-  <lastBuildDate>Mon, 29 Jan 2024 13:06:14 +0100</lastBuildDate>
+  <pubDate>Wed, 31 Jan 2024 13:42:52 +0100</pubDate>
+  <lastBuildDate>Wed, 31 Jan 2024 13:42:52 +0100</lastBuildDate>
   <generator>Emacs 29.1 Org-mode 9.6.6</generator>
   <webMaster>michael@mavnn.eu (Michael Newton)</webMaster>
   <image>
@@ -26,277 +26,557 @@
 
 
   <item>
-    <title>Short term help</title>
-    <link>https://blog.mavnn.co.uk/2024/01/29/short_term_help.html</link>
+    <title>Foundations: Dev Journal 1</title>
+    <link>https://blog.mavnn.co.uk/2024/01/31/dev-journal-1.html</link>
     <author>michael@mavnn.eu (Michael Newton)</author>
-    <guid isPermaLink="false">https://blog.mavnn.co.uk/2024/01/29/short_term_help.html</guid>
-    <pubDate>Mon, 29 Jan 2024 00:00:00 +0100</pubDate>
+    <guid isPermaLink="false">https://blog.mavnn.co.uk/2024/01/31/dev-journal-1.html</guid>
+    <pubDate>Wed, 31 Jan 2024 00:00:00 +0100</pubDate>
 
     <description><![CDATA[<p>
-    These days I generally work longer term contracts, which means I'm not often available for the more immediate "pay money for a solved problem" services I could offer while I was consulting. Right now though, I'm between long term contracts.
+    This is something a little bit new. A series I'm starting that documents the building of a simple project from the ground up using a set of tools and techniques I've come to either really like, or that I'd like to try out.
     </p>
 
     <p>
-    "But Michael," I hear you say, "what problems can I give you money to solve so that I can avoid distracting my own amazing team from actually <b>building the product</b>?"
+    On the one hand this is a personal project. On the other, I'd like to take advantage of nice things like CI/CD, testing, etc, even when I'm working on something for myself. So this is also a mini-tour of many of the things I would do setting up a new greenfield project for a team.
     </p>
 
     <p>
-    I'm so glad you asked. Or, you know, you can just skip straight to the <a href="#org1e4775f">logistics</a> section if you already know what you want.
+    As the series progresses, I'll carry on adding the sections here.
     </p>
 
-    <nav id="table-of-contents" role="doc-toc">
-    <h2>Table of Contents</h2>
-    <div id="text-table-of-contents" role="doc-toc">
-    <ul>
-    <li><a href="#orgb0aa46e">1. Short term help</a>
-    <ul>
-    <li><a href="#orge0ebefa">1.1. Consulting</a></li>
-    <li><a href="#org65ea822">1.2. Build, packaging, and continuous integration</a></li>
-    <li><a href="#org63f24d8">1.3. Making sure that CI/CD is managed <b>in the code repository</b> so that running the build locally and on the build server does the same thing in the same way, and the build can evolve in a safe, version controlled way just like the rest of your code</a></li>
-    <li><a href="#org2e0a0c2">1.4. Helping trace and encode the <i>real</i> dependencies in your code base to unlock incremental, cachable build steps and reduce overall build times with concurrency</a></li>
-    <li><a href="#org0be0e09">1.5. Split your test suite so tests can be run in parallel (yes, even integration tests) and then aggregate the results</a></li>
-    <li><a href="#org6195e1b">1.6. Use tools like Nix or multi-step docker/podman builds to create minimal containers that only contain what they really need</a></li>
-    <li><a href="#orgf26e7d3">1.7. Architecture review</a></li>
-    <li><a href="#org7c473c4">1.8. Code audit</a></li>
-    <li><a href="#orga3c9bab">1.9. Technology evaluation</a></li>
-    <li><a href="#orgbf5bde7">1.10. Workshops and training</a></li>
-    <li><a href="#org5ef916b">1.11. Domain driven design coaching</a></li>
-    <li><a href="#org2e0b436">1.12. Event sourcing</a></li>
-    <li><a href="#orgdcf13be">1.13. Teach property based testing</a></li>
-    <li><a href="#org3f90c1f">1.14. Bespoke software creation</a></li>
-    <li><a href="#org71644e2">1.15. Build a tool/library</a></li>
-    <li><a href="#orgafa0130">1.16. Build a project skeleton</a></li>
-    <li><a href="#org1e4775f">1.17. Logistics</a></li>
-    <li><a href="#orgab39996">1.18. I will <i>always</i> want to have an extensive conversation(s) and will normally want to provide a quote before starting a short term piece of work. Book a slot to talk on Calendly or just send me an email (michael at mavnn.eu)</a></li>
-    <li><a href="#orgfbf2d1c">1.19. I currently live in Italy, about an hour away from Rome. I can offer all of the services above remotely. Asking me to attend in person will add travel costs and at least 2 billable days of my time.</a></li>
-    <li><a href="#orgd6b568d">1.20. You can hire me by the day, but in general for short term work I quote and then charge you for the work delivered rather than bill by unit time. I will consider discounts for non-profits, student organizations, etc. It it's easier for you, I can give a quote that includes all expenses rather than reclaiming them separately. (Hint: if you're in a large organization and this is the first time you're arranging to get a consultant in - <i>this will be easier for you</i>)</a></li>
-    <li><a href="#org4e77990">1.21. In the rare occasion where it turns out that I cannot deliver what I promised (I'm just one human - things like illness can happen) I will let you know promptly, and before the work is due to be delivered, so we can renegotiate where to go from the reality of the situation.</a></li>
-    </ul>
-    </li>
-    <li><a href="#org76c339f">2. Writing CVs for more senior roles</a></li>
-    <li><a href="#org2bd8abf">3. TypeScript Enums and Serialization</a></li>
-    <li><a href="#orgc9042d7">4. ADHD and me</a></li>
-    </ul>
-    </div>
-    </nav>
+    <p>
+    <b>The series so far</b>
+    </p>
 
-    <div id="outline-container-orge0ebefa" class="outline-3">
-    <h3 id="orge0ebefa"><span class="section-number-3">1.1.</span> Consulting</h3>
+    <div id="outline-container-org8ac6b91" class="outline-3">
+    <h3 id="org8ac6b91"><span class="section-number-3">1.1.</span> <a href="https://blog.mavnn.co.uk/2024/01/31/dev-journal-1.html">Foundations</a></h3>
     <div class="outline-text-3" id="text-1-1">
     </div>
     </div>
 
-    <div id="outline-container-org65ea822" class="outline-3">
-    <h3 id="org65ea822"><span class="section-number-3">1.2.</span> Build, packaging, and continuous integration</h3>
+    <div id="outline-container-org27b3330" class="outline-3">
+    <h3 id="org27b3330"><span class="section-number-3">1.2.</span> Part 1: Foundations</h3>
     <div class="outline-text-3" id="text-1-2">
     <p>
-    I have spent a <i>lot</i> of time getting build, test, and deployment pipelines up and running. Most of the advice out there assumes that you are using one technology and you can just use "the build tool" for that stack. Reality tends to be more complicated than that, with many projects involving multiple languages, code generation, and extensive test set up.
+    Our application will eventually be a little web site for <code>redacted in case I change my mind</code>. I'm going to be using mix of tried and new tech (for me personally).
     </p>
 
     <p>
-    What kind of things could your CI/CD process do for you? It depends on <i>your</i> needs, but things that have really helped in other places include:
+    On the things I'd like to try front, we have:
     </p>
     </div>
     </div>
 
-    <div id="outline-container-org63f24d8" class="outline-3">
-    <h3 id="org63f24d8"><span class="section-number-3">1.3.</span> Making sure that CI/CD is managed <b>in the code repository</b> so that running the build locally and on the build server does the same thing in the same way, and the build can evolve in a safe, version controlled way just like the rest of your code</h3>
+    <div id="outline-container-orgdf6c7e5" class="outline-3">
+    <h3 id="orgdf6c7e5"><span class="section-number-3">1.3.</span> <a href="https://htmx.org/">htmx</a> (probably with <a href="https://bulma.io/">bulma</a> for initial styling) to provide the UI. This isn't going to be hugely interactive application, it is mostly going to collect information from forms, and display nice looking output tables so htmx's server side rendering model seems a perfect fit. I've used server side rendering in other projects and liked it, and htmx seems a low impact way to take that to the next level.</h3>
     <div class="outline-text-3" id="text-1-3">
     </div>
     </div>
-    <div id="outline-container-org2e0a0c2" class="outline-3">
-    <h3 id="org2e0a0c2"><span class="section-number-3">1.4.</span> Helping trace and encode the <i>real</i> dependencies in your code base to unlock incremental, cachable build steps and reduce overall build times with concurrency</h3>
+    <div id="outline-container-org79298f4" class="outline-3">
+    <h3 id="org79298f4"><span class="section-number-3">1.4.</span> <a href="https://www.falcoframework.com/">falco</a> for writing the backend server in F#. <a href="https://xyncro.github.io/sites-freya.io/">Freya</a>, my webserver of choice for F# back in the day, is no longer actively maintained but it looks like Falco has taken some of its nicer features and done its own thing with them.</h3>
     <div class="outline-text-3" id="text-1-4">
+    <p>
+    On the technologies I've used before and found useful front, we have:
+    </p>
     </div>
     </div>
-    <div id="outline-container-org0be0e09" class="outline-3">
-    <h3 id="org0be0e09"><span class="section-number-3">1.5.</span> Split your test suite so tests can be run in parallel (yes, even integration tests) and then aggregate the results</h3>
+
+    <div id="outline-container-org702015c" class="outline-3">
+    <h3 id="org702015c"><span class="section-number-3">1.5.</span> <a href="https://nixos.org/">nix</a> to give a version controlled build/development environments and reproducible packaging.</h3>
     <div class="outline-text-3" id="text-1-5">
     </div>
     </div>
-    <div id="outline-container-org6195e1b" class="outline-3">
-    <h3 id="org6195e1b"><span class="section-number-3">1.6.</span> Use tools like Nix or multi-step docker/podman builds to create minimal containers that only contain what they really need</h3>
+    <div id="outline-container-orgd8bd995" class="outline-3">
+    <h3 id="orgd8bd995"><span class="section-number-3">1.6.</span> <a href="https://direnv.net/">direnv</a> for seamless local development environments.</h3>
     <div class="outline-text-3" id="text-1-6">
     </div>
-    <div id="outline-container-org43ce386" class="outline-4">
-    <h4 id="org43ce386"><span class="section-number-4">1.6.1.</span> bonus extra: doing this with Nix also gives you development environments as code and reproducible deployment artifacts - same code in, same container out</h4>
-    <div class="outline-text-4" id="text-1-6-1">
-    <p>
-    If this is a new product/project and you just want someone to make all these considerations go away I can also build you <a href="#orgafa0130">a project skeleton</a> with everything set up and ready to go for your preferred CI provider and deployment environment.
-    </p>
     </div>
-    </div>
-    </div>
-
-    <div id="outline-container-orgf26e7d3" class="outline-3">
-    <h3 id="orgf26e7d3"><span class="section-number-3">1.7.</span> Architecture review</h3>
+    <div id="outline-container-orgf005bdb" class="outline-3">
+    <h3 id="orgf005bdb"><span class="section-number-3">1.7.</span> <a href="https://github.com/JasperFx/marten">marten</a> from the "Critter Stack" as an event store on top of postgresql to build our datastore.</h3>
     <div class="outline-text-3" id="text-1-7">
-    <p>
-    Putting together a new project, or have a code base that's moving from "minimum viable" to "oh - I've got customers"? I can review your plans, or, given your constraints and objectives I can put together a suggested system architecture for you.
-    </p>
-
-    <p>
-    It's worth noting that I don't have a personal axe to grind here. I won't tell you to use a "clean" architecture because that's my thing, or to use microservices because they are fashionable. Different architectural styles exist for a reason, and each has its own trade offs in terms of constraints you choose to accept in order to gain certain benefits.
-    </p>
-
-    <p>
-    I have the advantage of having helped architect and design solutions in a variety of styles in production environments.
-    </p>
-
-    <p>
-    This is a bit of a hybrid service that includes aspects of <a href="#orga3c9bab">technology evaluation</a>, <a href="#org7c473c4">code audit</a>, and <a href="#orga3c9bab">technology evaluation</a> but zoomed out to look at "how do I put this all together."
-    </p>
     </div>
     </div>
-
-    <div id="outline-container-org7c473c4" class="outline-3">
-    <h3 id="org7c473c4"><span class="section-number-3">1.8.</span> Code audit</h3>
+    <div id="outline-container-org462bd77" class="outline-3">
+    <h3 id="org462bd77"><span class="section-number-3">1.8.</span> <a href="https://gitlab.com/">gitlab</a> for code repository, container registry and CI/CD pipeline.</h3>
     <div class="outline-text-3" id="text-1-8">
     <p>
-    For ecosystems I've built decent sized projects in (.NET, TypeScript) I can spend some time reviewing your code and pointing out things you may want to improve.
+    I'm not sure how far I'm going to take this experiment publicly, but what I'm going to focus on first is just the basics of any online app: people being able to sign up, log in, and manage an account for a paid service. At least that far the whole project will be MIT licensed, so if you like what you see you can just pick it up and use it as a starter template for your own project.
     </p>
 
     <p>
-    This isn't the kind of code review you'd do on an individual PR: this is the kind of code review where I can (as an outsider) come in with fresh eyes and point out broader patterns in your code base that may be problematic. I can also help you take your conventions and "traditions" and turn them into a coding style guide with (in many cases) automated tooling to help the team put it into practice.
+    For today, let's start with a <i>minimum deployable product</i>: a "Hello world" Falco server with CI/CD pipeline in place. We'll have a gitlab hosted project anybody with a working nix environment can pull down and:
     </p>
     </div>
     </div>
 
-    <div id="outline-container-orga3c9bab" class="outline-3">
-    <h3 id="orga3c9bab"><span class="section-number-3">1.9.</span> Technology evaluation</h3>
+    <div id="outline-container-org555bb92" class="outline-3">
+    <h3 id="org555bb92"><span class="section-number-3">1.9.</span> run <code>nix run</code> and have a webserver running locally that will respond to get requests to <code>/</code> with "Hello world"</h3>
     <div class="outline-text-3" id="text-1-9">
-    <p>
-    Considering buying a new service, picking up a new programming language, or changing to a new database library? I can do the research and evaluation you need based on your requirements. I've been helping drive technology choices in organizations for well over a decade now, and I can help you spot the good, the bad, and the ugly of the options you're considering. I may even be aware of options you haven't considered.
-    </p>
     </div>
     </div>
-
-    <div id="outline-container-orgbf5bde7" class="outline-3">
-    <h3 id="orgbf5bde7"><span class="section-number-3">1.10.</span> Workshops and training</h3>
+    <div id="outline-container-org38a940e" class="outline-3">
+    <h3 id="org38a940e"><span class="section-number-3">1.10.</span> run <code>nix build .#dockerImage</code> to build a docker image with the same architecture they're using (i.e. <code>aarch64-darwin</code> if you run it on a Mac)</h3>
     <div class="outline-text-3" id="text-1-10">
-    <p>
-    Unlike more general consultancy, workshops on topics I know well such as the ones below are a fairly fixed commitment. If you're considering using your training budget, you can assume around 2500 euros/day for up to 6 people online. In person will increase the cost but allows for groups of up to 10 people.
-    </p>
-
-    <p>
-    I have also offered bespoke training courses in the past (examples: giving a team of Ruby developers a 5 day crash course in everything they needed to know to take over maintenance of a .NET code base, tailored to the project in question) but that requires significant preparation and a quote.
-    </p>
     </div>
     </div>
-
-    <div id="outline-container-org5ef916b" class="outline-3">
-    <h3 id="org5ef916b"><span class="section-number-3">1.11.</span> Domain driven design coaching</h3>
+    <div id="outline-container-org9ed8902" class="outline-3">
+    <h3 id="org9ed8902"><span class="section-number-3">1.11.</span> by pushing a commit to gitlab trigger a CI pipeline building said docker image for <code>x86_64-linux</code> and pushing it to a package registry ready to deploy</h3>
     <div class="outline-text-3" id="text-1-11">
     <p>
-    At its heart, the promise of domain driven design is simple: a code base that uses the same language as the people using it do, so that developers and domain experts can accurately share understanding of what the code <i>should</i> do and why.
+    Enough bullet points. What did I actually do? (Sneak preview: <a href="https://gitlab.com/mavnn/caldance/-/tree/6b39d13d98199220d623870faf2b49fbda58d8a5">browse the gitlab repo at the time of the commit that this post describes</a>)
+    </p>
+    </div>
+
+    <div id="outline-container-orga504bc2" class="outline-4">
+    <h4 id="orga504bc2"><span class="section-number-4">1.11.1.</span> Setup a nix flake to provide our environment</h4>
+    <div class="outline-text-4" id="text-1-11-1">
+    <p>
+    A nix "flake" is a declarative description of a set of packages we'd like to be able to reference. You can read the <a href="https://gitlab.com/mavnn/caldance/-/blob/6b39d13d98199220d623870faf2b49fbda58d8a5/flake.nix">whole file</a> but the important part for today is that our <code>flake.nix</code> file specifies three outputs in this stanza:
+    </p>
+
+    <div class="org-src-container">
+    <pre class="src src-nix"><span class="org-comment-delimiter"># </span><span class="org-comment">Tools we want available during development</span>
+    <span class="org-nix-attribute">devShells.default</span> = pkgs.mkShell <span class="org-rainbow-delimiters-depth-1">{</span>
+    <span class="org-nix-attribute">buildInputs</span> = <span class="org-rainbow-delimiters-depth-2">[</span> dnc.sdk_8_0 pkgs.nixfmt pkgs.skopeo <span class="org-rainbow-delimiters-depth-2">]</span>;
+    <span class="org-rainbow-delimiters-depth-1">}</span>;
+
+    <span class="org-comment-delimiter"># </span><span class="org-comment">Default result of running `nix build` with this</span>
+    <span class="org-comment-delimiter"># </span><span class="org-comment">flake; it builds the F# project `CalDance.fsproj`</span>
+    <span class="org-nix-attribute">packages.default</span> = pkgs.buildDotnetModule <span class="org-rainbow-delimiters-depth-1">{</span>
+    <span class="org-nix-attribute">pname</span> = name;
+    <span class="org-nix-attribute">version</span> = <span class="org-string">"0.1"</span>;
+
+    <span class="org-nix-attribute">src</span> = <span class="org-nix-constant">./.</span>;
+    <span class="org-nix-attribute">projectFile</span> = <span class="org-string">"CalDance.fsproj"</span>;
+    <span class="org-nix-attribute">nugetDeps</span> = nugets;
+
+    <span class="org-comment"># We set nix to create an output that contains</span>
+    <span class="org-comment"># everything needed, rather than depending</span>
+    <span class="org-comment"># on the dotnet runtime</span>
+    <span class="org-nix-attribute">selfContainedBuild</span> = <span class="org-nix-builtin">true</span>;
+
+    <span class="org-nix-attribute">dotnet-sdk</span> = dnc.sdk_8_0;
+    <span class="org-nix-attribute">dotnet-runtime</span> = dnc.runtime_8_0;
+    <span class="org-nix-attribute">executables</span> = <span class="org-rainbow-delimiters-depth-2">[</span> <span class="org-string">"CalDance"</span> <span class="org-rainbow-delimiters-depth-2">]</span>;
+    <span class="org-rainbow-delimiters-depth-1">}</span>;
+
+    <span class="org-comment-delimiter"># </span><span class="org-comment">A target that builds a fully self-contained docker</span>
+    <span class="org-comment-delimiter"># </span><span class="org-comment">file with the project above</span>
+    <span class="org-nix-attribute">packages.dockerImage</span> = pkgs.dockerTools.buildImage <span class="org-rainbow-delimiters-depth-1">{</span>
+    <span class="org-nix-attribute">name</span> = name;
+    <span class="org-nix-attribute">config</span> = <span class="org-rainbow-delimiters-depth-2">{</span>
+    <span class="org-nix-attribute">Cmd</span> = <span class="org-rainbow-delimiters-depth-3">[</span> <span class="org-string">"</span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-4">{</span></span>packages.default<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-4">}</span></span><span class="org-string">/bin/CalDance"</span> <span class="org-rainbow-delimiters-depth-3">]</span>;
+    <span class="org-nix-attribute">Env</span> = <span class="org-rainbow-delimiters-depth-3">[</span> <span class="org-string">"DOTNET_EnableDiagnostics=0"</span> <span class="org-rainbow-delimiters-depth-3">]</span>;
+    <span class="org-rainbow-delimiters-depth-2">}</span>;
+    <span class="org-rainbow-delimiters-depth-1">}</span>;
+    </pre>
+    </div>
+
+    <p>
+    First we say we want a shell environment which includes the dotnet core SDK (version 8), nixfmt (for formatting nix files), and skopeo which we can use for moving docker images around.
     </p>
 
     <p>
-    Actually <i>doing</i> domain driven design is not simple at all, because it is a process to help you model reality and it turns out <a href="http://johnsalvatier.org/blog/2017/reality-has-a-surprising-amount-of-detail">reality has a surprising amount of detail</a>.
+    Then we define the default output for this flake: it uses the <code>buildDotnetModule</code> to specify that in our case it should build the executable <code>CalDance</code> based on the F# project file <code>CalDance.fsproj</code>. A helper makes sure that Nix is aware of which nuget packages the project has referenced, so that they can be packaged correctly.
     </p>
 
     <p>
-    I can help with the process of getting started with DDD, help lead the early exploratory meetings between developers and domain experts, and give advice on how to capture what you discover in code while keeping everything maintainable.
+    Finally, we define the <code>dockerImage</code> which uses the <code>dockerTools.buildImage</code> helper to say we want to be able to build a docker image that contains the executable from the default package above, everything it needs to run and <i>nothing else at all</i>. In our case, this produces a docker image weighing in at around 80MB - similar to what you'd get optimising a <a href="https://blogit.create.pt/telmorodrigues/2022/03/08/smaller-net-6-docker-images/">two step hand crafted dockerfile</a>, and significantly smaller than using the official <a href="https://hub.docker.com/_/microsoft-dotnet-aspnet/">Microsoft ASP.NET runtime image</a>.
     </p>
     </div>
     </div>
 
-    <div id="outline-container-org2e0b436" class="outline-3">
-    <h3 id="org2e0b436"><span class="section-number-3">1.12.</span> Event sourcing</h3>
-    <div class="outline-text-3" id="text-1-12">
+    <div id="outline-container-org3faadba" class="outline-4">
+    <h4 id="org3faadba"><span class="section-number-4">1.11.2.</span> direnv</h4>
+    <div class="outline-text-4" id="text-1-11-2">
     <p>
-    Event sourcing is a technique for capturing all the events that "have happened" and using those to calculate the current state of your system.
-    </p>
-
-    <p>
-    For example, if a customer of yours moves you may publish a <code>CustomerHasMoved</code> event when they tell you, and a <code>CustomerAddressHasChanged</code> event when you have finished the business process that manages customers moving.
+    Direnv is a tool that can add environment variables to your shell when you enter a directory. It also, conveniently, knows about Nix flakes.
     </p>
 
     <p>
-    This has enormous benefits for auditing, for being able to look at how the system has changed over time, and for being able to fix bugs "retroactively" as you don't only have the current state of the system but also all of the steps that got you here.
+    We add a <code>.envrc</code> file to our project with the contents:
+    </p>
+
+    <div class="org-src-container">
+    <pre class="src src-bash"><span class="org-comment-delimiter">#</span><span class="org-comment">!/usr/bin/</span><span class="org-keyword">env</span><span class="org-comment"> bash</span>
+    <span class="org-comment-delimiter"># </span><span class="org-comment">the shebang is ignored, but nice for editors</span>
+    use flake
+    </pre>
+    </div>
+
+    <p>
+    Next time we move into this directory, direnv will ask us to allow this <code>.envrc</code> file. If we accept, our normal local shell will have everything specified in the <code>devShell</code> above added to its path. This means we can, for example, use the <code>dotnet</code> command and we will use the version specified in <code>flake.nix</code> even if we haven't installed a system wide version of dotnet at all.
+    </p>
+    </div>
+    </div>
+
+    <div id="outline-container-org55ce778" class="outline-4">
+    <h4 id="org55ce778"><span class="section-number-4">1.11.3.</span> The F# project</h4>
+    <div class="outline-text-4" id="text-1-11-3">
+    <p>
+    There's absolutely nothing special about this at all. I just created an F# project with <code>dotnet</code> on the command line, moved <code>Program.fs</code> into a sub directory called <code>src</code> because I prefer it that way, and then added a package dependency on <code>Falco</code> using <code>dotnet add package Falco</code>.
     </p>
 
     <p>
-    It <i>also</i> requires a slightly different way of thinking about your code base and some specific tooling to avoid a system that slows down over time. And it affects how you think about business constraints like data retention and <a href="https://www.dataprotection.ie/en/individuals/know-your-rights/right-erasure-articles-17-19-gdpr">the right to erasure</a>.
+    Replace the contents of <code>Program.fs</code> with:
+    </p>
+
+    <div class="org-src-container">
+    <pre class="src src-fsharp"><span class="org-keyword">module</span> <span class="org-type">Mavnn.CalDance.Server</span>
+
+    <span class="org-keyword">open</span> <span class="org-type">Falco</span>
+    <span class="org-keyword">open</span> <span class="org-type">Falco.Routing</span>
+    <span class="org-keyword">open</span> <span class="org-type">Falco.HostBuilder</span>
+
+    webHost <span class="org-rainbow-delimiters-depth-1">[</span>||<span class="org-rainbow-delimiters-depth-1">]</span> <span class="org-rainbow-delimiters-depth-1">{</span>
+    endpoints <span class="org-rainbow-delimiters-depth-2">[</span>
+    get <span class="org-string">"/"</span> <span class="org-rainbow-delimiters-depth-3">(</span>Response.ofPlainText <span class="org-string">"Hello World"</span><span class="org-rainbow-delimiters-depth-3">)</span>
+    <span class="org-rainbow-delimiters-depth-2">]</span>
+    <span class="org-rainbow-delimiters-depth-1">}</span>
+    </pre>
+    </div>
+    </div>
+    </div>
+
+    <div id="outline-container-orgb6f833b" class="outline-4">
+    <h4 id="orgb6f833b"><span class="section-number-4">1.11.4.</span> Set up the CI pipeline</h4>
+    <div class="outline-text-4" id="text-1-11-4">
+    <p>
+    Having used Nix for our development environment, our CI pipeline becomes exceedingly straight forward. All we need is a build container with Nix available and we have all the other information we need for the build already. Nix themselves provide a <code>nixos/nix</code> image (Nix is the package manager, NixOS is the linux distribution that uses Nix as its package manager) so we'll just use that.
     </p>
 
     <p>
-    As the saying goes: been there, done that. I can help you do it too.
+    There's a little bit of boilerplate to tell nix that we want to allow flakes and to allow connection to the gitlab package registry. Once that is done, we log into the registry for this project using the CI provided environment variables, run <code>nix build .#dockerImage</code> and then push the results up to the registry.
     </p>
-    </div>
+
+    <div class="org-src-container">
+    <pre class="src src-yaml"><span class="org-variable-name">build-container</span>:
+    <span class="org-variable-name">image</span>:
+    <span class="org-variable-name">name</span>: <span class="org-string">"nixos/nix:2.19.3"</span>
+    <span class="org-variable-name">variables</span>:
+    <span class="org-variable-name">IMAGE_TAG</span>: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+    <span class="org-variable-name">before_script</span>:
+    - nix-env --install --attr nixpkgs.skopeo
+    <span class="org-variable-name">script</span>:
+    - mkdir -p <span class="org-string">"$HOME/.config/nix"</span>
+    - echo <span class="org-string">'experimental-features = nix-command flakes'</span> &gt; <span class="org-string">"$HOME/.config/nix/nix.conf"</span>
+    - mkdir -p <span class="org-string">"/etc/containers/"</span>
+    - echo <span class="org-string">'{"default":[{"type":"insecureAcceptAnything"}]}'</span> &gt; /etc/containers/policy.json
+    - skopeo login --username <span class="org-string">"$CI_REGISTRY_USER"</span> --password <span class="org-string">"$CI_REGISTRY_PASSWORD"</span> <span class="org-string">"$CI_REGISTRY"</span>
+    - <span class="org-string">'nix build .#dockerImage'</span>
+    - ls -lh ./result
+    - <span class="org-string">'skopeo inspect docker-archive://$(readlink -f ./result)'</span>
+    - <span class="org-string">'skopeo copy docker-archive://$(readlink -f ./result) docker://$IMAGE_TAG'</span>
+    </pre>
     </div>
 
-    <div id="outline-container-orgdcf13be" class="outline-3">
-    <h3 id="orgdcf13be"><span class="section-number-3">1.13.</span> Teach property based testing</h3>
-    <div class="outline-text-3" id="text-1-13">
     <p>
-    I'm a huge fan of property based testing, and I'm more than happy to give interactive workshops on getting started with it in .NET, TypeScript, and probably other languages if you ask nicely. Why pay for this when you could download a conference talk about it for free (including ones I've given myself)? Because I'll use a piece of <i>your</i> code to get started with you will walk away with an up and running example in your code base. This will keep us focused on the reality of doing property based testing in practice rather than seeing the nice, easy, examples you tend to be shown in a 45 minute talk.
+    It's worth noting here that Nix is a deterministic build system (for example, stripping dates from compiled metadata so building the same source code on a different day doesn't product a different binary). In a "real life" context I would be caching the results of the nix build steps to a service like <a href="https://www.cachix.org/">Cachix</a> so that they could be reused between builds, which becomes increasingly useful as the project grows and starts to be comprised of multiple build steps (Nix will be able to cache each "step" individually, even if you only ask for the final outcome of the process).
     </p>
     </div>
     </div>
 
-    <div id="outline-container-org3f90c1f" class="outline-3">
-    <h3 id="org3f90c1f"><span class="section-number-3">1.14.</span> Bespoke software creation</h3>
-    <div class="outline-text-3" id="text-1-14">
-    </div>
-    </div>
-
-    <div id="outline-container-org71644e2" class="outline-3">
-    <h3 id="org71644e2"><span class="section-number-3">1.15.</span> Build a tool/library</h3>
-    <div class="outline-text-3" id="text-1-15">
+    <div id="outline-container-org16dac94" class="outline-4">
+    <h4 id="org16dac94"><span class="section-number-4">1.11.5.</span> Wrapping it all up</h4>
+    <div class="outline-text-4" id="text-1-11-5">
     <p>
-    I do just write good code as well. If you need a self contained library or a small solution built, I can do that for you. Whether it is parsing an obscure data format, efficient immutable directed graph data structures, or just a nice F# wrapper around a dotnet library, I will make sure it fits the style you're asking for and is well tested. Significant discounts apply if the results are going to be released under an open source licence.
+    Not a bad first days work, I'd say. Our project is already at a stage that we can work on it with standard .NET tooling (for instance, adding a new nuget package with <code>dotnet package add ...</code> will automatically flow through to that package being added to the docker image) and CI will produce on push a lean deployable artifact. Versions of <i>everything</i> we are using from the .NET SDK to the nuget package we're depending on are fixed across all environments, and we have a nice place to add more developer tooling as we move forwards - for example standardizing the version of postgresql that will be used during development and in CI.
     </p>
-    </div>
-    </div>
 
-    <div id="outline-container-orgafa0130" class="outline-3">
-    <h3 id="orgafa0130"><span class="section-number-3">1.16.</span> Build a project skeleton</h3>
-    <div class="outline-text-3" id="text-1-16">
     <p>
-    If you're starting a green field project, I can create a "skeleton" repository with a managed developer environment, CI/CD and testing story set up and ready to use. You and your team get to start with actually writing your product.
+    As a bonus extra, anybody with nix installed can build and run the project without having to know .NET or have any .NET tooling installed; a very nice feature when you have others depending on your work who might want to run your code locally, but may not have chosen the same tech stack.
     </p>
     </div>
-    </div>
-
-    <div id="outline-container-org1e4775f" class="outline-3">
-    <h3 id="org1e4775f"><span class="section-number-3">1.17.</span> Logistics</h3>
-    <div class="outline-text-3" id="text-1-17">
-    <p>
-    Let's cover the basics. I don't want us to waste time, so I'm going to try and keep this as straight forward as possible:
-    </p>
-    </div>
-    </div>
-
-    <div id="outline-container-orgab39996" class="outline-3">
-    <h3 id="orgab39996"><span class="section-number-3">1.18.</span> I will <i>always</i> want to have an extensive conversation(s) and will normally want to provide a quote before starting a short term piece of work. Book a slot to talk on <a href="https://calendly.com/mavnn/1-hour-slot">Calendly</a> or just send me an email (michael at mavnn.eu)</h3>
-    <div class="outline-text-3" id="text-1-18">
-    </div>
-    </div>
-    <div id="outline-container-orgfbf2d1c" class="outline-3">
-    <h3 id="orgfbf2d1c"><span class="section-number-3">1.19.</span> I currently live in Italy, about an hour away from Rome. I can offer all of the services above remotely. Asking me to attend in person will add travel costs and at least 2 billable days of my time.</h3>
-    <div class="outline-text-3" id="text-1-19">
-    </div>
-    </div>
-    <div id="outline-container-orgd6b568d" class="outline-3">
-    <h3 id="orgd6b568d"><span class="section-number-3">1.20.</span> You can hire me by the day, but in general for short term work I quote and then charge you for the work delivered rather than bill by unit time. I will consider discounts for non-profits, student organizations, etc. It it's easier for you, I can give a quote that includes all expenses rather than reclaiming them separately. (Hint: if you're in a large organization and this is the first time you're arranging to get a consultant in - <i>this will be easier for you</i>)</h3>
-    <div class="outline-text-3" id="text-1-20">
-    </div>
-    <div id="outline-container-org09283c9" class="outline-4">
-    <h4 id="org09283c9"><span class="section-number-4">1.20.1.</span> I am VAT registered in the EU</h4>
-    <div class="outline-text-4" id="text-1-20-1">
-    </div>
-    </div>
-    </div>
-    <div id="outline-container-org4e77990" class="outline-3">
-    <h3 id="org4e77990"><span class="section-number-3">1.21.</span> In the rare occasion where it turns out that I cannot deliver what I promised (I'm just one human - things like illness can happen) I will let you know promptly, and before the work is due to be delivered, so we can renegotiate where to go from the reality of the situation.</h3>
-    <div class="outline-text-3" id="text-1-21">
-    <p>
-    That's about everything, I think.
-    </p>
     </div>
     </div>
     ]]></description>
+</item>
+<item>
+  <title>Short term help</title>
+  <link>https://blog.mavnn.co.uk/2024/01/29/short_term_help.html</link>
+  <author>michael@mavnn.eu (Michael Newton)</author>
+  <guid isPermaLink="false">https://blog.mavnn.co.uk/2024/01/29/short_term_help.html</guid>
+  <pubDate>Mon, 29 Jan 2024 00:00:00 +0100</pubDate>
+
+  <description><![CDATA[<p>
+  These days I generally work longer term contracts, which means I'm not often available for the more immediate "pay money for a solved problem" services I could offer while I was consulting. Right now though, I'm between long term contracts.
+  </p>
+
+  <p>
+  "But Michael," I hear you say, "what problems can I give you money to solve so that I can avoid distracting my own amazing team from actually <b>building the product</b>?"
+  </p>
+
+  <p>
+  I'm so glad you asked. Or, you know, you can just skip straight to the <a href="#org93b1641">logistics</a> section if you already know what you want.
+  </p>
+
+  <nav id="table-of-contents" role="doc-toc">
+  <h2>Table of Contents</h2>
+  <div id="text-table-of-contents" role="doc-toc">
+  <ul>
+  <li><a href="#orgb07e2af">1. Foundations: Dev Journal 1</a>
+  <ul>
+  <li><a href="#org8ac6b91">1.1. Foundations</a></li>
+  <li><a href="#org27b3330">1.2. Part 1: Foundations</a></li>
+  <li><a href="#orgdf6c7e5">1.3. htmx (probably with bulma for initial styling) to provide the UI. This isn't going to be hugely interactive application, it is mostly going to collect information from forms, and display nice looking output tables so htmx's server side rendering model seems a perfect fit. I've used server side rendering in other projects and liked it, and htmx seems a low impact way to take that to the next level.</a></li>
+  <li><a href="#org79298f4">1.4. falco for writing the backend server in F#. Freya, my webserver of choice for F# back in the day, is no longer actively maintained but it looks like Falco has taken some of its nicer features and done its own thing with them.</a></li>
+  <li><a href="#org702015c">1.5. nix to give a version controlled build/development environments and reproducible packaging.</a></li>
+  <li><a href="#orgd8bd995">1.6. direnv for seamless local development environments.</a></li>
+  <li><a href="#orgf005bdb">1.7. marten from the "Critter Stack" as an event store on top of postgresql to build our datastore.</a></li>
+  <li><a href="#org462bd77">1.8. gitlab for code repository, container registry and CI/CD pipeline.</a></li>
+  <li><a href="#org555bb92">1.9. run <code>nix run</code> and have a webserver running locally that will respond to get requests to <code>/</code> with "Hello world"</a></li>
+  <li><a href="#org38a940e">1.10. run <code>nix build .#dockerImage</code> to build a docker image with the same architecture they're using (i.e. <code>aarch64-darwin</code> if you run it on a Mac)</a></li>
+  <li><a href="#org9ed8902">1.11. by pushing a commit to gitlab trigger a CI pipeline building said docker image for <code>x86_64-linux</code> and pushing it to a package registry ready to deploy</a></li>
+  </ul>
+  </li>
+  <li><a href="#orgf36a2e1">2. Short term help</a>
+  <ul>
+  <li><a href="#orga0c7394">2.1. Consulting</a></li>
+  <li><a href="#org5824754">2.2. Build, packaging, and continuous integration</a></li>
+  <li><a href="#org7923241">2.3. Making sure that CI/CD is managed <b>in the code repository</b> so that running the build locally and on the build server does the same thing in the same way, and the build can evolve in a safe, version controlled way just like the rest of your code</a></li>
+  <li><a href="#org344ea6c">2.4. Helping trace and encode the <i>real</i> dependencies in your code base to unlock incremental, cachable build steps and reduce overall build times with concurrency</a></li>
+  <li><a href="#orgacb68ac">2.5. Split your test suite so tests can be run in parallel (yes, even integration tests) and then aggregate the results</a></li>
+  <li><a href="#org776f26e">2.6. Use tools like Nix or multi-step docker/podman builds to create minimal containers that only contain what they really need</a></li>
+  <li><a href="#orgf00d668">2.7. Architecture review</a></li>
+  <li><a href="#org60ad4b4">2.8. Code audit</a></li>
+  <li><a href="#org4252332">2.9. Technology evaluation</a></li>
+  <li><a href="#org956226c">2.10. Workshops and training</a></li>
+  <li><a href="#org79ebcf1">2.11. Domain driven design coaching</a></li>
+  <li><a href="#org53a56fc">2.12. Event sourcing</a></li>
+  <li><a href="#orgd23a09c">2.13. Teach property based testing</a></li>
+  <li><a href="#org3aa2a45">2.14. Bespoke software creation</a></li>
+  <li><a href="#orgc75d9bc">2.15. Build a tool/library</a></li>
+  <li><a href="#org235268e">2.16. Build a project skeleton</a></li>
+  <li><a href="#org93b1641">2.17. Logistics</a></li>
+  <li><a href="#org185d476">2.18. I will <i>always</i> want to have an extensive conversation(s) and will normally want to provide a quote before starting a short term piece of work. Book a slot to talk on Calendly or just send me an email (michael at mavnn.eu)</a></li>
+  <li><a href="#org35a3049">2.19. I currently live in Italy, about an hour away from Rome. I can offer all of the services above remotely. Asking me to attend in person will add travel costs and at least 2 billable days of my time.</a></li>
+  <li><a href="#orgcc5e0ce">2.20. You can hire me by the day, but in general for short term work I quote and then charge you for the work delivered rather than bill by unit time. I will consider discounts for non-profits, student organizations, etc. It it's easier for you, I can give a quote that includes all expenses rather than reclaiming them separately. (Hint: if you're in a large organization and this is the first time you're arranging to get a consultant in - <i>this will be easier for you</i>)</a></li>
+  <li><a href="#org228e7f2">2.21. In the rare occasion where it turns out that I cannot deliver what I promised (I'm just one human - things like illness can happen) I will let you know promptly, and before the work is due to be delivered, so we can renegotiate where to go from the reality of the situation.</a></li>
+  </ul>
+  </li>
+  <li><a href="#org852a3df">3. Writing CVs for more senior roles</a></li>
+  <li><a href="#orgc6fb353">4. TypeScript Enums and Serialization</a></li>
+  </ul>
+  </div>
+  </nav>
+
+  <div id="outline-container-orga0c7394" class="outline-3">
+  <h3 id="orga0c7394"><span class="section-number-3">2.1.</span> Consulting</h3>
+  <div class="outline-text-3" id="text-2-1">
+  </div>
+  </div>
+
+  <div id="outline-container-org5824754" class="outline-3">
+  <h3 id="org5824754"><span class="section-number-3">2.2.</span> Build, packaging, and continuous integration</h3>
+  <div class="outline-text-3" id="text-2-2">
+  <p>
+  I have spent a <i>lot</i> of time getting build, test, and deployment pipelines up and running. Most of the advice out there assumes that you are using one technology and you can just use "the build tool" for that stack. Reality tends to be more complicated than that, with many projects involving multiple languages, code generation, and extensive test set up.
+  </p>
+
+  <p>
+  What kind of things could your CI/CD process do for you? It depends on <i>your</i> needs, but things that have really helped in other places include:
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-org7923241" class="outline-3">
+  <h3 id="org7923241"><span class="section-number-3">2.3.</span> Making sure that CI/CD is managed <b>in the code repository</b> so that running the build locally and on the build server does the same thing in the same way, and the build can evolve in a safe, version controlled way just like the rest of your code</h3>
+  <div class="outline-text-3" id="text-2-3">
+  </div>
+  </div>
+  <div id="outline-container-org344ea6c" class="outline-3">
+  <h3 id="org344ea6c"><span class="section-number-3">2.4.</span> Helping trace and encode the <i>real</i> dependencies in your code base to unlock incremental, cachable build steps and reduce overall build times with concurrency</h3>
+  <div class="outline-text-3" id="text-2-4">
+  </div>
+  </div>
+  <div id="outline-container-orgacb68ac" class="outline-3">
+  <h3 id="orgacb68ac"><span class="section-number-3">2.5.</span> Split your test suite so tests can be run in parallel (yes, even integration tests) and then aggregate the results</h3>
+  <div class="outline-text-3" id="text-2-5">
+  </div>
+  </div>
+  <div id="outline-container-org776f26e" class="outline-3">
+  <h3 id="org776f26e"><span class="section-number-3">2.6.</span> Use tools like Nix or multi-step docker/podman builds to create minimal containers that only contain what they really need</h3>
+  <div class="outline-text-3" id="text-2-6">
+  </div>
+  <div id="outline-container-org57458bf" class="outline-4">
+  <h4 id="org57458bf"><span class="section-number-4">2.6.1.</span> bonus extra: doing this with Nix also gives you development environments as code and reproducible deployment artifacts - same code in, same container out</h4>
+  <div class="outline-text-4" id="text-2-6-1">
+  <p>
+  If this is a new product/project and you just want someone to make all these considerations go away I can also build you <a href="#org235268e">a project skeleton</a> with everything set up and ready to go for your preferred CI provider and deployment environment.
+  </p>
+  </div>
+  </div>
+  </div>
+
+  <div id="outline-container-orgf00d668" class="outline-3">
+  <h3 id="orgf00d668"><span class="section-number-3">2.7.</span> Architecture review</h3>
+  <div class="outline-text-3" id="text-2-7">
+  <p>
+  Putting together a new project, or have a code base that's moving from "minimum viable" to "oh - I've got customers"? I can review your plans, or, given your constraints and objectives I can put together a suggested system architecture for you.
+  </p>
+
+  <p>
+  It's worth noting that I don't have a personal axe to grind here. I won't tell you to use a "clean" architecture because that's my thing, or to use microservices because they are fashionable. Different architectural styles exist for a reason, and each has its own trade offs in terms of constraints you choose to accept in order to gain certain benefits.
+  </p>
+
+  <p>
+  I have the advantage of having helped architect and design solutions in a variety of styles in production environments.
+  </p>
+
+  <p>
+  This is a bit of a hybrid service that includes aspects of <a href="#org4252332">technology evaluation</a>, <a href="#org60ad4b4">code audit</a>, and <a href="#org4252332">technology evaluation</a> but zoomed out to look at "how do I put this all together."
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-org60ad4b4" class="outline-3">
+  <h3 id="org60ad4b4"><span class="section-number-3">2.8.</span> Code audit</h3>
+  <div class="outline-text-3" id="text-2-8">
+  <p>
+  For ecosystems I've built decent sized projects in (.NET, TypeScript) I can spend some time reviewing your code and pointing out things you may want to improve.
+  </p>
+
+  <p>
+  This isn't the kind of code review you'd do on an individual PR: this is the kind of code review where I can (as an outsider) come in with fresh eyes and point out broader patterns in your code base that may be problematic. I can also help you take your conventions and "traditions" and turn them into a coding style guide with (in many cases) automated tooling to help the team put it into practice.
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-org4252332" class="outline-3">
+  <h3 id="org4252332"><span class="section-number-3">2.9.</span> Technology evaluation</h3>
+  <div class="outline-text-3" id="text-2-9">
+  <p>
+  Considering buying a new service, picking up a new programming language, or changing to a new database library? I can do the research and evaluation you need based on your requirements. I've been helping drive technology choices in organizations for well over a decade now, and I can help you spot the good, the bad, and the ugly of the options you're considering. I may even be aware of options you haven't considered.
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-org956226c" class="outline-3">
+  <h3 id="org956226c"><span class="section-number-3">2.10.</span> Workshops and training</h3>
+  <div class="outline-text-3" id="text-2-10">
+  <p>
+  Unlike more general consultancy, workshops on topics I know well such as the ones below are a fairly fixed commitment. If you're considering using your training budget, you can assume around 2500 euros/day for up to 6 people online. In person will increase the cost but allows for groups of up to 10 people.
+  </p>
+
+  <p>
+  I have also offered bespoke training courses in the past (examples: giving a team of Ruby developers a 5 day crash course in everything they needed to know to take over maintenance of a .NET code base, tailored to the project in question) but that requires significant preparation and a quote.
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-org79ebcf1" class="outline-3">
+  <h3 id="org79ebcf1"><span class="section-number-3">2.11.</span> Domain driven design coaching</h3>
+  <div class="outline-text-3" id="text-2-11">
+  <p>
+  At its heart, the promise of domain driven design is simple: a code base that uses the same language as the people using it do, so that developers and domain experts can accurately share understanding of what the code <i>should</i> do and why.
+  </p>
+
+  <p>
+  Actually <i>doing</i> domain driven design is not simple at all, because it is a process to help you model reality and it turns out <a href="http://johnsalvatier.org/blog/2017/reality-has-a-surprising-amount-of-detail">reality has a surprising amount of detail</a>.
+  </p>
+
+  <p>
+  I can help with the process of getting started with DDD, help lead the early exploratory meetings between developers and domain experts, and give advice on how to capture what you discover in code while keeping everything maintainable.
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-org53a56fc" class="outline-3">
+  <h3 id="org53a56fc"><span class="section-number-3">2.12.</span> Event sourcing</h3>
+  <div class="outline-text-3" id="text-2-12">
+  <p>
+  Event sourcing is a technique for capturing all the events that "have happened" and using those to calculate the current state of your system.
+  </p>
+
+  <p>
+  For example, if a customer of yours moves you may publish a <code>CustomerHasMoved</code> event when they tell you, and a <code>CustomerAddressHasChanged</code> event when you have finished the business process that manages customers moving.
+  </p>
+
+  <p>
+  This has enormous benefits for auditing, for being able to look at how the system has changed over time, and for being able to fix bugs "retroactively" as you don't only have the current state of the system but also all of the steps that got you here.
+  </p>
+
+  <p>
+  It <i>also</i> requires a slightly different way of thinking about your code base and some specific tooling to avoid a system that slows down over time. And it affects how you think about business constraints like data retention and <a href="https://www.dataprotection.ie/en/individuals/know-your-rights/right-erasure-articles-17-19-gdpr">the right to erasure</a>.
+  </p>
+
+  <p>
+  As the saying goes: been there, done that. I can help you do it too.
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-orgd23a09c" class="outline-3">
+  <h3 id="orgd23a09c"><span class="section-number-3">2.13.</span> Teach property based testing</h3>
+  <div class="outline-text-3" id="text-2-13">
+  <p>
+  I'm a huge fan of property based testing, and I'm more than happy to give interactive workshops on getting started with it in .NET, TypeScript, and probably other languages if you ask nicely. Why pay for this when you could download a conference talk about it for free (including ones I've given myself)? Because I'll use a piece of <i>your</i> code to get started with you will walk away with an up and running example in your code base. This will keep us focused on the reality of doing property based testing in practice rather than seeing the nice, easy, examples you tend to be shown in a 45 minute talk.
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-org3aa2a45" class="outline-3">
+  <h3 id="org3aa2a45"><span class="section-number-3">2.14.</span> Bespoke software creation</h3>
+  <div class="outline-text-3" id="text-2-14">
+  </div>
+  </div>
+
+  <div id="outline-container-orgc75d9bc" class="outline-3">
+  <h3 id="orgc75d9bc"><span class="section-number-3">2.15.</span> Build a tool/library</h3>
+  <div class="outline-text-3" id="text-2-15">
+  <p>
+  I do just write good code as well. If you need a self contained library or a small solution built, I can do that for you. Whether it is parsing an obscure data format, efficient immutable directed graph data structures, or just a nice F# wrapper around a dotnet library, I will make sure it fits the style you're asking for and is well tested. Significant discounts apply if the results are going to be released under an open source licence.
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-org235268e" class="outline-3">
+  <h3 id="org235268e"><span class="section-number-3">2.16.</span> Build a project skeleton</h3>
+  <div class="outline-text-3" id="text-2-16">
+  <p>
+  If you're starting a green field project, I can create a "skeleton" repository with a managed developer environment, CI/CD and testing story set up and ready to use. You and your team get to start with actually writing your product.
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-org93b1641" class="outline-3">
+  <h3 id="org93b1641"><span class="section-number-3">2.17.</span> Logistics</h3>
+  <div class="outline-text-3" id="text-2-17">
+  <p>
+  Let's cover the basics. I don't want us to waste time, so I'm going to try and keep this as straight forward as possible:
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-org185d476" class="outline-3">
+  <h3 id="org185d476"><span class="section-number-3">2.18.</span> I will <i>always</i> want to have an extensive conversation(s) and will normally want to provide a quote before starting a short term piece of work. Book a slot to talk on <a href="https://calendly.com/mavnn/1-hour-slot">Calendly</a> or just send me an email (michael at mavnn.eu)</h3>
+  <div class="outline-text-3" id="text-2-18">
+  </div>
+  </div>
+  <div id="outline-container-org35a3049" class="outline-3">
+  <h3 id="org35a3049"><span class="section-number-3">2.19.</span> I currently live in Italy, about an hour away from Rome. I can offer all of the services above remotely. Asking me to attend in person will add travel costs and at least 2 billable days of my time.</h3>
+  <div class="outline-text-3" id="text-2-19">
+  </div>
+  </div>
+  <div id="outline-container-orgcc5e0ce" class="outline-3">
+  <h3 id="orgcc5e0ce"><span class="section-number-3">2.20.</span> You can hire me by the day, but in general for short term work I quote and then charge you for the work delivered rather than bill by unit time. I will consider discounts for non-profits, student organizations, etc. It it's easier for you, I can give a quote that includes all expenses rather than reclaiming them separately. (Hint: if you're in a large organization and this is the first time you're arranging to get a consultant in - <i>this will be easier for you</i>)</h3>
+  <div class="outline-text-3" id="text-2-20">
+  </div>
+  <div id="outline-container-org4204bfd" class="outline-4">
+  <h4 id="org4204bfd"><span class="section-number-4">2.20.1.</span> I am VAT registered in the EU</h4>
+  <div class="outline-text-4" id="text-2-20-1">
+  </div>
+  </div>
+  </div>
+  <div id="outline-container-org228e7f2" class="outline-3">
+  <h3 id="org228e7f2"><span class="section-number-3">2.21.</span> In the rare occasion where it turns out that I cannot deliver what I promised (I'm just one human - things like illness can happen) I will let you know promptly, and before the work is due to be delivered, so we can renegotiate where to go from the reality of the situation.</h3>
+  <div class="outline-text-3" id="text-2-21">
+  <p>
+  That's about everything, I think.
+  </p>
+  </div>
+  </div>
+  ]]></description>
 </item>
 <item>
   <title>Writing CVs for more senior roles</title>
@@ -494,96 +774,6 @@
   <p>
   Want to comment on something you've read here? <a href="https://mastodon.sdf.org/@mavnn/109400451463740531">This mastodon post</a> is the
   official commenting point!
-  </p>
-  ]]></description>
-</item>
-<item>
-  <title>ADHD and me</title>
-  <link>https://blog.mavnn.co.uk/2022/10/14/adhd_and_me.html</link>
-  <author>michael@mavnn.eu (Michael Newton)</author>
-  <guid isPermaLink="false">https://blog.mavnn.co.uk/2022/10/14/adhd_and_me.html</guid>
-  <pubDate>Fri, 14 Oct 2022 00:00:00 +0200</pubDate>
-
-  <description><![CDATA[<p>
-  This morning, I did the washing up.
-  </p>
-
-  <p>
-  Now: your first response might be "Michael: why do I care? Do I look like a
-  washing up blog reader?"
-  </p>
-
-  <p>
-  But that would miss the point. This morning I did the washing up, and only the
-  washing up. I didn't procrastinate with some Twitter or YouTube videos first. I
-  didn't need to listen to a podcast at the same time to avoid getting lost
-  staring off into space thinking about something completely different.
-  </p>
-
-  <p>
-  Most importantly: no crushing feeling of overwhelm about needing to do this task
-  that both feels insurmountable but is obviously (objectively) trivial. It's
-  embarrassing to admit that I've been repeatedly reduced to tears by the need to
-  do the washing up.
-  </p>
-
-  <p>
-  This change, it appears, is the impact of methylphenidate (Ritalin®) on my
-  brain. I was recently diagnosed with ADHD, and yesterday I undertook a series of
-  "challenge tests" to see if I am one of the <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2732009/">75% of adult's with ADHD whose
-  symptoms are helped by the drug</a>.
-  </p>
-
-  <p>
-  I did the same series of tests twice: once in the morning, before taking
-  methylphenidate; the other in the afternoon an hour after taking the first trial
-  intake under observation (methylphenidate is a controlled substance here in
-  Italy).
-  </p>
-
-  <p>
-  It was a strange, and almost disturbing, experience to feel my brain acting
-  differently. Recall was smoother. Free association on a topic easier because my
-  brain stayed on <i>that</i> topic, without veering away onto side lines that I needed
-  to filter out from what I was saying. My thoughts were still my own, but
-  with... less in the way.
-  </p>
-
-  <p>
-  You see: trying to do stuff (and by stuff I mean pretty much <i>anything</i> that you
-  need to choose to do, rather than that you happen to start because it distracted
-  you...) with ADHD is hard. I didn't realize how hard until some of that effort
-  was lifted.
-  </p>
-
-  <p>
-  The closest I've come to being able to describe it is that having ADHD is like
-  your brain wearing an ancient near eastern tunic to work a farm.
-  </p>
-
-  <p>
-  Ever hear the phrase "gird your loins"? It's the <a href="https://www.artofmanliness.com/skills/manly-know-how/how-to-gird-up-your-loins-an-illustrated-guide/">process of tying up your tunic</a>
-  (designed primarily to keep you cool) so that you can run, or fight, or carry
-  out hard physical labour at ground level without the 'skirt' of the tunic
-  getting in the way and tripping you up.
-  </p>
-
-  <p>
-  My brain wears a tunic: I need to put effort into preparing to do things before
-  I can even start doing them. So it takes energy and effort just to <i>get ready to
-  start</i>. And if you make a mistake in the girding, or the knot slips? Well, now
-  you're half way through your task with a bunch of cloth swishing around your
-  legs and getting in the way.
-  </p>
-
-  <p>
-  Methylphenidate is the equivalent of putting on jeans.You can be casual still,
-  but you can also just... do stuff? Finish your morning coffee, look across the
-  kitchen, and go: "I need to do the washing up."
-  </p>
-
-  <p>
-  This morning, I did the washing up.
   </p>
   ]]></description>
 </item>

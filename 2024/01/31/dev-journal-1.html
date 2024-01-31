@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Foundations: Dev Journal 1</title>
+<meta name="author" content="Michael Newton" />
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/org.css">
+<script src="/htmx.min.js"></script>
+</head>
+<body hx-boost="true">
+<div id="org-div-home-and-up"><span class="home-text"><a accesskey="H" href="/">HOME</span><img class="home-logo" src="http://blog.mavnn.co.uk/images/swirl.svg" /></a></div><div id="content" class="container">
+<header>
+<h1 class="title">Foundations: Dev Journal 1</h1>
+</header><p>
+This is something a little bit new. A series I'm starting that documents the building of a simple project from the ground up using a set of tools and techniques I've come to either really like, or that I'd like to try out.
+</p>
+
+<p>
+On the one hand this is a personal project. On the other, I'd like to take advantage of nice things like CI/CD, testing, etc, even when I'm working on something for myself. So this is also a mini-tour of many of the things I would do setting up a new greenfield project for a team.
+</p>
+
+<p>
+As the series progresses, I'll carry on adding the sections here.
+</p>
+
+<p>
+<b>The series so far</b>
+</p>
+
+<ol class="org-ol">
+<li><a href="https://blog.mavnn.co.uk/2024/01/31/dev-journal-1.html">Foundations</a></li>
+</ol>
+
+<div id="outline-container-orgc99d3c7" class="outline-2">
+<h2 id="orgc99d3c7">Part 1: Foundations</h2>
+<div class="outline-text-2" id="text-orgc99d3c7">
+<p>
+Our application will eventually be a little web site for <code>redacted in case I change my mind</code>. I'm going to be using mix of tried and new tech (for me personally).
+</p>
+
+<p>
+On the things I'd like to try front, we have:
+</p>
+
+<ul class="org-ul">
+<li><a href="https://htmx.org/">htmx</a> (probably with <a href="https://bulma.io/">bulma</a> for initial styling) to provide the UI. This isn't going to be hugely interactive application, it is mostly going to collect information from forms, and display nice looking output tables so htmx's server side rendering model seems a perfect fit. I've used server side rendering in other projects and liked it, and htmx seems a low impact way to take that to the next level.</li>
+<li><a href="https://www.falcoframework.com/">falco</a> for writing the backend server in F#. <a href="https://xyncro.github.io/sites-freya.io/">Freya</a>, my webserver of choice for F# back in the day, is no longer actively maintained but it looks like Falco has taken some of its nicer features and done its own thing with them.</li>
+</ul>
+
+<p>
+On the technologies I've used before and found useful front, we have:
+</p>
+
+<ul class="org-ul">
+<li><a href="https://nixos.org/">nix</a> to give a version controlled build/development environments and reproducible packaging.</li>
+<li><a href="https://direnv.net/">direnv</a> for seamless local development environments.</li>
+<li><a href="https://github.com/JasperFx/marten">marten</a> from the "Critter Stack" as an event store on top of postgresql to build our datastore.</li>
+<li><a href="https://gitlab.com/">gitlab</a> for code repository, container registry and CI/CD pipeline.</li>
+</ul>
+
+<p>
+I'm not sure how far I'm going to take this experiment publicly, but what I'm going to focus on first is just the basics of any online app: people being able to sign up, log in, and manage an account for a paid service. At least that far the whole project will be MIT licensed, so if you like what you see you can just pick it up and use it as a starter template for your own project.
+</p>
+
+<p>
+For today, let's start with a <i>minimum deployable product</i>: a "Hello world" Falco server with CI/CD pipeline in place. We'll have a gitlab hosted project anybody with a working nix environment can pull down and:
+</p>
+
+<ul class="org-ul">
+<li>run <code>nix run</code> and have a webserver running locally that will respond to get requests to <code>/</code> with "Hello world"</li>
+<li>run <code>nix build .#dockerImage</code> to build a docker image with the same architecture they're using (i.e. <code>aarch64-darwin</code> if you run it on a Mac)</li>
+<li>by pushing a commit to gitlab trigger a CI pipeline building said docker image for <code>x86_64-linux</code> and pushing it to a package registry ready to deploy</li>
+</ul>
+
+<p>
+Enough bullet points. What did I actually do? (Sneak preview: <a href="https://gitlab.com/mavnn/caldance/-/tree/6b39d13d98199220d623870faf2b49fbda58d8a5">browse the gitlab repo at the time of the commit that this post describes</a>)
+</p>
+</div>
+
+<div id="outline-container-org9764d96" class="outline-3">
+<h3 id="org9764d96">Setup a nix flake to provide our environment</h3>
+<div class="outline-text-3" id="text-org9764d96">
+<p>
+A nix "flake" is a declarative description of a set of packages we'd like to be able to reference. You can read the <a href="https://gitlab.com/mavnn/caldance/-/blob/6b39d13d98199220d623870faf2b49fbda58d8a5/flake.nix">whole file</a> but the important part for today is that our <code>flake.nix</code> file specifies three outputs in this stanza:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-nix"><span class="org-comment-delimiter"># </span><span class="org-comment">Tools we want available during development</span>
+<span class="org-nix-attribute">devShells.default</span> = pkgs.mkShell <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-nix-attribute">buildInputs</span> = <span class="org-rainbow-delimiters-depth-2">[</span> dnc.sdk_8_0 pkgs.nixfmt pkgs.skopeo <span class="org-rainbow-delimiters-depth-2">]</span>;
+<span class="org-rainbow-delimiters-depth-1">}</span>;
+
+<span class="org-comment-delimiter"># </span><span class="org-comment">Default result of running `nix build` with this</span>
+<span class="org-comment-delimiter"># </span><span class="org-comment">flake; it builds the F# project `CalDance.fsproj`</span>
+<span class="org-nix-attribute">packages.default</span> = pkgs.buildDotnetModule <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-nix-attribute">pname</span> = name;
+  <span class="org-nix-attribute">version</span> = <span class="org-string">"0.1"</span>;
+
+  <span class="org-nix-attribute">src</span> = <span class="org-nix-constant">./.</span>;
+  <span class="org-nix-attribute">projectFile</span> = <span class="org-string">"CalDance.fsproj"</span>;
+  <span class="org-nix-attribute">nugetDeps</span> = nugets;
+
+  <span class="org-comment"># We set nix to create an output that contains</span>
+  <span class="org-comment"># everything needed, rather than depending</span>
+  <span class="org-comment"># on the dotnet runtime</span>
+  <span class="org-nix-attribute">selfContainedBuild</span> = <span class="org-nix-builtin">true</span>;
+
+  <span class="org-nix-attribute">dotnet-sdk</span> = dnc.sdk_8_0;
+  <span class="org-nix-attribute">dotnet-runtime</span> = dnc.runtime_8_0;
+  <span class="org-nix-attribute">executables</span> = <span class="org-rainbow-delimiters-depth-2">[</span> <span class="org-string">"CalDance"</span> <span class="org-rainbow-delimiters-depth-2">]</span>;
+<span class="org-rainbow-delimiters-depth-1">}</span>;
+
+<span class="org-comment-delimiter"># </span><span class="org-comment">A target that builds a fully self-contained docker</span>
+<span class="org-comment-delimiter"># </span><span class="org-comment">file with the project above</span>
+<span class="org-nix-attribute">packages.dockerImage</span> = pkgs.dockerTools.buildImage <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-nix-attribute">name</span> = name;
+  <span class="org-nix-attribute">config</span> = <span class="org-rainbow-delimiters-depth-2">{</span>
+    <span class="org-nix-attribute">Cmd</span> = <span class="org-rainbow-delimiters-depth-3">[</span> <span class="org-string">"</span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-4">{</span></span>packages.default<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-4">}</span></span><span class="org-string">/bin/CalDance"</span> <span class="org-rainbow-delimiters-depth-3">]</span>;
+    <span class="org-nix-attribute">Env</span> = <span class="org-rainbow-delimiters-depth-3">[</span> <span class="org-string">"DOTNET_EnableDiagnostics=0"</span> <span class="org-rainbow-delimiters-depth-3">]</span>;
+  <span class="org-rainbow-delimiters-depth-2">}</span>;
+<span class="org-rainbow-delimiters-depth-1">}</span>;
+</pre>
+</div>
+
+<p>
+First we say we want a shell environment which includes the dotnet core SDK (version 8), nixfmt (for formatting nix files), and skopeo which we can use for moving docker images around.
+</p>
+
+<p>
+Then we define the default output for this flake: it uses the <code>buildDotnetModule</code> to specify that in our case it should build the executable <code>CalDance</code> based on the F# project file <code>CalDance.fsproj</code>. A helper makes sure that Nix is aware of which nuget packages the project has referenced, so that they can be packaged correctly.
+</p>
+
+<p>
+Finally, we define the <code>dockerImage</code> which uses the <code>dockerTools.buildImage</code> helper to say we want to be able to build a docker image that contains the executable from the default package above, everything it needs to run and <i>nothing else at all</i>. In our case, this produces a docker image weighing in at around 80MB - similar to what you'd get optimising a <a href="https://blogit.create.pt/telmorodrigues/2022/03/08/smaller-net-6-docker-images/">two step hand crafted dockerfile</a>, and significantly smaller than using the official <a href="https://hub.docker.com/_/microsoft-dotnet-aspnet/">Microsoft ASP.NET runtime image</a>.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org47f47da" class="outline-3">
+<h3 id="org47f47da">direnv</h3>
+<div class="outline-text-3" id="text-org47f47da">
+<p>
+Direnv is a tool that can add environment variables to your shell when you enter a directory. It also, conveniently, knows about Nix flakes.
+</p>
+
+<p>
+We add a <code>.envrc</code> file to our project with the contents:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash"><span class="org-comment-delimiter">#</span><span class="org-comment">!/usr/bin/</span><span class="org-keyword">env</span><span class="org-comment"> bash</span>
+<span class="org-comment-delimiter"># </span><span class="org-comment">the shebang is ignored, but nice for editors</span>
+use flake
+</pre>
+</div>
+
+<p>
+Next time we move into this directory, direnv will ask us to allow this <code>.envrc</code> file. If we accept, our normal local shell will have everything specified in the <code>devShell</code> above added to its path. This means we can, for example, use the <code>dotnet</code> command and we will use the version specified in <code>flake.nix</code> even if we haven't installed a system wide version of dotnet at all.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org565310b" class="outline-3">
+<h3 id="org565310b">The F# project</h3>
+<div class="outline-text-3" id="text-org565310b">
+<p>
+There's absolutely nothing special about this at all. I just created an F# project with <code>dotnet</code> on the command line, moved <code>Program.fs</code> into a sub directory called <code>src</code> because I prefer it that way, and then added a package dependency on <code>Falco</code> using <code>dotnet add package Falco</code>.
+</p>
+
+<p>
+Replace the contents of <code>Program.fs</code> with:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">module</span> <span class="org-type">Mavnn.CalDance.Server</span>
+
+<span class="org-keyword">open</span> <span class="org-type">Falco</span>
+<span class="org-keyword">open</span> <span class="org-type">Falco.Routing</span>
+<span class="org-keyword">open</span> <span class="org-type">Falco.HostBuilder</span>
+
+webHost <span class="org-rainbow-delimiters-depth-1">[</span>||<span class="org-rainbow-delimiters-depth-1">]</span> <span class="org-rainbow-delimiters-depth-1">{</span>
+    endpoints <span class="org-rainbow-delimiters-depth-2">[</span>
+        get <span class="org-string">"/"</span> <span class="org-rainbow-delimiters-depth-3">(</span>Response.ofPlainText <span class="org-string">"Hello World"</span><span class="org-rainbow-delimiters-depth-3">)</span>
+    <span class="org-rainbow-delimiters-depth-2">]</span>
+<span class="org-rainbow-delimiters-depth-1">}</span>
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orge66be7f" class="outline-3">
+<h3 id="orge66be7f">Set up the CI pipeline</h3>
+<div class="outline-text-3" id="text-orge66be7f">
+<p>
+Having used Nix for our development environment, our CI pipeline becomes exceedingly straight forward. All we need is a build container with Nix available and we have all the other information we need for the build already. Nix themselves provide a <code>nixos/nix</code> image (Nix is the package manager, NixOS is the linux distribution that uses Nix as its package manager) so we'll just use that.
+</p>
+
+<p>
+There's a little bit of boilerplate to tell nix that we want to allow flakes and to allow connection to the gitlab package registry. Once that is done, we log into the registry for this project using the CI provided environment variables, run <code>nix build .#dockerImage</code> and then push the results up to the registry.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-yaml"><span class="org-variable-name">build-container</span>:
+  <span class="org-variable-name">image</span>:
+    <span class="org-variable-name">name</span>: <span class="org-string">"nixos/nix:2.19.3"</span>
+  <span class="org-variable-name">variables</span>:
+    <span class="org-variable-name">IMAGE_TAG</span>: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+  <span class="org-variable-name">before_script</span>:
+    - nix-env --install --attr nixpkgs.skopeo
+  <span class="org-variable-name">script</span>:
+    - mkdir -p <span class="org-string">"$HOME/.config/nix"</span>
+    - echo <span class="org-string">'experimental-features = nix-command flakes'</span> &gt; <span class="org-string">"$HOME/.config/nix/nix.conf"</span>
+    - mkdir -p <span class="org-string">"/etc/containers/"</span>
+    - echo <span class="org-string">'{"default":[{"type":"insecureAcceptAnything"}]}'</span> &gt; /etc/containers/policy.json
+    - skopeo login --username <span class="org-string">"$CI_REGISTRY_USER"</span> --password <span class="org-string">"$CI_REGISTRY_PASSWORD"</span> <span class="org-string">"$CI_REGISTRY"</span>
+    - <span class="org-string">'nix build .#dockerImage'</span>
+    - ls -lh ./result
+    - <span class="org-string">'skopeo inspect docker-archive://$(readlink -f ./result)'</span>
+    - <span class="org-string">'skopeo copy docker-archive://$(readlink -f ./result) docker://$IMAGE_TAG'</span>
+</pre>
+</div>
+
+<p>
+It's worth noting here that Nix is a deterministic build system (for example, stripping dates from compiled metadata so building the same source code on a different day doesn't product a different binary). In a "real life" context I would be caching the results of the nix build steps to a service like <a href="https://www.cachix.org/">Cachix</a> so that they could be reused between builds, which becomes increasingly useful as the project grows and starts to be comprised of multiple build steps (Nix will be able to cache each "step" individually, even if you only ask for the final outcome of the process).
+</p>
+</div>
+</div>
+
+<div id="outline-container-org3603379" class="outline-3">
+<h3 id="org3603379">Wrapping it all up</h3>
+<div class="outline-text-3" id="text-org3603379">
+<p>
+Not a bad first days work, I'd say. Our project is already at a stage that we can work on it with standard .NET tooling (for instance, adding a new nuget package with <code>dotnet package add ...</code> will automatically flow through to that package being added to the docker image) and CI will produce on push a lean deployable artifact. Versions of <i>everything</i> we are using from the .NET SDK to the nuget package we're depending on are fixed across all environments, and we have a nice place to add more developer tooling as we move forwards - for example standardizing the version of postgresql that will be used during development and in CI.
+</p>
+
+<p>
+As a bonus extra, anybody with nix installed can build and run the project without having to know .NET or have any .NET tooling installed; a very nice feature when you have others depending on your work who might want to run your code locally, but may not have chosen the same tech stack.
+</p>
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<footer id="my-contacts">
+<p hx-boost="false"><a href="https://blog.mavnn.co.uk/rss.xml">RSS</a></p>
+<p><a href="https://mastodon.sdf.org/@mavnn">Mastodon</a></p>
+<p>Git(<a href="https://github.com/mavnn">Hub</a>|<a href="https://gitlab.com/mavnn">Lab</a>)</p>
+</footer>
+</div>
+</body>
+</html>

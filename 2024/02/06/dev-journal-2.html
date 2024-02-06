@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Scaffolding: Dev Journal 2</title>
+<meta name="author" content="Michael Newton" />
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/org.css">
+<script src="/htmx.min.js"></script>
+</head>
+<body hx-boost="true">
+<div id="org-div-home-and-up"><span class="home-text"><a accesskey="H" href="/">HOME</span><img class="home-logo" src="http://blog.mavnn.co.uk/images/swirl.svg" /></a></div><div id="content" class="container">
+<header>
+<h1 class="title">Scaffolding: Dev Journal 2</h1>
+</header><blockquote>
+<p>
+This post is part of the "Dev Journal" series. <a href="../../../2024/01/31/dev-journal-1.html">Part 1</a> contains the series index, while the <a href="https://gitlab.com/mavnn/caldance/-/commits/DevJournal2?ref_type=tags">DevJournal2</a> tag for the CalDance project in GitLab holds the state of the repository as described here.
+</p>
+</blockquote>
+
+<p>
+After the initial set up work that builds our project and packages it for deployment done, it looked might it could be time to write some code. Given we're planning to use htmx, we're going to be spending a lot of time constructing urls to inject into our site that need to match end points on the server so a good starting point seemed to be building a set of helpers for defining "bidirectional routing".
+</p>
+
+<p>
+Adding the <code>Routing.fs</code> file to the F# project went exactly as you'd expect. We'll come back to this code when we test it properly, but to give you an idea we then updated the main server to actually start returning some HTML. The new <code>Program.fs</code> file new looks like this:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">module</span> <span class="org-type">Mavnn.CalDance.Server</span>
+
+<span class="org-keyword">open</span> <span class="org-type">Falco.HostBuilder</span>
+<span class="org-keyword">open</span> <span class="org-type">Falco.Markup</span>
+<span class="org-keyword">open</span> <span class="org-type">Mavnn.CalDance.Routing</span>
+<span class="org-keyword">open</span> <span class="org-type">Mavnn.CalDance.Routing.Operators</span>
+
+<span class="org-keyword">let</span> <span class="org-variable-name">greetingRoute</span> =
+  literalSection <span class="org-string">"greetings/"</span> ./+ stringSection <span class="org-string">"name"</span>
+
+<span class="org-keyword">let</span> <span class="org-variable-name">indexRoute</span> = literalSection <span class="org-string">"/"</span>
+
+<span class="org-keyword">let</span> <span class="org-variable-name">indexEndpoint</span> =
+  htmxGet indexRoute <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">fun</span> <span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-variable-name">_</span> -&gt;
+    Elem.html
+      <span class="org-rainbow-delimiters-depth-2">[]</span>
+      <span class="org-rainbow-delimiters-depth-2">[</span> Elem.body
+          <span class="org-rainbow-delimiters-depth-3">[]</span>
+          <span class="org-rainbow-delimiters-depth-3">[</span> Elem.h1 <span class="org-rainbow-delimiters-depth-4">[]</span> <span class="org-rainbow-delimiters-depth-4">[</span> Text.raw <span class="org-string">"Hi!"</span> <span class="org-rainbow-delimiters-depth-4">]</span>
+            Elem.p
+              <span class="org-rainbow-delimiters-depth-4">[]</span>
+              <span class="org-rainbow-delimiters-depth-4">[</span> Text.raw <span class="org-string">"Would you like to "</span>
+                htmxLink greetingRoute <span class="org-string">"Bob"</span> <span class="org-string">"greet Bob?"</span> <span class="org-rainbow-delimiters-depth-4">]</span> <span class="org-rainbow-delimiters-depth-3">]</span> <span class="org-rainbow-delimiters-depth-2">]</span><span class="org-rainbow-delimiters-depth-1">)</span>
+
+<span class="org-keyword">let</span> <span class="org-variable-name">greetingEndpoint</span> =
+  htmxGet greetingRoute <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">fun</span> <span class="org-variable-name">name</span> <span class="org-variable-name">_</span> -&gt;
+    Elem.html
+      <span class="org-rainbow-delimiters-depth-2">[]</span>
+      <span class="org-rainbow-delimiters-depth-2">[</span> Elem.body
+          <span class="org-rainbow-delimiters-depth-3">[]</span>
+          <span class="org-rainbow-delimiters-depth-3">[</span> Elem.h1 <span class="org-rainbow-delimiters-depth-4">[]</span> <span class="org-rainbow-delimiters-depth-4">[</span> Text.rawf <span class="org-string">"Hi %s!"</span> name <span class="org-rainbow-delimiters-depth-4">]</span> <span class="org-rainbow-delimiters-depth-3">]</span> <span class="org-rainbow-delimiters-depth-2">]</span><span class="org-rainbow-delimiters-depth-1">)</span>
+
+webHost <span class="org-rainbow-delimiters-depth-1">[</span>||<span class="org-rainbow-delimiters-depth-1">]</span> <span class="org-rainbow-delimiters-depth-1">{</span>
+  add_antiforgery
+  endpoints <span class="org-rainbow-delimiters-depth-2">[</span> indexEndpoint; greetingEndpoint <span class="org-rainbow-delimiters-depth-2">]</span>
+<span class="org-rainbow-delimiters-depth-1">}</span>
+</pre>
+</div>
+
+<p>
+We now have two routes, one which starts with <code>greetings/</code> and then matches any string, and one which responds at <code>/</code>. You can see in index end point we use our new <code>htmxLink</code> helper to construct a link that will be matched by the greeting end point, and in the greeting end point we supply a handler that knows it is going to receive a string.
+</p>
+
+<p>
+This is all type safe, and that's lovely and all&#x2026; but now we have two problems.
+</p>
+
+<p>
+Let's tackle the biggest problem first!
+</p>
+
+<div id="outline-container-org0f63206" class="outline-2">
+<h2 id="org0f63206">Clarity and style</h2>
+<div class="outline-text-2" id="text-org0f63206">
+<p>
+Writing lists of lists is a succinct and powerful way of representing HTML, but it is also a pain in the backside to format nicely by hand. It's also very easy to bike shed<sup><a id="fnr.1" class="footref" href="#fn.1" role="doc-backlink">1</a></sup> about, leading to a lot of wasted time and churn in commits.
+</p>
+
+<p>
+One of the best solutions to this is to automate code formatting following a reasonable style guide. This is especially important at the beginning of a project, or (ahem) when writing code you'd like people to follow as an example as it means all of the changes made to the project are because something meaningful has actually changed and there is a consistent style to follow along with.
+</p>
+
+<p>
+<a href="https://fsprojects.github.io/fantomas/docs/index.html">Fantomas</a> is the code formatter generally used by the F# community. We always want everyone to be using the same version and config, so let's build it into our <code>nix</code> configuration. The nix files we use to structure the set up of the repository are a programming language in their own right, so we can write a function to provide the correct version of Fantomas taking the version of the dotnet runtime as an input argument (we've put this in a separate file in the <code>nix</code> directory to keep things neat).
+</p>
+
+<div class="org-src-container">
+<pre class="src src-nix"><span class="org-rainbow-delimiters-depth-1">{</span> pkgs, dnc <span class="org-rainbow-delimiters-depth-1">}</span>:
+<span class="org-nix-keyword">let</span> <span class="org-nix-attribute">version</span> = <span class="org-string">"6.2.3"</span>;
+<span class="org-nix-keyword">in</span> pkgs.stdenv.mkDerivation <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-nix-attribute">pname</span> = <span class="org-string">"fantomas"</span>;
+  <span class="org-nix-attribute">version</span> = version;
+  <span class="org-nix-attribute">nativeBuildInputs</span> = <span class="org-nix-keyword">with</span> pkgs; <span class="org-rainbow-delimiters-depth-2">[</span> unzip makeWrapper <span class="org-rainbow-delimiters-depth-2">]</span>;
+  <span class="org-nix-attribute">src</span> = pkgs.fetchurl <span class="org-rainbow-delimiters-depth-2">{</span>
+    <span class="org-nix-attribute">url</span> = <span class="org-string">"https://globalcdn.nuget.org/packages/fantomas.</span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-3">{</span></span>version<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-3">}</span></span><span class="org-string">.nupkg"</span>;
+    <span class="org-nix-attribute">hash</span> = <span class="org-string">"sha256-Aol10o5Q7l8s6SdX0smVdi3ec2IgAx+gMksAMjXhIfU="</span>;
+  <span class="org-rainbow-delimiters-depth-2">}</span>;
+  <span class="org-nix-attribute">unpackPhase</span> = <span class="org-string">''</span>
+<span class="org-string">    ls -al $src</span>
+<span class="org-string">    unzip "$src" -d $out</span>
+<span class="org-string">  ''</span>;
+  <span class="org-nix-attribute">installPhase</span> = <span class="org-string">''</span>
+<span class="org-string">    mkdir -p $out/bin</span>
+<span class="org-string">    cp -r * $out/bin</span>
+<span class="org-string">    echo '#! </span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-2">{</span></span>pkgs.bash<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-2">}</span></span><span class="org-string">/bin/bash -e' &gt; $out/bin/fantomas</span>
+<span class="org-string">    echo "FANTOMAS_PATH=$out/tools/net6.0/any/fantomas.dll" &gt;&gt; $out/bin/fantomas</span>
+<span class="org-string">    echo '</span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-2">{</span></span>dnc.runtime_8_0<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-2">}</span></span><span class="org-string">/bin/dotnet $FANTOMAS_PATH "$@"' &gt;&gt; $out/bin/fantomas</span>
+<span class="org-string">    chmod +x $out/bin/fantomas</span>
+<span class="org-string">  ''</span>;
+<span class="org-rainbow-delimiters-depth-1">}</span>
+</pre>
+</div>
+
+<p>
+This basically says that we want to download a particular version of Fantomas from nuget (the dotnet package library), unzip it, and then create a shell script that uses our dotnet core runtime to run it. This works because Fantomas is built using an "any CPU" build configuration, allowing us to supply the correct runtime as needed by the system we're currently using but still executing the same compiled dotnet code. For a package that included any CPU specific code the normal nix approach is to download the source and then build it ourselves.
+</p>
+
+<p>
+Because we put the shell script in the <code>bin</code> directory of the output of this derivation (how nix refers to the definition of an enclosed package), this will be added to the path of any nix shell definition that depends on it. To make people's lives easier, we can also wrap it for common use cases which we do here to create the <code>format-all</code> and <code>format-stdin</code> commands<sup><a id="fnr.2" class="footref" href="#fn.2" role="doc-backlink">2</a></sup>.
+</p>
+
+<p>
+In our top level <code>flake.nix</code> file we can now import these tools and expose them to our developers:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-nix"><span class="org-nix-keyword">let</span>
+  <span class="org-comment"># ... snip ...</span>
+  <span class="org-nix-attribute">fantomas</span> = <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-nix-builtin">import</span> <span class="org-nix-constant">./nix/fantomas.nix</span><span class="org-rainbow-delimiters-depth-1">)</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-nix-keyword">inherit</span> pkgs dnc; <span class="org-rainbow-delimiters-depth-1">}</span>;
+  <span class="org-nix-attribute">format-all</span> = <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-nix-builtin">import</span> <span class="org-nix-constant">./nix/format-all.nix</span><span class="org-rainbow-delimiters-depth-1">)</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-nix-keyword">inherit</span> pkgs fantomas; <span class="org-rainbow-delimiters-depth-1">}</span>;
+  <span class="org-nix-attribute">format-stdin</span> =
+    <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-nix-builtin">import</span> <span class="org-nix-constant">./nix/format-stdin.nix</span><span class="org-rainbow-delimiters-depth-1">)</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-nix-keyword">inherit</span> pkgs fantomas; <span class="org-rainbow-delimiters-depth-1">}</span>;
+  <span class="org-comment"># ... snip ...</span>
+<span class="org-nix-keyword">in</span> rec <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-comment"># Tools we want available during development</span>
+  <span class="org-nix-attribute">devShells.default</span> = pkgs.mkShell <span class="org-rainbow-delimiters-depth-2">{</span>
+    <span class="org-nix-attribute">buildInputs</span> = <span class="org-rainbow-delimiters-depth-3">[</span>
+      dnc.sdk_8_0
+      pkgs.nixfmt
+      pkgs.skopeo
+      fantomas
+      format-all
+      format-stdin
+    <span class="org-rainbow-delimiters-depth-3">]</span>;
+  <span class="org-rainbow-delimiters-depth-2">}</span>;
+  <span class="org-comment"># ... snip ...</span>
+<span class="org-rainbow-delimiters-depth-1">}</span>
+</pre>
+</div>
+
+<p>
+Now everybody has the same formatting tools available and an easy way to reference them. It even allows us to provide git hooks and/or attribute filters that users can choose to activate that will prevent unformatted code from being pushed or even format it as it is committed to the repository (check out the <a href="https://git-scm.com/book/en/v2/Customizing-Git-Git-Attributes">section on smudge and clean filters here</a> if you're interested).
+</p>
+
+<p>
+I'm normally quite keen on leaving the formatter settings on their default, but given the purpose of this particular repository I've also added a <code>.editorconfig</code> file to the repository to adjust the indentation to two spaces rather than the default four, and to reduce the aimed for line length to 60 characters to make it easier to read in the blog posts.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgc34120d" class="outline-2">
+<h2 id="orgc34120d">Testing (local)</h2>
+<div class="outline-text-2" id="text-orgc34120d">
+<p>
+Nearly as importantly as the code being readable is whether it actually works. <a href="https://github.com/haf/expecto">Expecto</a> is an F# unit test library that allows you to write executable test programs and defines tests as pieces of data rather than class methods with particular attributes. This can be insanely helpful in writing parameterized tests, which we'll get back to in a later post.
+</p>
+
+<p>
+Right now though, we just want the tests to exist and be run in CI.
+</p>
+
+<p>
+We'll start off by moving the existing server code into a directory called (<i>&#x2026; let the suspense build &#x2026;</i>) <code>Server</code>. Next to it we'll create an F# console project called <code>Server.Test</code> and use <code>dotnet add package</code> to add Expecto, along with YoloDev.Expecto.TestSdk and Microsoft.NET.Test.Sdk which allow the project to <i>also</i> be run by calling <code>dotnet test</code> so everybody's editors know how to run the Expecto tests.
+</p>
+
+<p>
+Finally, we add a project reference to <code>Server</code> from <code>Server.Test</code> and locally at least we're all set for running unit tests!
+</p>
+
+<p>
+Let's add one to <code>Program.fs</code>:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">module</span> <span class="org-type">Mavnn.CalDance.Server.Test</span>
+
+<span class="org-keyword">open</span> <span class="org-type">Expecto</span>
+
+<span class="org-preprocessor"><span class="org-rainbow-delimiters-depth-1">[</span></span><span class="org-preprocessor">&lt;Tests&gt;</span><span class="org-preprocessor"><span class="org-rainbow-delimiters-depth-1">]</span></span>
+<span class="org-keyword">let</span> <span class="org-variable-name">tests</span> =
+  testList
+    <span class="org-string">"My list"</span>
+    <span class="org-rainbow-delimiters-depth-1">[</span> testCase <span class="org-string">"hello"</span> <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">fun</span> <span class="org-rainbow-delimiters-depth-3">()</span> -&gt;
+        Expect.equal
+          <span class="org-string">"hello"</span>
+          <span class="org-string">"hello"</span>
+          <span class="org-string">"Is it me you're looking for?"</span><span class="org-rainbow-delimiters-depth-2">)</span> <span class="org-rainbow-delimiters-depth-1">]</span>
+
+<span class="org-preprocessor"><span class="org-rainbow-delimiters-depth-1">[</span></span><span class="org-preprocessor">&lt;EntryPoint&gt;</span><span class="org-preprocessor"><span class="org-rainbow-delimiters-depth-1">]</span></span>
+<span class="org-keyword">let</span> <span class="org-function-name">main</span> <span class="org-variable-name">args</span> =
+  <span class="org-comment-delimiter">// </span><span class="org-comment">This allows running with different arguments from the command line,</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">as well as via `dotnet test`</span>
+  runTestsWithCLIArgs <span class="org-rainbow-delimiters-depth-1">[]</span> args tests
+</pre>
+</div>
+
+<p>
+And then we can run it from the root of our project:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-shell">CalDance on &#57504; main via &#10052;&#65039;  impure <span class="org-rainbow-delimiters-depth-1">(</span>nix-shell<span class="org-rainbow-delimiters-depth-1">)</span>
+&#10095; dotnet run --project  Server.Test
+<span class="org-comment-delimiter"># </span><span class="org-comment">snipped warning messages about FSharp.Core versions</span>
+<span class="org-rainbow-delimiters-depth-1">[</span><span class="org-highlight-numbers-number">15:59:00</span> INF<span class="org-rainbow-delimiters-depth-1">]</span> EXPECTO? Running tests... &lt;Expecto&gt;
+<span class="org-rainbow-delimiters-depth-1">[</span><span class="org-highlight-numbers-number">15:59:00</span> INF<span class="org-rainbow-delimiters-depth-1">]</span> EXPECTO! <span class="org-highlight-numbers-number">1</span> tests run<span class="org-keyword"> in</span> <span class="org-highlight-numbers-number">00:00:00.0262215</span> for My list.hello &#8211; <span class="org-highlight-numbers-number">1</span> passed, <span class="org-highlight-numbers-number">0</span> ignored, <span class="org-highlight-numbers-number">0</span> failed, <span class="org-highlight-numbers-number">0</span> errored. Success! &lt;Expecto&gt;
+
+CalDance on &#57504; main via &#10052;&#65039;  impure <span class="org-rainbow-delimiters-depth-1">(</span>nix-shell<span class="org-rainbow-delimiters-depth-1">)</span>
+&#10095;
+</pre>
+</div>
+
+<p>
+The current version of Expecto hasn't been updated to the latest FSharp.Core yet but it appears to work fine so we'll just keep an eye on that for now.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org72f5bfd" class="outline-2">
+<h2 id="org72f5bfd">Testing (CI)</h2>
+<div class="outline-text-2" id="text-org72f5bfd">
+<p>
+Now though, we have a problem. The promise of using Nix was that we wouldn't need to configure CI with lots of setup for things likes tests because our build environment is self contained, and that we could incrementally and deterministically build our sub-components. But now we either create a single nix derivation that has both our projects in, or we need to somehow package the tests separately. We don't want to create a joint derivation because we're compiling down our server code into a self contained enclosure including its own copy of the dotnet runtime.
+</p>
+
+<p>
+But we can't reference that build output directly from our test project, because it <i>is</i> built as a self contained enclosure but in the test project we want to reference it as a library in a different executable.
+</p>
+
+<p>
+This is where we play some slightly interesting tricks to get all the properties we want. Do you remember above, where we put the output of the Fantomas derivation in the <code>bin</code> directory to declare that the file in question was an executable? Turns out that we can also put a file in the <code>share</code> directory to signify that it is available to other derivations but is not directly used by any executables in this one.
+</p>
+
+<p>
+It also turns out that the way the F# helpers in nix manage incremental builds is by assuming that F# nix derivations will provide a Nuget package in the <code>share</code> directory. This means that we can build the server code once as a self-contained executable and put it in the <code>bin</code> folder, but we can <i>also</i> build it again without the self-contained flag and package it into the <code>share</code> folder by adding a hook to our derivation:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-nix"><span class="org-comment-delimiter"># </span><span class="org-comment">... snip ...</span>
+<span class="org-nix-attribute">postInstall</span> = <span class="org-string">''</span>
+<span class="org-string">  </span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-1">{</span></span>dnc.sdk_8_0<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-1">}</span></span><span class="org-string">/bin/dotnet \</span>
+<span class="org-string">      pack \</span>
+<span class="org-string">      -p:ContinuousIntegrationBuild=true \</span>
+<span class="org-string">      -p:Deterministic=true \</span>
+<span class="org-string">      --output "$out/share" \</span>
+<span class="org-string">      --configuration "Release"</span>
+<span class="org-string">''</span>;
+<span class="org-comment-delimiter"># </span><span class="org-comment">... snip ...</span>
+</pre>
+</div>
+
+<p>
+We'll move the derivation into <a href="https://gitlab.com/mavnn/caldance/-/blob/adfe02a71f7193e93fdefd7518f465e592ead6d8/nix/server.test.nix">its own file</a> while we're at it to stop the main <code>flake.nix</code> file getting too confusing and noisy, and start passing in things like the dotnet core version and project name as variables to make it easier to keeps changes between components in sync.
+</p>
+
+<p>
+Aside: there is actually a helpful boolean flag that can be used to pack F# libraries but it fairly reasonably complains if you try and package a self-contained build.
+</p>
+
+<p>
+This in turn allows us to define a derivation for the <a href="https://gitlab.com/mavnn/caldance/-/blob/adfe02a71f7193e93fdefd7518f465e592ead6d8/nix/server.test.nix">test project</a> which looks very similar to the server derivation, just that it takes to server derivation as an argument so that it can declare a project reference on it along with all the previous arguments.
+</p>
+
+<p>
+<b>Quirk alert</b>: this works very, very, well giving us cached incremental builds but it does also require us to add a conditional <i>package</i> dependency on the server to our test project for the build to complete successfully under Nix. This means you end up with a project file that contains something like:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-xml"><span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">ItemGroup</span><span class="org-nxml-tag-delimiter">&gt;</span>
+  <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">ProjectReference</span> <span class="org-nxml-attribute-local-name">Include</span>=<span class="org-string">"..\Server\CalDance.Server.fsproj"</span> <span class="org-nxml-tag-slash">/</span><span class="org-nxml-tag-delimiter">&gt;</span>
+  <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">PackageReference</span> <span class="org-nxml-attribute-local-name">Include</span>=<span class="org-string">"CalDance.Server"</span> <span class="org-nxml-attribute-local-name">Version</span>=<span class="org-string">"*"</span> <span class="org-nxml-attribute-local-name">Condition</span>=<span class="org-string">" '$(ContinuousIntegrationBuild)'=='true' "</span> <span class="org-nxml-tag-slash">/</span><span class="org-nxml-tag-delimiter">&gt;</span>
+<span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-tag-slash">/</span><span class="org-nxml-element-local-name">ItemGroup</span><span class="org-nxml-tag-delimiter">&gt;</span>
+</pre>
+</div>
+
+<p>
+To finish off our test setup, we add a new output to our flake file - a request for a JUnit formatted xml file containing our test results.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-nix"><span class="org-nix-attribute">packages.test</span> = pkgs.stdenv.mkDerivation <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-nix-attribute">name</span> = <span class="org-string">"</span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-2">{</span></span>baseName<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-2">}</span></span><span class="org-string">.TestResults"</span>;
+  <span class="org-nix-attribute">version</span> = version;
+  <span class="org-nix-attribute">unpackPhase</span> = <span class="org-string">"true"</span>;
+
+  <span class="org-nix-attribute">installPhase</span> = <span class="org-string">''</span>
+<span class="org-string">    </span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-2">{</span></span>testExecutable<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-2">}</span></span><span class="org-string">/bin/CalDance.Server.Test --junit-summary $out/server.test.junit.xml</span>
+<span class="org-string">  ''</span>;
+<span class="org-rainbow-delimiters-depth-1">}</span>;
+</pre>
+</div>
+
+<p>
+Now we can run <code>nix build .#test</code> in our root directory and we will get a result directory containing the test results (which will be cached unless the code of either the server or the test project changes).
+</p>
+
+<p>
+Some boiler plate additions to the GitLab CI configuration finishes things off; we tell the build to build both <code>.#dockerImage</code> <i>and</i> <code>.#test</code> (which nix will happily build run in parallel for us) and then copy the test results to a folder in the actual build directory which we tell GitLab contains junit xml results. This is needed because the <code>result-1</code> directory they are created in is a symlink to the a hash addressable store that nix uses, and it turns out GitLab's build artifact upload mechanism can't follow the symlink.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-yaml"><span class="org-comment-delimiter"># </span><span class="org-comment">Nothing before the build command in the script has changed since the previous post</span>
+  - <span class="org-string">'nix build .#dockerImage .#test'</span>
+  - mkdir testResults
+  - <span class="org-string">'cp result-1/* testResults'</span>
+  - ls -lh ./result
+  - <span class="org-string">'skopeo inspect docker-archive://$(readlink -f ./result)'</span>
+  - <span class="org-string">'skopeo copy docker-archive://$(readlink -f ./result) docker://$IMAGE_TAG'</span>
+<span class="org-variable-name">artifacts</span>:
+  <span class="org-variable-name">when</span>: always
+  <span class="org-variable-name">paths</span>:
+    - <span class="org-string">'testResults/*.xml'</span>
+  <span class="org-variable-name">reports</span>:
+    <span class="org-variable-name">junit</span>: <span class="org-string">'testResults/*.xml'</span>
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org5a59c95" class="outline-2">
+<h2 id="org5a59c95">Wrapping it all up</h2>
+<div class="outline-text-2" id="text-org5a59c95">
+<p>
+That seems like a nice breaking off point for now. In this next stage we have:
+</p>
+
+<ul class="org-ul">
+<li>Provided shared versions of formatting tools to help keep the code base consistent</li>
+<li>Added a test project to allow us to unit test our code</li>
+<li>Updated CI to run and report on those tests</li>
+<li>Created a standard pattern for being able to add more F# projects to our repository which will all be built deterministically and for which the build results can be independently cached</li>
+</ul>
+
+<p>
+As always, if you have questions or comments on what's happened so far then leave an issue on the <a href="https://gitlab.com/mavnn/caldance/-/issues">CalDance GitLab repository</a>. And as a thank you note for reading this far (and to see if anyone actually is!) we now have a bonus "choose your own adventure" poll.
+</p>
+
+<p>
+If you'd like to see the next post focusing on testing the code we already have, hit the thumbs up on <a href="https://gitlab.com/mavnn/caldance/-/issues/1">this issue</a>.
+</p>
+
+<p>
+If you'd like to see the next post starting to actually hook up a form and a data store, hit the thumbs up on <a href="https://gitlab.com/mavnn/caldance/-/issues/2">this issue instead</a>!
+</p>
+</div>
+</div>
+<div id="footnotes">
+<h2 class="footnotes">Footnotes: </h2>
+<div id="text-footnotes">
+
+<div class="footdef"><sup><a id="fn.1" class="footnum" href="#fnr.1" role="doc-backlink">1</a></sup> <div class="footpara" role="doc-footnote"><p class="footpara">
+Bike shedding is the original example used in the <a href="https://en.wikipedia.org/wiki/Law_of_triviality">law of triviality</a> as stated by C. Northcote Parkinson: "The time spent on any item of the agenda will be in inverse proportion to the sum [of money] involved." It's often used as short hand to refer to the fact that trivial matters which are easy to understand and have an opinion on will tend to create enormously more discussion and hesitation than complex problems where solving the problem even once, let alone thinking of alternative solutions, is a serious effort.
+</p></div></div>
+
+<div class="footdef"><sup><a id="fn.2" class="footnum" href="#fnr.2" role="doc-backlink">2</a></sup> <div class="footpara" role="doc-footnote"><p class="footpara">
+The code for the helpers looks like this:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-nix"><span class="org-rainbow-delimiters-depth-1">{</span> pkgs, fantomas <span class="org-rainbow-delimiters-depth-1">}</span>:
+pkgs.writeShellScriptBin <span class="org-string">"format-all"</span> <span class="org-string">''</span>
+<span class="org-string">  </span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-1">{</span></span>fantomas<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-1">}</span></span><span class="org-string">/bin/fantomas */src/*.fs</span>
+<span class="org-string">''</span>
+</pre>
+</div>
+
+<div class="org-src-container">
+<pre class="src src-nix"><span class="org-rainbow-delimiters-depth-1">{</span> pkgs, fantomas <span class="org-rainbow-delimiters-depth-1">}</span>:
+pkgs.writeShellScriptBin <span class="org-string">"format-stdin"</span> <span class="org-string">''</span>
+<span class="org-string">  TMP_FILE=$(mktemp --suffix=".fs" || exit 1)</span>
+<span class="org-string">  if [ $? -ne 0 ]; then</span>
+<span class="org-string">    echo "$0: Cannot create temp file"</span>
+<span class="org-string">    exit 1</span>
+<span class="org-string">  fi</span>
+<span class="org-string">  echo "$(&lt;/dev/stdin)" &gt; $TMP_FILE</span>
+<span class="org-string">  </span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-1">{</span></span>fantomas<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-1">}</span></span><span class="org-string">/bin/fantomas $TMP_FILE &amp;&gt; /dev/null</span>
+<span class="org-string">  cat $TMP_FILE</span>
+<span class="org-string">  rm $TMP_FILE</span>
+<span class="org-string">''</span>
+</pre>
+</div></div></div>
+
+
+</div>
+</div></div>
+<div id="postamble" class="status">
+<footer id="my-contacts">
+<p hx-boost="false"><a href="https://blog.mavnn.co.uk/rss.xml">RSS</a></p>
+<p><a href="https://mastodon.sdf.org/@mavnn">Mastodon</a></p>
+<p>Git(<a href="https://github.com/mavnn">Hub</a>|<a href="https://gitlab.com/mavnn">Lab</a>)</p>
+</footer>
+</div>
+</body>
+</html>

@@ -14,8 +14,8 @@
   <link>https://blog.mavnn.co.uk/</link>
   <description><![CDATA[]]></description>
   <language>en</language>
-  <pubDate>Sat, 03 Feb 2024 12:39:16 +0100</pubDate>
-  <lastBuildDate>Sat, 03 Feb 2024 12:39:16 +0100</lastBuildDate>
+  <pubDate>Tue, 06 Feb 2024 19:38:13 +0100</pubDate>
+  <lastBuildDate>Tue, 06 Feb 2024 19:38:13 +0100</lastBuildDate>
   <generator>Emacs 29.1 Org-mode 9.6.6</generator>
   <webMaster>michael@mavnn.eu (Michael Newton)</webMaster>
   <image>
@@ -26,279 +26,657 @@
 
 
   <item>
-    <title>Foundations: Dev Journal 1</title>
-    <link>https://blog.mavnn.co.uk/2024/01/31/dev-journal-1.html</link>
+    <title>Scaffolding: Dev Journal 2</title>
+    <link>https://blog.mavnn.co.uk/2024/02/06/dev-journal-2.html</link>
     <author>michael@mavnn.eu (Michael Newton)</author>
-    <guid isPermaLink="false">https://blog.mavnn.co.uk/2024/01/31/dev-journal-1.html</guid>
-    <pubDate>Wed, 31 Jan 2024 00:00:00 +0100</pubDate>
+    <guid isPermaLink="false">https://blog.mavnn.co.uk/2024/02/06/dev-journal-2.html</guid>
+    <pubDate>Tue, 06 Feb 2024 00:00:00 +0100</pubDate>
 
-    <description><![CDATA[<p>
-    This is something a little bit new. A series I'm starting that documents the building of a simple project from the ground up using a set of tools and techniques I've come to either really like, or that I'd like to try out.
+    <description><![CDATA[<blockquote>
+    <p>
+    This post is part of the "Dev Journal" series. <a href="../../../2024/01/31/dev-journal-1.html">Part 1</a> contains the series index, while the <a href="https://gitlab.com/mavnn/caldance/-/commits/DevJournal2?ref_type=tags">DevJournal2</a> tag for the CalDance project in GitLab holds the state of the repository as described here.
+    </p>
+    </blockquote>
+
+    <p>
+    After the initial set up work that builds our project and packages it for deployment done, it looked might it could be time to write some code. Given we're planning to use htmx, we're going to be spending a lot of time constructing urls to inject into our site that need to match end points on the server so a good starting point seemed to be building a set of helpers for defining "bidirectional routing".
     </p>
 
     <p>
-    On the one hand this is a personal project. On the other, I'd like to take advantage of nice things like CI/CD, testing, etc, even when I'm working on something for myself. So this is also a mini-tour of many of the things I would do setting up a new greenfield project for a team.
-    </p>
-
-    <p>
-    As the series progresses, I'll carry on adding the sections here.
-    </p>
-
-    <p>
-    <b>The series so far</b>
-    </p>
-
-    <div id="outline-container-org8ac6b91" class="outline-3">
-    <h3 id="org8ac6b91"><span class="section-number-3">1.1.</span> <a href="https://blog.mavnn.co.uk/2024/01/31/dev-journal-1.html">Foundations</a></h3>
-    <div class="outline-text-3" id="text-1-1">
-    </div>
-    </div>
-
-    <div id="outline-container-org27b3330" class="outline-3">
-    <h3 id="org27b3330"><span class="section-number-3">1.2.</span> Part 1: Foundations</h3>
-    <div class="outline-text-3" id="text-1-2">
-    <p>
-    Our application will eventually be a little web site for <code>redacted in case I change my mind</code>. I'm going to be using mix of tried and new tech (for me personally).
-    </p>
-
-    <p>
-    On the things I'd like to try front, we have:
-    </p>
-    </div>
-    </div>
-
-    <div id="outline-container-orgdf6c7e5" class="outline-3">
-    <h3 id="orgdf6c7e5"><span class="section-number-3">1.3.</span> <a href="https://htmx.org/">htmx</a> (probably with <a href="https://bulma.io/">bulma</a> for initial styling) to provide the UI. This isn't going to be hugely interactive application, it is mostly going to collect information from forms, and display nice looking output tables so htmx's server side rendering model seems a perfect fit. I've used server side rendering in other projects and liked it, and htmx seems a low impact way to take that to the next level.</h3>
-    <div class="outline-text-3" id="text-1-3">
-    </div>
-    </div>
-    <div id="outline-container-org79298f4" class="outline-3">
-    <h3 id="org79298f4"><span class="section-number-3">1.4.</span> <a href="https://www.falcoframework.com/">falco</a> for writing the backend server in F#. <a href="https://xyncro.github.io/sites-freya.io/">Freya</a>, my webserver of choice for F# back in the day, is no longer actively maintained but it looks like Falco has taken some of its nicer features and done its own thing with them.</h3>
-    <div class="outline-text-3" id="text-1-4">
-    <p>
-    On the technologies I've used before and found useful front, we have:
-    </p>
-    </div>
-    </div>
-
-    <div id="outline-container-org702015c" class="outline-3">
-    <h3 id="org702015c"><span class="section-number-3">1.5.</span> <a href="https://nixos.org/">nix</a> to give a version controlled build/development environments and reproducible packaging.</h3>
-    <div class="outline-text-3" id="text-1-5">
-    </div>
-    </div>
-    <div id="outline-container-orgd8bd995" class="outline-3">
-    <h3 id="orgd8bd995"><span class="section-number-3">1.6.</span> <a href="https://direnv.net/">direnv</a> for seamless local development environments.</h3>
-    <div class="outline-text-3" id="text-1-6">
-    </div>
-    </div>
-    <div id="outline-container-orgf005bdb" class="outline-3">
-    <h3 id="orgf005bdb"><span class="section-number-3">1.7.</span> <a href="https://github.com/JasperFx/marten">marten</a> from the "Critter Stack" as an event store on top of postgresql to build our datastore.</h3>
-    <div class="outline-text-3" id="text-1-7">
-    </div>
-    </div>
-    <div id="outline-container-org462bd77" class="outline-3">
-    <h3 id="org462bd77"><span class="section-number-3">1.8.</span> <a href="https://gitlab.com/">gitlab</a> for code repository, container registry and CI/CD pipeline.</h3>
-    <div class="outline-text-3" id="text-1-8">
-    <p>
-    I'm not sure how far I'm going to take this experiment publicly, but what I'm going to focus on first is just the basics of any online app: people being able to sign up, log in, and manage an account for a paid service. At least that far the whole project will be MIT licensed, so if you like what you see you can just pick it up and use it as a starter template for your own project.
-    </p>
-
-    <p>
-    For today, let's start with a <i>minimum deployable product</i>: a "Hello world" Falco server with CI/CD pipeline in place. We'll have a gitlab hosted project anybody with a working nix environment can pull down and:
-    </p>
-    </div>
-    </div>
-
-    <div id="outline-container-org555bb92" class="outline-3">
-    <h3 id="org555bb92"><span class="section-number-3">1.9.</span> run <code>nix run</code> and have a webserver running locally that will respond to get requests to <code>/</code> with "Hello world"</h3>
-    <div class="outline-text-3" id="text-1-9">
-    </div>
-    </div>
-    <div id="outline-container-org38a940e" class="outline-3">
-    <h3 id="org38a940e"><span class="section-number-3">1.10.</span> run <code>nix build .#dockerImage</code> to build a docker image with the same architecture they're using (i.e. <code>aarch64-darwin</code> if you run it on a Mac)</h3>
-    <div class="outline-text-3" id="text-1-10">
-    </div>
-    </div>
-    <div id="outline-container-org9ed8902" class="outline-3">
-    <h3 id="org9ed8902"><span class="section-number-3">1.11.</span> by pushing a commit to gitlab trigger a CI pipeline building said docker image for <code>x86_64-linux</code> and pushing it to a package registry ready to deploy</h3>
-    <div class="outline-text-3" id="text-1-11">
-    <p>
-    Enough bullet points. What did I actually do? (Sneak preview: <a href="https://gitlab.com/mavnn/caldance/-/tree/6b39d13d98199220d623870faf2b49fbda58d8a5">browse the gitlab repo at the time of the commit that this post describes</a>)
-    </p>
-    </div>
-
-    <div id="outline-container-orga504bc2" class="outline-4">
-    <h4 id="orga504bc2"><span class="section-number-4">1.11.1.</span> Setup a nix flake to provide our environment</h4>
-    <div class="outline-text-4" id="text-1-11-1">
-    <p>
-    A nix "flake" is a declarative description of a set of packages we'd like to be able to reference. You can read the <a href="https://gitlab.com/mavnn/caldance/-/blob/6b39d13d98199220d623870faf2b49fbda58d8a5/flake.nix">whole file</a> but the important part for today is that our <code>flake.nix</code> file specifies three outputs in this stanza:
-    </p>
-
-    <div class="org-src-container">
-    <pre class="src src-nix"><span class="org-comment-delimiter"># </span><span class="org-comment">Tools we want available during development</span>
-    <span class="org-nix-attribute">devShells.default</span> = pkgs.mkShell <span class="org-rainbow-delimiters-depth-1">{</span>
-    <span class="org-nix-attribute">buildInputs</span> = <span class="org-rainbow-delimiters-depth-2">[</span> dnc.sdk_8_0 pkgs.nixfmt pkgs.skopeo <span class="org-rainbow-delimiters-depth-2">]</span>;
-    <span class="org-rainbow-delimiters-depth-1">}</span>;
-
-    <span class="org-comment-delimiter"># </span><span class="org-comment">Default result of running `nix build` with this</span>
-    <span class="org-comment-delimiter"># </span><span class="org-comment">flake; it builds the F# project `CalDance.fsproj`</span>
-    <span class="org-nix-attribute">packages.default</span> = pkgs.buildDotnetModule <span class="org-rainbow-delimiters-depth-1">{</span>
-    <span class="org-nix-attribute">pname</span> = name;
-    <span class="org-nix-attribute">version</span> = <span class="org-string">"0.1"</span>;
-
-    <span class="org-nix-attribute">src</span> = <span class="org-nix-constant">./.</span>;
-    <span class="org-nix-attribute">projectFile</span> = <span class="org-string">"CalDance.fsproj"</span>;
-    <span class="org-nix-attribute">nugetDeps</span> = nugets;
-
-    <span class="org-comment"># We set nix to create an output that contains</span>
-    <span class="org-comment"># everything needed, rather than depending</span>
-    <span class="org-comment"># on the dotnet runtime</span>
-    <span class="org-nix-attribute">selfContainedBuild</span> = <span class="org-nix-builtin">true</span>;
-
-    <span class="org-nix-attribute">dotnet-sdk</span> = dnc.sdk_8_0;
-    <span class="org-nix-attribute">dotnet-runtime</span> = dnc.runtime_8_0;
-    <span class="org-nix-attribute">executables</span> = <span class="org-rainbow-delimiters-depth-2">[</span> <span class="org-string">"CalDance"</span> <span class="org-rainbow-delimiters-depth-2">]</span>;
-    <span class="org-rainbow-delimiters-depth-1">}</span>;
-
-    <span class="org-comment-delimiter"># </span><span class="org-comment">A target that builds a fully self-contained docker</span>
-    <span class="org-comment-delimiter"># </span><span class="org-comment">file with the project above</span>
-    <span class="org-nix-attribute">packages.dockerImage</span> = pkgs.dockerTools.buildImage <span class="org-rainbow-delimiters-depth-1">{</span>
-    <span class="org-nix-attribute">name</span> = name;
-    <span class="org-nix-attribute">config</span> = <span class="org-rainbow-delimiters-depth-2">{</span>
-    <span class="org-nix-attribute">Cmd</span> = <span class="org-rainbow-delimiters-depth-3">[</span> <span class="org-string">"</span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-4">{</span></span>packages.default<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-4">}</span></span><span class="org-string">/bin/CalDance"</span> <span class="org-rainbow-delimiters-depth-3">]</span>;
-    <span class="org-nix-attribute">Env</span> = <span class="org-rainbow-delimiters-depth-3">[</span> <span class="org-string">"DOTNET_EnableDiagnostics=0"</span> <span class="org-rainbow-delimiters-depth-3">]</span>;
-    <span class="org-rainbow-delimiters-depth-2">}</span>;
-    <span class="org-rainbow-delimiters-depth-1">}</span>;
-    </pre>
-    </div>
-
-    <p>
-    First we say we want a shell environment which includes the dotnet core SDK (version 8), nixfmt (for formatting nix files), and skopeo which we can use for moving docker images around.
-    </p>
-
-    <p>
-    Then we define the default output for this flake: it uses the <code>buildDotnetModule</code> to specify that in our case it should build the executable <code>CalDance</code> based on the F# project file <code>CalDance.fsproj</code>. A helper makes sure that Nix is aware of which nuget packages the project has referenced, so that they can be packaged correctly.
-    </p>
-
-    <p>
-    Finally, we define the <code>dockerImage</code> which uses the <code>dockerTools.buildImage</code> helper to say we want to be able to build a docker image that contains the executable from the default package above, everything it needs to run and <i>nothing else at all</i>. In our case, this produces a docker image weighing in at around 80MB - similar to what you'd get optimising a <a href="https://blogit.create.pt/telmorodrigues/2022/03/08/smaller-net-6-docker-images/">two step hand crafted dockerfile</a>, and significantly smaller than using the official <a href="https://hub.docker.com/_/microsoft-dotnet-aspnet/">Microsoft ASP.NET runtime image</a>.
-    </p>
-    </div>
-    </div>
-
-    <div id="outline-container-org3faadba" class="outline-4">
-    <h4 id="org3faadba"><span class="section-number-4">1.11.2.</span> direnv</h4>
-    <div class="outline-text-4" id="text-1-11-2">
-    <p>
-    Direnv is a tool that can add environment variables to your shell when you enter a directory. It also, conveniently, knows about Nix flakes.
-    </p>
-
-    <p>
-    We add a <code>.envrc</code> file to our project with the contents:
-    </p>
-
-    <div class="org-src-container">
-    <pre class="src src-bash"><span class="org-comment-delimiter">#</span><span class="org-comment">!/usr/bin/</span><span class="org-keyword">env</span><span class="org-comment"> bash</span>
-    <span class="org-comment-delimiter"># </span><span class="org-comment">the shebang is ignored, but nice for editors</span>
-    use flake
-    </pre>
-    </div>
-
-    <p>
-    Next time we move into this directory, direnv will ask us to allow this <code>.envrc</code> file. If we accept, our normal local shell will have everything specified in the <code>devShell</code> above added to its path. This means we can, for example, use the <code>dotnet</code> command and we will use the version specified in <code>flake.nix</code> even if we haven't installed a system wide version of dotnet at all.
-    </p>
-    </div>
-    </div>
-
-    <div id="outline-container-org55ce778" class="outline-4">
-    <h4 id="org55ce778"><span class="section-number-4">1.11.3.</span> The F# project</h4>
-    <div class="outline-text-4" id="text-1-11-3">
-    <p>
-    There's absolutely nothing special about this at all. I just created an F# project with <code>dotnet</code> on the command line, moved <code>Program.fs</code> into a sub directory called <code>src</code> because I prefer it that way, and then added a package dependency on <code>Falco</code> using <code>dotnet add package Falco</code>.
-    </p>
-
-    <p>
-    Replace the contents of <code>Program.fs</code> with:
+    Adding the <code>Routing.fs</code> file to the F# project went exactly as you'd expect. We'll come back to this code when we test it properly, but to give you an idea we then updated the main server to actually start returning some HTML. The new <code>Program.fs</code> file new looks like this:
     </p>
 
     <div class="org-src-container">
     <pre class="src src-fsharp"><span class="org-keyword">module</span> <span class="org-type">Mavnn.CalDance.Server</span>
 
-    <span class="org-keyword">open</span> <span class="org-type">Falco</span>
-    <span class="org-keyword">open</span> <span class="org-type">Falco.Routing</span>
     <span class="org-keyword">open</span> <span class="org-type">Falco.HostBuilder</span>
+    <span class="org-keyword">open</span> <span class="org-type">Falco.Markup</span>
+    <span class="org-keyword">open</span> <span class="org-type">Mavnn.CalDance.Routing</span>
+    <span class="org-keyword">open</span> <span class="org-type">Mavnn.CalDance.Routing.Operators</span>
+
+    <span class="org-keyword">let</span> <span class="org-variable-name">greetingRoute</span> =
+    literalSection <span class="org-string">"greetings/"</span> ./+ stringSection <span class="org-string">"name"</span>
+
+    <span class="org-keyword">let</span> <span class="org-variable-name">indexRoute</span> = literalSection <span class="org-string">"/"</span>
+
+    <span class="org-keyword">let</span> <span class="org-variable-name">indexEndpoint</span> =
+    htmxGet indexRoute <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">fun</span> <span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-variable-name">_</span> -&gt;
+    Elem.html
+    <span class="org-rainbow-delimiters-depth-2">[]</span>
+    <span class="org-rainbow-delimiters-depth-2">[</span> Elem.body
+    <span class="org-rainbow-delimiters-depth-3">[]</span>
+    <span class="org-rainbow-delimiters-depth-3">[</span> Elem.h1 <span class="org-rainbow-delimiters-depth-4">[]</span> <span class="org-rainbow-delimiters-depth-4">[</span> Text.raw <span class="org-string">"Hi!"</span> <span class="org-rainbow-delimiters-depth-4">]</span>
+    Elem.p
+    <span class="org-rainbow-delimiters-depth-4">[]</span>
+    <span class="org-rainbow-delimiters-depth-4">[</span> Text.raw <span class="org-string">"Would you like to "</span>
+    htmxLink greetingRoute <span class="org-string">"Bob"</span> <span class="org-string">"greet Bob?"</span> <span class="org-rainbow-delimiters-depth-4">]</span> <span class="org-rainbow-delimiters-depth-3">]</span> <span class="org-rainbow-delimiters-depth-2">]</span><span class="org-rainbow-delimiters-depth-1">)</span>
+
+    <span class="org-keyword">let</span> <span class="org-variable-name">greetingEndpoint</span> =
+    htmxGet greetingRoute <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">fun</span> <span class="org-variable-name">name</span> <span class="org-variable-name">_</span> -&gt;
+    Elem.html
+    <span class="org-rainbow-delimiters-depth-2">[]</span>
+    <span class="org-rainbow-delimiters-depth-2">[</span> Elem.body
+    <span class="org-rainbow-delimiters-depth-3">[]</span>
+    <span class="org-rainbow-delimiters-depth-3">[</span> Elem.h1 <span class="org-rainbow-delimiters-depth-4">[]</span> <span class="org-rainbow-delimiters-depth-4">[</span> Text.rawf <span class="org-string">"Hi %s!"</span> name <span class="org-rainbow-delimiters-depth-4">]</span> <span class="org-rainbow-delimiters-depth-3">]</span> <span class="org-rainbow-delimiters-depth-2">]</span><span class="org-rainbow-delimiters-depth-1">)</span>
 
     webHost <span class="org-rainbow-delimiters-depth-1">[</span>||<span class="org-rainbow-delimiters-depth-1">]</span> <span class="org-rainbow-delimiters-depth-1">{</span>
-    endpoints <span class="org-rainbow-delimiters-depth-2">[</span>
-    get <span class="org-string">"/"</span> <span class="org-rainbow-delimiters-depth-3">(</span>Response.ofPlainText <span class="org-string">"Hello World"</span><span class="org-rainbow-delimiters-depth-3">)</span>
-    <span class="org-rainbow-delimiters-depth-2">]</span>
+    add_antiforgery
+    endpoints <span class="org-rainbow-delimiters-depth-2">[</span> indexEndpoint; greetingEndpoint <span class="org-rainbow-delimiters-depth-2">]</span>
     <span class="org-rainbow-delimiters-depth-1">}</span>
     </pre>
     </div>
-    </div>
-    </div>
 
-    <div id="outline-container-orgb6f833b" class="outline-4">
-    <h4 id="orgb6f833b"><span class="section-number-4">1.11.4.</span> Set up the CI pipeline</h4>
-    <div class="outline-text-4" id="text-1-11-4">
     <p>
-    Having used Nix for our development environment, our CI pipeline becomes exceedingly straight forward. All we need is a build container with Nix available and we have all the other information we need for the build already. Nix themselves provide a <code>nixos/nix</code> image (Nix is the package manager, NixOS is the linux distribution that uses Nix as its package manager) so we'll just use that.
+    We now have two routes, one which starts with <code>greetings/</code> and then matches any string, and one which responds at <code>/</code>. You can see in index end point we use our new <code>htmxLink</code> helper to construct a link that will be matched by the greeting end point, and in the greeting end point we supply a handler that knows it is going to receive a string.
     </p>
 
     <p>
-    There's a little bit of boilerplate to tell nix that we want to allow flakes and to allow connection to the gitlab package registry. Once that is done, we log into the registry for this project using the CI provided environment variables, run <code>nix build .#dockerImage</code> and then push the results up to the registry.
+    This is all type safe, and that's lovely and all... but now we have two problems.
+    </p>
+
+    <p>
+    Let's tackle the biggest problem first!
+    </p>
+
+    <div id="outline-container-org8b17705" class="outline-3">
+    <h3 id="org8b17705"><span class="section-number-3">1.1.</span> Clarity and style</h3>
+    <div class="outline-text-3" id="text-1-1">
+    <p>
+    Writing lists of lists is a succinct and powerful way of representing HTML, but it is also a pain in the backside to format nicely by hand. It's also very easy to bike shedabout, leading to a lot of wasted time and churn in commits.
+    </p>
+
+    <p>
+    One of the best solutions to this is to automate code formatting following a reasonable style guide. This is especially important at the beginning of a project, or (ahem) when writing code you'd like people to follow as an example as it means all of the changes made to the project are because something meaningful has actually changed and there is a consistent style to follow along with.
+    </p>
+
+    <p>
+    <a href="https://fsprojects.github.io/fantomas/docs/index.html">Fantomas</a> is the code formatter generally used by the F# community. We always want everyone to be using the same version and config, so let's build it into our <code>nix</code> configuration. The nix files we use to structure the set up of the repository are a programming language in their own right, so we can write a function to provide the correct version of Fantomas taking the version of the dotnet runtime as an input argument (we've put this in a separate file in the <code>nix</code> directory to keep things neat).
     </p>
 
     <div class="org-src-container">
-    <pre class="src src-yaml"><span class="org-variable-name">build-container</span>:
-    <span class="org-variable-name">image</span>:
-    <span class="org-variable-name">name</span>: <span class="org-string">"nixos/nix:2.19.3"</span>
-    <span class="org-variable-name">variables</span>:
-    <span class="org-variable-name">IMAGE_TAG</span>: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
-    <span class="org-variable-name">before_script</span>:
-    - nix-env --install --attr nixpkgs.skopeo
-    <span class="org-variable-name">script</span>:
-    - mkdir -p <span class="org-string">"$HOME/.config/nix"</span>
-    - echo <span class="org-string">'experimental-features = nix-command flakes'</span> &gt; <span class="org-string">"$HOME/.config/nix/nix.conf"</span>
-    - mkdir -p <span class="org-string">"/etc/containers/"</span>
-    - echo <span class="org-string">'{"default":[{"type":"insecureAcceptAnything"}]}'</span> &gt; /etc/containers/policy.json
-    - skopeo login --username <span class="org-string">"$CI_REGISTRY_USER"</span> --password <span class="org-string">"$CI_REGISTRY_PASSWORD"</span> <span class="org-string">"$CI_REGISTRY"</span>
-    - <span class="org-string">'nix build .#dockerImage'</span>
-    - ls -lh ./result
-    - <span class="org-string">'skopeo inspect docker-archive://$(readlink -f ./result)'</span>
-    - <span class="org-string">'skopeo copy docker-archive://$(readlink -f ./result) docker://$IMAGE_TAG'</span>
+    <pre class="src src-nix"><span class="org-rainbow-delimiters-depth-1">{</span> pkgs, dnc <span class="org-rainbow-delimiters-depth-1">}</span>:
+    <span class="org-nix-keyword">let</span> <span class="org-nix-attribute">version</span> = <span class="org-string">"6.2.3"</span>;
+    <span class="org-nix-keyword">in</span> pkgs.stdenv.mkDerivation <span class="org-rainbow-delimiters-depth-1">{</span>
+    <span class="org-nix-attribute">pname</span> = <span class="org-string">"fantomas"</span>;
+    <span class="org-nix-attribute">version</span> = version;
+    <span class="org-nix-attribute">nativeBuildInputs</span> = <span class="org-nix-keyword">with</span> pkgs; <span class="org-rainbow-delimiters-depth-2">[</span> unzip makeWrapper <span class="org-rainbow-delimiters-depth-2">]</span>;
+    <span class="org-nix-attribute">src</span> = pkgs.fetchurl <span class="org-rainbow-delimiters-depth-2">{</span>
+    <span class="org-nix-attribute">url</span> = <span class="org-string">"https://globalcdn.nuget.org/packages/fantomas.</span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-3">{</span></span>version<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-3">}</span></span><span class="org-string">.nupkg"</span>;
+    <span class="org-nix-attribute">hash</span> = <span class="org-string">"sha256-Aol10o5Q7l8s6SdX0smVdi3ec2IgAx+gMksAMjXhIfU="</span>;
+    <span class="org-rainbow-delimiters-depth-2">}</span>;
+    <span class="org-nix-attribute">unpackPhase</span> = <span class="org-string">''</span>
+    <span class="org-string">    ls -al $src</span>
+    <span class="org-string">    unzip "$src" -d $out</span>
+    <span class="org-string">  ''</span>;
+    <span class="org-nix-attribute">installPhase</span> = <span class="org-string">''</span>
+    <span class="org-string">    mkdir -p $out/bin</span>
+    <span class="org-string">    cp -r * $out/bin</span>
+    <span class="org-string">    echo '#! </span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-2">{</span></span>pkgs.bash<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-2">}</span></span><span class="org-string">/bin/bash -e' &gt; $out/bin/fantomas</span>
+    <span class="org-string">    echo "FANTOMAS_PATH=$out/tools/net6.0/any/fantomas.dll" &gt;&gt; $out/bin/fantomas</span>
+    <span class="org-string">    echo '</span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-2">{</span></span>dnc.runtime_8_0<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-2">}</span></span><span class="org-string">/bin/dotnet $FANTOMAS_PATH "$@"' &gt;&gt; $out/bin/fantomas</span>
+    <span class="org-string">    chmod +x $out/bin/fantomas</span>
+    <span class="org-string">  ''</span>;
+    <span class="org-rainbow-delimiters-depth-1">}</span>
     </pre>
     </div>
 
     <p>
-    It's worth noting here that Nix is a deterministic build system (for example, stripping dates from compiled metadata so building the same source code on a different day doesn't product a different binary). In a "real life" context I would be caching the results of the nix build steps to a service like <a href="https://www.cachix.org/">Cachix</a> so that they could be reused between builds, which becomes increasingly useful as the project grows and starts to be comprised of multiple build steps (Nix will be able to cache each "step" individually, even if you only ask for the final outcome of the process).
+    This basically says that we want to download a particular version of Fantomas from nuget (the dotnet package library), unzip it, and then create a shell script that uses our dotnet core runtime to run it. This works because Fantomas is built using an "any CPU" build configuration, allowing us to supply the correct runtime as needed by the system we're currently using but still executing the same compiled dotnet code. For a package that included any CPU specific code the normal nix approach is to download the source and then build it ourselves.
+    </p>
+
+    <p>
+    Because we put the shell script in the <code>bin</code> directory of the output of this derivation (how nix refers to the definition of an enclosed package), this will be added to the path of any nix shell definition that depends on it. To make people's lives easier, we can also wrap it for common use cases which we do here to create the <code>format-all</code> and <code>format-stdin</code> commands.
+    </p>
+
+    <p>
+    In our top level <code>flake.nix</code> file we can now import these tools and expose them to our developers:
+    </p>
+
+    <div class="org-src-container">
+    <pre class="src src-nix"><span class="org-nix-keyword">let</span>
+    <span class="org-comment"># ... snip ...</span>
+    <span class="org-nix-attribute">fantomas</span> = <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-nix-builtin">import</span> <span class="org-nix-constant">./nix/fantomas.nix</span><span class="org-rainbow-delimiters-depth-1">)</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-nix-keyword">inherit</span> pkgs dnc; <span class="org-rainbow-delimiters-depth-1">}</span>;
+    <span class="org-nix-attribute">format-all</span> = <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-nix-builtin">import</span> <span class="org-nix-constant">./nix/format-all.nix</span><span class="org-rainbow-delimiters-depth-1">)</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-nix-keyword">inherit</span> pkgs fantomas; <span class="org-rainbow-delimiters-depth-1">}</span>;
+    <span class="org-nix-attribute">format-stdin</span> =
+    <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-nix-builtin">import</span> <span class="org-nix-constant">./nix/format-stdin.nix</span><span class="org-rainbow-delimiters-depth-1">)</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-nix-keyword">inherit</span> pkgs fantomas; <span class="org-rainbow-delimiters-depth-1">}</span>;
+    <span class="org-comment"># ... snip ...</span>
+    <span class="org-nix-keyword">in</span> rec <span class="org-rainbow-delimiters-depth-1">{</span>
+    <span class="org-comment"># Tools we want available during development</span>
+    <span class="org-nix-attribute">devShells.default</span> = pkgs.mkShell <span class="org-rainbow-delimiters-depth-2">{</span>
+    <span class="org-nix-attribute">buildInputs</span> = <span class="org-rainbow-delimiters-depth-3">[</span>
+    dnc.sdk_8_0
+    pkgs.nixfmt
+    pkgs.skopeo
+    fantomas
+    format-all
+    format-stdin
+    <span class="org-rainbow-delimiters-depth-3">]</span>;
+    <span class="org-rainbow-delimiters-depth-2">}</span>;
+    <span class="org-comment"># ... snip ...</span>
+    <span class="org-rainbow-delimiters-depth-1">}</span>
+    </pre>
+    </div>
+
+    <p>
+    Now everybody has the same formatting tools available and an easy way to reference them. It even allows us to provide git hooks and/or attribute filters that users can choose to activate that will prevent unformatted code from being pushed or even format it as it is committed to the repository (check out the <a href="https://git-scm.com/book/en/v2/Customizing-Git-Git-Attributes">section on smudge and clean filters here</a> if you're interested).
+    </p>
+
+    <p>
+    I'm normally quite keen on leaving the formatter settings on their default, but given the purpose of this particular repository I've also added a <code>.editorconfig</code> file to the repository to adjust the indentation to two spaces rather than the default four, and to reduce the aimed for line length to 60 characters to make it easier to read in the blog posts.
     </p>
     </div>
     </div>
 
-    <div id="outline-container-org16dac94" class="outline-4">
-    <h4 id="org16dac94"><span class="section-number-4">1.11.5.</span> Wrapping it all up</h4>
-    <div class="outline-text-4" id="text-1-11-5">
+    <div id="outline-container-org5421bdf" class="outline-3">
+    <h3 id="org5421bdf"><span class="section-number-3">1.2.</span> Testing (local)</h3>
+    <div class="outline-text-3" id="text-1-2">
     <p>
-    Not a bad first days work, I'd say. Our project is already at a stage that we can work on it with standard .NET tooling (for instance, adding a new nuget package with <code>dotnet package add ...</code> will automatically flow through to that package being added to the docker image) and CI will produce on push a lean deployable artifact. Versions of <i>everything</i> we are using from the .NET SDK to the nuget package we're depending on are fixed across all environments, and we have a nice place to add more developer tooling as we move forwards - for example standardizing the version of postgresql that will be used during development and in CI.
+    Nearly as importantly as the code being readable is whether it actually works. <a href="https://github.com/haf/expecto">Expecto</a> is an F# unit test library that allows you to write executable test programs and defines tests as pieces of data rather than class methods with particular attributes. This can be insanely helpful in writing parameterized tests, which we'll get back to in a later post.
     </p>
 
     <p>
-    As a bonus extra, anybody with nix installed can build and run the project without having to know .NET or have any .NET tooling installed; a very nice feature when you have others depending on your work who might want to run your code locally, but may not have chosen the same tech stack.
+    Right now though, we just want the tests to exist and be run in CI.
+    </p>
+
+    <p>
+    We'll start off by moving the existing server code into a directory called (<i>&#x2026; let the suspense build &#x2026;</i>) <code>Server</code>. Next to it we'll create an F# console project called <code>Server.Test</code> and use <code>dotnet add package</code> to add Expecto, along with YoloDev.Expecto.TestSdk and Microsoft.NET.Test.Sdk which allow the project to <i>also</i> be run by calling <code>dotnet test</code> so everybody's editors know how to run the Expecto tests.
+    </p>
+
+    <p>
+    Finally, we add a project reference to <code>Server</code> from <code>Server.Test</code> and locally at least we're all set for running unit tests!
+    </p>
+
+    <p>
+    Let's add one to <code>Program.fs</code>:
+    </p>
+
+    <div class="org-src-container">
+    <pre class="src src-fsharp"><span class="org-keyword">module</span> <span class="org-type">Mavnn.CalDance.Server.Test</span>
+
+    <span class="org-keyword">open</span> <span class="org-type">Expecto</span>
+
+    <span class="org-preprocessor"><span class="org-rainbow-delimiters-depth-1">[</span></span><span class="org-preprocessor">&lt;Tests&gt;</span><span class="org-preprocessor"><span class="org-rainbow-delimiters-depth-1">]</span></span>
+    <span class="org-keyword">let</span> <span class="org-variable-name">tests</span> =
+    testList
+    <span class="org-string">"My list"</span>
+    <span class="org-rainbow-delimiters-depth-1">[</span> testCase <span class="org-string">"hello"</span> <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">fun</span> <span class="org-rainbow-delimiters-depth-3">()</span> -&gt;
+    Expect.equal
+    <span class="org-string">"hello"</span>
+    <span class="org-string">"hello"</span>
+    <span class="org-string">"Is it me you're looking for?"</span><span class="org-rainbow-delimiters-depth-2">)</span> <span class="org-rainbow-delimiters-depth-1">]</span>
+
+    <span class="org-preprocessor"><span class="org-rainbow-delimiters-depth-1">[</span></span><span class="org-preprocessor">&lt;EntryPoint&gt;</span><span class="org-preprocessor"><span class="org-rainbow-delimiters-depth-1">]</span></span>
+    <span class="org-keyword">let</span> <span class="org-function-name">main</span> <span class="org-variable-name">args</span> =
+    <span class="org-comment-delimiter">// </span><span class="org-comment">This allows running with different arguments from the command line,</span>
+    <span class="org-comment-delimiter">// </span><span class="org-comment">as well as via `dotnet test`</span>
+    runTestsWithCLIArgs <span class="org-rainbow-delimiters-depth-1">[]</span> args tests
+    </pre>
+    </div>
+
+    <p>
+    And then we can run it from the root of our project:
+    </p>
+
+    <div class="org-src-container">
+    <pre class="src src-shell">CalDance on &#57504; main via &#10052;&#65039;  impure <span class="org-rainbow-delimiters-depth-1">(</span>nix-shell<span class="org-rainbow-delimiters-depth-1">)</span>
+    &#10095; dotnet run --project  Server.Test
+    <span class="org-comment-delimiter"># </span><span class="org-comment">snipped warning messages about FSharp.Core versions</span>
+    <span class="org-rainbow-delimiters-depth-1">[</span><span class="org-highlight-numbers-number">15:59:00</span> INF<span class="org-rainbow-delimiters-depth-1">]</span> EXPECTO? Running tests... &lt;Expecto&gt;
+    <span class="org-rainbow-delimiters-depth-1">[</span><span class="org-highlight-numbers-number">15:59:00</span> INF<span class="org-rainbow-delimiters-depth-1">]</span> EXPECTO! <span class="org-highlight-numbers-number">1</span> tests run<span class="org-keyword"> in</span> <span class="org-highlight-numbers-number">00:00:00.0262215</span> for My list.hello &#8211; <span class="org-highlight-numbers-number">1</span> passed, <span class="org-highlight-numbers-number">0</span> ignored, <span class="org-highlight-numbers-number">0</span> failed, <span class="org-highlight-numbers-number">0</span> errored. Success! &lt;Expecto&gt;
+
+    CalDance on &#57504; main via &#10052;&#65039;  impure <span class="org-rainbow-delimiters-depth-1">(</span>nix-shell<span class="org-rainbow-delimiters-depth-1">)</span>
+    &#10095;
+    </pre>
+    </div>
+
+    <p>
+    The current version of Expecto hasn't been updated to the latest FSharp.Core yet but it appears to work fine so we'll just keep an eye on that for now.
     </p>
     </div>
     </div>
 
-    <div id="outline-container-orgf37c61f" class="outline-4">
-    <h4 id="orgf37c61f"><span class="section-number-4">1.11.6.</span> Feedback? Comments?</h4>
-    <div class="outline-text-4" id="text-1-11-6">
+    <div id="outline-container-org5476083" class="outline-3">
+    <h3 id="org5476083"><span class="section-number-3">1.3.</span> Testing (CI)</h3>
+    <div class="outline-text-3" id="text-1-3">
     <p>
-    Have questions? Comments? Hate something, love something, know a better way of doing something? Drop an issue on the repository at <a href="https://gitlab.com/mavnn/caldance">https://gitlab.com/mavnn/caldance</a> and let me know. I'll be pointing a tag at the commit referenced by each blog post, so I can always branch off and include your ideas in a future revision!
+    Now though, we have a problem. The promise of using Nix was that we wouldn't need to configure CI with lots of setup for things likes tests because our build environment is self contained, and that we could incrementally and deterministically build our sub-components. But now we either create a single nix derivation that has both our projects in, or we need to somehow package the tests separately. We don't want to create a joint derivation because we're compiling down our server code into a self contained enclosure including its own copy of the dotnet runtime.
+    </p>
+
+    <p>
+    But we can't reference that build output directly from our test project, because it <i>is</i> built as a self contained enclosure but in the test project we want to reference it as a library in a different executable.
+    </p>
+
+    <p>
+    This is where we play some slightly interesting tricks to get all the properties we want. Do you remember above, where we put the output of the Fantomas derivation in the <code>bin</code> directory to declare that the file in question was an executable? Turns out that we can also put a file in the <code>share</code> directory to signify that it is available to other derivations but is not directly used by any executables in this one.
+    </p>
+
+    <p>
+    It also turns out that the way the F# helpers in nix manage incremental builds is by assuming that F# nix derivations will provide a Nuget package in the <code>share</code> directory. This means that we can build the server code once as a self-contained executable and put it in the <code>bin</code> folder, but we can <i>also</i> build it again without the self-contained flag and package it into the <code>share</code> folder by adding a hook to our derivation:
+    </p>
+
+    <div class="org-src-container">
+    <pre class="src src-nix"><span class="org-comment-delimiter"># </span><span class="org-comment">... snip ...</span>
+    <span class="org-nix-attribute">postInstall</span> = <span class="org-string">''</span>
+    <span class="org-string">  </span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-1">{</span></span>dnc.sdk_8_0<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-1">}</span></span><span class="org-string">/bin/dotnet \</span>
+    <span class="org-string">      pack \</span>
+    <span class="org-string">      -p:ContinuousIntegrationBuild=true \</span>
+    <span class="org-string">      -p:Deterministic=true \</span>
+    <span class="org-string">      --output "$out/share" \</span>
+    <span class="org-string">      --configuration "Release"</span>
+    <span class="org-string">''</span>;
+    <span class="org-comment-delimiter"># </span><span class="org-comment">... snip ...</span>
+    </pre>
+    </div>
+
+    <p>
+    We'll move the derivation into <a href="https://gitlab.com/mavnn/caldance/-/blob/adfe02a71f7193e93fdefd7518f465e592ead6d8/nix/server.test.nix">its own file</a> while we're at it to stop the main <code>flake.nix</code> file getting too confusing and noisy, and start passing in things like the dotnet core version and project name as variables to make it easier to keeps changes between components in sync.
+    </p>
+
+    <p>
+    Aside: there is actually a helpful boolean flag that can be used to pack F# libraries but it fairly reasonably complains if you try and package a self-contained build.
+    </p>
+
+    <p>
+    This in turn allows us to define a derivation for the <a href="https://gitlab.com/mavnn/caldance/-/blob/adfe02a71f7193e93fdefd7518f465e592ead6d8/nix/server.test.nix">test project</a> which looks very similar to the server derivation, just that it takes to server derivation as an argument so that it can declare a project reference on it along with all the previous arguments.
+    </p>
+
+    <p>
+    <b>Quirk alert</b>: this works very, very, well giving us cached incremental builds but it does also require us to add a conditional <i>package</i> dependency on the server to our test project for the build to complete successfully under Nix. This means you end up with a project file that contains something like:
+    </p>
+
+    <div class="org-src-container">
+    <pre class="src src-xml"><span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">ItemGroup</span><span class="org-nxml-tag-delimiter">&gt;</span>
+    <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">ProjectReference</span> <span class="org-nxml-attribute-local-name">Include</span>=<span class="org-string">"..\Server\CalDance.Server.fsproj"</span> <span class="org-nxml-tag-slash">/</span><span class="org-nxml-tag-delimiter">&gt;</span>
+    <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">PackageReference</span> <span class="org-nxml-attribute-local-name">Include</span>=<span class="org-string">"CalDance.Server"</span> <span class="org-nxml-attribute-local-name">Version</span>=<span class="org-string">"*"</span> <span class="org-nxml-attribute-local-name">Condition</span>=<span class="org-string">" '$(ContinuousIntegrationBuild)'=='true' "</span> <span class="org-nxml-tag-slash">/</span><span class="org-nxml-tag-delimiter">&gt;</span>
+    <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-tag-slash">/</span><span class="org-nxml-element-local-name">ItemGroup</span><span class="org-nxml-tag-delimiter">&gt;</span>
+    </pre>
+    </div>
+
+    <p>
+    To finish off our test setup, we add a new output to our flake file - a request for a JUnit formatted xml file containing our test results.
+    </p>
+
+    <div class="org-src-container">
+    <pre class="src src-nix"><span class="org-nix-attribute">packages.test</span> = pkgs.stdenv.mkDerivation <span class="org-rainbow-delimiters-depth-1">{</span>
+    <span class="org-nix-attribute">name</span> = <span class="org-string">"</span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-2">{</span></span>baseName<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-2">}</span></span><span class="org-string">.TestResults"</span>;
+    <span class="org-nix-attribute">version</span> = version;
+    <span class="org-nix-attribute">unpackPhase</span> = <span class="org-string">"true"</span>;
+
+    <span class="org-nix-attribute">installPhase</span> = <span class="org-string">''</span>
+    <span class="org-string">    </span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-2">{</span></span>testExecutable<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-2">}</span></span><span class="org-string">/bin/CalDance.Server.Test --junit-summary $out/server.test.junit.xml</span>
+    <span class="org-string">  ''</span>;
+    <span class="org-rainbow-delimiters-depth-1">}</span>;
+    </pre>
+    </div>
+
+    <p>
+    Now we can run <code>nix build .#test</code> in our root directory and we will get a result directory containing the test results (which will be cached unless the code of either the server or the test project changes).
+    </p>
+
+    <p>
+    Some boiler plate additions to the GitLab CI configuration finishes things off; we tell the build to build both <code>.#dockerImage</code> <i>and</i> <code>.#test</code> (which nix will happily build run in parallel for us) and then copy the test results to a folder in the actual build directory which we tell GitLab contains junit xml results. This is needed because the <code>result-1</code> directory they are created in is a symlink to the a hash addressable store that nix uses, and it turns out GitLab's build artifact upload mechanism can't follow the symlink.
+    </p>
+
+    <div class="org-src-container">
+    <pre class="src src-yaml"><span class="org-comment-delimiter"># </span><span class="org-comment">Nothing before the build command in the script has changed since the previous post</span>
+    - <span class="org-string">'nix build .#dockerImage .#test'</span>
+    - mkdir testResults
+    - <span class="org-string">'cp result-1/* testResults'</span>
+    - ls -lh ./result
+    - <span class="org-string">'skopeo inspect docker-archive://$(readlink -f ./result)'</span>
+    - <span class="org-string">'skopeo copy docker-archive://$(readlink -f ./result) docker://$IMAGE_TAG'</span>
+    <span class="org-variable-name">artifacts</span>:
+    <span class="org-variable-name">when</span>: always
+    <span class="org-variable-name">paths</span>:
+    - <span class="org-string">'testResults/*.xml'</span>
+    <span class="org-variable-name">reports</span>:
+    <span class="org-variable-name">junit</span>: <span class="org-string">'testResults/*.xml'</span>
+    </pre>
+    </div>
+    </div>
+    </div>
+
+    <div id="outline-container-orgd563f27" class="outline-3">
+    <h3 id="orgd563f27"><span class="section-number-3">1.4.</span> Wrapping it all up</h3>
+    <div class="outline-text-3" id="text-1-4">
+    <p>
+    That seems like a nice breaking off point for now. In this next stage we have:
     </p>
     </div>
+    </div>
+
+    <div id="outline-container-org2b7b89b" class="outline-3">
+    <h3 id="org2b7b89b"><span class="section-number-3">1.5.</span> Provided shared versions of formatting tools to help keep the code base consistent</h3>
+    <div class="outline-text-3" id="text-1-5">
+    </div>
+    </div>
+    <div id="outline-container-org31111e8" class="outline-3">
+    <h3 id="org31111e8"><span class="section-number-3">1.6.</span> Added a test project to allow us to unit test our code</h3>
+    <div class="outline-text-3" id="text-1-6">
+    </div>
+    </div>
+    <div id="outline-container-org2ab70e2" class="outline-3">
+    <h3 id="org2ab70e2"><span class="section-number-3">1.7.</span> Updated CI to run and report on those tests</h3>
+    <div class="outline-text-3" id="text-1-7">
+    </div>
+    </div>
+    <div id="outline-container-org1d7d571" class="outline-3">
+    <h3 id="org1d7d571"><span class="section-number-3">1.8.</span> Created a standard pattern for being able to add more F# projects to our repository which will all be built deterministically and for which the build results can be independently cached</h3>
+    <div class="outline-text-3" id="text-1-8">
+    <p>
+    As always, if you have questions or comments on what's happened so far then leave an issue on the <a href="https://gitlab.com/mavnn/caldance/-/issues">CalDance GitLab repository</a>. And as a thank you note for reading this far (and to see if anyone actually is!) we now have a bonus "choose your own adventure" poll.
+    </p>
+
+    <p>
+    If you'd like to see the next post focusing on testing the code we already have, hit the thumbs up on <a href="https://gitlab.com/mavnn/caldance/-/issues/1">this issue</a>.
+    </p>
+
+    <p>
+    If you'd like to see the next post starting to actually hook up a form and a data store, hit the thumbs up on <a href="https://gitlab.com/mavnn/caldance/-/issues/2">this issue instead</a>!
+    </p>
     </div>
     </div>
     ]]></description>
+</item>
+<item>
+  <title>Foundations: Dev Journal 1</title>
+  <link>https://blog.mavnn.co.uk/2024/01/31/dev-journal-1.html</link>
+  <author>michael@mavnn.eu (Michael Newton)</author>
+  <guid isPermaLink="false">https://blog.mavnn.co.uk/2024/01/31/dev-journal-1.html</guid>
+  <pubDate>Wed, 31 Jan 2024 00:00:00 +0100</pubDate>
+
+  <description><![CDATA[<p>
+  This is something a little bit new. A series I'm starting that documents the building of a simple project from the ground up using a set of tools and techniques I've come to either really like, or that I'd like to try out.
+  </p>
+
+  <p>
+  On the one hand this is a personal project. On the other, I'd like to take advantage of nice things like CI/CD, testing, etc, even when I'm working on something for myself. So this is also a mini-tour of many of the things I would do setting up a new greenfield project for a team.
+  </p>
+
+  <p>
+  As the series progresses, I'll carry on adding the sections here.
+  </p>
+
+  <p>
+  <b>The series so far</b>
+  </p>
+
+  <div id="outline-container-org123c4f4" class="outline-3">
+  <h3 id="org123c4f4"><span class="section-number-3">2.1.</span> <a href="https://blog.mavnn.co.uk/2024/01/31/dev-journal-1.html">Foundations</a>: Build and package</h3>
+  <div class="outline-text-3" id="text-2-1">
+  </div>
+  </div>
+  <div id="outline-container-org7edff1f" class="outline-3">
+  <h3 id="org7edff1f"><span class="section-number-3">2.2.</span> <a href="../../../2024/02/06/dev-journal-2.html">Scaffolding</a>: Testing and consistency</h3>
+  <div class="outline-text-3" id="text-2-2">
+  </div>
+  </div>
+
+  <div id="outline-container-org27b3330" class="outline-3">
+  <h3 id="org27b3330"><span class="section-number-3">2.3.</span> Part 1: Foundations</h3>
+  <div class="outline-text-3" id="text-2-3">
+  <p>
+  Our application will eventually be a little web site for <code>redacted in case I change my mind</code>. I'm going to be using mix of tried and new tech (for me personally).
+  </p>
+
+  <p>
+  On the things I'd like to try front, we have:
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-orgdf6c7e5" class="outline-3">
+  <h3 id="orgdf6c7e5"><span class="section-number-3">2.4.</span> <a href="https://htmx.org/">htmx</a> (probably with <a href="https://bulma.io/">bulma</a> for initial styling) to provide the UI. This isn't going to be hugely interactive application, it is mostly going to collect information from forms, and display nice looking output tables so htmx's server side rendering model seems a perfect fit. I've used server side rendering in other projects and liked it, and htmx seems a low impact way to take that to the next level.</h3>
+  <div class="outline-text-3" id="text-2-4">
+  </div>
+  </div>
+  <div id="outline-container-org79298f4" class="outline-3">
+  <h3 id="org79298f4"><span class="section-number-3">2.5.</span> <a href="https://www.falcoframework.com/">falco</a> for writing the backend server in F#. <a href="https://xyncro.github.io/sites-freya.io/">Freya</a>, my webserver of choice for F# back in the day, is no longer actively maintained but it looks like Falco has taken some of its nicer features and done its own thing with them.</h3>
+  <div class="outline-text-3" id="text-2-5">
+  <p>
+  On the technologies I've used before and found useful front, we have:
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-org702015c" class="outline-3">
+  <h3 id="org702015c"><span class="section-number-3">2.6.</span> <a href="https://nixos.org/">nix</a> to give a version controlled build/development environments and reproducible packaging.</h3>
+  <div class="outline-text-3" id="text-2-6">
+  </div>
+  </div>
+  <div id="outline-container-orgd8bd995" class="outline-3">
+  <h3 id="orgd8bd995"><span class="section-number-3">2.7.</span> <a href="https://direnv.net/">direnv</a> for seamless local development environments.</h3>
+  <div class="outline-text-3" id="text-2-7">
+  </div>
+  </div>
+  <div id="outline-container-orgf005bdb" class="outline-3">
+  <h3 id="orgf005bdb"><span class="section-number-3">2.8.</span> <a href="https://github.com/JasperFx/marten">marten</a> from the "Critter Stack" as an event store on top of postgresql to build our datastore.</h3>
+  <div class="outline-text-3" id="text-2-8">
+  </div>
+  </div>
+  <div id="outline-container-org462bd77" class="outline-3">
+  <h3 id="org462bd77"><span class="section-number-3">2.9.</span> <a href="https://gitlab.com/">gitlab</a> for code repository, container registry and CI/CD pipeline.</h3>
+  <div class="outline-text-3" id="text-2-9">
+  <p>
+  I'm not sure how far I'm going to take this experiment publicly, but what I'm going to focus on first is just the basics of any online app: people being able to sign up, log in, and manage an account for a paid service. At least that far the whole project will be MIT licensed, so if you like what you see you can just pick it up and use it as a starter template for your own project.
+  </p>
+
+  <p>
+  For today, let's start with a <i>minimum deployable product</i>: a "Hello world" Falco server with CI/CD pipeline in place. We'll have a gitlab hosted project anybody with a working nix environment can pull down and:
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-org555bb92" class="outline-3">
+  <h3 id="org555bb92"><span class="section-number-3">2.10.</span> run <code>nix run</code> and have a webserver running locally that will respond to get requests to <code>/</code> with "Hello world"</h3>
+  <div class="outline-text-3" id="text-2-10">
+  </div>
+  </div>
+  <div id="outline-container-org38a940e" class="outline-3">
+  <h3 id="org38a940e"><span class="section-number-3">2.11.</span> run <code>nix build .#dockerImage</code> to build a docker image with the same architecture they're using (i.e. <code>aarch64-darwin</code> if you run it on a Mac)</h3>
+  <div class="outline-text-3" id="text-2-11">
+  </div>
+  </div>
+  <div id="outline-container-org9ed8902" class="outline-3">
+  <h3 id="org9ed8902"><span class="section-number-3">2.12.</span> by pushing a commit to gitlab trigger a CI pipeline building said docker image for <code>x86_64-linux</code> and pushing it to a package registry ready to deploy</h3>
+  <div class="outline-text-3" id="text-2-12">
+  <p>
+  Enough bullet points. What did I actually do? (Sneak preview: <a href="https://gitlab.com/mavnn/caldance/-/tree/6b39d13d98199220d623870faf2b49fbda58d8a5">browse the gitlab repo at the time of the commit that this post describes</a>)
+  </p>
+  </div>
+
+  <div id="outline-container-orga504bc2" class="outline-4">
+  <h4 id="orga504bc2"><span class="section-number-4">2.12.1.</span> Setup a nix flake to provide our environment</h4>
+  <div class="outline-text-4" id="text-2-12-1">
+  <p>
+  A nix "flake" is a declarative description of a set of packages we'd like to be able to reference. You can read the <a href="https://gitlab.com/mavnn/caldance/-/blob/6b39d13d98199220d623870faf2b49fbda58d8a5/flake.nix">whole file</a> but the important part for today is that our <code>flake.nix</code> file specifies three outputs in this stanza:
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-nix"><span class="org-comment-delimiter"># </span><span class="org-comment">Tools we want available during development</span>
+  <span class="org-nix-attribute">devShells.default</span> = pkgs.mkShell <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-nix-attribute">buildInputs</span> = <span class="org-rainbow-delimiters-depth-2">[</span> dnc.sdk_8_0 pkgs.nixfmt pkgs.skopeo <span class="org-rainbow-delimiters-depth-2">]</span>;
+  <span class="org-rainbow-delimiters-depth-1">}</span>;
+
+  <span class="org-comment-delimiter"># </span><span class="org-comment">Default result of running `nix build` with this</span>
+  <span class="org-comment-delimiter"># </span><span class="org-comment">flake; it builds the F# project `CalDance.fsproj`</span>
+  <span class="org-nix-attribute">packages.default</span> = pkgs.buildDotnetModule <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-nix-attribute">pname</span> = name;
+  <span class="org-nix-attribute">version</span> = <span class="org-string">"0.1"</span>;
+
+  <span class="org-nix-attribute">src</span> = <span class="org-nix-constant">./.</span>;
+  <span class="org-nix-attribute">projectFile</span> = <span class="org-string">"CalDance.fsproj"</span>;
+  <span class="org-nix-attribute">nugetDeps</span> = nugets;
+
+  <span class="org-comment"># We set nix to create an output that contains</span>
+  <span class="org-comment"># everything needed, rather than depending</span>
+  <span class="org-comment"># on the dotnet runtime</span>
+  <span class="org-nix-attribute">selfContainedBuild</span> = <span class="org-nix-builtin">true</span>;
+
+  <span class="org-nix-attribute">dotnet-sdk</span> = dnc.sdk_8_0;
+  <span class="org-nix-attribute">dotnet-runtime</span> = dnc.runtime_8_0;
+  <span class="org-nix-attribute">executables</span> = <span class="org-rainbow-delimiters-depth-2">[</span> <span class="org-string">"CalDance"</span> <span class="org-rainbow-delimiters-depth-2">]</span>;
+  <span class="org-rainbow-delimiters-depth-1">}</span>;
+
+  <span class="org-comment-delimiter"># </span><span class="org-comment">A target that builds a fully self-contained docker</span>
+  <span class="org-comment-delimiter"># </span><span class="org-comment">file with the project above</span>
+  <span class="org-nix-attribute">packages.dockerImage</span> = pkgs.dockerTools.buildImage <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-nix-attribute">name</span> = name;
+  <span class="org-nix-attribute">config</span> = <span class="org-rainbow-delimiters-depth-2">{</span>
+  <span class="org-nix-attribute">Cmd</span> = <span class="org-rainbow-delimiters-depth-3">[</span> <span class="org-string">"</span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-4">{</span></span>packages.default<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-4">}</span></span><span class="org-string">/bin/CalDance"</span> <span class="org-rainbow-delimiters-depth-3">]</span>;
+  <span class="org-nix-attribute">Env</span> = <span class="org-rainbow-delimiters-depth-3">[</span> <span class="org-string">"DOTNET_EnableDiagnostics=0"</span> <span class="org-rainbow-delimiters-depth-3">]</span>;
+  <span class="org-rainbow-delimiters-depth-2">}</span>;
+  <span class="org-rainbow-delimiters-depth-1">}</span>;
+  </pre>
+  </div>
+
+  <p>
+  First we say we want a shell environment which includes the dotnet core SDK (version 8), nixfmt (for formatting nix files), and skopeo which we can use for moving docker images around.
+  </p>
+
+  <p>
+  Then we define the default output for this flake: it uses the <code>buildDotnetModule</code> to specify that in our case it should build the executable <code>CalDance</code> based on the F# project file <code>CalDance.fsproj</code>. A helper makes sure that Nix is aware of which nuget packages the project has referenced, so that they can be packaged correctly.
+  </p>
+
+  <p>
+  Finally, we define the <code>dockerImage</code> which uses the <code>dockerTools.buildImage</code> helper to say we want to be able to build a docker image that contains the executable from the default package above, everything it needs to run and <i>nothing else at all</i>. In our case, this produces a docker image weighing in at around 80MB - similar to what you'd get optimising a <a href="https://blogit.create.pt/telmorodrigues/2022/03/08/smaller-net-6-docker-images/">two step hand crafted dockerfile</a>, and significantly smaller than using the official <a href="https://hub.docker.com/_/microsoft-dotnet-aspnet/">Microsoft ASP.NET runtime image</a>.
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-org3faadba" class="outline-4">
+  <h4 id="org3faadba"><span class="section-number-4">2.12.2.</span> direnv</h4>
+  <div class="outline-text-4" id="text-2-12-2">
+  <p>
+  Direnv is a tool that can add environment variables to your shell when you enter a directory. It also, conveniently, knows about Nix flakes.
+  </p>
+
+  <p>
+  We add a <code>.envrc</code> file to our project with the contents:
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-bash"><span class="org-comment-delimiter">#</span><span class="org-comment">!/usr/bin/</span><span class="org-keyword">env</span><span class="org-comment"> bash</span>
+  <span class="org-comment-delimiter"># </span><span class="org-comment">the shebang is ignored, but nice for editors</span>
+  use flake
+  </pre>
+  </div>
+
+  <p>
+  Next time we move into this directory, direnv will ask us to allow this <code>.envrc</code> file. If we accept, our normal local shell will have everything specified in the <code>devShell</code> above added to its path. This means we can, for example, use the <code>dotnet</code> command and we will use the version specified in <code>flake.nix</code> even if we haven't installed a system wide version of dotnet at all.
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-org55ce778" class="outline-4">
+  <h4 id="org55ce778"><span class="section-number-4">2.12.3.</span> The F# project</h4>
+  <div class="outline-text-4" id="text-2-12-3">
+  <p>
+  There's absolutely nothing special about this at all. I just created an F# project with <code>dotnet</code> on the command line, moved <code>Program.fs</code> into a sub directory called <code>src</code> because I prefer it that way, and then added a package dependency on <code>Falco</code> using <code>dotnet add package Falco</code>.
+  </p>
+
+  <p>
+  Replace the contents of <code>Program.fs</code> with:
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-fsharp"><span class="org-keyword">module</span> <span class="org-type">Mavnn.CalDance.Server</span>
+
+  <span class="org-keyword">open</span> <span class="org-type">Falco</span>
+  <span class="org-keyword">open</span> <span class="org-type">Falco.Routing</span>
+  <span class="org-keyword">open</span> <span class="org-type">Falco.HostBuilder</span>
+
+  webHost <span class="org-rainbow-delimiters-depth-1">[</span>||<span class="org-rainbow-delimiters-depth-1">]</span> <span class="org-rainbow-delimiters-depth-1">{</span>
+  endpoints <span class="org-rainbow-delimiters-depth-2">[</span>
+  get <span class="org-string">"/"</span> <span class="org-rainbow-delimiters-depth-3">(</span>Response.ofPlainText <span class="org-string">"Hello World"</span><span class="org-rainbow-delimiters-depth-3">)</span>
+  <span class="org-rainbow-delimiters-depth-2">]</span>
+  <span class="org-rainbow-delimiters-depth-1">}</span>
+  </pre>
+  </div>
+  </div>
+  </div>
+
+  <div id="outline-container-orgb6f833b" class="outline-4">
+  <h4 id="orgb6f833b"><span class="section-number-4">2.12.4.</span> Set up the CI pipeline</h4>
+  <div class="outline-text-4" id="text-2-12-4">
+  <p>
+  Having used Nix for our development environment, our CI pipeline becomes exceedingly straight forward. All we need is a build container with Nix available and we have all the other information we need for the build already. Nix themselves provide a <code>nixos/nix</code> image (Nix is the package manager, NixOS is the linux distribution that uses Nix as its package manager) so we'll just use that.
+  </p>
+
+  <p>
+  There's a little bit of boilerplate to tell nix that we want to allow flakes and to allow connection to the gitlab package registry. Once that is done, we log into the registry for this project using the CI provided environment variables, run <code>nix build .#dockerImage</code> and then push the results up to the registry.
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-yaml"><span class="org-variable-name">build-container</span>:
+  <span class="org-variable-name">image</span>:
+  <span class="org-variable-name">name</span>: <span class="org-string">"nixos/nix:2.19.3"</span>
+  <span class="org-variable-name">variables</span>:
+  <span class="org-variable-name">IMAGE_TAG</span>: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+  <span class="org-variable-name">before_script</span>:
+  - nix-env --install --attr nixpkgs.skopeo
+  <span class="org-variable-name">script</span>:
+  - mkdir -p <span class="org-string">"$HOME/.config/nix"</span>
+  - echo <span class="org-string">'experimental-features = nix-command flakes'</span> &gt; <span class="org-string">"$HOME/.config/nix/nix.conf"</span>
+  - mkdir -p <span class="org-string">"/etc/containers/"</span>
+  - echo <span class="org-string">'{"default":[{"type":"insecureAcceptAnything"}]}'</span> &gt; /etc/containers/policy.json
+  - skopeo login --username <span class="org-string">"$CI_REGISTRY_USER"</span> --password <span class="org-string">"$CI_REGISTRY_PASSWORD"</span> <span class="org-string">"$CI_REGISTRY"</span>
+  - <span class="org-string">'nix build .#dockerImage'</span>
+  - ls -lh ./result
+  - <span class="org-string">'skopeo inspect docker-archive://$(readlink -f ./result)'</span>
+  - <span class="org-string">'skopeo copy docker-archive://$(readlink -f ./result) docker://$IMAGE_TAG'</span>
+  </pre>
+  </div>
+
+  <p>
+  It's worth noting here that Nix is a deterministic build system (for example, stripping dates from compiled metadata so building the same source code on a different day doesn't product a different binary). In a "real life" context I would be caching the results of the nix build steps to a service like <a href="https://www.cachix.org/">Cachix</a> so that they could be reused between builds, which becomes increasingly useful as the project grows and starts to be comprised of multiple build steps (Nix will be able to cache each "step" individually, even if you only ask for the final outcome of the process).
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-org5742e94" class="outline-4">
+  <h4 id="org5742e94"><span class="section-number-4">2.12.5.</span> Wrapping it all up</h4>
+  <div class="outline-text-4" id="text-2-12-5">
+  <p>
+  Not a bad first days work, I'd say. Our project is already at a stage that we can work on it with standard .NET tooling (for instance, adding a new nuget package with <code>dotnet package add ...</code> will automatically flow through to that package being added to the docker image) and CI will produce on push a lean deployable artifact. Versions of <i>everything</i> we are using from the .NET SDK to the nuget package we're depending on are fixed across all environments, and we have a nice place to add more developer tooling as we move forwards - for example standardizing the version of postgresql that will be used during development and in CI.
+  </p>
+
+  <p>
+  As a bonus extra, anybody with nix installed can build and run the project without having to know .NET or have any .NET tooling installed; a very nice feature when you have others depending on your work who might want to run your code locally, but may not have chosen the same tech stack.
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-orgf37c61f" class="outline-4">
+  <h4 id="orgf37c61f"><span class="section-number-4">2.12.6.</span> Feedback? Comments?</h4>
+  <div class="outline-text-4" id="text-2-12-6">
+  <p>
+  Have questions? Comments? Hate something, love something, know a better way of doing something? Drop an issue on the repository at <a href="https://gitlab.com/mavnn/caldance">https://gitlab.com/mavnn/caldance</a> and let me know. I'll be pointing a tag at the commit referenced by each blog post, so I can always branch off and include your ideas in a future revision!
+  </p>
+  </div>
+  </div>
+  </div>
+  ]]></description>
 </item>
 <item>
   <title>Short term help</title>
@@ -323,61 +701,73 @@
   <h2>Table of Contents</h2>
   <div id="text-table-of-contents" role="doc-toc">
   <ul>
-  <li><a href="#orgb07e2af">1. Foundations: Dev Journal 1</a>
+  <li><a href="#orga42f765">1. Scaffolding: Dev Journal 2</a>
   <ul>
-  <li><a href="#org8ac6b91">1.1. Foundations</a></li>
-  <li><a href="#org27b3330">1.2. Part 1: Foundations</a></li>
-  <li><a href="#orgdf6c7e5">1.3. htmx (probably with bulma for initial styling) to provide the UI. This isn't going to be hugely interactive application, it is mostly going to collect information from forms, and display nice looking output tables so htmx's server side rendering model seems a perfect fit. I've used server side rendering in other projects and liked it, and htmx seems a low impact way to take that to the next level.</a></li>
-  <li><a href="#org79298f4">1.4. falco for writing the backend server in F#. Freya, my webserver of choice for F# back in the day, is no longer actively maintained but it looks like Falco has taken some of its nicer features and done its own thing with them.</a></li>
-  <li><a href="#org702015c">1.5. nix to give a version controlled build/development environments and reproducible packaging.</a></li>
-  <li><a href="#orgd8bd995">1.6. direnv for seamless local development environments.</a></li>
-  <li><a href="#orgf005bdb">1.7. marten from the "Critter Stack" as an event store on top of postgresql to build our datastore.</a></li>
-  <li><a href="#org462bd77">1.8. gitlab for code repository, container registry and CI/CD pipeline.</a></li>
-  <li><a href="#org555bb92">1.9. run <code>nix run</code> and have a webserver running locally that will respond to get requests to <code>/</code> with "Hello world"</a></li>
-  <li><a href="#org38a940e">1.10. run <code>nix build .#dockerImage</code> to build a docker image with the same architecture they're using (i.e. <code>aarch64-darwin</code> if you run it on a Mac)</a></li>
-  <li><a href="#org9ed8902">1.11. by pushing a commit to gitlab trigger a CI pipeline building said docker image for <code>x86_64-linux</code> and pushing it to a package registry ready to deploy</a></li>
+  <li><a href="#org8b17705">1.1. Clarity and style</a></li>
+  <li><a href="#org5421bdf">1.2. Testing (local)</a></li>
+  <li><a href="#org5476083">1.3. Testing (CI)</a></li>
+  <li><a href="#orgd563f27">1.4. Wrapping it all up</a></li>
+  <li><a href="#org2b7b89b">1.5. Provided shared versions of formatting tools to help keep the code base consistent</a></li>
+  <li><a href="#org31111e8">1.6. Added a test project to allow us to unit test our code</a></li>
+  <li><a href="#org2ab70e2">1.7. Updated CI to run and report on those tests</a></li>
+  <li><a href="#org1d7d571">1.8. Created a standard pattern for being able to add more F# projects to our repository which will all be built deterministically and for which the build results can be independently cached</a></li>
   </ul>
   </li>
-  <li><a href="#orgf36a2e1">2. Short term help</a>
+  <li><a href="#orgb07e2af">2. Foundations: Dev Journal 1</a>
   <ul>
-  <li><a href="#orga0c7394">2.1. Consulting</a></li>
-  <li><a href="#org5824754">2.2. Build, packaging, and continuous integration</a></li>
-  <li><a href="#org7923241">2.3. Making sure that CI/CD is managed <b>in the code repository</b> so that running the build locally and on the build server does the same thing in the same way, and the build can evolve in a safe, version controlled way just like the rest of your code</a></li>
-  <li><a href="#org344ea6c">2.4. Helping trace and encode the <i>real</i> dependencies in your code base to unlock incremental, cachable build steps and reduce overall build times with concurrency</a></li>
-  <li><a href="#orgacb68ac">2.5. Split your test suite so tests can be run in parallel (yes, even integration tests) and then aggregate the results</a></li>
-  <li><a href="#org776f26e">2.6. Use tools like Nix or multi-step docker/podman builds to create minimal containers that only contain what they really need</a></li>
-  <li><a href="#orgf00d668">2.7. Architecture review</a></li>
-  <li><a href="#org60ad4b4">2.8. Code audit</a></li>
-  <li><a href="#org4252332">2.9. Technology evaluation</a></li>
-  <li><a href="#org956226c">2.10. Workshops and training</a></li>
-  <li><a href="#org79ebcf1">2.11. Domain driven design coaching</a></li>
-  <li><a href="#org53a56fc">2.12. Event sourcing</a></li>
-  <li><a href="#orgd23a09c">2.13. Teach property based testing</a></li>
-  <li><a href="#org3aa2a45">2.14. Bespoke software creation</a></li>
-  <li><a href="#orgc75d9bc">2.15. Build a tool/library</a></li>
-  <li><a href="#org235268e">2.16. Build a project skeleton</a></li>
-  <li><a href="#org93b1641">2.17. Logistics</a></li>
-  <li><a href="#org185d476">2.18. I will <i>always</i> want to have an extensive conversation(s) and will normally want to provide a quote before starting a short term piece of work. Book a slot to talk on Calendly or just send me an email (michael at mavnn.eu)</a></li>
-  <li><a href="#org35a3049">2.19. I currently live in Italy, about an hour away from Rome. I can offer all of the services above remotely. Asking me to attend in person will add travel costs and at least 2 billable days of my time.</a></li>
-  <li><a href="#orgcc5e0ce">2.20. You can hire me by the day, but in general for short term work I quote and then charge you for the work delivered rather than bill by unit time. I will consider discounts for non-profits, student organizations, etc. It it's easier for you, I can give a quote that includes all expenses rather than reclaiming them separately. (Hint: if you're in a large organization and this is the first time you're arranging to get a consultant in - <i>this will be easier for you</i>)</a></li>
-  <li><a href="#org228e7f2">2.21. In the rare occasion where it turns out that I cannot deliver what I promised (I'm just one human - things like illness can happen) I will let you know promptly, and before the work is due to be delivered, so we can renegotiate where to go from the reality of the situation.</a></li>
+  <li><a href="#org123c4f4">2.1. Foundations: Build and package</a></li>
+  <li><a href="#org7edff1f">2.2. Scaffolding: Testing and consistency</a></li>
+  <li><a href="#org27b3330">2.3. Part 1: Foundations</a></li>
+  <li><a href="#orgdf6c7e5">2.4. htmx (probably with bulma for initial styling) to provide the UI. This isn't going to be hugely interactive application, it is mostly going to collect information from forms, and display nice looking output tables so htmx's server side rendering model seems a perfect fit. I've used server side rendering in other projects and liked it, and htmx seems a low impact way to take that to the next level.</a></li>
+  <li><a href="#org79298f4">2.5. falco for writing the backend server in F#. Freya, my webserver of choice for F# back in the day, is no longer actively maintained but it looks like Falco has taken some of its nicer features and done its own thing with them.</a></li>
+  <li><a href="#org702015c">2.6. nix to give a version controlled build/development environments and reproducible packaging.</a></li>
+  <li><a href="#orgd8bd995">2.7. direnv for seamless local development environments.</a></li>
+  <li><a href="#orgf005bdb">2.8. marten from the "Critter Stack" as an event store on top of postgresql to build our datastore.</a></li>
+  <li><a href="#org462bd77">2.9. gitlab for code repository, container registry and CI/CD pipeline.</a></li>
+  <li><a href="#org555bb92">2.10. run <code>nix run</code> and have a webserver running locally that will respond to get requests to <code>/</code> with "Hello world"</a></li>
+  <li><a href="#org38a940e">2.11. run <code>nix build .#dockerImage</code> to build a docker image with the same architecture they're using (i.e. <code>aarch64-darwin</code> if you run it on a Mac)</a></li>
+  <li><a href="#org9ed8902">2.12. by pushing a commit to gitlab trigger a CI pipeline building said docker image for <code>x86_64-linux</code> and pushing it to a package registry ready to deploy</a></li>
   </ul>
   </li>
-  <li><a href="#org852a3df">3. Writing CVs for more senior roles</a></li>
-  <li><a href="#orgc6fb353">4. TypeScript Enums and Serialization</a></li>
+  <li><a href="#orgf36a2e1">3. Short term help</a>
+  <ul>
+  <li><a href="#orga0c7394">3.1. Consulting</a></li>
+  <li><a href="#org5824754">3.2. Build, packaging, and continuous integration</a></li>
+  <li><a href="#org7923241">3.3. Making sure that CI/CD is managed <b>in the code repository</b> so that running the build locally and on the build server does the same thing in the same way, and the build can evolve in a safe, version controlled way just like the rest of your code</a></li>
+  <li><a href="#org344ea6c">3.4. Helping trace and encode the <i>real</i> dependencies in your code base to unlock incremental, cachable build steps and reduce overall build times with concurrency</a></li>
+  <li><a href="#orgacb68ac">3.5. Split your test suite so tests can be run in parallel (yes, even integration tests) and then aggregate the results</a></li>
+  <li><a href="#org776f26e">3.6. Use tools like Nix or multi-step docker/podman builds to create minimal containers that only contain what they really need</a></li>
+  <li><a href="#orgf00d668">3.7. Architecture review</a></li>
+  <li><a href="#org60ad4b4">3.8. Code audit</a></li>
+  <li><a href="#org4252332">3.9. Technology evaluation</a></li>
+  <li><a href="#org956226c">3.10. Workshops and training</a></li>
+  <li><a href="#org79ebcf1">3.11. Domain driven design coaching</a></li>
+  <li><a href="#org53a56fc">3.12. Event sourcing</a></li>
+  <li><a href="#orgd23a09c">3.13. Teach property based testing</a></li>
+  <li><a href="#org3aa2a45">3.14. Bespoke software creation</a></li>
+  <li><a href="#orgc75d9bc">3.15. Build a tool/library</a></li>
+  <li><a href="#org235268e">3.16. Build a project skeleton</a></li>
+  <li><a href="#org93b1641">3.17. Logistics</a></li>
+  <li><a href="#org185d476">3.18. I will <i>always</i> want to have an extensive conversation(s) and will normally want to provide a quote before starting a short term piece of work. Book a slot to talk on Calendly or just send me an email (michael at mavnn.eu)</a></li>
+  <li><a href="#org35a3049">3.19. I currently live in Italy, about an hour away from Rome. I can offer all of the services above remotely. Asking me to attend in person will add travel costs and at least 2 billable days of my time.</a></li>
+  <li><a href="#orgcc5e0ce">3.20. You can hire me by the day, but in general for short term work I quote and then charge you for the work delivered rather than bill by unit time. I will consider discounts for non-profits, student organizations, etc. It it's easier for you, I can give a quote that includes all expenses rather than reclaiming them separately. (Hint: if you're in a large organization and this is the first time you're arranging to get a consultant in - <i>this will be easier for you</i>)</a></li>
+  <li><a href="#org228e7f2">3.21. In the rare occasion where it turns out that I cannot deliver what I promised (I'm just one human - things like illness can happen) I will let you know promptly, and before the work is due to be delivered, so we can renegotiate where to go from the reality of the situation.</a></li>
+  </ul>
+  </li>
+  <li><a href="#org852a3df">4. Writing CVs for more senior roles</a></li>
   </ul>
   </div>
   </nav>
 
   <div id="outline-container-orga0c7394" class="outline-3">
-  <h3 id="orga0c7394"><span class="section-number-3">2.1.</span> Consulting</h3>
-  <div class="outline-text-3" id="text-2-1">
+  <h3 id="orga0c7394"><span class="section-number-3">3.1.</span> Consulting</h3>
+  <div class="outline-text-3" id="text-3-1">
   </div>
   </div>
 
   <div id="outline-container-org5824754" class="outline-3">
-  <h3 id="org5824754"><span class="section-number-3">2.2.</span> Build, packaging, and continuous integration</h3>
-  <div class="outline-text-3" id="text-2-2">
+  <h3 id="org5824754"><span class="section-number-3">3.2.</span> Build, packaging, and continuous integration</h3>
+  <div class="outline-text-3" id="text-3-2">
   <p>
   I have spent a <i>lot</i> of time getting build, test, and deployment pipelines up and running. Most of the advice out there assumes that you are using one technology and you can just use "the build tool" for that stack. Reality tends to be more complicated than that, with many projects involving multiple languages, code generation, and extensive test set up.
   </p>
@@ -389,27 +779,27 @@
   </div>
 
   <div id="outline-container-org7923241" class="outline-3">
-  <h3 id="org7923241"><span class="section-number-3">2.3.</span> Making sure that CI/CD is managed <b>in the code repository</b> so that running the build locally and on the build server does the same thing in the same way, and the build can evolve in a safe, version controlled way just like the rest of your code</h3>
-  <div class="outline-text-3" id="text-2-3">
+  <h3 id="org7923241"><span class="section-number-3">3.3.</span> Making sure that CI/CD is managed <b>in the code repository</b> so that running the build locally and on the build server does the same thing in the same way, and the build can evolve in a safe, version controlled way just like the rest of your code</h3>
+  <div class="outline-text-3" id="text-3-3">
   </div>
   </div>
   <div id="outline-container-org344ea6c" class="outline-3">
-  <h3 id="org344ea6c"><span class="section-number-3">2.4.</span> Helping trace and encode the <i>real</i> dependencies in your code base to unlock incremental, cachable build steps and reduce overall build times with concurrency</h3>
-  <div class="outline-text-3" id="text-2-4">
+  <h3 id="org344ea6c"><span class="section-number-3">3.4.</span> Helping trace and encode the <i>real</i> dependencies in your code base to unlock incremental, cachable build steps and reduce overall build times with concurrency</h3>
+  <div class="outline-text-3" id="text-3-4">
   </div>
   </div>
   <div id="outline-container-orgacb68ac" class="outline-3">
-  <h3 id="orgacb68ac"><span class="section-number-3">2.5.</span> Split your test suite so tests can be run in parallel (yes, even integration tests) and then aggregate the results</h3>
-  <div class="outline-text-3" id="text-2-5">
+  <h3 id="orgacb68ac"><span class="section-number-3">3.5.</span> Split your test suite so tests can be run in parallel (yes, even integration tests) and then aggregate the results</h3>
+  <div class="outline-text-3" id="text-3-5">
   </div>
   </div>
   <div id="outline-container-org776f26e" class="outline-3">
-  <h3 id="org776f26e"><span class="section-number-3">2.6.</span> Use tools like Nix or multi-step docker/podman builds to create minimal containers that only contain what they really need</h3>
-  <div class="outline-text-3" id="text-2-6">
+  <h3 id="org776f26e"><span class="section-number-3">3.6.</span> Use tools like Nix or multi-step docker/podman builds to create minimal containers that only contain what they really need</h3>
+  <div class="outline-text-3" id="text-3-6">
   </div>
   <div id="outline-container-org57458bf" class="outline-4">
-  <h4 id="org57458bf"><span class="section-number-4">2.6.1.</span> bonus extra: doing this with Nix also gives you development environments as code and reproducible deployment artifacts - same code in, same container out</h4>
-  <div class="outline-text-4" id="text-2-6-1">
+  <h4 id="org57458bf"><span class="section-number-4">3.6.1.</span> bonus extra: doing this with Nix also gives you development environments as code and reproducible deployment artifacts - same code in, same container out</h4>
+  <div class="outline-text-4" id="text-3-6-1">
   <p>
   If this is a new product/project and you just want someone to make all these considerations go away I can also build you <a href="#org235268e">a project skeleton</a> with everything set up and ready to go for your preferred CI provider and deployment environment.
   </p>
@@ -418,8 +808,8 @@
   </div>
 
   <div id="outline-container-orgf00d668" class="outline-3">
-  <h3 id="orgf00d668"><span class="section-number-3">2.7.</span> Architecture review</h3>
-  <div class="outline-text-3" id="text-2-7">
+  <h3 id="orgf00d668"><span class="section-number-3">3.7.</span> Architecture review</h3>
+  <div class="outline-text-3" id="text-3-7">
   <p>
   Putting together a new project, or have a code base that's moving from "minimum viable" to "oh - I've got customers"? I can review your plans, or, given your constraints and objectives I can put together a suggested system architecture for you.
   </p>
@@ -439,8 +829,8 @@
   </div>
 
   <div id="outline-container-org60ad4b4" class="outline-3">
-  <h3 id="org60ad4b4"><span class="section-number-3">2.8.</span> Code audit</h3>
-  <div class="outline-text-3" id="text-2-8">
+  <h3 id="org60ad4b4"><span class="section-number-3">3.8.</span> Code audit</h3>
+  <div class="outline-text-3" id="text-3-8">
   <p>
   For ecosystems I've built decent sized projects in (.NET, TypeScript) I can spend some time reviewing your code and pointing out things you may want to improve.
   </p>
@@ -452,8 +842,8 @@
   </div>
 
   <div id="outline-container-org4252332" class="outline-3">
-  <h3 id="org4252332"><span class="section-number-3">2.9.</span> Technology evaluation</h3>
-  <div class="outline-text-3" id="text-2-9">
+  <h3 id="org4252332"><span class="section-number-3">3.9.</span> Technology evaluation</h3>
+  <div class="outline-text-3" id="text-3-9">
   <p>
   Considering buying a new service, picking up a new programming language, or changing to a new database library? I can do the research and evaluation you need based on your requirements. I've been helping drive technology choices in organizations for well over a decade now, and I can help you spot the good, the bad, and the ugly of the options you're considering. I may even be aware of options you haven't considered.
   </p>
@@ -461,8 +851,8 @@
   </div>
 
   <div id="outline-container-org956226c" class="outline-3">
-  <h3 id="org956226c"><span class="section-number-3">2.10.</span> Workshops and training</h3>
-  <div class="outline-text-3" id="text-2-10">
+  <h3 id="org956226c"><span class="section-number-3">3.10.</span> Workshops and training</h3>
+  <div class="outline-text-3" id="text-3-10">
   <p>
   Unlike more general consultancy, workshops on topics I know well such as the ones below are a fairly fixed commitment. If you're considering using your training budget, you can assume around 2500 euros/day for up to 6 people online. In person will increase the cost but allows for groups of up to 10 people.
   </p>
@@ -474,8 +864,8 @@
   </div>
 
   <div id="outline-container-org79ebcf1" class="outline-3">
-  <h3 id="org79ebcf1"><span class="section-number-3">2.11.</span> Domain driven design coaching</h3>
-  <div class="outline-text-3" id="text-2-11">
+  <h3 id="org79ebcf1"><span class="section-number-3">3.11.</span> Domain driven design coaching</h3>
+  <div class="outline-text-3" id="text-3-11">
   <p>
   At its heart, the promise of domain driven design is simple: a code base that uses the same language as the people using it do, so that developers and domain experts can accurately share understanding of what the code <i>should</i> do and why.
   </p>
@@ -491,8 +881,8 @@
   </div>
 
   <div id="outline-container-org53a56fc" class="outline-3">
-  <h3 id="org53a56fc"><span class="section-number-3">2.12.</span> Event sourcing</h3>
-  <div class="outline-text-3" id="text-2-12">
+  <h3 id="org53a56fc"><span class="section-number-3">3.12.</span> Event sourcing</h3>
+  <div class="outline-text-3" id="text-3-12">
   <p>
   Event sourcing is a technique for capturing all the events that "have happened" and using those to calculate the current state of your system.
   </p>
@@ -516,8 +906,8 @@
   </div>
 
   <div id="outline-container-orgd23a09c" class="outline-3">
-  <h3 id="orgd23a09c"><span class="section-number-3">2.13.</span> Teach property based testing</h3>
-  <div class="outline-text-3" id="text-2-13">
+  <h3 id="orgd23a09c"><span class="section-number-3">3.13.</span> Teach property based testing</h3>
+  <div class="outline-text-3" id="text-3-13">
   <p>
   I'm a huge fan of property based testing, and I'm more than happy to give interactive workshops on getting started with it in .NET, TypeScript, and probably other languages if you ask nicely. Why pay for this when you could download a conference talk about it for free (including ones I've given myself)? Because I'll use a piece of <i>your</i> code to get started with you will walk away with an up and running example in your code base. This will keep us focused on the reality of doing property based testing in practice rather than seeing the nice, easy, examples you tend to be shown in a 45 minute talk.
   </p>
@@ -525,14 +915,14 @@
   </div>
 
   <div id="outline-container-org3aa2a45" class="outline-3">
-  <h3 id="org3aa2a45"><span class="section-number-3">2.14.</span> Bespoke software creation</h3>
-  <div class="outline-text-3" id="text-2-14">
+  <h3 id="org3aa2a45"><span class="section-number-3">3.14.</span> Bespoke software creation</h3>
+  <div class="outline-text-3" id="text-3-14">
   </div>
   </div>
 
   <div id="outline-container-orgc75d9bc" class="outline-3">
-  <h3 id="orgc75d9bc"><span class="section-number-3">2.15.</span> Build a tool/library</h3>
-  <div class="outline-text-3" id="text-2-15">
+  <h3 id="orgc75d9bc"><span class="section-number-3">3.15.</span> Build a tool/library</h3>
+  <div class="outline-text-3" id="text-3-15">
   <p>
   I do just write good code as well. If you need a self contained library or a small solution built, I can do that for you. Whether it is parsing an obscure data format, efficient immutable directed graph data structures, or just a nice F# wrapper around a dotnet library, I will make sure it fits the style you're asking for and is well tested. Significant discounts apply if the results are going to be released under an open source licence.
   </p>
@@ -540,8 +930,8 @@
   </div>
 
   <div id="outline-container-org235268e" class="outline-3">
-  <h3 id="org235268e"><span class="section-number-3">2.16.</span> Build a project skeleton</h3>
-  <div class="outline-text-3" id="text-2-16">
+  <h3 id="org235268e"><span class="section-number-3">3.16.</span> Build a project skeleton</h3>
+  <div class="outline-text-3" id="text-3-16">
   <p>
   If you're starting a green field project, I can create a "skeleton" repository with a managed developer environment, CI/CD and testing story set up and ready to use. You and your team get to start with actually writing your product.
   </p>
@@ -549,8 +939,8 @@
   </div>
 
   <div id="outline-container-org93b1641" class="outline-3">
-  <h3 id="org93b1641"><span class="section-number-3">2.17.</span> Logistics</h3>
-  <div class="outline-text-3" id="text-2-17">
+  <h3 id="org93b1641"><span class="section-number-3">3.17.</span> Logistics</h3>
+  <div class="outline-text-3" id="text-3-17">
   <p>
   Let's cover the basics. I don't want us to waste time, so I'm going to try and keep this as straight forward as possible:
   </p>
@@ -558,28 +948,28 @@
   </div>
 
   <div id="outline-container-org185d476" class="outline-3">
-  <h3 id="org185d476"><span class="section-number-3">2.18.</span> I will <i>always</i> want to have an extensive conversation(s) and will normally want to provide a quote before starting a short term piece of work. Book a slot to talk on <a href="https://calendly.com/mavnn/1-hour-slot">Calendly</a> or just send me an email (michael at mavnn.eu)</h3>
-  <div class="outline-text-3" id="text-2-18">
+  <h3 id="org185d476"><span class="section-number-3">3.18.</span> I will <i>always</i> want to have an extensive conversation(s) and will normally want to provide a quote before starting a short term piece of work. Book a slot to talk on <a href="https://calendly.com/mavnn/1-hour-slot">Calendly</a> or just send me an email (michael at mavnn.eu)</h3>
+  <div class="outline-text-3" id="text-3-18">
   </div>
   </div>
   <div id="outline-container-org35a3049" class="outline-3">
-  <h3 id="org35a3049"><span class="section-number-3">2.19.</span> I currently live in Italy, about an hour away from Rome. I can offer all of the services above remotely. Asking me to attend in person will add travel costs and at least 2 billable days of my time.</h3>
-  <div class="outline-text-3" id="text-2-19">
+  <h3 id="org35a3049"><span class="section-number-3">3.19.</span> I currently live in Italy, about an hour away from Rome. I can offer all of the services above remotely. Asking me to attend in person will add travel costs and at least 2 billable days of my time.</h3>
+  <div class="outline-text-3" id="text-3-19">
   </div>
   </div>
   <div id="outline-container-orgcc5e0ce" class="outline-3">
-  <h3 id="orgcc5e0ce"><span class="section-number-3">2.20.</span> You can hire me by the day, but in general for short term work I quote and then charge you for the work delivered rather than bill by unit time. I will consider discounts for non-profits, student organizations, etc. It it's easier for you, I can give a quote that includes all expenses rather than reclaiming them separately. (Hint: if you're in a large organization and this is the first time you're arranging to get a consultant in - <i>this will be easier for you</i>)</h3>
-  <div class="outline-text-3" id="text-2-20">
+  <h3 id="orgcc5e0ce"><span class="section-number-3">3.20.</span> You can hire me by the day, but in general for short term work I quote and then charge you for the work delivered rather than bill by unit time. I will consider discounts for non-profits, student organizations, etc. It it's easier for you, I can give a quote that includes all expenses rather than reclaiming them separately. (Hint: if you're in a large organization and this is the first time you're arranging to get a consultant in - <i>this will be easier for you</i>)</h3>
+  <div class="outline-text-3" id="text-3-20">
   </div>
   <div id="outline-container-org4204bfd" class="outline-4">
-  <h4 id="org4204bfd"><span class="section-number-4">2.20.1.</span> I am VAT registered in the EU</h4>
-  <div class="outline-text-4" id="text-2-20-1">
+  <h4 id="org4204bfd"><span class="section-number-4">3.20.1.</span> I am VAT registered in the EU</h4>
+  <div class="outline-text-4" id="text-3-20-1">
   </div>
   </div>
   </div>
   <div id="outline-container-org228e7f2" class="outline-3">
-  <h3 id="org228e7f2"><span class="section-number-3">2.21.</span> In the rare occasion where it turns out that I cannot deliver what I promised (I'm just one human - things like illness can happen) I will let you know promptly, and before the work is due to be delivered, so we can renegotiate where to go from the reality of the situation.</h3>
-  <div class="outline-text-3" id="text-2-21">
+  <h3 id="org228e7f2"><span class="section-number-3">3.21.</span> In the rare occasion where it turns out that I cannot deliver what I promised (I'm just one human - things like illness can happen) I will let you know promptly, and before the work is due to be delivered, so we can renegotiate where to go from the reality of the situation.</h3>
+  <div class="outline-text-3" id="text-3-21">
   <p>
   That's about everything, I think.
   </p>
@@ -630,159 +1020,6 @@
 
   <p>
   One slight caveat: I did include my LinkedIn profile, which has all the gritty dates and things. It just wasn't what I chose to highlight in the part of the process that I can control. Your CV is your chance to control the narrative - take it.
-  </p>
-  ]]></description>
-</item>
-<item>
-  <title>TypeScript Enums and Serialization</title>
-  <link>https://blog.mavnn.co.uk/2022/11/24/typescript_enums_and_serialization.html</link>
-  <author>michael@mavnn.eu (Michael Newton)</author>
-  <guid isPermaLink="false">https://blog.mavnn.co.uk/2022/11/24/typescript_enums_and_serialization.html</guid>
-  <pubDate>Wed, 24 Jan 2024 00:00:00 +0100</pubDate>
-
-  <description><![CDATA[<p>
-  In general, TypeScript is <a href="../../../2022/01/07/types-in-typescript.html">not its own language</a> - it's a set of annotations that
-  can be added to JavaScript to help check the "correctness" of you program. The
-  authors have been very reluctant to add features to TypeScript that don't exist
-  in JavaScript, and so normally you can turn your TypeScript into JavaScript purely
-  by <i>deleting</i> the type annotations that you've added.
-  </p>
-
-  <p>
-  Enums, though, are a bit different. They actually generate JavaScript code based on
-  the TypeScript you write. Today, we're going to look at a piece of code that allows
-  you to deserialize enums with string values in a type safe manner. And we're going
-  to take advantage of the fact that enums (according to the TypeScript compiler) are
-  both a type, and a value with a different type - at the same time.
-  </p>
-
-  <p>
-  For context, we're going to be using <a href="https://www.npmjs.com/package/schemawax">SchemaWax</a> to create our decoder, so we can
-  build it into a larger contextual decoder as needed.
-  </p>
-
-  <p>
-  First: the code! If you already know SchemaWax, you don't care about types, and
-  you're here because it was a hit for "deserialize any enum" on Google this is
-  the bit to cut and paste.
-  </p>
-
-  <div class="org-src-container">
-  <pre class="src src-typescript"><span class="org-keyword">import</span> * <span class="org-keyword">as</span> D <span class="org-keyword">from</span> <span class="org-string">"schemawax"</span>
-
-  <span class="org-comment-delimiter">// </span><span class="org-comment">This is only type safe if passed a Enum with string values.</span>
-  <span class="org-comment-delimiter">// </span><span class="org-comment">I don't think there's anyway to stop someone passing { "boo": "broken" }</span>
-  <span class="org-comment-delimiter">// </span><span class="org-comment">in TypeScripts type system :(</span>
-  <span class="org-comment-delimiter">// </span><span class="org-comment">At least this stops us from rewriting the same unsafe code every time though.</span>
-  <span class="org-keyword">export</span> <span class="org-keyword">const</span> <span class="org-variable-name">stringEnumDecoder</span> = &lt;Enum <span class="org-typescript-access-modifier">extends</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-rainbow-delimiters-depth-2">[</span>name: <span class="org-typescript-primitive">string</span><span class="org-rainbow-delimiters-depth-2">]</span>: <span class="org-typescript-primitive">string</span> <span class="org-rainbow-delimiters-depth-1">}</span>&gt;<span class="org-rainbow-delimiters-depth-1">(</span>
-  targetEnum: <span class="org-type">Enum</span>,
-  <span class="org-rainbow-delimiters-depth-1">)</span>: D.Decoder&lt;<span class="org-type">Enum</span><span class="org-rainbow-delimiters-depth-1">[</span><span class="org-type">keyof</span> <span class="org-type">Enum</span><span class="org-rainbow-delimiters-depth-1">]</span>&gt; <span class="org-keyword">=&gt;</span> <span class="org-type">D</span>.<span class="org-function-name">literalUnion</span><span class="org-rainbow-delimiters-depth-1">(</span>...<span class="org-type">Object</span>.<span class="org-function-name">values</span><span class="org-rainbow-delimiters-depth-2">(</span><span class="org-type">targetEnum</span><span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span> <span class="org-type">as</span> <span class="org-type">D</span>.<span class="org-type">Decoder</span>&lt;<span class="org-type">Enum</span><span class="org-rainbow-delimiters-depth-1">[</span><span class="org-type">keyof</span> <span class="org-type">Enum</span><span class="org-rainbow-delimiters-depth-1">]</span>&gt;
-  </pre>
-  </div>
-
-  <p>
-  That's it. The whole thing. How do you use it?
-  </p>
-
-  <p>
-  Like this:
-  </p>
-
-  <div class="org-src-container">
-  <pre class="src src-typescript"><span class="org-keyword">import</span> * <span class="org-keyword">as</span> D <span class="org-keyword">from</span> <span class="org-string">"schemawax"</span>
-  <span class="org-keyword">import</span> <span class="org-rainbow-delimiters-depth-1">{</span> stringEnumDecoder <span class="org-rainbow-delimiters-depth-1">}</span> <span class="org-keyword">from</span> <span class="org-string">"./enum"</span>
-
-  <span class="org-keyword">enum</span> <span class="org-type">TestEnum1</span> <span class="org-rainbow-delimiters-depth-1">{</span>
-  <span class="org-string">"why"</span> = <span class="org-string">"would"</span>,
-  <span class="org-string">"anyone"</span> = <span class="org-string">"do"</span>,
-  <span class="org-string">"this"</span> = <span class="org-string">"!"</span>,
-  <span class="org-rainbow-delimiters-depth-1">}</span>
-
-  <span class="org-keyword">type</span> <span class="org-type">ObjectWithEnumField</span> = <span class="org-rainbow-delimiters-depth-1">{</span>
-  testEnum: <span class="org-type">TestEnum1</span>
-  name: <span class="org-typescript-primitive">string</span>
-  age?: <span class="org-typescript-primitive">number</span>
-  <span class="org-rainbow-delimiters-depth-1">}</span>
-
-  <span class="org-function-name">describe</span><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-string">"stringEnumDecoder"</span>, <span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-keyword">=&gt;</span> <span class="org-rainbow-delimiters-depth-2">{</span>
-  <span class="org-function-name">it</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"decodes string enums"</span>, <span class="org-rainbow-delimiters-depth-4">()</span> <span class="org-keyword">=&gt;</span> <span class="org-rainbow-delimiters-depth-4">{</span>
-  <span class="org-keyword">const</span> <span class="org-variable-name">result</span> = <span class="org-function-name">stringEnumDecoder</span><span class="org-rainbow-delimiters-depth-5">(</span>TestEnum1<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">forceDecode</span><span class="org-rainbow-delimiters-depth-5">(</span><span class="org-string">"!"</span><span class="org-rainbow-delimiters-depth-5">)</span>
-  <span class="org-function-name">expect</span><span class="org-rainbow-delimiters-depth-5">(</span>result<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">toEqual</span><span class="org-rainbow-delimiters-depth-5">(</span>TestEnum1.<span class="org-constant">this</span><span class="org-rainbow-delimiters-depth-5">)</span>
-  <span class="org-rainbow-delimiters-depth-4">}</span><span class="org-rainbow-delimiters-depth-3">)</span>
-  <span class="org-function-name">it</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"rejects invalid enum values"</span>, <span class="org-rainbow-delimiters-depth-4">()</span> <span class="org-keyword">=&gt;</span> <span class="org-rainbow-delimiters-depth-4">{</span>
-  <span class="org-keyword">const</span> <span class="org-variable-name">result</span> = <span class="org-function-name">stringEnumDecoder</span><span class="org-rainbow-delimiters-depth-5">(</span>TestEnum1<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">decode</span><span class="org-rainbow-delimiters-depth-5">(</span><span class="org-string">"this"</span><span class="org-rainbow-delimiters-depth-5">)</span>
-  <span class="org-function-name">expect</span><span class="org-rainbow-delimiters-depth-5">(</span>result<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">toBeNull</span><span class="org-rainbow-delimiters-depth-5">()</span>
-  <span class="org-rainbow-delimiters-depth-4">}</span><span class="org-rainbow-delimiters-depth-3">)</span>
-
-  <span class="org-function-name">it</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"can be used in larger decoders"</span>, <span class="org-rainbow-delimiters-depth-4">()</span> <span class="org-keyword">=&gt;</span> <span class="org-rainbow-delimiters-depth-4">{</span>
-  <span class="org-keyword">const</span> <span class="org-variable-name">objectDecoder</span>: D.Decoder&lt;<span class="org-type">ObjectWithEnumField</span>&gt; = D.<span class="org-function-name">object</span><span class="org-rainbow-delimiters-depth-5">(</span><span class="org-rainbow-delimiters-depth-6">{</span>
-  required: <span class="org-rainbow-delimiters-depth-7">{</span>
-  testEnum: <span class="org-function-name">stringEnumDecoder</span><span class="org-rainbow-delimiters-depth-8">(</span>TestEnum1<span class="org-rainbow-delimiters-depth-8">)</span>,
-  name: D.<span class="org-typescript-primitive">string</span>,
-  <span class="org-rainbow-delimiters-depth-7">}</span>,
-  optional: <span class="org-rainbow-delimiters-depth-7">{</span>
-  dateOfBirth: D.<span class="org-typescript-primitive">string</span>.<span class="org-function-name">andThen</span><span class="org-rainbow-delimiters-depth-8">(</span><span class="org-rainbow-delimiters-depth-9">(</span>str<span class="org-rainbow-delimiters-depth-9">)</span> <span class="org-keyword">=&gt;</span> <span class="org-keyword">new</span> <span class="org-type">Date</span><span class="org-rainbow-delimiters-depth-9">(</span>str<span class="org-rainbow-delimiters-depth-9">)</span><span class="org-rainbow-delimiters-depth-8">)</span>,
-  <span class="org-rainbow-delimiters-depth-7">}</span>,
-  <span class="org-rainbow-delimiters-depth-6">}</span><span class="org-rainbow-delimiters-depth-5">)</span>
-
-  <span class="org-keyword">const</span> <span class="org-variable-name">inputFromApi</span> = <span class="org-string">`{ "testEnum": "!", "name": "bob", "dateOfBirth": "2022-11-24"}`</span>
-  <span class="org-keyword">const</span> <span class="org-variable-name">result1</span> = objectDecoder.<span class="org-function-name">decode</span><span class="org-rainbow-delimiters-depth-5">(</span>JSON.<span class="org-function-name">parse</span><span class="org-rainbow-delimiters-depth-6">(</span>inputFromApi<span class="org-rainbow-delimiters-depth-6">)</span><span class="org-rainbow-delimiters-depth-5">)</span>
-  <span class="org-function-name">expect</span><span class="org-rainbow-delimiters-depth-5">(</span>result1<span class="org-rainbow-delimiters-depth-5">)</span>.<span class="org-function-name">toEqual</span><span class="org-rainbow-delimiters-depth-5">(</span><span class="org-rainbow-delimiters-depth-6">{</span> testEnum: <span class="org-type">TestEnum1</span>.<span class="org-constant">this</span>, name: <span class="org-string">"bob"</span>, dateOfBirth: <span class="org-keyword">new</span> <span class="org-type">Date</span><span class="org-rainbow-delimiters-depth-7">(</span><span class="org-string">"2022-11-24"</span><span class="org-rainbow-delimiters-depth-7">)</span> <span class="org-rainbow-delimiters-depth-6">}</span><span class="org-rainbow-delimiters-depth-5">)</span>
-  <span class="org-rainbow-delimiters-depth-4">}</span><span class="org-rainbow-delimiters-depth-3">)</span>
-  <span class="org-rainbow-delimiters-depth-2">}</span><span class="org-rainbow-delimiters-depth-1">)</span>
-  </pre>
-  </div>
-
-  <p>
-  How does this work? How can we write a function that can take an enum type as an
-  argument, and then generate a decoder? (Feel free to drop out if you were just
-  here to solve your immediate problem!)
-  </p>
-
-  <p>
-  If you type an enum into the online TypeScript playground (<a href="https://www.typescriptlang.org/play?#code/KYOwrgtgBAYg9nKBvAUFKB5EwoF4oBEc2BANGlACoDui+BALrWSgL4pA">here's one I prepared
-  earlier</a>), you'll see that the enum (with string values) is, in fact, compiled
-  into a variable that ends up with a simple record with string keys and values
-  attached to it.
-  </p>
-
-  <p>
-  Going back to the implementation, you'll see that's exactly the constraint on
-  the argument we pass into <code>stringEnumDecoder</code>.
-  </p>
-
-  <div class="org-src-container">
-  <pre class="src src-typescript">...
-  <span class="org-keyword">export</span> <span class="org-keyword">const</span> <span class="org-variable-name">stringEnumDecoder</span> = &lt;Enum <span class="org-typescript-access-modifier">extends</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-rainbow-delimiters-depth-2">[</span>name: <span class="org-typescript-primitive">string</span><span class="org-rainbow-delimiters-depth-2">]</span>: <span class="org-typescript-primitive">string</span> <span class="org-rainbow-delimiters-depth-1">}</span>&gt;<span class="org-rainbow-delimiters-depth-1">(</span>... rest <span class="org-keyword">of</span> implementation<span class="org-rainbow-delimiters-depth-1">)</span>
-  </pre>
-  </div>
-
-  <p>
-  Then some slightly weird magic happens: when you pass an enum into the function,
-  the TypeScript compiler infers that the type of the argument is the <code>typeof</code> the
-  enum you passed in. Whatever is happening internally here, it keeps track of the
-  fact that the keys of this type are the types of the valid enum cases, so it
-  turns <code>Enum[keyof Enum]</code> into the union type of each of the possible enum value
-  types which is, if you squint hard enough, actually the enum itself. We then
-  return a decoder that accepts a string, checks that said string is actually one
-  of the <i>values</i> stored in the enum object, and then tells the compiler that this
-  decoder will only ever return valid enum values. Unfortunately with a cast - but
-  the full context we need to check this cast is valid is contained within this
-  one line of code.
-  </p>
-
-  <p>
-  So there you have it: a safe way to deserialize strings into enums, and it even
-  composes nicely into more complex decoders.
-  </p>
-
-  <p>
-  Until next time!
-  </p>
-
-  <p>
-  Want to comment on something you've read here? <a href="https://mastodon.sdf.org/@mavnn/109400451463740531">This mastodon post</a> is the
-  official commenting point!
   </p>
   ]]></description>
 </item>

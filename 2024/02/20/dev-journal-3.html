@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Does it run? Dev Journal 3</title>
+<meta name="author" content="Michael Newton" />
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/org.css">
+<script src="/htmx.min.js"></script>
+</head>
+<body hx-boost="true">
+<div id="org-div-home-and-up"><span class="home-text"><a accesskey="H" href="/">HOME</span><img class="home-logo" src="http://blog.mavnn.co.uk/images/swirl.svg" /></a></div><div id="content" class="container">
+<header>
+<h1 class="title">Does it run? Dev Journal 3</h1>
+</header><p>
+A short update this time. <a href="https://gitlab.com/mavnn/caldance/-/issues/3">Gregg Bremer</a> (hi Gregg!) pointed out that running <code>nix run</code> on his linux machine resulted in an error about not being able to find <code>libssl</code>.
+</p>
+
+<p>
+This neatly highlights one of the weak spots of Nix; while an excellent packaging solution, it isn't perfect. Nix sandboxes your packages by altering the path environment variable, but not everything is located via that mechanism.
+</p>
+
+<p>
+In this case, <code>nix run</code> ran on my machine because I happened to have the libraries in the "right place" for a self contained dotnet core executable, but Gregg did not.
+</p>
+
+<p>
+Neither, it turns out, did the docker container I was building. I built and tested it initially with a dotnet console app (which did work, not needing <code>libssl</code>) and then carried on assuming that running <code>nix run</code> on my local machine would also tell me if the docker image could run correctly.
+</p>
+
+<p>
+I've now fixed up the code in the previous posts (we needed to add some <code>runtimeDeps</code> to our server package, and the docker image start up command needs to create a writable <code>/tmp</code> directory for asp.net to run correctly).
+</p>
+
+<p>
+Most importantly though, I've also made sure that CI will prevent this from happening again by actually checking that the docker image produced can respond to a request to the index with a 200 response code. This is done by adding "stages" to our CI build; the first does exactly what we were doing already, the second then starts the just finished docker image as a "service" and uses <code>curl</code> to check it can respond to us.
+</p>
+
+<p>
+You can check out the revised <code>.gitlab-ci.yml</code> file below:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-yaml"><span class="org-variable-name">stages</span>:
+  - build-container
+  - end-to-end-tests
+
+<span class="org-variable-name">build-container</span>:
+  <span class="org-variable-name">stage</span>: build-container
+  <span class="org-variable-name">image</span>:
+    <span class="org-variable-name">name</span>: <span class="org-string">"nixos/nix:2.19.3"</span>
+  <span class="org-variable-name">variables</span>:
+    <span class="org-variable-name">IMAGE_TAG</span>: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+  <span class="org-variable-name">before_script</span>:
+    - nix-env --install --attr nixpkgs.skopeo
+  <span class="org-variable-name">script</span>:
+    - mkdir -p <span class="org-string">"$HOME/.config/nix"</span>
+    - echo <span class="org-string">'experimental-features = nix-command flakes'</span> &gt; <span class="org-string">"$HOME/.config/nix/nix.conf"</span>
+    - mkdir -p <span class="org-string">"/etc/containers/"</span>
+    - echo <span class="org-string">'{"default":[{"type":"insecureAcceptAnything"}]}'</span> &gt; /etc/containers/policy.json
+    - skopeo login --username <span class="org-string">"$CI_REGISTRY_USER"</span> --password <span class="org-string">"$CI_REGISTRY_PASSWORD"</span> <span class="org-string">"$CI_REGISTRY"</span>
+    - <span class="org-string">'nix build .#dockerImage .#test'</span>
+    - mkdir testResults
+    - <span class="org-string">'cp result-1/* testResults'</span>
+    - ls -lh ./result
+    - <span class="org-string">'skopeo inspect docker-archive://$(readlink -f ./result)'</span>
+    - <span class="org-string">'skopeo copy docker-archive://$(readlink -f ./result) docker://$IMAGE_TAG'</span>
+  <span class="org-variable-name">artifacts</span>:
+    <span class="org-variable-name">when</span>: always
+    <span class="org-variable-name">paths</span>:
+      - <span class="org-string">'testResults/*.xml'</span>
+    <span class="org-variable-name">reports</span>:
+      <span class="org-variable-name">junit</span>: <span class="org-string">'testResults/*.xml'</span>
+
+<span class="org-variable-name">end-to-end-tests</span>:
+  <span class="org-variable-name">stage</span>: end-to-end-tests
+  <span class="org-variable-name">image</span>:
+    <span class="org-variable-name">name</span>: <span class="org-string">"nixos/nix:2.19.3"</span>
+  <span class="org-variable-name">variables</span>:
+    <span class="org-variable-name">IMAGE_TAG</span>: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+    <span class="org-variable-name">GIT_STRATEGY</span>: none
+  <span class="org-variable-name">services</span>:
+    - <span class="org-variable-name">name</span>: $IMAGE_TAG
+      <span class="org-variable-name">alias</span>: caldance
+  <span class="org-variable-name">script</span>:
+    - curl -f <span class="org-string">"http://caldance:5001/"</span>
+</pre>
+</div>
+</div>
+<div id="postamble" class="status">
+<footer id="my-contacts">
+<p hx-boost="false"><a href="https://blog.mavnn.co.uk/rss.xml">RSS</a></p>
+<p><a href="https://mastodon.sdf.org/@mavnn">Mastodon</a></p>
+<p>Git(<a href="https://github.com/mavnn">Hub</a>|<a href="https://gitlab.com/mavnn">Lab</a>)</p>
+</footer>
+</div>
+</body>
+</html>

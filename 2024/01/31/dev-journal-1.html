@@ -108,6 +108,10 @@ A nix "flake" is a declarative description of a set of packages we'd like to be 
   <span class="org-comment"># on the dotnet runtime</span>
   <span class="org-nix-attribute">selfContainedBuild</span> = <span class="org-nix-builtin">true</span>;
 
+  <span class="org-comment"># This is a webserver, and it complains if it</span>
+  <span class="org-comment"># has no access to openssl</span>
+  <span class="org-nix-attribute">runtimeDeps</span> = <span class="org-rainbow-delimiters-depth-2">[</span> pkgs.openssl pkgs.cacert <span class="org-rainbow-delimiters-depth-2">]</span>;
+
   <span class="org-nix-attribute">dotnet-sdk</span> = dnc.sdk_8_0;
   <span class="org-nix-attribute">dotnet-runtime</span> = dnc.runtime_8_0;
   <span class="org-nix-attribute">executables</span> = <span class="org-rainbow-delimiters-depth-2">[</span> <span class="org-string">"CalDance"</span> <span class="org-rainbow-delimiters-depth-2">]</span>;
@@ -118,8 +122,15 @@ A nix "flake" is a declarative description of a set of packages we'd like to be 
 <span class="org-nix-attribute">packages.dockerImage</span> = pkgs.dockerTools.buildImage <span class="org-rainbow-delimiters-depth-1">{</span>
   <span class="org-nix-attribute">name</span> = name;
   <span class="org-nix-attribute">config</span> = <span class="org-rainbow-delimiters-depth-2">{</span>
-    <span class="org-nix-attribute">Cmd</span> = <span class="org-rainbow-delimiters-depth-3">[</span> <span class="org-string">"</span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-4">{</span></span>packages.default<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-4">}</span></span><span class="org-string">/bin/CalDance"</span> <span class="org-rainbow-delimiters-depth-3">]</span>;
-    <span class="org-nix-attribute">Env</span> = <span class="org-rainbow-delimiters-depth-3">[</span> <span class="org-string">"DOTNET_EnableDiagnostics=0"</span> <span class="org-rainbow-delimiters-depth-3">]</span>;
+    <span class="org-comment"># asp.net likes a writable /tmp directory</span>
+    <span class="org-nix-attribute">Cmd</span> = pkgs.writeShellScript <span class="org-string">"runServer"</span> <span class="org-string">''</span>
+<span class="org-string">      </span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-3">{</span></span>pkgs.coreutils<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-3">}</span></span><span class="org-string">/bin/mkdir -p /tmp</span>
+<span class="org-string">      </span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-3">{</span></span>pkgs.coreutils<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-3">}</span></span><span class="org-string">/bin/mount -t tmpfs tmp /tmp</span>
+<span class="org-string">      </span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-3">{</span></span>packages.default<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-3">}</span></span><span class="org-string">/bin/CalDance.Server</span>
+<span class="org-string">    ''</span>;
+    <span class="org-nix-attribute">Env</span> =
+      <span class="org-rainbow-delimiters-depth-3">[</span> <span class="org-string">"DOTNET_EnableDiagnostics=0"</span> <span class="org-string">"ASPNETCORE_URLS=http://+:5001"</span> <span class="org-rainbow-delimiters-depth-3">]</span>;
+    <span class="org-nix-attribute">ExposedPorts</span> = <span class="org-rainbow-delimiters-depth-3">{</span> <span class="org-string">"5001/tcp"</span> = <span class="org-rainbow-delimiters-depth-4">{</span> <span class="org-rainbow-delimiters-depth-4">}</span>; <span class="org-rainbow-delimiters-depth-3">}</span>;
   <span class="org-rainbow-delimiters-depth-2">}</span>;
 <span class="org-rainbow-delimiters-depth-1">}</span>;
 </pre>

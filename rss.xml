@@ -14,8 +14,8 @@
   <link>https://blog.mavnn.co.uk/</link>
   <description><![CDATA[]]></description>
   <language>en</language>
-  <pubDate>Fri, 16 Feb 2024 10:22:58 +0100</pubDate>
-  <lastBuildDate>Fri, 16 Feb 2024 10:22:58 +0100</lastBuildDate>
+  <pubDate>Wed, 21 Feb 2024 16:14:46 +0100</pubDate>
+  <lastBuildDate>Wed, 21 Feb 2024 16:14:46 +0100</lastBuildDate>
   <generator>Emacs 29.1 Org-mode 9.6.6</generator>
   <webMaster>michael@mavnn.eu (Michael Newton)</webMaster>
   <image>
@@ -26,82 +26,229 @@
 
 
   <item>
-    <title>Do notation for TypeScript</title>
-    <link>https://blog.mavnn.co.uk/2024/02/08/do-notation-for-typescript.html</link>
+    <title>Does it run? Dev Journal 3</title>
+    <link>https://blog.mavnn.co.uk/2024/02/20/dev-journal-3.html</link>
     <author>michael@mavnn.eu (Michael Newton)</author>
-    <guid isPermaLink="false">https://blog.mavnn.co.uk/2024/02/08/do-notation-for-typescript.html</guid>
-    <pubDate>Thu, 08 Feb 2024 00:00:00 +0100</pubDate>
+    <guid isPermaLink="false">https://blog.mavnn.co.uk/2024/02/20/dev-journal-3.html</guid>
+    <pubDate>Tue, 20 Feb 2024 00:00:00 +0100</pubDate>
 
-    <description><![CDATA[<p>
-    This is rather an aside from recent blog posts, but something I found interesting none the less.
+    <description><![CDATA[<blockquote>
+    <p>
+    This post is part of the "Dev Journal" series. <a href="../../../2024/01/31/dev-journal-1.html">Part 1</a> contains the series index, while the <a href="https://gitlab.com/mavnn/caldance/-/commits/DevJournal3?ref_type=tags">DevJournal3</a> tag for the CalDance project in GitLab holds the state of the repository as described here.
+    </p>
+    </blockquote>
+
+    <p>
+    A short update this time. <a href="https://gitlab.com/mavnn/caldance/-/issues/3">Gregg Bremer</a> (hi Gregg!) pointed out that running <code>nix run</code> on his linux machine resulted in an error about not being able to find <code>libssl</code>.
     </p>
 
     <p>
-    Fair warning to start us off: this post assumes that you are aware of and understand "do notation" (or "computational expressions" or "monad syntax") and like the idea of having it available in TypeScript.
-    </p>
-
-    <div id="outline-container-orgc0cafcc" class="outline-3">
-    <h3 id="orgc0cafcc"><span class="section-number-3">1.1.</span> The idea</h3>
-    <div class="outline-text-3" id="text-1-1">
-    <p>
-    TypeScript has one form of monad notation already - the <code>await</code> keyword. Unfortunately, there isn't any way to plug into the mechanism used and define your own alternative <code>bind</code> implementation without doing something dangerously hacky. And, frankly, the last thing your TypeScript code needs is an other sharp edge to cut yourself on.
+    This neatly highlights one of the weak spots of Nix; while an excellent packaging solution, it isn't perfect. Nix sandboxes your packages by altering the path environment variable, but not everything is located via that mechanism.
     </p>
 
     <p>
-    But... what does binding a value in monad notation really do? It doesn't allow you to write code you couldn't have written anyway long hand. It allows you to give the result of a calculation in your code in name in the current scope.
+    In this case, <code>nix run</code> ran on my machine because I happened to have the libraries in the "right place" for a self contained dotnet core executable, but Gregg did not.
     </p>
 
     <p>
-    So: if we consider the fact that a scope is really just a mapping from names to values, and that TypeScript allows function inputs to alter the type of their output... maybe we can do something with that?
+    Neither, it turns out, did the docker container I was building. I built and tested it initially with a dotnet console app (which did work, not needing <code>libssl</code>) and then carried on assuming that running <code>nix run</code> on my local machine would also tell me if the docker image could run correctly.
     </p>
-    </div>
-    </div>
 
-    <div id="outline-container-orgc87faae" class="outline-3">
-    <h3 id="orgc87faae"><span class="section-number-3">1.2.</span> Defining a scope</h3>
-    <div class="outline-text-3" id="text-1-2">
     <p>
-    A type that maps names to values is reasonably easy to define in TypeScript. It looks something like this:
+    I've now fixed up the code in the previous posts (we needed to add some <code>runtimeDeps</code> to our server package, and the docker image start up command needs to create a writable <code>/tmp</code> directory for asp.net to run correctly).
+    </p>
+
+    <p>
+    Most importantly though, I've also made sure that CI will prevent this from happening again by actually checking that the docker image produced can respond to a request to the index with a 200 response code. This is done by adding "stages" to our CI build; the first does exactly what we were doing already, the second then starts the just finished docker image as a "service" and uses <code>curl</code> to check it can respond to us.
+    </p>
+
+    <p>
+    You can check out the revised <code>.gitlab-ci.yml</code> file below:
     </p>
 
     <div class="org-src-container">
-    <pre class="src src-typescript"><span class="org-keyword">export</span> <span class="org-keyword">type</span> <span class="org-type">Scope</span>&lt;<span class="org-type">Keys</span> <span class="org-typescript-access-modifier">extends</span> <span class="org-typescript-primitive">string</span>&gt; = <span class="org-rainbow-delimiters-depth-1">{</span>
-    <span class="org-rainbow-delimiters-depth-2">[</span>K <span class="org-keyword">in</span> Keys<span class="org-rainbow-delimiters-depth-2">]</span>: <span class="org-typescript-primitive">any</span>;
-    <span class="org-rainbow-delimiters-depth-1">}</span>;
+    <pre class="src src-yaml"><span class="org-variable-name">stages</span>:
+    - build-container
+    - end-to-end-tests
+
+    <span class="org-variable-name">build-container</span>:
+    <span class="org-variable-name">stage</span>: build-container
+    <span class="org-variable-name">image</span>:
+    <span class="org-variable-name">name</span>: <span class="org-string">"nixos/nix:2.19.3"</span>
+    <span class="org-variable-name">variables</span>:
+    <span class="org-variable-name">IMAGE_TAG</span>: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+    <span class="org-variable-name">before_script</span>:
+    - nix-env --install --attr nixpkgs.skopeo
+    <span class="org-variable-name">script</span>:
+    - mkdir -p <span class="org-string">"$HOME/.config/nix"</span>
+    - echo <span class="org-string">'experimental-features = nix-command flakes'</span> &gt; <span class="org-string">"$HOME/.config/nix/nix.conf"</span>
+    - mkdir -p <span class="org-string">"/etc/containers/"</span>
+    - echo <span class="org-string">'{"default":[{"type":"insecureAcceptAnything"}]}'</span> &gt; /etc/containers/policy.json
+    - skopeo login --username <span class="org-string">"$CI_REGISTRY_USER"</span> --password <span class="org-string">"$CI_REGISTRY_PASSWORD"</span> <span class="org-string">"$CI_REGISTRY"</span>
+    - <span class="org-string">'nix build .#dockerImage .#test'</span>
+    - mkdir testResults
+    - <span class="org-string">'cp result-1/* testResults'</span>
+    - ls -lh ./result
+    - <span class="org-string">'skopeo inspect docker-archive://$(readlink -f ./result)'</span>
+    - <span class="org-string">'skopeo copy docker-archive://$(readlink -f ./result) docker://$IMAGE_TAG'</span>
+    <span class="org-variable-name">artifacts</span>:
+    <span class="org-variable-name">when</span>: always
+    <span class="org-variable-name">paths</span>:
+    - <span class="org-string">'testResults/*.xml'</span>
+    <span class="org-variable-name">reports</span>:
+    <span class="org-variable-name">junit</span>: <span class="org-string">'testResults/*.xml'</span>
+
+    <span class="org-variable-name">end-to-end-tests</span>:
+    <span class="org-variable-name">stage</span>: end-to-end-tests
+    <span class="org-variable-name">image</span>:
+    <span class="org-variable-name">name</span>: <span class="org-string">"nixos/nix:2.19.3"</span>
+    <span class="org-variable-name">variables</span>:
+    <span class="org-variable-name">IMAGE_TAG</span>: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+    <span class="org-variable-name">GIT_STRATEGY</span>: none
+    <span class="org-variable-name">services</span>:
+    - <span class="org-variable-name">name</span>: $IMAGE_TAG
+    <span class="org-variable-name">alias</span>: caldance
+    <span class="org-variable-name">script</span>:
+    - curl -f <span class="org-string">"http://caldance:5001/"</span>
     </pre>
-    </div>
-
-    <p>
-    We can say that anything we're willing to consider as a scope is a type that extends the type above: it will have some keys, which will all be strings, and they will map to some values, which will all be sub types of <code>any</code>.
-    </p>
-
-    <p>
-    Now we need a type safe way to add a value to the scope.
-    </p>
-
-    <p>
-    We start with a calculated type which works out what the result of adding a value with a name to a scope should be:
-    </p>
-
-    <div class="org-src-container">
-    <pre class="src src-typescript"><span class="org-keyword">export</span> <span class="org-keyword">type</span> <span class="org-type">ExtendedScope</span>&lt;
-    OldScope <span class="org-typescript-access-modifier">extends</span> <span class="org-type">Scope</span>&lt;<span class="org-typescript-primitive">any</span>&gt;,
-    NewField <span class="org-typescript-access-modifier">extends</span> <span class="org-typescript-primitive">string</span>,
-    NewValue
-    &gt; = OldScope <span class="org-typescript-access-modifier">extends</span> <span class="org-typescript-primitive">any</span>
-    ? <span class="org-rainbow-delimiters-depth-1">{</span>
-    <span class="org-rainbow-delimiters-depth-2">[</span>K <span class="org-keyword">in</span> <span class="org-keyword">keyof</span> OldScope | NewField<span class="org-rainbow-delimiters-depth-2">]</span>: K <span class="org-typescript-access-modifier">extends</span> <span class="org-type">NewField</span>
-    ? NewValue
-    : K <span class="org-typescript-access-modifier">extends</span> <span class="org-keyword">keyof</span> OldScope
-    ? OldScope<span class="org-rainbow-delimiters-depth-2">[</span>K<span class="org-rainbow-delimiters-depth-2">]</span>
-    : <span class="org-typescript-primitive">never</span>;
-    <span class="org-rainbow-delimiters-depth-1">}</span>
-    : <span class="org-typescript-primitive">never</span>;
-    </pre>
-    </div>
-    </div>
     </div>
     ]]></description>
+</item>
+<item>
+  <title>Do notation for TypeScript</title>
+  <link>https://blog.mavnn.co.uk/2024/02/19/do-notation-for-typescript.html</link>
+  <author>michael@mavnn.eu (Michael Newton)</author>
+  <guid isPermaLink="false">https://blog.mavnn.co.uk/2024/02/19/do-notation-for-typescript.html</guid>
+  <pubDate>Mon, 19 Feb 2024 00:00:00 +0100</pubDate>
+
+  <description><![CDATA[<p>
+  This is rather an aside from recent blog posts, but something I found interesting none the less.
+  </p>
+
+  <p>
+  Fair warning to start us off: this post assumes that you are aware of and understand "do notation" (or "computational expressions" or "monad syntax") and like the idea of having it available in TypeScript.
+  </p>
+
+  <p>
+  It starts by working through a possible way of implementing a type safe representation of a sequence of monadic operations that has a much nicer user experience than nested continuation functions, and then leads into a lengthy example of both building and showing how to use a monad which I've found very useful when working in TypeScript for handling asynchronous code that needs to meaningfully respond to both successes and failures.
+  </p>
+
+  <p>
+  The idea is that we're going to go from code that looks like this:
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-typescript"><span class="org-keyword">export</span> <span class="org-keyword">const</span> <span class="org-variable-name">processLaxCallback</span> = <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-rainbow-delimiters-depth-2">{</span>
+  laxOperations,
+  commands,
+  localFunctions,
+  <span class="org-rainbow-delimiters-depth-2">}</span>: <span class="org-type">LaxCallbackDependencies</span><span class="org-rainbow-delimiters-depth-1">)</span> <span class="org-keyword">=&gt;</span> <span class="org-keyword">async</span> <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-variable-name">httpRequest</span><span class="org-rainbow-delimiters-depth-1">)</span> <span class="org-keyword">=&gt;</span> <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-keyword">try</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+  <span class="org-keyword">const</span> <span class="org-variable-name">laxSignatureCheck</span> = <span class="org-keyword">await</span> laxOperations.<span class="org-function-name">checkSignature</span><span class="org-rainbow-delimiters-depth-3">(</span>httpRequest<span class="org-rainbow-delimiters-depth-3">)</span>
+  <span class="org-keyword">if</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-function-name">isFailure</span><span class="org-rainbow-delimiters-depth-4">(</span>signature<span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span> <span class="org-rainbow-delimiters-depth-3">{</span>
+  <span class="org-keyword">await</span> <span class="org-function-name">reportError</span><span class="org-rainbow-delimiters-depth-4">(</span>signature<span class="org-rainbow-delimiters-depth-4">)</span>
+  <span class="org-keyword">return</span>
+  <span class="org-rainbow-delimiters-depth-3">}</span>
+  <span class="org-keyword">const</span> <span class="org-variable-name">laxContext</span> = laxOperations.<span class="org-function-name">parseRequest</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-rainbow-delimiters-depth-4">{</span> httpRequest, laxSignatureCheck <span class="org-rainbow-delimiters-depth-4">}</span><span class="org-rainbow-delimiters-depth-3">)</span>
+  <span class="org-keyword">if</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-function-name">isFailure</span><span class="org-rainbow-delimiters-depth-4">(</span>laxContext<span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span> <span class="org-rainbow-delimiters-depth-3">{</span>
+  <span class="org-keyword">await</span> <span class="org-function-name">reportError</span><span class="org-rainbow-delimiters-depth-4">(</span>laxContext<span class="org-rainbow-delimiters-depth-4">)</span>
+  <span class="org-keyword">return</span>
+  <span class="org-rainbow-delimiters-depth-3">}</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">...continued</span>
+  <span class="org-rainbow-delimiters-depth-2">}</span> <span class="org-keyword">catch</span> <span class="org-rainbow-delimiters-depth-2">(</span>e<span class="org-rainbow-delimiters-depth-2">)</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">... etc</span>
+  <span class="org-rainbow-delimiters-depth-2">}</span>
+  <span class="org-rainbow-delimiters-depth-1">}</span>
+  </pre>
+  </div>
+
+  <p>
+  ...to code that looks more like this:
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-typescript"><span class="org-keyword">export</span> <span class="org-keyword">const</span> <span class="org-variable-name">processLaxCallback</span> = <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-rainbow-delimiters-depth-2">{</span>
+  laxOperations,
+  commands,
+  localFunctions,
+  <span class="org-rainbow-delimiters-depth-2">}</span>: <span class="org-type">LaxCallbackDependencies</span><span class="org-rainbow-delimiters-depth-1">)</span> <span class="org-keyword">=&gt;</span>
+  SolidChain.<span class="org-function-name">start</span>&lt;<span class="org-rainbow-delimiters-depth-1">{</span> httpRequest: <span class="org-type">HttpRequest</span> <span class="org-rainbow-delimiters-depth-1">}</span>, LaxCallBackState&gt;<span class="org-rainbow-delimiters-depth-1">()</span>
+  .<span class="org-function-name">chain</span><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-string">"laxSignatureCheck"</span>, laxOperations.checkSignature<span class="org-rainbow-delimiters-depth-1">)</span>
+  .<span class="org-function-name">chain</span><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-string">"laxContext"</span>, laxOperations.parseRequest<span class="org-rainbow-delimiters-depth-1">)</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">...continued</span>
+  </pre>
+  </div>
+
+  <p>
+  If you're impatient you can jump straight to <a href="2024/02/19/do-notation-for-typescript.html#ID-8B8152C2-E896-4933-A30E-E01276B284A8">appendix 2</a> where you will find a cut and pastable code block with everything you need to play with the code in the TypeScript editor of your choice.
+  </p>
+
+  <p>
+  For the avoidance of any doubt, all the code in this blog post is available for re-use under the MIT license as list in <a href="2024/02/19/do-notation-for-typescript.html#ID-E8C7C73E-C564-4CDE-B2D9-328AFDF256F1">appendix 3</a>.
+  </p>
+
+  <div id="outline-container-orgc0cafcc" class="outline-3">
+  <h3 id="orgc0cafcc"><span class="section-number-3">2.1.</span> The idea</h3>
+  <div class="outline-text-3" id="text-2-1">
+  <p>
+  TypeScript has one form of monad notation already - the <code>await</code> keyword. Unfortunately, there isn't any way to plug into the mechanism used and define your own alternative <code>bind</code> implementation without doing something dangerously hacky. And, frankly, the last thing your TypeScript code needs is an other sharp edge to cut yourself on.
+  </p>
+
+  <p>
+  But... what does binding a value in monad notation really do? It doesn't allow you to write code you couldn't have written anyway long hand. It allows you to give the result of a calculation in your code in name in the current scope.
+  </p>
+
+  <p>
+  So: if we consider the fact that a scope is really just a mapping from names to values, and that TypeScript allows function inputs to alter the type of their output... maybe we can do something with that?
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-orgc87faae" class="outline-3">
+  <h3 id="orgc87faae"><span class="section-number-3">2.2.</span> Defining a scope</h3>
+  <div class="outline-text-3" id="text-2-2">
+  <p>
+  A type that maps names to values is reasonably easy to define in TypeScript. It looks something like this:
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-typescript"><span class="org-keyword">export</span> <span class="org-keyword">type</span> <span class="org-type">Scope</span>&lt;<span class="org-type">Keys</span> <span class="org-typescript-access-modifier">extends</span> <span class="org-typescript-primitive">string</span>&gt; = <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-rainbow-delimiters-depth-2">[</span>K <span class="org-keyword">in</span> Keys<span class="org-rainbow-delimiters-depth-2">]</span>: <span class="org-typescript-primitive">any</span>;
+  <span class="org-rainbow-delimiters-depth-1">}</span>;
+  </pre>
+  </div>
+
+  <p>
+  We can say that anything we're willing to consider as a scope is a type that extends the type above: it will have some keys, which will all be strings, and they will map to some values, which will all be sub types of <code>any</code>.
+  </p>
+
+  <p>
+  Now we need a type safe way to add a value to the scope.
+  </p>
+
+  <p>
+  We start with a calculated type which works out what the result of adding a value with a name to a scope should be:
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-typescript"><span class="org-keyword">export</span> <span class="org-keyword">type</span> <span class="org-type">ExtendedScope</span>&lt;
+  OldScope <span class="org-typescript-access-modifier">extends</span> <span class="org-type">Scope</span>&lt;<span class="org-typescript-primitive">any</span>&gt;,
+  NewField <span class="org-typescript-access-modifier">extends</span> <span class="org-typescript-primitive">string</span>,
+  NewValue
+  &gt; = OldScope <span class="org-typescript-access-modifier">extends</span> <span class="org-typescript-primitive">any</span>
+  ? <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-rainbow-delimiters-depth-2">[</span>K <span class="org-keyword">in</span> <span class="org-keyword">keyof</span> OldScope | NewField<span class="org-rainbow-delimiters-depth-2">]</span>: K <span class="org-typescript-access-modifier">extends</span> <span class="org-type">NewField</span>
+  ? NewValue
+  : K <span class="org-typescript-access-modifier">extends</span> <span class="org-keyword">keyof</span> OldScope
+  ? OldScope<span class="org-rainbow-delimiters-depth-2">[</span>K<span class="org-rainbow-delimiters-depth-2">]</span>
+  : <span class="org-typescript-primitive">never</span>;
+  <span class="org-rainbow-delimiters-depth-1">}</span>
+  : <span class="org-typescript-primitive">never</span>;
+  </pre>
+  </div>
+  </div>
+  </div>
+  ]]></description>
 </item>
 </channel>
 </rss>

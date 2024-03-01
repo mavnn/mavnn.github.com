@@ -56,7 +56,7 @@ The idea is that we're going to go from code that looks like this:
 </div>
 
 <p>
-...to code that looks more like this:
+&#x2026;to code that looks more like this:
 </p>
 
 <div class="org-src-container">
@@ -88,11 +88,11 @@ TypeScript has one form of monad notation already - the <code>await</code> keywo
 </p>
 
 <p>
-But... what does binding a value in monad notation really do? It doesn't allow you to write code you couldn't have written anyway long hand. It allows you to give the result of a calculation in your code in name in the current scope.
+But&#x2026; what does binding a value in monad notation really do? It doesn't allow you to write code you couldn't have written anyway long hand. It allows you to give the result of a calculation in your code in name in the current scope.
 </p>
 
 <p>
-So: if we consider the fact that a scope is really just a mapping from names to values, and that TypeScript allows function inputs to alter the type of their output... maybe we can do something with that?
+So: if we consider the fact that a scope is really just a mapping from names to values, and that TypeScript allows function inputs to alter the type of their output&#x2026; maybe we can do something with that?
 </p>
 </div>
 </div>
@@ -143,7 +143,7 @@ We start with a calculated type which works out what the result of adding a valu
 
 <p>
 <details><summary>
-...doesn't <code>OldScope</code> always extend <code>any</code>?
+&#x2026;doesn't <code>OldScope</code> always extend <code>any</code>?
 </summary><div class="outline-text-2">
 </p>
 
@@ -161,7 +161,7 @@ This makes no difference to what code <code>tsc</code> considers correct, but a 
 </div>
 
 <p>
-...tool tips and error messages will show:
+&#x2026;tool tips and error messages will show:
 </p>
 
 <div class="org-src-container">
@@ -174,7 +174,7 @@ This makes no difference to what code <code>tsc</code> considers correct, but a 
 </div>
 
 <p>
-...which is a heck of a lot easier to work with.
+&#x2026;which is a heck of a lot easier to work with.
 </p>
 
 <p>
@@ -734,7 +734,7 @@ We're going to create what I'm going to call, for brevity, the <code>Solid</code
 </p>
 
 <p>
-Let's first look at the kind of use cases where this monad is useful. Imagine we've created an integration with the "Lax" messaging service, and now when a customer clicks a button in one of the messages we send out our code has to handle a call back from Lax. But we don't know anything about the incoming request initially. We don't know whether it actually comes from Lax, whether we can find the customer organization that the message was sent to, which user of Lax in that organization clicked the button, which user in our application that Lax user maps to...
+Let's first look at the kind of use cases where this monad is useful. Imagine we've created an integration with the "Lax" messaging service, and now when a customer clicks a button in one of the messages we send out our code has to handle a call back from Lax. But we don't know anything about the incoming request initially. We don't know whether it actually comes from Lax, whether we can find the customer organization that the message was sent to, which user of Lax in that organization clicked the button, which user in our application that Lax user maps to&#x2026;
 </p>
 
 <p>
@@ -934,10 +934,10 @@ Now we need a bind and a pure method.
       <span class="org-keyword">const</span> <span class="org-variable-name">awaitedPrevious</span> = <span class="org-keyword">await</span> <span class="org-function-name">prev</span><span class="org-rainbow-delimiters-depth-4">(</span>state<span class="org-rainbow-delimiters-depth-4">)</span>;
       <span class="org-keyword">const</span> <span class="org-variable-name">prevResult</span> = awaitedPrevious.result;
       <span class="org-keyword">if</span> <span class="org-rainbow-delimiters-depth-4">(</span>prevResult.kind === <span class="org-string">"success"</span><span class="org-rainbow-delimiters-depth-4">)</span> <span class="org-rainbow-delimiters-depth-4">{</span>
-        <span class="org-keyword">const</span> <span class="org-variable-name">next</span> = <span class="org-keyword">await</span> <span class="org-function-name">func</span><span class="org-rainbow-delimiters-depth-5">(</span>prevResult.value<span class="org-rainbow-delimiters-depth-5">)(</span><span class="org-variable-name">state</span><span class="org-rainbow-delimiters-depth-5">)</span>;
+        <span class="org-keyword">const</span> <span class="org-variable-name">next</span> = <span class="org-keyword">await</span> <span class="org-function-name">func</span><span class="org-rainbow-delimiters-depth-5">(</span>prevResult.value<span class="org-rainbow-delimiters-depth-5">)(</span>prevResult.<span class="org-variable-name">state</span><span class="org-rainbow-delimiters-depth-5">)</span>;
         <span class="org-keyword">return</span> next;
       <span class="org-rainbow-delimiters-depth-4">}</span> <span class="org-keyword">else</span> <span class="org-rainbow-delimiters-depth-4">{</span>
-        <span class="org-keyword">return</span> <span class="org-rainbow-delimiters-depth-5">{</span> state, result: prevResult <span class="org-rainbow-delimiters-depth-5">}</span>;
+        <span class="org-keyword">return</span> <span class="org-rainbow-delimiters-depth-5">{</span> state: prevResult.state, result: prevResult <span class="org-rainbow-delimiters-depth-5">}</span>;
       <span class="org-rainbow-delimiters-depth-4">}</span>
     <span class="org-rainbow-delimiters-depth-3">}</span>;
   <span class="org-rainbow-delimiters-depth-2">}</span>
@@ -1473,10 +1473,10 @@ You can cut and paste this big fat code block into the TS editor of your choice 
       <span class="org-keyword">const</span> <span class="org-variable-name">awaitedPrevious</span> = <span class="org-keyword">await</span> <span class="org-function-name">prev</span><span class="org-rainbow-delimiters-depth-4">(</span>state<span class="org-rainbow-delimiters-depth-4">)</span>;
       <span class="org-keyword">const</span> <span class="org-variable-name">prevResult</span> = awaitedPrevious.result;
       <span class="org-keyword">if</span> <span class="org-rainbow-delimiters-depth-4">(</span>prevResult.kind === <span class="org-string">"success"</span><span class="org-rainbow-delimiters-depth-4">)</span> <span class="org-rainbow-delimiters-depth-4">{</span>
-        <span class="org-keyword">const</span> <span class="org-variable-name">next</span> = <span class="org-keyword">await</span> <span class="org-function-name">func</span><span class="org-rainbow-delimiters-depth-5">(</span>prevResult.value<span class="org-rainbow-delimiters-depth-5">)(</span><span class="org-variable-name">state</span><span class="org-rainbow-delimiters-depth-5">)</span>;
+        <span class="org-keyword">const</span> <span class="org-variable-name">next</span> = <span class="org-keyword">await</span> <span class="org-function-name">func</span><span class="org-rainbow-delimiters-depth-5">(</span>prevResult.value<span class="org-rainbow-delimiters-depth-5">)(</span>prevResult.<span class="org-variable-name">state</span><span class="org-rainbow-delimiters-depth-5">)</span>;
         <span class="org-keyword">return</span> next;
       <span class="org-rainbow-delimiters-depth-4">}</span> <span class="org-keyword">else</span> <span class="org-rainbow-delimiters-depth-4">{</span>
-        <span class="org-keyword">return</span> <span class="org-rainbow-delimiters-depth-5">{</span> state, result: prevResult <span class="org-rainbow-delimiters-depth-5">}</span>;
+        <span class="org-keyword">return</span> <span class="org-rainbow-delimiters-depth-5">{</span> state: prevResult.state, result: prevResult <span class="org-rainbow-delimiters-depth-5">}</span>;
       <span class="org-rainbow-delimiters-depth-4">}</span>
     <span class="org-rainbow-delimiters-depth-3">}</span>;
   <span class="org-rainbow-delimiters-depth-2">}</span>,

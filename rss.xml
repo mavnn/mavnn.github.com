@@ -14,8 +14,8 @@
   <link>https://blog.mavnn.co.uk/</link>
   <description><![CDATA[]]></description>
   <language>en</language>
-  <pubDate>Wed, 21 Feb 2024 17:25:49 +0100</pubDate>
-  <lastBuildDate>Wed, 21 Feb 2024 17:25:49 +0100</lastBuildDate>
+  <pubDate>Fri, 01 Mar 2024 18:13:31 +0100</pubDate>
+  <lastBuildDate>Fri, 01 Mar 2024 18:13:31 +0100</lastBuildDate>
   <generator>Emacs 29.1 Org-mode 9.6.6</generator>
   <webMaster>michael@mavnn.eu (Michael Newton)</webMaster>
   <image>
@@ -26,135 +26,383 @@
 
 
   <item>
-    <title>ADHD and TDD</title>
-    <link>https://blog.mavnn.co.uk/2024/02/21/adhd_and_tdd.html</link>
+    <title>Log in, log out</title>
+    <link>https://blog.mavnn.co.uk/2024/03/01/dev_journal_4.html</link>
     <author>michael@mavnn.eu (Michael Newton)</author>
-    <guid isPermaLink="false">https://blog.mavnn.co.uk/2024/02/21/adhd_and_tdd.html</guid>
-    <pubDate>Wed, 21 Feb 2024 00:00:00 +0100</pubDate>
+    <guid isPermaLink="false">https://blog.mavnn.co.uk/2024/03/01/dev_journal_4.html</guid>
+    <pubDate>Fri, 01 Mar 2024 00:00:00 +0100</pubDate>
 
     <description><![CDATA[<blockquote>
     <p>
-    This piece of writing started as repost comment on LinkedIn responding to a question from J. B. Rainsberger about <a href="https://www.linkedin.com/posts/jbrains_tdd-adhd-adhd-activity-7165713710492176385-xK56">how people with an ADHD diagnosis experienced TDD</a>. It's a good question, but it's the kind of topic I "own" enough that I don't want to leave my thoughts on it locked away on a platform like LinkedIn, so now they're here too!
+    This post is part of the "Dev Journal" series. <a href="../../../2024/01/31/dev-journal-1.html">Part 1</a> contains the series index, while the <a href="https://gitlab.com/mavnn/caldance/-/commits/DevJournal4?ref_type=tags">DevJournal4</a> tag for the CalDance project in GitLab holds the state of the repository as described here.
     </p>
     </blockquote>
 
     <p>
-    This is an interesting one for me; I have both an ADHD diagnosis and I do feel that I use certain programming practices to compensate for it. Something that interests me enough that I'm talking on the subject at Lambda Days 2024, in fact.
+    This is the big one: we have our first piece of event sourcing, and a bunch of infrastructure to get us there. So big, in fact, that I'm going to split the post into two and publish the remainder early next week.
     </p>
 
     <p>
-    Any practice that starts with building a feed back loop is going to be helpful from the ADHD point of view; for example, I have a strong preference for strongly typed languages because the compiler will remind me to finish bits I've forgotten about or catch the typos of concentration lapses in the wild.
+    A lot has changed, and I'm not going to go into every single detail so if you're following along by hand I made a pull request for the changes added here so that you can <a href="https://gitlab.com/mavnn/caldance/-/merge_requests/2/diffs">see them all in one place</a>.
+    </p>
+
+    <div id="outline-container-org9d6ce3d" class="outline-3">
+    <h3 id="org9d6ce3d"><span class="section-number-3">1.1.</span> Nix pulling its weight</h3>
+    <div class="outline-text-3" id="text-1-1">
+    <p>
+    We're about to add a database to our project, and this is an area where Nix really shines.
     </p>
 
     <p>
-    That said, I'm personally not a huge fan of TDD as I've normally met it in the wild (I can see the one true Scotsman replies from here, and some of you are probably even right). And the reason for that dislike is also ADHD related but has nothing to do with the initial writing of the code - but with refactoring.
-    </p>
-
-    <p>
-    In the vast majority of cases I've seen, TDD has led to code bases with many, many, tests that are tightly coupled to the current implementation of a piece of code because what's actually happened is that each test has been written to confirm the next piece of the implementation is doing what is expected, not to test the overall inputs/outputs of the "block". Mocks that check they are called in a certain order or with certain inputs. Carefully crafted fake dependencies which return the data needed in the correct order and type to satisfy the internal of the function being tested. (Is this what TDD is meant to be? No, not at all - I'm aware)
-    </p>
-
-    <p>
-    This makes refactoring deeply painful with a pain that hits hard at the heart of ADHD - you're faced with the choice of updating all these painful, pointless, implementation internal specific mocks on the one hand or having the argument about why your refactoring PR "reduces test coverage" on the other. If you're particularly unlucky there aren't any tests covering the actual <span class="underline">behaviour</span> of the original code at all, and now you're left wondering:
-    </p>
-
-    <p>
-    "But is my refactor really a refactor at all?"
-    </p>
-
-    <p>
-    (It would be remiss of me not to note that teaching developers how to test behaviour and not implementations is actually a service I offer, partly because I don't want to live with the consequences of them not knowing! See <a href="../../../2024/01/29/short_term_help.html">my short term consulting page</a>.)
-    </p>
-    ]]></description>
-  </item>
-  <item>
-    <title>Does it run? Dev Journal 3</title>
-    <link>https://blog.mavnn.co.uk/2024/02/20/dev-journal-3.html</link>
-    <author>michael@mavnn.eu (Michael Newton)</author>
-    <guid isPermaLink="false">https://blog.mavnn.co.uk/2024/02/20/dev-journal-3.html</guid>
-    <pubDate>Tue, 20 Feb 2024 00:00:00 +0100</pubDate>
-
-    <description><![CDATA[<blockquote>
-    <p>
-    This post is part of the "Dev Journal" series. <a href="../../../2024/01/31/dev-journal-1.html">Part 1</a> contains the series index, while the <a href="https://gitlab.com/mavnn/caldance/-/commits/DevJournal3?ref_type=tags">DevJournal3</a> tag for the CalDance project in GitLab holds the state of the repository as described here.
-    </p>
-    </blockquote>
-
-    <p>
-    A short update this time. <a href="https://gitlab.com/mavnn/caldance/-/issues/3">Gregg Bremer</a> (hi Gregg!) pointed out that running <code>nix run</code> on his linux machine resulted in an error about not being able to find <code>libssl</code>.
-    </p>
-
-    <p>
-    This neatly highlights one of the weak spots of Nix; while an excellent packaging solution, it isn't perfect. Nix sandboxes your packages by altering the path environment variable, but not everything is located via that mechanism.
-    </p>
-
-    <p>
-    In this case, <code>nix run</code> ran on my machine because I happened to have the libraries in the "right place" for a self contained dotnet core executable, but Gregg did not.
-    </p>
-
-    <p>
-    Neither, it turns out, did the docker container I was building. I built and tested it initially with a dotnet console app (which did work, not needing <code>libssl</code>) and then carried on assuming that running <code>nix run</code> on my local machine would also tell me if the docker image could run correctly.
-    </p>
-
-    <p>
-    I've now fixed up the code in the previous posts (we needed to add some <code>runtimeDeps</code> to our server package, and the docker image start up command needs to create a writable <code>/tmp</code> directory for asp.net to run correctly).
-    </p>
-
-    <p>
-    Most importantly though, I've also made sure that CI will prevent this from happening again by actually checking that the docker image produced can respond to a request to the index with a 200 response code. This is done by adding "stages" to our CI build; the first does exactly what we were doing already, the second then starts the just finished docker image as a "service" and uses <code>curl</code> to check it can respond to us.
-    </p>
-
-    <p>
-    You can check out the revised <code>.gitlab-ci.yml</code> file below:
+    Adding services with pinned versions of dependencies to are development environment is as simple as adding them to the list in <code>flake.nix</code>:
     </p>
 
     <div class="org-src-container">
-    <pre class="src src-yaml"><span class="org-variable-name">stages</span>:
-    - build-container
-    - end-to-end-tests
-
-    <span class="org-variable-name">build-container</span>:
-    <span class="org-variable-name">stage</span>: build-container
-    <span class="org-variable-name">image</span>:
-    <span class="org-variable-name">name</span>: <span class="org-string">"nixos/nix:2.19.3"</span>
-    <span class="org-variable-name">variables</span>:
-    <span class="org-variable-name">IMAGE_TAG</span>: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
-    <span class="org-variable-name">before_script</span>:
-    - nix-env --install --attr nixpkgs.skopeo
-    <span class="org-variable-name">script</span>:
-    - mkdir -p <span class="org-string">"$HOME/.config/nix"</span>
-    - echo <span class="org-string">'experimental-features = nix-command flakes'</span> &gt; <span class="org-string">"$HOME/.config/nix/nix.conf"</span>
-    - mkdir -p <span class="org-string">"/etc/containers/"</span>
-    - echo <span class="org-string">'{"default":[{"type":"insecureAcceptAnything"}]}'</span> &gt; /etc/containers/policy.json
-    - skopeo login --username <span class="org-string">"$CI_REGISTRY_USER"</span> --password <span class="org-string">"$CI_REGISTRY_PASSWORD"</span> <span class="org-string">"$CI_REGISTRY"</span>
-    - <span class="org-string">'nix build .#dockerImage .#test'</span>
-    - mkdir testResults
-    - <span class="org-string">'cp result-1/* testResults'</span>
-    - ls -lh ./result
-    - <span class="org-string">'skopeo inspect docker-archive://$(readlink -f ./result)'</span>
-    - <span class="org-string">'skopeo copy docker-archive://$(readlink -f ./result) docker://$IMAGE_TAG'</span>
-    <span class="org-variable-name">artifacts</span>:
-    <span class="org-variable-name">when</span>: always
-    <span class="org-variable-name">paths</span>:
-    - <span class="org-string">'testResults/*.xml'</span>
-    <span class="org-variable-name">reports</span>:
-    <span class="org-variable-name">junit</span>: <span class="org-string">'testResults/*.xml'</span>
-
-    <span class="org-variable-name">end-to-end-tests</span>:
-    <span class="org-variable-name">stage</span>: end-to-end-tests
-    <span class="org-variable-name">image</span>:
-    <span class="org-variable-name">name</span>: <span class="org-string">"nixos/nix:2.19.3"</span>
-    <span class="org-variable-name">variables</span>:
-    <span class="org-variable-name">IMAGE_TAG</span>: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
-    <span class="org-variable-name">GIT_STRATEGY</span>: none
-    <span class="org-variable-name">services</span>:
-    - <span class="org-variable-name">name</span>: $IMAGE_TAG
-    <span class="org-variable-name">alias</span>: caldance
-    <span class="org-variable-name">script</span>:
-    - curl -f <span class="org-string">"http://caldance:5001/"</span>
+    <pre class="src src-nix"><span class="org-nix-attribute">devShells.default</span> = pkgs.mkShell <span class="org-rainbow-delimiters-depth-1">{</span>
+    <span class="org-nix-attribute">buildInputs</span> = <span class="org-rainbow-delimiters-depth-2">[</span>
+    dnc.sdk_8_0
+    pkgs.nixfmt
+    pkgs.skopeo
+    pkgs.overmind
+    pkgs.tmux
+    pkgs.postgresql
+    fantomas
+    format-all
+    format-stdin
+    local_postgres
+    <span class="org-rainbow-delimiters-depth-2">]</span>;
+    <span class="org-rainbow-delimiters-depth-1">}</span>;
     </pre>
     </div>
+
+    <p>
+    The only clever thing we're doing here is also adding a <code>local_postgres</code> command which runs postgres with its data directory set to be a git ignored directory in the repository. This means that a simple git clean will reset the database along with everything else.
+    </p>
+
+    <p>
+    As a courtesy to developers who may work on code that isn't CalDance, we also set a non-standard port for postgres to use in our <code>.envrc</code> file so that we don't compete with any system wide installations that may already be running.
+    </p>
+
+    <p>
+    Overmind is a process runner that runs processes as defined in a <code>Procfile</code>, so we add one to the root of the project with the following:
+    </p>
+
+    <div class="org-src-container">
+    <pre class="src src-procfile">server: dotnet watch --project Server/CalDance.Server.fsproj
+    postgres: local_postgres
+    </pre>
+    </div>
+
+    <p>
+    Now we can run <code>overmind s</code> to start both postgres and a dotnet watcher to live recompile our server code as it changes.
+    </p>
+    </div>
+    </div>
+
+    <div id="outline-container-orgd08d25d" class="outline-3">
+    <h3 id="orgd08d25d"><span class="section-number-3">1.2.</span> Adding some nuget dependencies</h3>
+    <div class="outline-text-3" id="text-1-2">
+    <p>
+    We're adding dependencies to our server of <a href="https://martendb.io/">Marten</a> (document/event database library that sits on top of postgres) and <a href="https://serilog.net/">Serilog</a> (a nice structured log library).
+    </p>
+
+    <p>
+    Marten depends on a postgres library with native (i.e. non-dotnet) dlls, so to allow Nix to cache and link to the correct versions of the native code we have to specify which runtimes we expect to be building our code for. For the curious minded, you don't need to do this to be able to run <code>dotnet build</code> directly because the <code>dotnet</code> cli will dynamically download and add the required native libraries - which breaks Nix's caching strategy of a reproducible output from a fixed set of input files.
+    </p>
+
+    <p>
+    This isn't a huge issue once you know you need to do it; you just add a <code>RuntimeIdentifiers</code> node to your project files under the <code>TargetFramework</code> node like so:
+    </p>
+
+    <div class="org-src-container">
+    <pre class="src src-xml"><span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">PropertyGroup</span><span class="org-nxml-tag-delimiter">&gt;</span>
+    <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">OutputType</span><span class="org-nxml-tag-delimiter">&gt;</span><span class="org-nxml-text">Exe</span><span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-tag-slash">/</span><span class="org-nxml-element-local-name">OutputType</span><span class="org-nxml-tag-delimiter">&gt;</span>
+    <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">TargetFramework</span><span class="org-nxml-tag-delimiter">&gt;</span><span class="org-nxml-text">net8.0</span><span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-tag-slash">/</span><span class="org-nxml-element-local-name">TargetFramework</span><span class="org-nxml-tag-delimiter">&gt;</span>
+    <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">RuntimeIdentifiers</span><span class="org-nxml-tag-delimiter">&gt;</span><span class="org-nxml-text">osx-arm64;linux-x64;linux-arm64</span><span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-tag-slash">/</span><span class="org-nxml-element-local-name">RuntimeIdentifiers</span><span class="org-nxml-tag-delimiter">&gt;</span>
+    <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-tag-slash">/</span><span class="org-nxml-element-local-name">PropertyGroup</span><span class="org-nxml-tag-delimiter">&gt;</span>
+    </pre>
+    </div>
+
+    <p>
+    Then we can add our nuget packages as normal and everything continues to work:
+    </p>
+
+    <div class="org-src-container">
+    <pre class="src src-xml"><span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">ItemGroup</span><span class="org-nxml-tag-delimiter">&gt;</span>
+    <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">PackageReference</span> <span class="org-nxml-attribute-local-name">Include</span>=<span class="org-string">"Falco"</span> <span class="org-nxml-attribute-local-name">Version</span>=<span class="org-string">"4.0.6"</span> <span class="org-nxml-tag-slash">/</span><span class="org-nxml-tag-delimiter">&gt;</span>
+    <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">PackageReference</span> <span class="org-nxml-attribute-local-name">Include</span>=<span class="org-string">"Marten"</span> <span class="org-nxml-attribute-local-name">Version</span>=<span class="org-string">"6.4.1"</span> <span class="org-nxml-tag-slash">/</span><span class="org-nxml-tag-delimiter">&gt;</span>
+    <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">PackageReference</span> <span class="org-nxml-attribute-local-name">Include</span>=<span class="org-string">"Serilog"</span> <span class="org-nxml-attribute-local-name">Version</span>=<span class="org-string">"3.1.1"</span> <span class="org-nxml-tag-slash">/</span><span class="org-nxml-tag-delimiter">&gt;</span>
+    <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">PackageReference</span> <span class="org-nxml-attribute-local-name">Include</span>=<span class="org-string">"Serilog.AspNetCore"</span> <span class="org-nxml-attribute-local-name">Version</span>=<span class="org-string">"8.0.1"</span> <span class="org-nxml-tag-slash">/</span><span class="org-nxml-tag-delimiter">&gt;</span>
+    <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">PackageReference</span> <span class="org-nxml-attribute-local-name">Include</span>=<span class="org-string">"Serilog.Sinks.Console"</span> <span class="org-nxml-attribute-local-name">Version</span>=<span class="org-string">"5.0.1"</span> <span class="org-nxml-tag-slash">/</span><span class="org-nxml-tag-delimiter">&gt;</span>
+    <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-tag-slash">/</span><span class="org-nxml-element-local-name">ItemGroup</span><span class="org-nxml-tag-delimiter">&gt;</span>
+    </pre>
+    </div>
+    </div>
+    </div>
+
+    <div id="outline-container-orgcddffa6" class="outline-3">
+    <h3 id="orgcddffa6"><span class="section-number-3">1.3.</span> Opinionated endpoint builders</h3>
+    <div class="outline-text-3" id="text-1-3">
+    <p>
+    In general, the code to handle an endpoint in an AspNet.Core application is a function from <code>HttpContext</code> to <code>Task</code>, where we mutate the HTTP context and then write the correct output stream.
+    </p>
+
+    <p>
+    Falco gives us an abstraction a little higher than that by giving us a set of composable functions for manipulating the HTTP context, which is already a step forward. But I was finding them harder to compose than I would like because in several cases the functions took two inputs and effectively "branched" the response that could be given - for example, do I have the form fields I expect in this POST request, or am I logged in.
+    </p>
+
+    <p>
+    I quickly realized that I'd be happier with some kind of "result" mechanism - a way to be able to declare during the specification of a handler that I wanted to short circuit from this point onwards with a failure response.
+    </p>
+
+    <p>
+    I also knew that I wanted a type safe way of writing handlers for paths with "place holder" sections.
+    </p>
+
+    <p>
+    Because of that, I added a <code>Routing</code> in which I've defined a <code>Handler</code> type as below:
+    </p>
+
+    <div class="org-src-container">
+    <pre class="src src-fsharp"><span class="org-keyword">type</span> <span class="org-type">Handler</span>&lt;'a&gt; =
+    HttpContext -&gt; Task&lt;HttpContext * Result&lt;'a, HttpHandler&gt;&gt;
+    </pre>
+    </div>
+
+    <p>
+    For the sharp eyed among you with functional programming experience you may have spotted this is the same shape as the data type of a stateful either monad, and indeed we also define a computational expression called <code>handler</code> that allows us to now write our handlers in a more declarative style.
+    </p>
+
+    <p>
+    The revised <code>indexEndpoint</code> in the main program file gives a good example of what it looks like:
+    </p>
+
+    <div class="org-src-container">
+    <pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">indexRoute</span> = literalSection <span class="org-string">"/"</span>
+
+    <span class="org-keyword">let</span> <span class="org-variable-name">indexEndpoint</span> =
+    Handler.toEndpoint get indexRoute <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">fun</span> <span class="org-rainbow-delimiters-depth-2">()</span> -&gt;
+    handler <span class="org-rainbow-delimiters-depth-2">{</span>
+    <span class="org-keyword">let!</span> user = User.getSessionUser
+
+    <span class="org-keyword">return</span>
+    <span class="org-rainbow-delimiters-depth-3">(</span>Response.ofHtml <span class="org-rainbow-delimiters-depth-4">(</span>
+    Elem.html
+    <span class="org-rainbow-delimiters-depth-5">[]</span>
+    <span class="org-rainbow-delimiters-depth-5">[</span> Elem.body
+    <span class="org-rainbow-delimiters-depth-6">[]</span>
+    <span class="org-rainbow-delimiters-depth-6">[</span> Elem.h1
+    <span class="org-rainbow-delimiters-depth-7">[]</span>
+    <span class="org-rainbow-delimiters-depth-7">[</span> <span class="org-keyword">match</span> user <span class="org-keyword">with</span>
+    <span class="org-fsharp-ui-operator">|</span> Some u -&gt;
+    Text.raw $<span class="org-string">"Hi {u.username}!"</span>
+    <span class="org-fsharp-ui-operator">|</span> None -&gt;
+    Text.raw <span class="org-string">"You should go log in!"</span> <span class="org-rainbow-delimiters-depth-7">]</span>
+    Elem.p
+    <span class="org-rainbow-delimiters-depth-7">[]</span>
+    <span class="org-rainbow-delimiters-depth-7">[</span> Text.raw <span class="org-string">"Would you like to "</span>
+    Elem.a
+    <span class="org-rainbow-delimiters-depth-8">[</span> Attr.href <span class="org-rainbow-delimiters-depth-9">(</span>
+    greetingRoute.link <span class="org-string">"Bob"</span>
+    <span class="org-rainbow-delimiters-depth-9">)</span> <span class="org-rainbow-delimiters-depth-8">]</span>
+    <span class="org-rainbow-delimiters-depth-8">[</span> Text.raw <span class="org-string">"greet Bob?"</span> <span class="org-rainbow-delimiters-depth-8">]</span> <span class="org-rainbow-delimiters-depth-7">]</span> <span class="org-rainbow-delimiters-depth-6">]</span> <span class="org-rainbow-delimiters-depth-5">]</span>
+    <span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span>
+    <span class="org-rainbow-delimiters-depth-2">}</span><span class="org-rainbow-delimiters-depth-1">)</span>
+    </pre>
+    </div>
+
+    <p>
+    Note the <code>let!</code> on the first line where we pull the user session out of the HTTP context which the computational expression is "invisibly" carrying along for us.
+    </p>
+    </div>
+    </div>
+
+    <div id="outline-container-org21ae52f" class="outline-3">
+    <h3 id="org21ae52f"><span class="section-number-3">1.4.</span> Connecting up the database</h3>
+    <div class="outline-text-3" id="text-1-4">
+    <p>
+    Having defined our handler type, it makes sense to make the rest of our tooling easy to use from within the abstraction.
+    </p>
+
+    <p>
+    The new <code>Marten</code> module contains some boiler plate to configure Marten and add Serilog logging to it, but most importantly it also adds:
+    </p>
+
+    <div class="org-src-container">
+    <pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">withMarten</span> <span class="org-variable-name">f</span> =
+    Handler.fromCtx <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">fun</span> <span class="org-variable-name">ctx</span> -&gt;
+    ctx.GetService&lt;IDocumentSession&gt;<span class="org-rainbow-delimiters-depth-2">()</span><span class="org-rainbow-delimiters-depth-1">)</span>
+    <span class="org-fsharp-ui-operator">|&gt;</span> Handler.bind <span class="org-rainbow-delimiters-depth-1">(</span>f &gt;&gt; Handler.returnTask<span class="org-rainbow-delimiters-depth-1">)</span>
+
+    <span class="org-comment-delimiter">// </span><span class="org-comment">Marten returns null if a record isn't found, but</span>
+    <span class="org-comment-delimiter">// </span><span class="org-comment">F# records declare they can't be null. This works</span>
+    <span class="org-comment-delimiter">// </span><span class="org-comment">around that to return an option instead</span>
+    <span class="org-keyword">let</span> <span class="org-function-name">returnOption</span> <span class="org-variable-name">v</span> =
+    <span class="org-keyword">if</span> <span class="org-rainbow-delimiters-depth-1">(</span>v <span class="org-fsharp-ui-operator">|&gt;</span> box <span class="org-fsharp-ui-operator">|&gt;</span> isNull<span class="org-rainbow-delimiters-depth-1">)</span> <span class="org-keyword">then</span> None <span class="org-keyword">else</span> Some v
+    </pre>
+    </div>
+
+    <p>
+    Now from within any HTTP handler we're writing, we can write code like:
+    </p>
+
+    <div class="org-src-container">
+    <pre class="src src-fsharp"><span class="org-keyword">let!</span> user =
+    Marten.withMarten <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">fun</span> <span class="org-variable-name">marten</span> -&gt;
+    marten.LoadAsync&lt;UserRecord&gt;<span class="org-rainbow-delimiters-depth-2">(</span>id<span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
+    </pre>
+    </div>
+
+    <p>
+    &#x2026;and as if by magic the request specific Marten session will be pulled out of the HTTP context of the request and we can use it to connect to our data source.
+    </p>
+    </div>
+    </div>
+
+    <div id="outline-container-orgd3d315f" class="outline-3">
+    <h3 id="orgd3d315f"><span class="section-number-3">1.5.</span> To be continued&#x2026;</h3>
+    <div class="outline-text-3" id="text-1-5">
+    <p>
+    I think that's about enough for this blog post, because I want to leave a whole post for the real meat of this set of changes: our first domain entity, the <code>User</code>.
+    </p>
+
+    <p>
+    If you want a sneak peak, you can check out the PR and see how we can define a neat vertical slice of responsibility in our code base. The module takes the responsibility for user management all the way from the domain object, the events that can happen to it, the Marten config to make sure those are tracked, through to the paths that it has responsibility for and the UI that will be displayed when they are requested. Lots of fun stuff for us to talk about in the next exciting installment of "Dev Journal": different time, multiple channels, next week.
+    </p>
+    </div>
+    </div>
     ]]></description>
+</item>
+<item>
+  <title>ADHD and TDD</title>
+  <link>https://blog.mavnn.co.uk/2024/02/21/adhd_and_tdd.html</link>
+  <author>michael@mavnn.eu (Michael Newton)</author>
+  <guid isPermaLink="false">https://blog.mavnn.co.uk/2024/02/21/adhd_and_tdd.html</guid>
+  <pubDate>Wed, 21 Feb 2024 00:00:00 +0100</pubDate>
+
+  <description><![CDATA[<blockquote>
+  <p>
+  This piece of writing started as repost comment on LinkedIn responding to a question from J. B. Rainsberger about <a href="https://www.linkedin.com/posts/jbrains_tdd-adhd-adhd-activity-7165713710492176385-xK56">how people with an ADHD diagnosis experienced TDD</a>. It's a good question, but it's the kind of topic I "own" enough that I don't want to leave my thoughts on it locked away on a platform like LinkedIn, so now they're here too!
+  </p>
+  </blockquote>
+
+  <p>
+  This is an interesting one for me; I have both an ADHD diagnosis and I do feel that I use certain programming practices to compensate for it. Something that interests me enough that I'm talking on the subject at Lambda Days 2024, in fact.
+  </p>
+
+  <p>
+  Any practice that starts with building a feed back loop is going to be helpful from the ADHD point of view; for example, I have a strong preference for strongly typed languages because the compiler will remind me to finish bits I've forgotten about or catch the typos of concentration lapses in the wild.
+  </p>
+
+  <p>
+  That said, I'm personally not a huge fan of TDD as I've normally met it in the wild (I can see the one true Scotsman replies from here, and some of you are probably even right). And the reason for that dislike is also ADHD related but has nothing to do with the initial writing of the code - but with refactoring.
+  </p>
+
+  <p>
+  In the vast majority of cases I've seen, TDD has led to code bases with many, many, tests that are tightly coupled to the current implementation of a piece of code because what's actually happened is that each test has been written to confirm the next piece of the implementation is doing what is expected, not to test the overall inputs/outputs of the "block". Mocks that check they are called in a certain order or with certain inputs. Carefully crafted fake dependencies which return the data needed in the correct order and type to satisfy the internal of the function being tested. (Is this what TDD is meant to be? No, not at all - I'm aware)
+  </p>
+
+  <p>
+  This makes refactoring deeply painful with a pain that hits hard at the heart of ADHD - you're faced with the choice of updating all these painful, pointless, implementation internal specific mocks on the one hand or having the argument about why your refactoring PR "reduces test coverage" on the other. If you're particularly unlucky there aren't any tests covering the actual <span class="underline">behaviour</span> of the original code at all, and now you're left wondering:
+  </p>
+
+  <p>
+  "But is my refactor really a refactor at all?"
+  </p>
+
+  <p>
+  (It would be remiss of me not to note that teaching developers how to test behaviour and not implementations is actually a service I offer, partly because I don't want to live with the consequences of them not knowing! See <a href="../../../2024/01/29/short_term_help.html">my short term consulting page</a>.)
+  </p>
+  ]]></description>
+</item>
+<item>
+  <title>Does it run? Dev Journal 3</title>
+  <link>https://blog.mavnn.co.uk/2024/02/20/dev-journal-3.html</link>
+  <author>michael@mavnn.eu (Michael Newton)</author>
+  <guid isPermaLink="false">https://blog.mavnn.co.uk/2024/02/20/dev-journal-3.html</guid>
+  <pubDate>Tue, 20 Feb 2024 00:00:00 +0100</pubDate>
+
+  <description><![CDATA[<blockquote>
+  <p>
+  This post is part of the "Dev Journal" series. <a href="../../../2024/01/31/dev-journal-1.html">Part 1</a> contains the series index, while the <a href="https://gitlab.com/mavnn/caldance/-/commits/DevJournal3?ref_type=tags">DevJournal3</a> tag for the CalDance project in GitLab holds the state of the repository as described here.
+  </p>
+  </blockquote>
+
+  <p>
+  A short update this time. <a href="https://gitlab.com/mavnn/caldance/-/issues/3">Gregg Bremer</a> (hi Gregg!) pointed out that running <code>nix run</code> on his linux machine resulted in an error about not being able to find <code>libssl</code>.
+  </p>
+
+  <p>
+  This neatly highlights one of the weak spots of Nix; while an excellent packaging solution, it isn't perfect. Nix sandboxes your packages by altering the path environment variable, but not everything is located via that mechanism.
+  </p>
+
+  <p>
+  In this case, <code>nix run</code> ran on my machine because I happened to have the libraries in the "right place" for a self contained dotnet core executable, but Gregg did not.
+  </p>
+
+  <p>
+  Neither, it turns out, did the docker container I was building. I built and tested it initially with a dotnet console app (which did work, not needing <code>libssl</code>) and then carried on assuming that running <code>nix run</code> on my local machine would also tell me if the docker image could run correctly.
+  </p>
+
+  <p>
+  I've now fixed up the code in the previous posts (we needed to add some <code>runtimeDeps</code> to our server package, and the docker image start up command needs to create a writable <code>/tmp</code> directory for asp.net to run correctly).
+  </p>
+
+  <p>
+  Most importantly though, I've also made sure that CI will prevent this from happening again by actually checking that the docker image produced can respond to a request to the index with a 200 response code. This is done by adding "stages" to our CI build; the first does exactly what we were doing already, the second then starts the just finished docker image as a "service" and uses <code>curl</code> to check it can respond to us.
+  </p>
+
+  <p>
+  You can check out the revised <code>.gitlab-ci.yml</code> file below:
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-yaml"><span class="org-variable-name">stages</span>:
+  - build-container
+  - end-to-end-tests
+
+  <span class="org-variable-name">build-container</span>:
+  <span class="org-variable-name">stage</span>: build-container
+  <span class="org-variable-name">image</span>:
+  <span class="org-variable-name">name</span>: <span class="org-string">"nixos/nix:2.19.3"</span>
+  <span class="org-variable-name">variables</span>:
+  <span class="org-variable-name">IMAGE_TAG</span>: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+  <span class="org-variable-name">before_script</span>:
+  - nix-env --install --attr nixpkgs.skopeo
+  <span class="org-variable-name">script</span>:
+  - mkdir -p <span class="org-string">"$HOME/.config/nix"</span>
+  - echo <span class="org-string">'experimental-features = nix-command flakes'</span> &gt; <span class="org-string">"$HOME/.config/nix/nix.conf"</span>
+  - mkdir -p <span class="org-string">"/etc/containers/"</span>
+  - echo <span class="org-string">'{"default":[{"type":"insecureAcceptAnything"}]}'</span> &gt; /etc/containers/policy.json
+  - skopeo login --username <span class="org-string">"$CI_REGISTRY_USER"</span> --password <span class="org-string">"$CI_REGISTRY_PASSWORD"</span> <span class="org-string">"$CI_REGISTRY"</span>
+  - <span class="org-string">'nix build .#dockerImage .#test'</span>
+  - mkdir testResults
+  - <span class="org-string">'cp result-1/* testResults'</span>
+  - ls -lh ./result
+  - <span class="org-string">'skopeo inspect docker-archive://$(readlink -f ./result)'</span>
+  - <span class="org-string">'skopeo copy docker-archive://$(readlink -f ./result) docker://$IMAGE_TAG'</span>
+  <span class="org-variable-name">artifacts</span>:
+  <span class="org-variable-name">when</span>: always
+  <span class="org-variable-name">paths</span>:
+  - <span class="org-string">'testResults/*.xml'</span>
+  <span class="org-variable-name">reports</span>:
+  <span class="org-variable-name">junit</span>: <span class="org-string">'testResults/*.xml'</span>
+
+  <span class="org-variable-name">end-to-end-tests</span>:
+  <span class="org-variable-name">stage</span>: end-to-end-tests
+  <span class="org-variable-name">image</span>:
+  <span class="org-variable-name">name</span>: <span class="org-string">"nixos/nix:2.19.3"</span>
+  <span class="org-variable-name">variables</span>:
+  <span class="org-variable-name">IMAGE_TAG</span>: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+  <span class="org-variable-name">GIT_STRATEGY</span>: none
+  <span class="org-variable-name">services</span>:
+  - <span class="org-variable-name">name</span>: $IMAGE_TAG
+  <span class="org-variable-name">alias</span>: caldance
+  <span class="org-variable-name">script</span>:
+  - curl -f <span class="org-string">"http://caldance:5001/"</span>
+  </pre>
+  </div>
+  ]]></description>
 </item>
 <item>
   <title>Do notation for TypeScript</title>
@@ -230,25 +478,25 @@
   </p>
 
   <div id="outline-container-orgc0cafcc" class="outline-3">
-  <h3 id="orgc0cafcc"><span class="section-number-3">3.1.</span> The idea</h3>
-  <div class="outline-text-3" id="text-3-1">
+  <h3 id="orgc0cafcc"><span class="section-number-3">4.1.</span> The idea</h3>
+  <div class="outline-text-3" id="text-4-1">
   <p>
   TypeScript has one form of monad notation already - the <code>await</code> keyword. Unfortunately, there isn't any way to plug into the mechanism used and define your own alternative <code>bind</code> implementation without doing something dangerously hacky. And, frankly, the last thing your TypeScript code needs is an other sharp edge to cut yourself on.
   </p>
 
   <p>
-  But... what does binding a value in monad notation really do? It doesn't allow you to write code you couldn't have written anyway long hand. It allows you to give the result of a calculation in your code in name in the current scope.
+  But&#x2026; what does binding a value in monad notation really do? It doesn't allow you to write code you couldn't have written anyway long hand. It allows you to give the result of a calculation in your code in name in the current scope.
   </p>
 
   <p>
-  So: if we consider the fact that a scope is really just a mapping from names to values, and that TypeScript allows function inputs to alter the type of their output... maybe we can do something with that?
+  So: if we consider the fact that a scope is really just a mapping from names to values, and that TypeScript allows function inputs to alter the type of their output&#x2026; maybe we can do something with that?
   </p>
   </div>
   </div>
 
   <div id="outline-container-orgc87faae" class="outline-3">
-  <h3 id="orgc87faae"><span class="section-number-3">3.2.</span> Defining a scope</h3>
-  <div class="outline-text-3" id="text-3-2">
+  <h3 id="orgc87faae"><span class="section-number-3">4.2.</span> Defining a scope</h3>
+  <div class="outline-text-3" id="text-4-2">
   <p>
   A type that maps names to values is reasonably easy to define in TypeScript. It looks something like this:
   </p>

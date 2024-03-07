@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- 2024-03-07 Thu 11:53 -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Foundations: Dev Journal 1</title>
@@ -33,12 +34,12 @@ As the series progresses, I'll carry on adding the sections here.
 <li><a href="https://blog.mavnn.co.uk/2024/01/31/dev-journal-1.html">Foundations</a>: Build and package</li>
 <li><a href="../../../2024/02/06/dev-journal-2.html">Scaffolding</a>: Testing and consistency</li>
 <li><a href="../../../2024/02/20/dev-journal-3.html">Does it run?</a>: Make sure the docker container is valid and stays valid</li>
-<li><a href="../../../2024/03/01/dev-journal-4.html">Log in, log out</a>: Adding the database and the ability to log into our web site</li>
+<li><a href="../../../2024/03/01/dev_journal_4.html">Log in, log out</a> (and <a href="../../../2024/03/05/dev_journal_4_2.html">part 2</a>): Adding the database and the ability to log into our web site</li>
 </ol>
 
-<div id="outline-container-orgc99d3c7" class="outline-2">
-<h2 id="orgc99d3c7">Part 1: Foundations</h2>
-<div class="outline-text-2" id="text-orgc99d3c7">
+<div id="outline-container-org1d3d87a" class="outline-2">
+<h2 id="org1d3d87a">Part 1: Foundations</h2>
+<div class="outline-text-2" id="text-org1d3d87a">
 <p>
 Our application will eventually be a little web site for <code>redacted in case I change my mind</code>. I'm going to be using mix of tried and new tech (for me personally).
 </p>
@@ -82,9 +83,9 @@ Enough bullet points. What did I actually do? (Sneak preview: <a href="https://g
 </p>
 </div>
 
-<div id="outline-container-org9764d96" class="outline-3">
-<h3 id="org9764d96">Setup a nix flake to provide our environment</h3>
-<div class="outline-text-3" id="text-org9764d96">
+<div id="outline-container-org106f86b" class="outline-3">
+<h3 id="org106f86b">Setup a nix flake to provide our environment</h3>
+<div class="outline-text-3" id="text-org106f86b">
 <p>
 A nix "flake" is a declarative description of a set of packages we'd like to be able to reference. You can read the <a href="https://gitlab.com/mavnn/caldance/-/blob/6b39d13d98199220d623870faf2b49fbda58d8a5/flake.nix">whole file</a> but the important part for today is that our <code>flake.nix</code> file specifies three outputs in this stanza:
 </p>
@@ -152,9 +153,9 @@ Finally, we define the <code>dockerImage</code> which uses the <code>dockerTools
 </div>
 </div>
 
-<div id="outline-container-org47f47da" class="outline-3">
-<h3 id="org47f47da">direnv</h3>
-<div class="outline-text-3" id="text-org47f47da">
+<div id="outline-container-org8529c89" class="outline-3">
+<h3 id="org8529c89">direnv</h3>
+<div class="outline-text-3" id="text-org8529c89">
 <p>
 Direnv is a tool that can add environment variables to your shell when you enter a directory. It also, conveniently, knows about Nix flakes.
 </p>
@@ -176,9 +177,9 @@ Next time we move into this directory, direnv will ask us to allow this <code>.e
 </div>
 </div>
 
-<div id="outline-container-org565310b" class="outline-3">
-<h3 id="org565310b">The F# project</h3>
-<div class="outline-text-3" id="text-org565310b">
+<div id="outline-container-org5aa1235" class="outline-3">
+<h3 id="org5aa1235">The F# project</h3>
+<div class="outline-text-3" id="text-org5aa1235">
 <p>
 There's absolutely nothing special about this at all. I just created an F# project with <code>dotnet</code> on the command line, moved <code>Program.fs</code> into a sub directory called <code>src</code> because I prefer it that way, and then added a package dependency on <code>Falco</code> using <code>dotnet add package Falco</code>.
 </p>
@@ -204,9 +205,9 @@ webHost <span class="org-rainbow-delimiters-depth-1">[</span>||<span class="org-
 </div>
 </div>
 
-<div id="outline-container-orge66be7f" class="outline-3">
-<h3 id="orge66be7f">Set up the CI pipeline</h3>
-<div class="outline-text-3" id="text-orge66be7f">
+<div id="outline-container-org7a9e12c" class="outline-3">
+<h3 id="org7a9e12c">Set up the CI pipeline</h3>
+<div class="outline-text-3" id="text-org7a9e12c">
 <p>
 Having used Nix for our development environment, our CI pipeline becomes exceedingly straight forward. All we need is a build container with Nix available and we have all the other information we need for the build already. Nix themselves provide a <code>nixos/nix</code> image (Nix is the package manager, NixOS is the linux distribution that uses Nix as its package manager) so we'll just use that.
 </p>
@@ -242,9 +243,9 @@ It's worth noting here that Nix is a deterministic build system (for example, st
 </div>
 </div>
 
-<div id="outline-container-org3603379" class="outline-3">
-<h3 id="org3603379">Wrapping it all up</h3>
-<div class="outline-text-3" id="text-org3603379">
+<div id="outline-container-org9fc1848" class="outline-3">
+<h3 id="org9fc1848">Wrapping it all up</h3>
+<div class="outline-text-3" id="text-org9fc1848">
 <p>
 Not a bad first days work, I'd say. Our project is already at a stage that we can work on it with standard .NET tooling (for instance, adding a new nuget package with <code>dotnet package add ...</code> will automatically flow through to that package being added to the docker image) and CI will produce on push a lean deployable artifact. Versions of <i>everything</i> we are using from the .NET SDK to the nuget package we're depending on are fixed across all environments, and we have a nice place to add more developer tooling as we move forwards - for example standardizing the version of postgresql that will be used during development and in CI.
 </p>
@@ -255,18 +256,18 @@ As a bonus extra, anybody with nix installed can build and run the project witho
 </div>
 </div>
 
-<div id="outline-container-orge0347c9" class="outline-3">
-<h3 id="orge0347c9">Feedback? Comments?</h3>
-<div class="outline-text-3" id="text-orge0347c9">
+<div id="outline-container-org7a17689" class="outline-3">
+<h3 id="org7a17689">Feedback? Comments?</h3>
+<div class="outline-text-3" id="text-org7a17689">
 <p>
 Have questions? Comments? Hate something, love something, know a better way of doing something? Drop an issue on the repository at <a href="https://gitlab.com/mavnn/caldance">https://gitlab.com/mavnn/caldance</a> and let me know. I'll be pointing a tag at the commit referenced by each blog post, so I can always branch off and include your ideas in a future revision!
 </p>
 </div>
 </div>
 
-<div id="outline-container-org026114c" class="outline-3">
-<h3 id="org026114c">Next</h3>
-<div class="outline-text-3" id="text-org026114c">
+<div id="outline-container-org890ce05" class="outline-3">
+<h3 id="org890ce05">Next</h3>
+<div class="outline-text-3" id="text-org890ce05">
 <p>
 <a href="../../../2024/02/06/dev-journal-2.html">Part 2</a> adds unit tests and consistent formatting to the project.
 </p>

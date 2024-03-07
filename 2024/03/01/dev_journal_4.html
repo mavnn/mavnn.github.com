@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- 2024-03-07 Thu 11:53 -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Log in, log out</title>
+<title>Log in, log out: Dev Journal 4 (part 1)</title>
 <meta name="author" content="Michael Newton" />
 <meta name="generator" content="Org Mode" />
 <link rel="stylesheet" href="/org.css">
@@ -12,7 +13,7 @@
 <body hx-boost="true">
 <div id="org-div-home-and-up"><span class="home-text"><a accesskey="H" href="/">HOME</span><img class="home-logo" src="http://blog.mavnn.co.uk/images/swirl.svg" /></a></div><div id="content" class="container">
 <header>
-<h1 class="title">Log in, log out</h1>
+<h1 class="title">Log in, log out: Dev Journal 4 (part 1)</h1>
 </header><blockquote>
 <p>
 This post is part of the "Dev Journal" series. <a href="../../../2024/01/31/dev-journal-1.html">Part 1</a> contains the series index, while the <a href="https://gitlab.com/mavnn/caldance/-/commits/DevJournal4?ref_type=tags">DevJournal4</a> tag for the CalDance project in GitLab holds the state of the repository as described here.
@@ -27,9 +28,9 @@ This is the big one: we have our first piece of event sourcing, and a bunch of i
 A lot has changed, and I'm not going to go into every single detail so if you're following along by hand I made a pull request for the changes added here so that you can <a href="https://gitlab.com/mavnn/caldance/-/merge_requests/2/diffs">see them all in one place</a>.
 </p>
 
-<div id="outline-container-org06390e3" class="outline-2">
-<h2 id="org06390e3">Nix pulling its weight</h2>
-<div class="outline-text-2" id="text-org06390e3">
+<div id="outline-container-org90cf577" class="outline-2">
+<h2 id="org90cf577">Nix pulling its weight</h2>
+<div class="outline-text-2" id="text-org90cf577">
 <p>
 We're about to add a database to our project, and this is an area where Nix really shines.
 </p>
@@ -80,9 +81,9 @@ Now we can run <code>overmind s</code> to start both postgres and a dotnet watch
 </div>
 </div>
 
-<div id="outline-container-org83b1b74" class="outline-2">
-<h2 id="org83b1b74">Adding some nuget dependencies</h2>
-<div class="outline-text-2" id="text-org83b1b74">
+<div id="outline-container-orga8005f4" class="outline-2">
+<h2 id="orga8005f4">Adding some nuget dependencies</h2>
+<div class="outline-text-2" id="text-orga8005f4">
 <p>
 We're adding dependencies to our server of <a href="https://martendb.io/">Marten</a> (document/event database library that sits on top of postgres) and <a href="https://serilog.net/">Serilog</a> (a nice structured log library).
 </p>
@@ -121,9 +122,9 @@ Then we can add our nuget packages as normal and everything continues to work:
 </div>
 </div>
 
-<div id="outline-container-org869a3fb" class="outline-2">
-<h2 id="org869a3fb">Opinionated endpoint builders</h2>
-<div class="outline-text-2" id="text-org869a3fb">
+<div id="outline-container-org89a606f" class="outline-2">
+<h2 id="org89a606f">Opinionated endpoint builders</h2>
+<div class="outline-text-2" id="text-org89a606f">
 <p>
 In general, the code to handle an endpoint in an AspNet.Core application is a function from <code>HttpContext</code> to <code>Task</code>, where we mutate the HTTP context and then write the correct output stream.
 </p>
@@ -141,7 +142,7 @@ I also knew that I wanted a type safe way of writing handlers for paths with "pl
 </p>
 
 <p>
-Because of that, I added a <code>Routing</code> in which I've defined a <code>Handler</code> type as below:
+Because of that, I added a <code>Routing</code> module in which I've defined a <code>Handler</code> type as below:
 </p>
 
 <div class="org-src-container">
@@ -151,7 +152,7 @@ Because of that, I added a <code>Routing</code> in which I've defined a <code>Ha
 </div>
 
 <p>
-For the sharp eyed among you with functional programming experience you may have spotted this is the same shape as the data type of a stateful either monad, and indeed we also define a computational expression called <code>handler</code> that allows us to now write our handlers in a more declarative style.
+For the sharp eyed among you with functional programming experience you may have spotted this is the same shape as the monad type of a stateful either monad, and indeed we also define a computational expression called <code>handler</code> that allows us to now write our handlers in a more declarative style.
 </p>
 
 <p>
@@ -198,9 +199,9 @@ Note the <code>let!</code> on the first line where we pull the user session out 
 </div>
 </div>
 
-<div id="outline-container-org5cece3a" class="outline-2">
-<h2 id="org5cece3a">Connecting up the database</h2>
-<div class="outline-text-2" id="text-org5cece3a">
+<div id="outline-container-orgb650d36" class="outline-2">
+<h2 id="orgb650d36">Connecting up the database</h2>
+<div class="outline-text-2" id="text-orgb650d36">
 <p>
 Having defined our handler type, it makes sense to make the rest of our tooling easy to use from within the abstraction.
 </p>
@@ -235,20 +236,24 @@ Now from within any HTTP handler we're writing, we can write code like:
 </div>
 
 <p>
-&#x2026;and as if by magic the request specific Marten session will be pulled out of the HTTP context of the request and we can use it to connect to our data source.
+...and as if by magic the request specific Marten session will be pulled out of the HTTP context of the request and we can use it to connect to our data source.
 </p>
 </div>
 </div>
 
-<div id="outline-container-orged75809" class="outline-2">
-<h2 id="orged75809">To be continued&#x2026;</h2>
-<div class="outline-text-2" id="text-orged75809">
+<div id="outline-container-org9babb27" class="outline-2">
+<h2 id="org9babb27">To be continued...</h2>
+<div class="outline-text-2" id="text-org9babb27">
 <p>
 I think that's about enough for this blog post, because I want to leave a whole post for the real meat of this set of changes: our first domain entity, the <code>User</code>.
 </p>
 
 <p>
 If you want a sneak peak, you can check out the PR and see how we can define a neat vertical slice of responsibility in our code base. The module takes the responsibility for user management all the way from the domain object, the events that can happen to it, the Marten config to make sure those are tracked, through to the paths that it has responsibility for and the UI that will be displayed when they are requested. Lots of fun stuff for us to talk about in the next exciting installment of "Dev Journal": different time, multiple channels, next week.
+</p>
+
+<p>
+Next up: <a href="../../../2024/03/05/dev_journal_4_2.html">Log in, log out (part 2)</a>
 </p>
 </div>
 </div>

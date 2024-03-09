@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2024-03-09 Sat 16:19 -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Internal quality review: Dev Journal 5</title>
+<meta name="author" content="Michael Newton" />
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/org.css">
+<script src="/htmx.min.js"></script>
+</head>
+<body hx-boost="true">
+<div id="org-div-home-and-up"><span class="home-text"><a accesskey="H" href="/">HOME</span><img class="home-logo" src="http://blog.mavnn.co.uk/images/swirl.svg" /></a></div><div id="content" class="container">
+<header>
+<h1 class="title">Internal quality review: Dev Journal 5</h1>
+</header><blockquote>
+<p>
+This post is part 5 of the "Dev Journal" series. <a href="../../../2024/01/31/dev-journal-1.html">Part 1</a> contains the series index, while the <a href="https://gitlab.com/mavnn/caldance/-/commits/DevJournal5?ref_type=tags">DevJournal5</a> tag for the CalDance project in GitLab holds the state of the repository as described here.
+</p>
+</blockquote>
+
+<p>
+Refactoring. One of those terms that gets thrown around a lot by developers, but rarely gets well defined.<sup><a id="fnr.1" class="footref" href="#fn.1" role="doc-backlink">1</a></sup>
+</p>
+
+<p>
+Keeping a code base reliable, easy to maintain, and fast to deliver on is hard work, and often gets confused when we start talking about writing code that is "clean" (a word many moral implications that are not appropriate here) or "good" (what does "good" mean anyway?).
+</p>
+
+<p>
+Fortunately I don't need to write much to clarify your or my thinking here, because Geepaw Hill has already done an excellent job of doing so in this <a href="https://www.geepawhill.org/2018/01/09/underplayed-the-correlation-premise-in-depth/">2018 blog post</a> where he explains the term "internal quality", which is the quality level of a code base as measured by how easy it is for <i>humans to change the code correctly</i>.
+</p>
+
+<p>
+Go read the post. It's good, I'll wait. Even if (like me) you don't always practice TDD!
+</p>
+
+<p>
+Once you've done that, you can come back to this post which is about our first round of "internal quality control" commits to the CalDance project now that it actually, you know, does something. <i>None</i> of these commits alter the user experience or functionality of the code in any way.
+</p>
+
+<div id="outline-container-org170ac32" class="outline-2">
+<h2 id="org170ac32">Commit 1: central package management</h2>
+<div class="outline-text-2" id="text-org170ac32">
+<p>
+&gt; <a href="https://gitlab.com/mavnn/caldance/-/commit/cdef80ad7bea6414357b99060b79d9f4b2cea9cf">Commit diff</a>
+</p>
+
+<p>
+The first commit eliminates a surprisingly common source of bugs in a project: mismatched dependency versions between what you test, and what you deploy.
+</p>
+
+<p>
+To help combat this, in 2022 the NuGet project introduced "<a href="https://devblogs.microsoft.com/nuget/introducing-central-package-management/">central package management</a>" which is a mechanism to allow each of your projects to specify <i>which</i> packages it depends on, while managing the versions of <i>all</i> packages across your whole project in one central location.
+</p>
+
+<p>
+Given that a new major version of Marten was released recently and I wanted to upgrade to use it, it seemed an ideal moment to put in a top level <code>Directory.Packages.props</code> file and remove the version numbers of dependencies from our <code>fsproj</code> files. An entire category of bugs eliminated permanently.
+</p>
+
+<p>
+The only code changes in this commit are to account for changes to how custom logging is implemented in Marten 7.0.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgf23798d" class="outline-2">
+<h2 id="orgf23798d">Commit 2: logging improvements</h2>
+<div class="outline-text-2" id="text-orgf23798d">
+<p>
+&gt; <a href="https://gitlab.com/mavnn/caldance/-/commit/14e38a1343566381628179e973c2b47341107a91">Commit diff</a>
+</p>
+
+<p>
+Talking about logging, our second commit enhances the logging we added to Marten to make sure that we carry through the <code>RequestId</code> assigned by AspNetCore to any Marten operations. We also add an environment variable switch to change over to structured JSON logging in our packaged docker container; this is considerably more verbose but means that we always know which component is logging and which request the log relates to when we start feeding the logs through to a log aggregator in production.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org6fd1347" class="outline-2">
+<h2 id="org6fd1347">Commit 3: tests</h2>
+<div class="outline-text-2" id="text-org6fd1347">
+<p>
+&gt; <a href="https://gitlab.com/mavnn/caldance/-/commit/7072d5c5d77128da5330ec03df303ccf15f484d8">Commit diff</a>
+</p>
+
+<p>
+I've been lack on testing so far, and the place where that bothered me most was that I wasn't completely certain that the type safe route definition library I'd built would actually construct links that would "round trip" correctly through the AspNetCore machinery.
+</p>
+
+<p>
+The idea is that I can define a route definition like so:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-keyword">private</span> <span class="org-variable-name">greetingRoute</span> =
+  literalSection <span class="org-string">"/greetings/"</span> ./+ stringSection <span class="org-string">"name"</span>
+</pre>
+</div>
+
+<p>
+And using that route definition I should be able to create links to an endpoint that receives the any path parameters without them being changed.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-comment-delimiter">// </span><span class="org-comment">Any path I create with this function...</span>
+<span class="org-keyword">let</span> <span class="org-function-name">link</span> <span class="org-variable-name">yourName</span> = greetingRoute.link yourName
+
+<span class="org-comment-delimiter">// </span><span class="org-comment">...should get handled by this endpoint, and</span>
+<span class="org-comment-delimiter">// </span><span class="org-comment">~greetingHandler~ should receive ~yourName~ as an input</span>
+<span class="org-keyword">let</span> <span class="org-variable-name">greetingEndpoint</span> =
+  Handler.toEndpoint get greetingRoute greetingHandler
+</pre>
+</div>
+
+<p>
+I wasn't sure how strings requiring URL escaping would be handled, so I added unit tests that actually call the underlying AspNet libraries to make sure I wasn't going to have any unpleasant surprises.
+</p>
+
+<p>
+It was a good thing I did, too, because the code did in fact do the wrong thing with strings that needed escaping. So this PR also includes the fixes.
+</p>
+
+<p>
+You can see the resulting test code in the new <a href="https://gitlab.com/mavnn/caldance/-/blob/DevJournal5/Server.Test/src/RouteDef.fs">RouteDef</a> file in <code>Server.Test</code>, which also shows just how easy it is to create a set of parameterized tests in Expecto.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org45868fc" class="outline-2">
+<h2 id="org45868fc">Commit 4: standardize domain module setup</h2>
+<div class="outline-text-2" id="text-org45868fc">
+<p>
+&gt; <a href="https://gitlab.com/mavnn/caldance/-/commit/f7cec1f8109d0f50ebdc0884c01b30706c137e94">Commit diff</a>
+</p>
+
+<p>
+In the previous post I said that I was a bit unhappy with how much of its internals the user domain module was exposing, and maybe I should give a standard way of a domain context to define itself - but it would be premature to do so with only one context.
+</p>
+
+<p>
+Then I realized that in some ways I already had a couple of other contexts; the home page, which you could claim is a bit borderline to call a context, and the greetings functionality which allows you to greet somebody.
+</p>
+
+<p>
+In a way this is smoke and mirrors; I'm well aware that these are not really bounded contexts within a domain in the way that we mean when talking about domain driven design. But at the same time, the point of writing this sort of "hello world" code is precisely because it starts telling you enough about the system you're building to be able to start designing based on reality rather than a set of assumptions.
+</p>
+
+<p>
+Looking at the code in question, it became clear that one thing would definitely already be helpful: an interface defining what endpoints a domain context provides and what config it needed to add to Marten.
+</p>
+
+<p>
+That led to the <code>DomainSetup</code> module:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">module</span> <span class="org-type">Mavnn.CalDance.DomainSetup</span>
+
+<span class="org-keyword">open</span> <span class="org-type">Falco</span>
+<span class="org-keyword">open</span> <span class="org-type">Marten</span>
+
+<span class="org-keyword">type</span> <span class="org-type">IConstructedContext</span> =
+  <span class="org-keyword">abstract</span> <span class="org-keyword">member</span> endpoints: <span class="org-type">HttpEndpoint list</span>
+  <span class="org-keyword">abstract</span> <span class="org-keyword">member</span> martenConfig: <span class="org-type">StoreOptions</span> -&gt; unit
+</pre>
+</div>
+
+<p>
+A bit of rearranging later, and we now have three domain modules all which export a context class that both implements the interface above and is also a convenient place to expose any link builders that the module wants to expose. A lot of other code could then immediately become private to each module.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org9cac3c4" class="outline-2">
+<h2 id="org9cac3c4">Wrapping up</h2>
+<div class="outline-text-2" id="text-org9cac3c4">
+<p>
+If you're an F# developer (or interested in becoming one) I hope the details of the commits are helpful. But there's a bigger take away here: names don't just matter <i>in</i> our code; talking to people with terminology that is easy for them to grasp and which highlights the areas of shared importance on all sides is an enormously valuable skill. You may well struggle to explain why you want to spend time refactoring ("you want to spend time making changes to the routing module that <i>don't</i> change what the code does?"), but "we need to improve the internal quality of the routing module so that we can write new features more quickly and correctly" is probably much easier to get agreement about.
+</p>
+
+<p>
+I hope you're enjoying this journey of discovery with me - as always, if you have questions or comments all of the code is in the <a href="https://gitlab.com/mavnn/caldance">CalDance</a> repository on GitLab. And if you'd like someone to help you keep the internal quality of <b>your</b> code base high then reach out about my <a href="file://../../../2024/01/29/short_term_help.html">short term consultancy</a> services.
+</p>
+
+<p>
+Next time: starting to shape up our actual user interface (probably).
+</p>
+</div>
+</div>
+<div id="footnotes">
+<h2 class="footnotes">Footnotes: </h2>
+<div id="text-footnotes">
+
+<div class="footdef"><sup><a id="fn.1" class="footnum" href="#fnr.1" role="doc-backlink">1</a></sup> <div class="footpara" role="doc-footnote"><p class="footpara">
+Yes, yes. I know it <i>does</i> have a good definition. I'm just saying people don't use it very often, and it is actually quite hard to succinctly explain to someone who hasn't already got the context to know why you'd want to do such a thing.
+</p></div></div>
+
+
+</div>
+</div></div>
+<div id="postamble" class="status">
+<footer id="my-contacts">
+<p hx-boost="false"><a href="https://blog.mavnn.co.uk/rss.xml">RSS</a></p>
+<p><a href="https://mastodon.sdf.org/@mavnn">Mastodon</a></p>
+<p>Git(<a href="https://github.com/mavnn">Hub</a>|<a href="https://gitlab.com/mavnn">Lab</a>)</p>
+</footer>
+</div>
+</body>
+</html>

@@ -14,8 +14,8 @@
   <link>https://blog.mavnn.co.uk/</link>
   <description><![CDATA[]]></description>
   <language>en</language>
-  <pubDate>Thu, 07 Mar 2024 12:06:02 +0100</pubDate>
-  <lastBuildDate>Thu, 07 Mar 2024 12:06:02 +0100</lastBuildDate>
+  <pubDate>Sat, 09 Mar 2024 16:22:41 +0100</pubDate>
+  <lastBuildDate>Sat, 09 Mar 2024 16:22:41 +0100</lastBuildDate>
   <generator>Emacs 29.1 Org-mode 9.6.6</generator>
   <webMaster>michael@mavnn.eu (Michael Newton)</webMaster>
   <image>
@@ -26,415 +26,599 @@
 
 
   <item>
-    <title>Log in, log out: Dev Journal 4 (part 2)</title>
-    <link>https://blog.mavnn.co.uk/2024/03/05/dev_journal_4_2.html</link>
+    <title>Internal quality review: Dev Journal 5</title>
+    <link>https://blog.mavnn.co.uk/2024/03/09/dev_journal_5.html</link>
     <author>michael@mavnn.eu (Michael Newton)</author>
-    <guid isPermaLink="false">https://blog.mavnn.co.uk/2024/03/05/dev_journal_4_2.html</guid>
-    <pubDate>Tue, 05 Mar 2024 00:00:00 +0100</pubDate>
+    <guid isPermaLink="false">https://blog.mavnn.co.uk/2024/03/09/dev_journal_5.html</guid>
+    <pubDate>Sat, 09 Mar 2024 00:00:00 +0100</pubDate>
 
     <description><![CDATA[<blockquote>
     <p>
-    This post is the second half of a two part update in the "Dev Journal" series. <a href="../../../2024/03/01/dev_journal_4.html">The first half</a> talks about adding dependencies to the project on postgresql and the Marten event store library, which we'll look at using in this post. <a href="../../../2024/01/31/dev-journal-1.html">Part 1</a> contains the series index, while the <a href="https://gitlab.com/mavnn/caldance/-/commits/DevJournal4?ref_type=tags">DevJournal4</a> tag for the CalDance project in GitLab holds the state of the repository as described here.
+    This post is part 5 of the "Dev Journal" series. <a href="../../../2024/01/31/dev-journal-1.html">Part 1</a> contains the series index, while the <a href="https://gitlab.com/mavnn/caldance/-/commits/DevJournal5?ref_type=tags">DevJournal5</a> tag for the CalDance project in GitLab holds the state of the repository as described here.
     </p>
     </blockquote>
 
     <p>
-    So. We have an event store. Our website is going to have users. How do we go about user management?
+    Refactoring. One of those terms that gets thrown around a lot by developers, but rarely gets well defined.
     </p>
 
-    <div id="outline-container-org71d1fa8" class="outline-3">
-    <h3 id="org71d1fa8"><span class="section-number-3">1.1.</span> Where's the cheese?</h3>
+    <p>
+    Keeping a code base reliable, easy to maintain, and fast to deliver on is hard work, and often gets confused when we start talking about writing code that is "clean" (a word many moral implications that are not appropriate here) or "good" (what does "good" mean anyway?).
+    </p>
+
+    <p>
+    Fortunately I don't need to write much to clarify your or my thinking here, because Geepaw Hill has already done an excellent job of doing so in this <a href="https://www.geepawhill.org/2018/01/09/underplayed-the-correlation-premise-in-depth/">2018 blog post</a> where he explains the term "internal quality", which is the quality level of a code base as measured by how easy it is for <i>humans to change the code correctly</i>.
+    </p>
+
+    <p>
+    Go read the post. It's good, I'll wait. Even if (like me) you don't always practice TDD!
+    </p>
+
+    <p>
+    Once you've done that, you can come back to this post which is about our first round of "internal quality control" commits to the CalDance project now that it actually, you know, does something. <i>None</i> of these commits alter the user experience or functionality of the code in any way.
+    </p>
+
+    <div id="outline-container-orgc65ce46" class="outline-3">
+    <h3 id="orgc65ce46"><span class="section-number-3">1.1.</span> Commit 1: central package management</h3>
     <div class="outline-text-3" id="text-1-1">
     <p>
-    To borrow a term from domain driven design, this sounds like a "bounded context" within our system. Other parts of the code may care about certain events happening related to users (users being created, that kind of thing), but they probably shouldn't know or care about how the internals of "a user" work or what it takes to authenticate a user.
+    &gt; <a href="https://gitlab.com/mavnn/caldance/-/commit/cdef80ad7bea6414357b99060b79d9f4b2cea9cf">Commit diff</a>
     </p>
 
     <p>
-    There are as many ways of organizing your code as there are grains of sand on the beach, but fundamentally all of the ones that help are about choosing where to have boundaries in your code base.
+    The first commit eliminates a surprisingly common source of bugs in a project: mismatched dependency versions between what you test, and what you deploy.
     </p>
 
     <p>
-    We are going to have three horizontal slices; shared library code, domain logic (our "business" code), and execution environment. Vertically we're going to slice the domain logic by bounded context - of which, admittedly, we only have one at the moment.
+    To help combat this, in 2022 the NuGet project introduced "<a href="https://devblogs.microsoft.com/nuget/introducing-central-package-management/">central package management</a>" which is a mechanism to allow each of your projects to specify <i>which</i> packages it depends on, while managing the versions of <i>all</i> packages across your whole project in one central location.
     </p>
 
     <p>
-    We end up with something like (things further down the table depend on the things above):
-    </p>
-
-    <!-- This HTML table template is generated by emacs 29.1 -->
-    <table border="1">
-    <tr>
-    <td colspan="2" align="left" valign="top">
-    &nbsp;Http&nbsp;Handler&nbsp;abstraction,&nbsp;UI&nbsp;components&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-    </td>
-    </tr>
-    <tr>
-    <td align="left" valign="top">
-    &nbsp;User&nbsp;domain&nbsp;logic&nbsp;
-    </td>
-    <td align="left" valign="top">
-    &nbsp;Things&nbsp;users&nbsp;do&nbsp;domain&nbsp;logic&nbsp;
-    </td>
-    </tr>
-    <tr>
-    <td colspan="2" align="left" valign="top">
-    &nbsp;Read&nbsp;configuration&nbsp;files,&nbsp;start&nbsp;the&nbsp;web&nbsp;server&nbsp;&nbsp;&nbsp;
-    </td>
-    </tr>
-    </table>
-
-    <p>
-    You'll notice that this doesn't group the code by the technical task the code is trying to achieve, a pattern you'll often find in example project templates where you'll end up with a "Controllers" directory and a "Views" directory. It's also not an organization along "clean/hexagon/ports and adapters" lines with a strict demarcation between code that speaks to the outside world achieved via interfaces and abstractions.
+    Given that a new major version of Marten was released recently and I wanted to upgrade to use it, it seemed an ideal moment to put in a top level <code>Directory.Packages.props</code> file and remove the version numbers of dependencies from our <code>fsproj</code> files. An entire category of bugs eliminated permanently.
     </p>
 
     <p>
-    It's not that I feel that either of those patterns has no merit (although I feel like the main driver of the first pattern is that you can suggest it even for projects you <i>know nothing about</i> which is a useful property when writing templates and dispensing nuggets of wisdom at conferences about the <b>one true way</b> to organize code). But I do feel that for the vast majority of code bases, it is a far bigger gain to productivity to be able to co-locate code by <i>purpose</i> than by <i>type</i>.
-    </p>
-
-    <p>
-    Let's face it: while you sometimes pick up a story/card/work ticket that requires you to go and change all the controllers (normally during dependency upgrades), or replace all the database interface implementations (you're about to have a long few months), it is much more likely on a day to day basis that you're trying to add a new field to the data we store about users, and you want to update the data store, business logic, and UI of <i>users</i> to be able to do that. Taking this logic to its logical extremes leads you towards microservices - but that starts to bring in a different type of complexity of its own.
-    </p>
-
-    <p>
-    All of this to say: there's now a folder called <code>Domain</code> which holds our new, shiny, user management code in a file called: <i>drumroll, please</i> <code>User.fs</code>. Let's have a look at it in detail.
+    The only code changes in this commit are to account for changes to how custom logging is implemented in Marten 7.0.
     </p>
     </div>
     </div>
 
-    <div id="outline-container-org6f6a805" class="outline-3">
-    <h3 id="org6f6a805"><span class="section-number-3">1.2.</span> The cheese. We have found it.</h3>
+    <div id="outline-container-orgf7c8c3c" class="outline-3">
+    <h3 id="orgf7c8c3c"><span class="section-number-3">1.2.</span> Commit 2: logging improvements</h3>
     <div class="outline-text-3" id="text-1-2">
+    <p>
+    &gt; <a href="https://gitlab.com/mavnn/caldance/-/commit/14e38a1343566381628179e973c2b47341107a91">Commit diff</a>
+    </p>
+
+    <p>
+    Talking about logging, our second commit enhances the logging we added to Marten to make sure that we carry through the <code>RequestId</code> assigned by AspNetCore to any Marten operations. We also add an environment variable switch to change over to structured JSON logging in our packaged docker container; this is considerably more verbose but means that we always know which component is logging and which request the log relates to when we start feeding the logs through to a log aggregator in production.
+    </p>
+    </div>
+    </div>
+
+    <div id="outline-container-org96e0bf7" class="outline-3">
+    <h3 id="org96e0bf7"><span class="section-number-3">1.3.</span> Commit 3: tests</h3>
+    <div class="outline-text-3" id="text-1-3">
+    <p>
+    &gt; <a href="https://gitlab.com/mavnn/caldance/-/commit/7072d5c5d77128da5330ec03df303ccf15f484d8">Commit diff</a>
+    </p>
+
+    <p>
+    I've been lack on testing so far, and the place where that bothered me most was that I wasn't completely certain that the type safe route definition library I'd built would actually construct links that would "round trip" correctly through the AspNetCore machinery.
+    </p>
+
+    <p>
+    The idea is that I can define a route definition like so:
+    </p>
+
     <div class="org-src-container">
-    <pre class="src src-fsharp"><span class="org-keyword">module</span> <span class="org-type">Mavnn.CalDance.Domain.User</span>
+    <pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-keyword">private</span> <span class="org-variable-name">greetingRoute</span> =
+    literalSection <span class="org-string">"/greetings/"</span> ./+ stringSection <span class="org-string">"name"</span>
+    </pre>
+    </div>
+
+    <p>
+    And using that route definition I should be able to create links to an endpoint that receives the any path parameters without them being changed.
+    </p>
+
+    <div class="org-src-container">
+    <pre class="src src-fsharp"><span class="org-comment-delimiter">// </span><span class="org-comment">Any path I create with this function...</span>
+    <span class="org-keyword">let</span> <span class="org-function-name">link</span> <span class="org-variable-name">yourName</span> = greetingRoute.link yourName
+
+    <span class="org-comment-delimiter">// </span><span class="org-comment">...should get handled by this endpoint, and</span>
+    <span class="org-comment-delimiter">// </span><span class="org-comment">~greetingHandler~ should receive ~yourName~ as an input</span>
+    <span class="org-keyword">let</span> <span class="org-variable-name">greetingEndpoint</span> =
+    Handler.toEndpoint get greetingRoute greetingHandler
+    </pre>
+    </div>
+
+    <p>
+    I wasn't sure how strings requiring URL escaping would be handled, so I added unit tests that actually call the underlying AspNet libraries to make sure I wasn't going to have any unpleasant surprises.
+    </p>
+
+    <p>
+    It was a good thing I did, too, because the code did in fact do the wrong thing with strings that needed escaping. So this PR also includes the fixes.
+    </p>
+
+    <p>
+    You can see the resulting test code in the new <a href="https://gitlab.com/mavnn/caldance/-/blob/DevJournal5/Server.Test/src/RouteDef.fs">RouteDef</a> file in <code>Server.Test</code>, which also shows just how easy it is to create a set of parameterized tests in Expecto.
+    </p>
+    </div>
+    </div>
+
+    <div id="outline-container-orgeecd318" class="outline-3">
+    <h3 id="orgeecd318"><span class="section-number-3">1.4.</span> Commit 4: standardize domain module setup</h3>
+    <div class="outline-text-3" id="text-1-4">
+    <p>
+    &gt; <a href="https://gitlab.com/mavnn/caldance/-/commit/f7cec1f8109d0f50ebdc0884c01b30706c137e94">Commit diff</a>
+    </p>
+
+    <p>
+    In the previous post I said that I was a bit unhappy with how much of its internals the user domain module was exposing, and maybe I should give a standard way of a domain context to define itself - but it would be premature to do so with only one context.
+    </p>
+
+    <p>
+    Then I realized that in some ways I already had a couple of other contexts; the home page, which you could claim is a bit borderline to call a context, and the greetings functionality which allows you to greet somebody.
+    </p>
+
+    <p>
+    In a way this is smoke and mirrors; I'm well aware that these are not really bounded contexts within a domain in the way that we mean when talking about domain driven design. But at the same time, the point of writing this sort of "hello world" code is precisely because it starts telling you enough about the system you're building to be able to start designing based on reality rather than a set of assumptions.
+    </p>
+
+    <p>
+    Looking at the code in question, it became clear that one thing would definitely already be helpful: an interface defining what endpoints a domain context provides and what config it needed to add to Marten.
+    </p>
+
+    <p>
+    That led to the <code>DomainSetup</code> module:
+    </p>
+
+    <div class="org-src-container">
+    <pre class="src src-fsharp"><span class="org-keyword">module</span> <span class="org-type">Mavnn.CalDance.DomainSetup</span>
 
     <span class="org-keyword">open</span> <span class="org-type">Falco</span>
-    <span class="org-keyword">open</span> <span class="org-type">Falco.Routing</span>
-    <span class="org-keyword">open</span> <span class="org-type">Falco.Markup</span>
-    <span class="org-keyword">open</span> <span class="org-type">Falco.Security</span>
     <span class="org-keyword">open</span> <span class="org-type">Marten</span>
-    <span class="org-keyword">open</span> <span class="org-type">Marten.Events.Aggregation</span>
-    <span class="org-keyword">open</span> <span class="org-type">Marten.Events.Projections</span>
-    <span class="org-keyword">open</span> <span class="org-type">Mavnn.CalDance</span>
-    <span class="org-keyword">open</span> <span class="org-type">Mavnn.CalDance.Routing</span>
-    <span class="org-keyword">open</span> <span class="org-type">System.Security.Claims</span>
-    <span class="org-keyword">open</span> <span class="org-type">Microsoft.AspNetCore.Identity</span>
+
+    <span class="org-keyword">type</span> <span class="org-type">IConstructedContext</span> =
+    <span class="org-keyword">abstract</span> <span class="org-keyword">member</span> endpoints: <span class="org-type">HttpEndpoint list</span>
+    <span class="org-keyword">abstract</span> <span class="org-keyword">member</span> martenConfig: <span class="org-type">StoreOptions</span> -&gt; unit
     </pre>
     </div>
 
     <p>
-    As just mentioned, this module is going to be responsible for the whole vertical slice of the application for user management, so we start by including everything we need from the data store (<code>Marten</code>) through to the UI (<code>Falco.Markup</code>). We could have created sub modules within a Users folder if needed, but the module is only ~300 lines long so I haven't split it up (yet).
+    A bit of rearranging later, and we now have three domain modules all which export a context class that both implements the interface above and is also a convenient place to expose any link builders that the module wants to expose. A lot of other code could then immediately become private to each module.
     </p>
-
-    <div class="org-src-container">
-    <pre class="src src-fsharp"><span class="org-keyword">type</span> <span class="org-type">User</span> = <span class="org-rainbow-delimiters-depth-1">{</span> id: <span class="org-type">System.</span>Guid; username: <span class="org-type">string</span> <span class="org-rainbow-delimiters-depth-1">}</span>
-
-    <span class="org-keyword">type</span> <span class="org-type">UserState</span> =
-    <span class="org-fsharp-ui-operator">|</span> Active
-    <span class="org-fsharp-ui-operator">|</span> Disabled
-
-    <span class="org-preprocessor"><span class="org-rainbow-delimiters-depth-1">[</span></span><span class="org-preprocessor">&lt;CLIMutable&gt;</span><span class="org-preprocessor"><span class="org-rainbow-delimiters-depth-1">]</span></span>
-    <span class="org-keyword">type</span> <span class="org-type">UserRecord</span> =
-    <span class="org-rainbow-delimiters-depth-1">{</span> Id: <span class="org-type">System.</span>Guid
-    Username: <span class="org-type">string</span>
-    PasswordHash: <span class="org-type">string</span>
-    State: <span class="org-type">UserState</span> <span class="org-rainbow-delimiters-depth-1">}</span>
-
-    <span class="org-keyword">type</span> <span class="org-type">UserEvent</span> =
-    <span class="org-fsharp-ui-operator">|</span> Created <span class="org-keyword">of</span> UserRecord
-    <span class="org-fsharp-ui-operator">|</span> PasswordChanged <span class="org-keyword">of</span> passwordHash: <span class="org-type">string</span>
-    <span class="org-fsharp-ui-operator">|</span> Disabled
-    </pre>
+    </div>
     </div>
 
+    <div id="outline-container-orgdc3039f" class="outline-3">
+    <h3 id="orgdc3039f"><span class="section-number-3">1.5.</span> Wrapping up</h3>
+    <div class="outline-text-3" id="text-1-5">
     <p>
-    Next we define a few data types that represent our users, and the events that can happen to them over time. This is important because we are "event sourcing" the state of our users, meaning that the golden source of truth for what state a user is in is defined by what events have happened to them so far. The two representations of the user represent what we care about in the running system (the main <code>User</code> type) and what we need to store about them on disk (the <code>UserRecord</code> type); in general we would expect that other modules <i>might</i> make use of the <code>User</code> type but in general they should not make use of the <code>UserRecord</code> type. Its an open question in my mind whether it should actually be marked as a private type declaration, but I've erred on the side of leaving it available for now.
+    If you're an F# developer (or interested in becoming one) I hope the details of the commits are helpful. But there's a bigger take away here: names don't just matter <i>in</i> our code; talking to people with terminology that is easy for them to grasp and which highlights the areas of shared importance on all sides is an enormously valuable skill. You may well struggle to explain why you want to spend time refactoring ("you want to spend time making changes to the routing module that <i>don't</i> change what the code does?"), but "we need to improve the internal quality of the routing module so that we can write new features more quickly and correctly" is probably much easier to get agreement about.
     </p>
 
     <p>
-    A minor implementation detail: to try and keep the incremental steps of the project manageable I'm using the default (de)serializers for Marten, which require the object to be deserialized from the data base has a default constructor and mutable fields, which we get from the <code>[&lt;CLIMutable&gt;]</code> attribute. We'll probably remove that going forwards by switching to a serialization strategy that works with immutable F# records.
+    I hope you're enjoying this journey of discovery with me - as always, if you have questions or comments all of the code is in the <a href="https://gitlab.com/mavnn/caldance">CalDance</a> repository on GitLab. And if you'd like someone to help you keep the internal quality of <b>your</b> code base high then reach out about my <a href="file://../../../2024/01/29/short_term_help.html">short term consultancy</a> services.
     </p>
 
     <p>
-    The life cycle of our users is very simple at the moment; a <code>Created</code> event signals that a new, active, user was created. That user can change their password, or they can be marked disabled which effectively ends the lifecycle of the user. There's no way to reactivate a user now, although we could always add one later.
-    </p>
-
-    <div class="org-src-container">
-    <pre class="src src-fsharp"><span class="org-keyword">type</span> <span class="org-type">UserRecordProjection</span><span class="org-rainbow-delimiters-depth-1">()</span> =
-    <span class="org-keyword">inherit</span> <span class="org-type">SingleStreamProjection</span>&lt;UserRecord&gt;<span class="org-rainbow-delimiters-depth-1">()</span>
-
-    <span class="org-keyword">member</span> <span class="org-variable-name">_</span>.<span class="org-function-name">Create</span><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-variable-name">userEvent</span>, <span class="org-variable-name">metadata</span>: <span class="org-type">Events.</span><span class="org-variable-name">IEvent</span><span class="org-rainbow-delimiters-depth-1">)</span> =
-    <span class="org-keyword">match</span> userEvent <span class="org-keyword">with</span>
-    <span class="org-fsharp-ui-operator">|</span> Created user -&gt; user
-    <span class="org-fsharp-ui-operator">|</span> _ -&gt;
-    <span class="org-comment-delimiter">// </span><span class="org-comment">We should always receive a created event</span>
-    <span class="org-comment-delimiter">// </span><span class="org-comment">first so this shouldn't ever happen...</span>
-    <span class="org-comment-delimiter">// </span><span class="org-comment">...but it might, and we don't want to throw</span>
-    <span class="org-comment-delimiter">// </span><span class="org-comment">in projections.</span>
-    <span class="org-rainbow-delimiters-depth-1">{</span> Id = metadata.Id
-    Username = <span class="org-string">""</span>
-    PasswordHash = <span class="org-string">""</span>
-    State = UserState.Disabled <span class="org-rainbow-delimiters-depth-1">}</span>
-
-
-    <span class="org-keyword">member</span> <span class="org-variable-name">_</span>.<span class="org-function-name">Apply</span><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-variable-name">userEvent</span>, <span class="org-variable-name">userRecord</span>: <span class="org-type">UserRecord</span><span class="org-rainbow-delimiters-depth-1">)</span> =
-    task <span class="org-rainbow-delimiters-depth-1">{</span>
-
-    <span class="org-keyword">match</span> userEvent <span class="org-keyword">with</span>
-    <span class="org-fsharp-ui-operator">|</span> Created _ -&gt;
-    <span class="org-comment-delimiter">// </span><span class="org-comment">Should never occur after the first event in the stream</span>
-    <span class="org-comment-delimiter">// </span><span class="org-comment">so we ignore duplicates</span>
-    <span class="org-keyword">return</span> userRecord
-    <span class="org-fsharp-ui-operator">|</span> PasswordChanged passwordHash -&gt;
-    <span class="org-keyword">match</span> userRecord <span class="org-keyword">with</span>
-    <span class="org-fsharp-ui-operator">|</span> <span class="org-rainbow-delimiters-depth-2">{</span> State = UserState.Disabled <span class="org-rainbow-delimiters-depth-2">}</span> -&gt;
-    <span class="org-comment-delimiter">// </span><span class="org-comment">Don't update password of disabled users</span>
-    <span class="org-keyword">return</span> userRecord
-    <span class="org-fsharp-ui-operator">|</span> user -&gt;
-    <span class="org-keyword">return</span>
-    <span class="org-rainbow-delimiters-depth-2">{</span> user <span class="org-keyword">with</span>
-    PasswordHash = passwordHash <span class="org-rainbow-delimiters-depth-2">}</span>
-    <span class="org-fsharp-ui-operator">|</span> Disabled -&gt;
-    <span class="org-keyword">match</span> userRecord <span class="org-keyword">with</span>
-    <span class="org-fsharp-ui-operator">|</span> <span class="org-rainbow-delimiters-depth-2">{</span> State = UserState.Disabled <span class="org-rainbow-delimiters-depth-2">}</span> -&gt;
-    <span class="org-keyword">return</span> userRecord
-    <span class="org-fsharp-ui-operator">|</span> <span class="org-rainbow-delimiters-depth-2">{</span> State = Active <span class="org-rainbow-delimiters-depth-2">}</span> -&gt;
-    <span class="org-keyword">return</span>
-    <span class="org-rainbow-delimiters-depth-2">{</span> userRecord <span class="org-keyword">with</span>
-    State = UserState.Disabled <span class="org-rainbow-delimiters-depth-2">}</span>
-    <span class="org-rainbow-delimiters-depth-1">}</span>
-    </pre>
-    </div>
-
-    <p>
-    <code>Marten</code> leans heavily into the code reflection capabilities of the dotnet framework, allowing us to configure our data store in terms of the in program types we want it to store. A "projection" in event sourcing is the logic which takes a list of events (our base line source of truth) and turns it into a current state, so this class defines a projection that will create and/or update <code>UserRecord</code> data in Marten's document store (we know it does this because it implements the <code>SingleStreamProjection&lt;UserRecord&gt;</code> interface). It will project <i>from</i> events of the <code>UserEvent</code> type, because that is the type of the first argument of the <code>Create</code> and <code>Apply</code> methods we have supplied.
-    </p>
-
-    <p>
-    There are a few conventions we need to follow here to allow for this minimalist a configuration. Our current state type <i>must</i> have an <code>Id</code> (or <code>id</code>) field of type string, uuid, or integer. And when an event matching the signature of our projection is pushed to a stream with an ID, the resulting update to the current status type must produce a document with the same ID as the stream ID.
-    </p>
-
-    <p>
-    We're treating our records as immutable objects (because we're planning to make them immutable going forward), so our create and apply methods return a <code>Task&lt;UserRecord&gt;</code>; if the document type was mutable we would also have the options of mutating it in place and returning void.
-    </p>
-
-    <p>
-    With that explanation out of the way, hopefully the state machine that represents our user life cycle is clear in the code above.
-    </p>
-
-    <p>
-    Now that we can store information about our users, and update them based on what is happening to them, it's time to start implementing the actual responsibilities of the module. We're keeping things minimal to get started, so we'll implement only the three things we <i>really</i> need: sign up, log in, and log out.
-    </p>
-
-    <div class="org-src-container">
-    <pre class="src src-fsharp"><span class="org-keyword">type</span> <span class="org-type">LoginFormData</span> = <span class="org-rainbow-delimiters-depth-1">{</span> username: <span class="org-type">string</span>; password: <span class="org-type">string</span> <span class="org-rainbow-delimiters-depth-1">}</span>
-
-    <span class="org-keyword">let</span> <span class="org-function-name">findUserRecord</span> <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-variable-name">username</span>: <span class="org-type">string</span><span class="org-rainbow-delimiters-depth-1">)</span> =
-    Marten.withMarten <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">fun</span> <span class="org-variable-name">marten</span> -&gt;
-    marten
-    .Query&lt;UserRecord&gt;<span class="org-rainbow-delimiters-depth-2">()</span>
-    .SingleOrDefaultAsync<span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">fun</span> <span class="org-variable-name">ur</span> -&gt;
-    ur.Username = username<span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
-    <span class="org-fsharp-ui-operator">|&gt;</span> Handler.map Marten.returnOption
-
-    <span class="org-keyword">let</span> <span class="org-variable-name">loginRoute</span> = RouteDef.literalSection <span class="org-string">"/login"</span>
-    <span class="org-keyword">let</span> <span class="org-variable-name">logoutRoute</span> = RouteDef.literalSection <span class="org-string">"/logout"</span>
-    <span class="org-keyword">let</span> <span class="org-variable-name">signupRoute</span> = RouteDef.literalSection <span class="org-string">"/signup"</span>
-
-    <span class="org-keyword">let</span> <span class="org-variable-name">getSessionUser</span>: <span class="org-type">Handler</span><span class="org-fsharp-ui-generic">&lt;User option&gt;</span> =
-    Handler.fromCtx <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">fun</span> <span class="org-variable-name">ctx</span> -&gt;
-    <span class="org-keyword">match</span> ctx.User <span class="org-keyword">with</span>
-    <span class="org-fsharp-ui-operator">|</span> <span class="org-keyword">null</span> -&gt; None
-    <span class="org-fsharp-ui-operator">|</span> principal -&gt;
-    <span class="org-keyword">match</span>
-    <span class="org-rainbow-delimiters-depth-2">(</span>System.Guid.TryParse<span class="org-rainbow-delimiters-depth-3">(</span>
-    principal.FindFirstValue<span class="org-rainbow-delimiters-depth-4">(</span><span class="org-string">"userId"</span><span class="org-rainbow-delimiters-depth-4">)</span>
-    <span class="org-rainbow-delimiters-depth-3">)</span>,
-    principal.FindFirstValue<span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"name"</span><span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span>
-    <span class="org-keyword">with</span>
-    <span class="org-fsharp-ui-operator">|</span> <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-keyword">false</span>, _<span class="org-rainbow-delimiters-depth-3">)</span>, _<span class="org-rainbow-delimiters-depth-2">)</span>
-    <span class="org-fsharp-ui-operator">|</span> <span class="org-rainbow-delimiters-depth-2">(</span>_, <span class="org-keyword">null</span><span class="org-rainbow-delimiters-depth-2">)</span> -&gt; None
-    <span class="org-fsharp-ui-operator">|</span> <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-keyword">true</span>, id<span class="org-rainbow-delimiters-depth-3">)</span>, username<span class="org-rainbow-delimiters-depth-2">)</span> -&gt;
-    Some <span class="org-rainbow-delimiters-depth-2">{</span> id = id; username = username <span class="org-rainbow-delimiters-depth-2">}</span><span class="org-rainbow-delimiters-depth-1">)</span>
-    </pre>
-    </div>
-
-    <p>
-    A few definitions and helpers start us off; what data a form needs to capture for someone to sign up/log on, what urls exist and are managed by this module, and a couple of helper functions for obtaining a user record and a user session from the current HTTP context (using the <code>Handler</code> type we talked about in the last post).
-    </p>
-
-    <div class="org-src-container">
-    <pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">loginGetEndpoint</span> =
-    Handler.toEndpoint get loginRoute <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">fun</span> <span class="org-rainbow-delimiters-depth-2">()</span> -&gt;
-    Handler.return' <span class="org-rainbow-delimiters-depth-2">(</span>
-    Response.ofHtmlCsrf <span class="org-rainbow-delimiters-depth-3">(</span><span class="org-keyword">fun</span> <span class="org-variable-name">csrfToken</span> -&gt;
-    Elem.html
-    <span class="org-rainbow-delimiters-depth-4">[]</span>
-    <span class="org-rainbow-delimiters-depth-4">[</span> Elem.body
-    <span class="org-rainbow-delimiters-depth-5">[]</span>
-    <span class="org-rainbow-delimiters-depth-5">[</span> Elem.form
-    <span class="org-rainbow-delimiters-depth-6">[</span> Attr.<span class="org-keyword">method</span> <span class="org-string">"post"</span> <span class="org-rainbow-delimiters-depth-6">]</span>
-    <span class="org-rainbow-delimiters-depth-6">[</span> Elem.input <span class="org-rainbow-delimiters-depth-7">[</span> Attr.name <span class="org-string">"username"</span> <span class="org-rainbow-delimiters-depth-7">]</span>
-    Elem.input <span class="org-rainbow-delimiters-depth-7">[</span> Attr.name <span class="org-string">"password"</span> <span class="org-rainbow-delimiters-depth-7">]</span>
-    Xss.antiforgeryInput csrfToken
-    Elem.input
-    <span class="org-rainbow-delimiters-depth-7">[</span> Attr.type' <span class="org-string">"submit"</span>
-    Attr.value <span class="org-string">"Submit"</span> <span class="org-rainbow-delimiters-depth-7">]</span> <span class="org-rainbow-delimiters-depth-6">]</span> <span class="org-rainbow-delimiters-depth-5">]</span> <span class="org-rainbow-delimiters-depth-4">]</span><span class="org-rainbow-delimiters-depth-3">)</span>
-    <span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
-    </pre>
-    </div>
-
-    <p>
-    Our first end point is straight forward. When we receive a get request to the login path, we reply with a form containing a token to prevent cross site vulnerabilities and username and password fields.
-    </p>
-
-    <div class="org-src-container">
-    <pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-keyword">private</span> <span class="org-function-name">makePrincipal</span> <span class="org-variable-name">userRecord</span> =
-    <span class="org-keyword">let</span> <span class="org-variable-name">claims</span> =
-    <span class="org-rainbow-delimiters-depth-1">[</span> <span class="org-keyword">new</span> Claim<span class="org-rainbow-delimiters-depth-2">(</span><span class="org-string">"name"</span>, userRecord.Username<span class="org-rainbow-delimiters-depth-2">)</span>
-    <span class="org-keyword">new</span> Claim<span class="org-rainbow-delimiters-depth-2">(</span><span class="org-string">"userId"</span>, userRecord.Id.ToString<span class="org-rainbow-delimiters-depth-3">()</span><span class="org-rainbow-delimiters-depth-2">)</span> <span class="org-rainbow-delimiters-depth-1">]</span>
-
-    <span class="org-keyword">let</span> <span class="org-variable-name">identity</span> = <span class="org-keyword">new</span> ClaimsIdentity<span class="org-rainbow-delimiters-depth-1">(</span>claims, <span class="org-string">"Cookies"</span><span class="org-rainbow-delimiters-depth-1">)</span>
-
-    <span class="org-keyword">new</span> ClaimsPrincipal<span class="org-rainbow-delimiters-depth-1">(</span>identity<span class="org-rainbow-delimiters-depth-1">)</span>
-
-    <span class="org-keyword">let</span> <span class="org-variable-name">passwordHasher</span> = PasswordHasher<span class="org-rainbow-delimiters-depth-1">()</span>
-
-    <span class="org-keyword">let</span> <span class="org-function-name">updateUser</span> <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-variable-name">id</span>: <span class="org-type">System.</span><span class="org-variable-name">Guid</span>, <span class="org-variable-name">events</span>: <span class="org-type">seq</span><span class="org-fsharp-ui-generic">&lt;UserEvent&gt;</span><span class="org-rainbow-delimiters-depth-1">)</span> =
-    handler <span class="org-rainbow-delimiters-depth-1">{</span>
-    <span class="org-keyword">do!</span>
-    Marten.withMarten <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">fun</span> <span class="org-variable-name">marten</span> -&gt;
-    task <span class="org-rainbow-delimiters-depth-3">{</span>
-    <span class="org-comment-delimiter">// </span><span class="org-comment">explicitly assign this as an array of objects</span>
-    <span class="org-comment-delimiter">// </span><span class="org-comment">so that Marten chooses the correct method</span>
-    <span class="org-comment-delimiter">// </span><span class="org-comment">overload for `Append`</span>
-    <span class="org-keyword">let</span> <span class="org-variable-name">eventObjs</span>: <span class="org-type">obj</span><span class="org-type"><span class="org-rainbow-delimiters-depth-4">[</span></span><span class="org-rainbow-delimiters-depth-4">]</span> =
-    Array.ofSeq events <span class="org-fsharp-ui-operator">|&gt;</span> Array.map box
-
-    marten.Events.Append<span class="org-rainbow-delimiters-depth-4">(</span>id, eventObjs<span class="org-rainbow-delimiters-depth-4">)</span> <span class="org-fsharp-ui-operator">|&gt;</span> ignore
-    <span class="org-keyword">return!</span> marten.SaveChangesAsync<span class="org-rainbow-delimiters-depth-4">()</span>
-    <span class="org-rainbow-delimiters-depth-3">}</span><span class="org-rainbow-delimiters-depth-2">)</span>
-
-    <span class="org-keyword">return!</span>
-    Marten.withMarten <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">fun</span> <span class="org-variable-name">marten</span> -&gt;
-    marten.LoadAsync&lt;UserRecord&gt;<span class="org-rainbow-delimiters-depth-3">(</span>id<span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span>
-    <span class="org-rainbow-delimiters-depth-1">}</span>
-    </pre>
-    </div>
-
-    <p>
-    Our next end point is going to actually handle the form coming in, so it requires a few more helpers. The web framework we're using will handle things like sessions for us, but only if we "buy into" the .NET standard ways of representing a user, in this case using the <code>ClaimsPrincipal</code> type - so we have a helper to map from one of our user records to a claims principal. We initialize a password hasher which will salt and hash our passwords for us (don't roll your own crypto, folks, especially when your language ecosystem has a decent implementation ready for you). And finally we add an other method that works within our HTTP context expressions - <code>updateUser</code> takes the ID of a user and a list of events and returns the updated <code>UserRecord</code>.
-    </p>
-
-    <p>
-    With all of that in place, we can write the <code>loginPostEndpoint</code>.
-    </p>
-
-    <div class="org-src-container">
-    <pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">loginPostEndpoint</span> =
-    Handler.toEndpoint post loginRoute <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">fun</span> <span class="org-rainbow-delimiters-depth-2">()</span> -&gt;
-    handler <span class="org-rainbow-delimiters-depth-2">{</span>
-    <span class="org-keyword">let!</span> loginData =
-    Handler.formDataOrFail
-    <span class="org-rainbow-delimiters-depth-3">(</span>Response.withStatusCode <span class="org-highlight-numbers-number">400</span> &gt;&gt; Response.ofEmpty<span class="org-rainbow-delimiters-depth-3">)</span>
-    <span class="org-rainbow-delimiters-depth-3">(</span><span class="org-keyword">fun</span> <span class="org-variable-name">f</span> -&gt;
-    Option.map2
-    <span class="org-rainbow-delimiters-depth-4">(</span><span class="org-keyword">fun</span> <span class="org-variable-name">username</span> <span class="org-variable-name">password</span> -&gt;
-    <span class="org-rainbow-delimiters-depth-5">{</span> username = username
-    password = password <span class="org-rainbow-delimiters-depth-5">}</span><span class="org-rainbow-delimiters-depth-4">)</span>
-    <span class="org-rainbow-delimiters-depth-4">(</span>f.TryGetStringNonEmpty <span class="org-string">"username"</span><span class="org-rainbow-delimiters-depth-4">)</span>
-    <span class="org-rainbow-delimiters-depth-4">(</span>f.TryGetStringNonEmpty <span class="org-string">"password"</span><span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span>
-
-    <span class="org-keyword">let!</span> userRecord =
-    findUserRecord loginData.username
-    <span class="org-fsharp-ui-operator">|&gt;</span> Handler.ofOption <span class="org-rainbow-delimiters-depth-3">(</span>
-    Response.withStatusCode <span class="org-highlight-numbers-number">403</span> &gt;&gt; Response.ofEmpty
-    <span class="org-rainbow-delimiters-depth-3">)</span>
-
-    <span class="org-keyword">let</span> <span class="org-variable-name">verificationResult</span> =
-    passwordHasher.VerifyHashedPassword<span class="org-rainbow-delimiters-depth-3">(</span>
-    userRecord,
-    userRecord.PasswordHash,
-    loginData.password
-    <span class="org-rainbow-delimiters-depth-3">)</span>
-
-    <span class="org-keyword">match</span> verificationResult <span class="org-keyword">with</span>
-    <span class="org-fsharp-ui-operator">|</span> PasswordVerificationResult.Failed -&gt;
-    <span class="org-keyword">return</span>
-    <span class="org-rainbow-delimiters-depth-3">(</span>Response.withStatusCode <span class="org-highlight-numbers-number">403</span> &gt;&gt; Response.ofEmpty<span class="org-rainbow-delimiters-depth-3">)</span>
-    <span class="org-fsharp-ui-operator">|</span> PasswordVerificationResult.Success -&gt;
-    <span class="org-keyword">return</span>
-    Response.signInAndRedirect
-    <span class="org-string">"Cookies"</span>
-    <span class="org-rainbow-delimiters-depth-3">(</span>makePrincipal userRecord<span class="org-rainbow-delimiters-depth-3">)</span>
-    <span class="org-string">"/"</span>
-    <span class="org-fsharp-ui-operator">|</span> PasswordVerificationResult.SuccessRehashNeeded -&gt;
-    <span class="org-keyword">let!</span> _ =
-    updateUser <span class="org-rainbow-delimiters-depth-3">(</span>
-    userRecord.Id,
-    <span class="org-rainbow-delimiters-depth-4">[</span> PasswordChanged<span class="org-rainbow-delimiters-depth-5">(</span>
-    passwordHasher.HashPassword<span class="org-rainbow-delimiters-depth-6">(</span>
-    userRecord,
-    loginData.password
-    <span class="org-rainbow-delimiters-depth-6">)</span>
-    <span class="org-rainbow-delimiters-depth-5">)</span> <span class="org-rainbow-delimiters-depth-4">]</span>
-    <span class="org-rainbow-delimiters-depth-3">)</span>
-
-    <span class="org-keyword">return</span>
-    Response.signInAndRedirect
-    <span class="org-string">"Cookies"</span>
-    <span class="org-rainbow-delimiters-depth-3">(</span>makePrincipal userRecord<span class="org-rainbow-delimiters-depth-3">)</span>
-    <span class="org-string">"/"</span>
-    <span class="org-fsharp-ui-operator">|</span> _ -&gt;
-    <span class="org-keyword">return</span>
-    failwithf
-    <span class="org-string">"Unknown password verification result type %O"</span>
-    verificationResult
-
-    <span class="org-rainbow-delimiters-depth-2">}</span><span class="org-rainbow-delimiters-depth-1">)</span>
-    </pre>
-    </div>
-
-    <p>
-    Time to actually use our <code>handler</code> expression in earnest! There is some personal preference in play here, but personally I really like the clear flow of the request we can see happening in this code. We either have the form data we need, or we return a <code>400</code> error. Then we either find a user record with a matching username, or we return a <code>403</code> error (we don't want to reveal whether a username exists or not, so we return the same code as for when the password is incorrect; security +1, helpful error messages to users -1). Then we check the password, and we either return <code>403</code> (if it is wrong) or log you in if it is correct. A minor piece of extra complexity is introduced by the fact that the password hasher may signal that the password is correct but the <i>hash</i> needs updating in storage, a background operation that the user does not need to know about.
-    </p>
-
-    <p>
-    I'll leave the other end points for the reader to read at their leisure <a href="https://gitlab.com/mavnn/caldance/-/blob/e62126228d63e77834112a193fcb0396f4410bc5/Server/src/Domain/User.fs">on Gitlab</a>, as they are either trivial (<code>logoutEndpoint</code>) or very similar to the log in end points (<code>signupGetEndpoint</code> and <code>signupPostEndpoint</code>).
-    </p>
-
-    <p>
-    Finally, we get to the end of the module where we export everything that the web server setup code (the bottom layer in my newly christened "julienned domain sandwich" architecture).
-    </p>
-
-    <div class="org-src-container">
-    <pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">endpoints</span> =
-    <span class="org-rainbow-delimiters-depth-1">[</span> loginGetEndpoint
-    loginPostEndpoint
-    logoutEndpoint
-    signupGetEndpoint
-    signupPostEndpoint <span class="org-rainbow-delimiters-depth-1">]</span>
-
-    <span class="org-keyword">let</span> <span class="org-function-name">martenConfig</span> <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-variable-name">storeOptions</span>: <span class="org-type">Marten.</span><span class="org-variable-name">StoreOptions</span><span class="org-rainbow-delimiters-depth-1">)</span> =
-    storeOptions.Projections.Add&lt;UserRecordProjection&gt;<span class="org-rainbow-delimiters-depth-1">(</span>
-    ProjectionLifecycle.Inline
-    <span class="org-rainbow-delimiters-depth-1">)</span>
-    </pre>
-    </div>
-
-    <p>
-    At the moment, with only one domain, this is just an adhoc export of the end points we're wanting to add to the webserver and the projections we want to add to <code>Marten</code>. As the project grows, we'll probably add an interface that each of our domain modules will export which will provide to allow a standardized process for consuming the needed configuration. But there's little point trying to proactively create an abstraction over a single example of a pattern.
-    </p>
-
-    <p>
-    And there you have it; event sourced (basic) user management for our web application. If you have thoughts and questions, drop them as an issue on the <a href="https://gitlab.com/mavnn/caldance/-/blob/e62126228d63e77834112a193fcb0396f4410bc5/Server/src/Domain/User.fs">CalDance repository</a>. I'd love to see example repositories having in depth discussions of when the architecture they suggest is or isn't useful, even if (especially if!) that discussion includes comments critical of the architecture demonstrated.
-    </p>
-
-    <p>
-    Next up: who knows? But probably a bit of testing and refactoring, our code is already a little messy in a few places.
+    Next time: starting to shape up our actual user interface (probably).
     </p>
     </div>
     </div>
     ]]></description>
+</item>
+<item>
+  <title>Log in, log out: Dev Journal 4 (part 2)</title>
+  <link>https://blog.mavnn.co.uk/2024/03/05/dev_journal_4_2.html</link>
+  <author>michael@mavnn.eu (Michael Newton)</author>
+  <guid isPermaLink="false">https://blog.mavnn.co.uk/2024/03/05/dev_journal_4_2.html</guid>
+  <pubDate>Tue, 05 Mar 2024 00:00:00 +0100</pubDate>
+
+  <description><![CDATA[<blockquote>
+  <p>
+  This post is the second half of a two part update in the "Dev Journal" series. <a href="../../../2024/03/01/dev_journal_4.html">The first half</a> talks about adding dependencies to the project on postgresql and the Marten event store library, which we'll look at using in this post. <a href="../../../2024/01/31/dev-journal-1.html">Part 1</a> contains the series index, while the <a href="https://gitlab.com/mavnn/caldance/-/commits/DevJournal4?ref_type=tags">DevJournal4</a> tag for the CalDance project in GitLab holds the state of the repository as described here.
+  </p>
+  </blockquote>
+
+  <p>
+  So. We have an event store. Our website is going to have users. How do we go about user management?
+  </p>
+
+  <div id="outline-container-org7f917e9" class="outline-3">
+  <h3 id="org7f917e9"><span class="section-number-3">2.1.</span> Where's the cheese?</h3>
+  <div class="outline-text-3" id="text-2-1">
+  <p>
+  To borrow a term from domain driven design, this sounds like a "bounded context" within our system. Other parts of the code may care about certain events happening related to users (users being created, that kind of thing), but they probably shouldn't know or care about how the internals of "a user" work or what it takes to authenticate a user.
+  </p>
+
+  <p>
+  There are as many ways of organizing your code as there are grains of sand on the beach, but fundamentally all of the ones that help are about choosing where to have boundaries in your code base.
+  </p>
+
+  <p>
+  We are going to have three horizontal slices; shared library code, domain logic (our "business" code), and execution environment. Vertically we're going to slice the domain logic by bounded context - of which, admittedly, we only have one at the moment.
+  </p>
+
+  <p>
+  We end up with something like (things further down the table depend on the things above):
+  </p>
+
+  <!-- This HTML table template is generated by emacs 29.1 -->
+  <table border="1">
+  <tr>
+  <td colspan="2" align="left" valign="top">
+  &nbsp;Http&nbsp;Handler&nbsp;abstraction,&nbsp;UI&nbsp;components&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  </td>
+  </tr>
+  <tr>
+  <td align="left" valign="top">
+  &nbsp;User&nbsp;domain&nbsp;logic&nbsp;
+  </td>
+  <td align="left" valign="top">
+  &nbsp;Things&nbsp;users&nbsp;do&nbsp;domain&nbsp;logic&nbsp;
+  </td>
+  </tr>
+  <tr>
+  <td colspan="2" align="left" valign="top">
+  &nbsp;Read&nbsp;configuration&nbsp;files,&nbsp;start&nbsp;the&nbsp;web&nbsp;server&nbsp;&nbsp;&nbsp;
+  </td>
+  </tr>
+  </table>
+
+  <p>
+  You'll notice that this doesn't group the code by the technical task the code is trying to achieve, a pattern you'll often find in example project templates where you'll end up with a "Controllers" directory and a "Views" directory. It's also not an organization along "clean/hexagon/ports and adapters" lines with a strict demarcation between code that speaks to the outside world achieved via interfaces and abstractions.
+  </p>
+
+  <p>
+  It's not that I feel that either of those patterns has no merit (although I feel like the main driver of the first pattern is that you can suggest it even for projects you <i>know nothing about</i> which is a useful property when writing templates and dispensing nuggets of wisdom at conferences about the <b>one true way</b> to organize code). But I do feel that for the vast majority of code bases, it is a far bigger gain to productivity to be able to co-locate code by <i>purpose</i> than by <i>type</i>.
+  </p>
+
+  <p>
+  Let's face it: while you sometimes pick up a story/card/work ticket that requires you to go and change all the controllers (normally during dependency upgrades), or replace all the database interface implementations (you're about to have a long few months), it is much more likely on a day to day basis that you're trying to add a new field to the data we store about users, and you want to update the data store, business logic, and UI of <i>users</i> to be able to do that. Taking this logic to its logical extremes leads you towards microservices - but that starts to bring in a different type of complexity of its own.
+  </p>
+
+  <p>
+  All of this to say: there's now a folder called <code>Domain</code> which holds our new, shiny, user management code in a file called: <i>drumroll, please</i> <code>User.fs</code>. Let's have a look at it in detail.
+  </p>
+  </div>
+  </div>
+
+  <div id="outline-container-org335c6e2" class="outline-3">
+  <h3 id="org335c6e2"><span class="section-number-3">2.2.</span> The cheese. We have found it.</h3>
+  <div class="outline-text-3" id="text-2-2">
+  <div class="org-src-container">
+  <pre class="src src-fsharp"><span class="org-keyword">module</span> <span class="org-type">Mavnn.CalDance.Domain.User</span>
+
+  <span class="org-keyword">open</span> <span class="org-type">Falco</span>
+  <span class="org-keyword">open</span> <span class="org-type">Falco.Routing</span>
+  <span class="org-keyword">open</span> <span class="org-type">Falco.Markup</span>
+  <span class="org-keyword">open</span> <span class="org-type">Falco.Security</span>
+  <span class="org-keyword">open</span> <span class="org-type">Marten</span>
+  <span class="org-keyword">open</span> <span class="org-type">Marten.Events.Aggregation</span>
+  <span class="org-keyword">open</span> <span class="org-type">Marten.Events.Projections</span>
+  <span class="org-keyword">open</span> <span class="org-type">Mavnn.CalDance</span>
+  <span class="org-keyword">open</span> <span class="org-type">Mavnn.CalDance.Routing</span>
+  <span class="org-keyword">open</span> <span class="org-type">System.Security.Claims</span>
+  <span class="org-keyword">open</span> <span class="org-type">Microsoft.AspNetCore.Identity</span>
+  </pre>
+  </div>
+
+  <p>
+  As just mentioned, this module is going to be responsible for the whole vertical slice of the application for user management, so we start by including everything we need from the data store (<code>Marten</code>) through to the UI (<code>Falco.Markup</code>). We could have created sub modules within a Users folder if needed, but the module is only ~300 lines long so I haven't split it up (yet).
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-fsharp"><span class="org-keyword">type</span> <span class="org-type">User</span> = <span class="org-rainbow-delimiters-depth-1">{</span> id: <span class="org-type">System.</span>Guid; username: <span class="org-type">string</span> <span class="org-rainbow-delimiters-depth-1">}</span>
+
+  <span class="org-keyword">type</span> <span class="org-type">UserState</span> =
+  <span class="org-fsharp-ui-operator">|</span> Active
+  <span class="org-fsharp-ui-operator">|</span> Disabled
+
+  <span class="org-preprocessor"><span class="org-rainbow-delimiters-depth-1">[</span></span><span class="org-preprocessor">&lt;CLIMutable&gt;</span><span class="org-preprocessor"><span class="org-rainbow-delimiters-depth-1">]</span></span>
+  <span class="org-keyword">type</span> <span class="org-type">UserRecord</span> =
+  <span class="org-rainbow-delimiters-depth-1">{</span> Id: <span class="org-type">System.</span>Guid
+  Username: <span class="org-type">string</span>
+  PasswordHash: <span class="org-type">string</span>
+  State: <span class="org-type">UserState</span> <span class="org-rainbow-delimiters-depth-1">}</span>
+
+  <span class="org-keyword">type</span> <span class="org-type">UserEvent</span> =
+  <span class="org-fsharp-ui-operator">|</span> Created <span class="org-keyword">of</span> UserRecord
+  <span class="org-fsharp-ui-operator">|</span> PasswordChanged <span class="org-keyword">of</span> passwordHash: <span class="org-type">string</span>
+  <span class="org-fsharp-ui-operator">|</span> Disabled
+  </pre>
+  </div>
+
+  <p>
+  Next we define a few data types that represent our users, and the events that can happen to them over time. This is important because we are "event sourcing" the state of our users, meaning that the golden source of truth for what state a user is in is defined by what events have happened to them so far. The two representations of the user represent what we care about in the running system (the main <code>User</code> type) and what we need to store about them on disk (the <code>UserRecord</code> type); in general we would expect that other modules <i>might</i> make use of the <code>User</code> type but in general they should not make use of the <code>UserRecord</code> type. Its an open question in my mind whether it should actually be marked as a private type declaration, but I've erred on the side of leaving it available for now.
+  </p>
+
+  <p>
+  A minor implementation detail: to try and keep the incremental steps of the project manageable I'm using the default (de)serializers for Marten, which require the object to be deserialized from the data base has a default constructor and mutable fields, which we get from the <code>[&lt;CLIMutable&gt;]</code> attribute. We'll probably remove that going forwards by switching to a serialization strategy that works with immutable F# records.
+  </p>
+
+  <p>
+  The life cycle of our users is very simple at the moment; a <code>Created</code> event signals that a new, active, user was created. That user can change their password, or they can be marked disabled which effectively ends the lifecycle of the user. There's no way to reactivate a user now, although we could always add one later.
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-fsharp"><span class="org-keyword">type</span> <span class="org-type">UserRecordProjection</span><span class="org-rainbow-delimiters-depth-1">()</span> =
+  <span class="org-keyword">inherit</span> <span class="org-type">SingleStreamProjection</span>&lt;UserRecord&gt;<span class="org-rainbow-delimiters-depth-1">()</span>
+
+  <span class="org-keyword">member</span> <span class="org-variable-name">_</span>.<span class="org-function-name">Create</span><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-variable-name">userEvent</span>, <span class="org-variable-name">metadata</span>: <span class="org-type">Events.</span><span class="org-variable-name">IEvent</span><span class="org-rainbow-delimiters-depth-1">)</span> =
+  <span class="org-keyword">match</span> userEvent <span class="org-keyword">with</span>
+  <span class="org-fsharp-ui-operator">|</span> Created user -&gt; user
+  <span class="org-fsharp-ui-operator">|</span> _ -&gt;
+  <span class="org-comment-delimiter">// </span><span class="org-comment">We should always receive a created event</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">first so this shouldn't ever happen...</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">...but it might, and we don't want to throw</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">in projections.</span>
+  <span class="org-rainbow-delimiters-depth-1">{</span> Id = metadata.Id
+  Username = <span class="org-string">""</span>
+  PasswordHash = <span class="org-string">""</span>
+  State = UserState.Disabled <span class="org-rainbow-delimiters-depth-1">}</span>
+
+
+  <span class="org-keyword">member</span> <span class="org-variable-name">_</span>.<span class="org-function-name">Apply</span><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-variable-name">userEvent</span>, <span class="org-variable-name">userRecord</span>: <span class="org-type">UserRecord</span><span class="org-rainbow-delimiters-depth-1">)</span> =
+  task <span class="org-rainbow-delimiters-depth-1">{</span>
+
+  <span class="org-keyword">match</span> userEvent <span class="org-keyword">with</span>
+  <span class="org-fsharp-ui-operator">|</span> Created _ -&gt;
+  <span class="org-comment-delimiter">// </span><span class="org-comment">Should never occur after the first event in the stream</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">so we ignore duplicates</span>
+  <span class="org-keyword">return</span> userRecord
+  <span class="org-fsharp-ui-operator">|</span> PasswordChanged passwordHash -&gt;
+  <span class="org-keyword">match</span> userRecord <span class="org-keyword">with</span>
+  <span class="org-fsharp-ui-operator">|</span> <span class="org-rainbow-delimiters-depth-2">{</span> State = UserState.Disabled <span class="org-rainbow-delimiters-depth-2">}</span> -&gt;
+  <span class="org-comment-delimiter">// </span><span class="org-comment">Don't update password of disabled users</span>
+  <span class="org-keyword">return</span> userRecord
+  <span class="org-fsharp-ui-operator">|</span> user -&gt;
+  <span class="org-keyword">return</span>
+  <span class="org-rainbow-delimiters-depth-2">{</span> user <span class="org-keyword">with</span>
+  PasswordHash = passwordHash <span class="org-rainbow-delimiters-depth-2">}</span>
+  <span class="org-fsharp-ui-operator">|</span> Disabled -&gt;
+  <span class="org-keyword">match</span> userRecord <span class="org-keyword">with</span>
+  <span class="org-fsharp-ui-operator">|</span> <span class="org-rainbow-delimiters-depth-2">{</span> State = UserState.Disabled <span class="org-rainbow-delimiters-depth-2">}</span> -&gt;
+  <span class="org-keyword">return</span> userRecord
+  <span class="org-fsharp-ui-operator">|</span> <span class="org-rainbow-delimiters-depth-2">{</span> State = Active <span class="org-rainbow-delimiters-depth-2">}</span> -&gt;
+  <span class="org-keyword">return</span>
+  <span class="org-rainbow-delimiters-depth-2">{</span> userRecord <span class="org-keyword">with</span>
+  State = UserState.Disabled <span class="org-rainbow-delimiters-depth-2">}</span>
+  <span class="org-rainbow-delimiters-depth-1">}</span>
+  </pre>
+  </div>
+
+  <p>
+  <code>Marten</code> leans heavily into the code reflection capabilities of the dotnet framework, allowing us to configure our data store in terms of the in program types we want it to store. A "projection" in event sourcing is the logic which takes a list of events (our base line source of truth) and turns it into a current state, so this class defines a projection that will create and/or update <code>UserRecord</code> data in Marten's document store (we know it does this because it implements the <code>SingleStreamProjection&lt;UserRecord&gt;</code> interface). It will project <i>from</i> events of the <code>UserEvent</code> type, because that is the type of the first argument of the <code>Create</code> and <code>Apply</code> methods we have supplied.
+  </p>
+
+  <p>
+  There are a few conventions we need to follow here to allow for this minimalist a configuration. Our current state type <i>must</i> have an <code>Id</code> (or <code>id</code>) field of type string, uuid, or integer. And when an event matching the signature of our projection is pushed to a stream with an ID, the resulting update to the current status type must produce a document with the same ID as the stream ID.
+  </p>
+
+  <p>
+  We're treating our records as immutable objects (because we're planning to make them immutable going forward), so our create and apply methods return a <code>Task&lt;UserRecord&gt;</code>; if the document type was mutable we would also have the options of mutating it in place and returning void.
+  </p>
+
+  <p>
+  With that explanation out of the way, hopefully the state machine that represents our user life cycle is clear in the code above.
+  </p>
+
+  <p>
+  Now that we can store information about our users, and update them based on what is happening to them, it's time to start implementing the actual responsibilities of the module. We're keeping things minimal to get started, so we'll implement only the three things we <i>really</i> need: sign up, log in, and log out.
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-fsharp"><span class="org-keyword">type</span> <span class="org-type">LoginFormData</span> = <span class="org-rainbow-delimiters-depth-1">{</span> username: <span class="org-type">string</span>; password: <span class="org-type">string</span> <span class="org-rainbow-delimiters-depth-1">}</span>
+
+  <span class="org-keyword">let</span> <span class="org-function-name">findUserRecord</span> <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-variable-name">username</span>: <span class="org-type">string</span><span class="org-rainbow-delimiters-depth-1">)</span> =
+  Marten.withMarten <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">fun</span> <span class="org-variable-name">marten</span> -&gt;
+  marten
+  .Query&lt;UserRecord&gt;<span class="org-rainbow-delimiters-depth-2">()</span>
+  .SingleOrDefaultAsync<span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">fun</span> <span class="org-variable-name">ur</span> -&gt;
+  ur.Username = username<span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
+  <span class="org-fsharp-ui-operator">|&gt;</span> Handler.map Marten.returnOption
+
+  <span class="org-keyword">let</span> <span class="org-variable-name">loginRoute</span> = RouteDef.literalSection <span class="org-string">"/login"</span>
+  <span class="org-keyword">let</span> <span class="org-variable-name">logoutRoute</span> = RouteDef.literalSection <span class="org-string">"/logout"</span>
+  <span class="org-keyword">let</span> <span class="org-variable-name">signupRoute</span> = RouteDef.literalSection <span class="org-string">"/signup"</span>
+
+  <span class="org-keyword">let</span> <span class="org-variable-name">getSessionUser</span>: <span class="org-type">Handler</span><span class="org-fsharp-ui-generic">&lt;User option&gt;</span> =
+  Handler.fromCtx <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">fun</span> <span class="org-variable-name">ctx</span> -&gt;
+  <span class="org-keyword">match</span> ctx.User <span class="org-keyword">with</span>
+  <span class="org-fsharp-ui-operator">|</span> <span class="org-keyword">null</span> -&gt; None
+  <span class="org-fsharp-ui-operator">|</span> principal -&gt;
+  <span class="org-keyword">match</span>
+  <span class="org-rainbow-delimiters-depth-2">(</span>System.Guid.TryParse<span class="org-rainbow-delimiters-depth-3">(</span>
+  principal.FindFirstValue<span class="org-rainbow-delimiters-depth-4">(</span><span class="org-string">"userId"</span><span class="org-rainbow-delimiters-depth-4">)</span>
+  <span class="org-rainbow-delimiters-depth-3">)</span>,
+  principal.FindFirstValue<span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"name"</span><span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span>
+  <span class="org-keyword">with</span>
+  <span class="org-fsharp-ui-operator">|</span> <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-keyword">false</span>, _<span class="org-rainbow-delimiters-depth-3">)</span>, _<span class="org-rainbow-delimiters-depth-2">)</span>
+  <span class="org-fsharp-ui-operator">|</span> <span class="org-rainbow-delimiters-depth-2">(</span>_, <span class="org-keyword">null</span><span class="org-rainbow-delimiters-depth-2">)</span> -&gt; None
+  <span class="org-fsharp-ui-operator">|</span> <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-keyword">true</span>, id<span class="org-rainbow-delimiters-depth-3">)</span>, username<span class="org-rainbow-delimiters-depth-2">)</span> -&gt;
+  Some <span class="org-rainbow-delimiters-depth-2">{</span> id = id; username = username <span class="org-rainbow-delimiters-depth-2">}</span><span class="org-rainbow-delimiters-depth-1">)</span>
+  </pre>
+  </div>
+
+  <p>
+  A few definitions and helpers start us off; what data a form needs to capture for someone to sign up/log on, what urls exist and are managed by this module, and a couple of helper functions for obtaining a user record and a user session from the current HTTP context (using the <code>Handler</code> type we talked about in the last post).
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">loginGetEndpoint</span> =
+  Handler.toEndpoint get loginRoute <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">fun</span> <span class="org-rainbow-delimiters-depth-2">()</span> -&gt;
+  Handler.return' <span class="org-rainbow-delimiters-depth-2">(</span>
+  Response.ofHtmlCsrf <span class="org-rainbow-delimiters-depth-3">(</span><span class="org-keyword">fun</span> <span class="org-variable-name">csrfToken</span> -&gt;
+  Elem.html
+  <span class="org-rainbow-delimiters-depth-4">[]</span>
+  <span class="org-rainbow-delimiters-depth-4">[</span> Elem.body
+  <span class="org-rainbow-delimiters-depth-5">[]</span>
+  <span class="org-rainbow-delimiters-depth-5">[</span> Elem.form
+  <span class="org-rainbow-delimiters-depth-6">[</span> Attr.<span class="org-keyword">method</span> <span class="org-string">"post"</span> <span class="org-rainbow-delimiters-depth-6">]</span>
+  <span class="org-rainbow-delimiters-depth-6">[</span> Elem.input <span class="org-rainbow-delimiters-depth-7">[</span> Attr.name <span class="org-string">"username"</span> <span class="org-rainbow-delimiters-depth-7">]</span>
+  Elem.input <span class="org-rainbow-delimiters-depth-7">[</span> Attr.name <span class="org-string">"password"</span> <span class="org-rainbow-delimiters-depth-7">]</span>
+  Xss.antiforgeryInput csrfToken
+  Elem.input
+  <span class="org-rainbow-delimiters-depth-7">[</span> Attr.type' <span class="org-string">"submit"</span>
+  Attr.value <span class="org-string">"Submit"</span> <span class="org-rainbow-delimiters-depth-7">]</span> <span class="org-rainbow-delimiters-depth-6">]</span> <span class="org-rainbow-delimiters-depth-5">]</span> <span class="org-rainbow-delimiters-depth-4">]</span><span class="org-rainbow-delimiters-depth-3">)</span>
+  <span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
+  </pre>
+  </div>
+
+  <p>
+  Our first end point is straight forward. When we receive a get request to the login path, we reply with a form containing a token to prevent cross site vulnerabilities and username and password fields.
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-keyword">private</span> <span class="org-function-name">makePrincipal</span> <span class="org-variable-name">userRecord</span> =
+  <span class="org-keyword">let</span> <span class="org-variable-name">claims</span> =
+  <span class="org-rainbow-delimiters-depth-1">[</span> <span class="org-keyword">new</span> Claim<span class="org-rainbow-delimiters-depth-2">(</span><span class="org-string">"name"</span>, userRecord.Username<span class="org-rainbow-delimiters-depth-2">)</span>
+  <span class="org-keyword">new</span> Claim<span class="org-rainbow-delimiters-depth-2">(</span><span class="org-string">"userId"</span>, userRecord.Id.ToString<span class="org-rainbow-delimiters-depth-3">()</span><span class="org-rainbow-delimiters-depth-2">)</span> <span class="org-rainbow-delimiters-depth-1">]</span>
+
+  <span class="org-keyword">let</span> <span class="org-variable-name">identity</span> = <span class="org-keyword">new</span> ClaimsIdentity<span class="org-rainbow-delimiters-depth-1">(</span>claims, <span class="org-string">"Cookies"</span><span class="org-rainbow-delimiters-depth-1">)</span>
+
+  <span class="org-keyword">new</span> ClaimsPrincipal<span class="org-rainbow-delimiters-depth-1">(</span>identity<span class="org-rainbow-delimiters-depth-1">)</span>
+
+  <span class="org-keyword">let</span> <span class="org-variable-name">passwordHasher</span> = PasswordHasher<span class="org-rainbow-delimiters-depth-1">()</span>
+
+  <span class="org-keyword">let</span> <span class="org-function-name">updateUser</span> <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-variable-name">id</span>: <span class="org-type">System.</span><span class="org-variable-name">Guid</span>, <span class="org-variable-name">events</span>: <span class="org-type">seq</span><span class="org-fsharp-ui-generic">&lt;UserEvent&gt;</span><span class="org-rainbow-delimiters-depth-1">)</span> =
+  handler <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-keyword">do!</span>
+  Marten.withMarten <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">fun</span> <span class="org-variable-name">marten</span> -&gt;
+  task <span class="org-rainbow-delimiters-depth-3">{</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">explicitly assign this as an array of objects</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">so that Marten chooses the correct method</span>
+  <span class="org-comment-delimiter">// </span><span class="org-comment">overload for `Append`</span>
+  <span class="org-keyword">let</span> <span class="org-variable-name">eventObjs</span>: <span class="org-type">obj</span><span class="org-type"><span class="org-rainbow-delimiters-depth-4">[</span></span><span class="org-rainbow-delimiters-depth-4">]</span> =
+  Array.ofSeq events <span class="org-fsharp-ui-operator">|&gt;</span> Array.map box
+
+  marten.Events.Append<span class="org-rainbow-delimiters-depth-4">(</span>id, eventObjs<span class="org-rainbow-delimiters-depth-4">)</span> <span class="org-fsharp-ui-operator">|&gt;</span> ignore
+  <span class="org-keyword">return!</span> marten.SaveChangesAsync<span class="org-rainbow-delimiters-depth-4">()</span>
+  <span class="org-rainbow-delimiters-depth-3">}</span><span class="org-rainbow-delimiters-depth-2">)</span>
+
+  <span class="org-keyword">return!</span>
+  Marten.withMarten <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">fun</span> <span class="org-variable-name">marten</span> -&gt;
+  marten.LoadAsync&lt;UserRecord&gt;<span class="org-rainbow-delimiters-depth-3">(</span>id<span class="org-rainbow-delimiters-depth-3">)</span><span class="org-rainbow-delimiters-depth-2">)</span>
+  <span class="org-rainbow-delimiters-depth-1">}</span>
+  </pre>
+  </div>
+
+  <p>
+  Our next end point is going to actually handle the form coming in, so it requires a few more helpers. The web framework we're using will handle things like sessions for us, but only if we "buy into" the .NET standard ways of representing a user, in this case using the <code>ClaimsPrincipal</code> type - so we have a helper to map from one of our user records to a claims principal. We initialize a password hasher which will salt and hash our passwords for us (don't roll your own crypto, folks, especially when your language ecosystem has a decent implementation ready for you). And finally we add an other method that works within our HTTP context expressions - <code>updateUser</code> takes the ID of a user and a list of events and returns the updated <code>UserRecord</code>.
+  </p>
+
+  <p>
+  With all of that in place, we can write the <code>loginPostEndpoint</code>.
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">loginPostEndpoint</span> =
+  Handler.toEndpoint post loginRoute <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">fun</span> <span class="org-rainbow-delimiters-depth-2">()</span> -&gt;
+  handler <span class="org-rainbow-delimiters-depth-2">{</span>
+  <span class="org-keyword">let!</span> loginData =
+  Handler.formDataOrFail
+  <span class="org-rainbow-delimiters-depth-3">(</span>Response.withStatusCode <span class="org-highlight-numbers-number">400</span> &gt;&gt; Response.ofEmpty<span class="org-rainbow-delimiters-depth-3">)</span>
+  <span class="org-rainbow-delimiters-depth-3">(</span><span class="org-keyword">fun</span> <span class="org-variable-name">f</span> -&gt;
+  Option.map2
+  <span class="org-rainbow-delimiters-depth-4">(</span><span class="org-keyword">fun</span> <span class="org-variable-name">username</span> <span class="org-variable-name">password</span> -&gt;
+  <span class="org-rainbow-delimiters-depth-5">{</span> username = username
+  password = password <span class="org-rainbow-delimiters-depth-5">}</span><span class="org-rainbow-delimiters-depth-4">)</span>
+  <span class="org-rainbow-delimiters-depth-4">(</span>f.TryGetStringNonEmpty <span class="org-string">"username"</span><span class="org-rainbow-delimiters-depth-4">)</span>
+  <span class="org-rainbow-delimiters-depth-4">(</span>f.TryGetStringNonEmpty <span class="org-string">"password"</span><span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span>
+
+  <span class="org-keyword">let!</span> userRecord =
+  findUserRecord loginData.username
+  <span class="org-fsharp-ui-operator">|&gt;</span> Handler.ofOption <span class="org-rainbow-delimiters-depth-3">(</span>
+  Response.withStatusCode <span class="org-highlight-numbers-number">403</span> &gt;&gt; Response.ofEmpty
+  <span class="org-rainbow-delimiters-depth-3">)</span>
+
+  <span class="org-keyword">let</span> <span class="org-variable-name">verificationResult</span> =
+  passwordHasher.VerifyHashedPassword<span class="org-rainbow-delimiters-depth-3">(</span>
+  userRecord,
+  userRecord.PasswordHash,
+  loginData.password
+  <span class="org-rainbow-delimiters-depth-3">)</span>
+
+  <span class="org-keyword">match</span> verificationResult <span class="org-keyword">with</span>
+  <span class="org-fsharp-ui-operator">|</span> PasswordVerificationResult.Failed -&gt;
+  <span class="org-keyword">return</span>
+  <span class="org-rainbow-delimiters-depth-3">(</span>Response.withStatusCode <span class="org-highlight-numbers-number">403</span> &gt;&gt; Response.ofEmpty<span class="org-rainbow-delimiters-depth-3">)</span>
+  <span class="org-fsharp-ui-operator">|</span> PasswordVerificationResult.Success -&gt;
+  <span class="org-keyword">return</span>
+  Response.signInAndRedirect
+  <span class="org-string">"Cookies"</span>
+  <span class="org-rainbow-delimiters-depth-3">(</span>makePrincipal userRecord<span class="org-rainbow-delimiters-depth-3">)</span>
+  <span class="org-string">"/"</span>
+  <span class="org-fsharp-ui-operator">|</span> PasswordVerificationResult.SuccessRehashNeeded -&gt;
+  <span class="org-keyword">let!</span> _ =
+  updateUser <span class="org-rainbow-delimiters-depth-3">(</span>
+  userRecord.Id,
+  <span class="org-rainbow-delimiters-depth-4">[</span> PasswordChanged<span class="org-rainbow-delimiters-depth-5">(</span>
+  passwordHasher.HashPassword<span class="org-rainbow-delimiters-depth-6">(</span>
+  userRecord,
+  loginData.password
+  <span class="org-rainbow-delimiters-depth-6">)</span>
+  <span class="org-rainbow-delimiters-depth-5">)</span> <span class="org-rainbow-delimiters-depth-4">]</span>
+  <span class="org-rainbow-delimiters-depth-3">)</span>
+
+  <span class="org-keyword">return</span>
+  Response.signInAndRedirect
+  <span class="org-string">"Cookies"</span>
+  <span class="org-rainbow-delimiters-depth-3">(</span>makePrincipal userRecord<span class="org-rainbow-delimiters-depth-3">)</span>
+  <span class="org-string">"/"</span>
+  <span class="org-fsharp-ui-operator">|</span> _ -&gt;
+  <span class="org-keyword">return</span>
+  failwithf
+  <span class="org-string">"Unknown password verification result type %O"</span>
+  verificationResult
+
+  <span class="org-rainbow-delimiters-depth-2">}</span><span class="org-rainbow-delimiters-depth-1">)</span>
+  </pre>
+  </div>
+
+  <p>
+  Time to actually use our <code>handler</code> expression in earnest! There is some personal preference in play here, but personally I really like the clear flow of the request we can see happening in this code. We either have the form data we need, or we return a <code>400</code> error. Then we either find a user record with a matching username, or we return a <code>403</code> error (we don't want to reveal whether a username exists or not, so we return the same code as for when the password is incorrect; security +1, helpful error messages to users -1). Then we check the password, and we either return <code>403</code> (if it is wrong) or log you in if it is correct. A minor piece of extra complexity is introduced by the fact that the password hasher may signal that the password is correct but the <i>hash</i> needs updating in storage, a background operation that the user does not need to know about.
+  </p>
+
+  <p>
+  I'll leave the other end points for the reader to read at their leisure <a href="https://gitlab.com/mavnn/caldance/-/blob/e62126228d63e77834112a193fcb0396f4410bc5/Server/src/Domain/User.fs">on Gitlab</a>, as they are either trivial (<code>logoutEndpoint</code>) or very similar to the log in end points (<code>signupGetEndpoint</code> and <code>signupPostEndpoint</code>).
+  </p>
+
+  <p>
+  Finally, we get to the end of the module where we export everything that the web server setup code (the bottom layer in my newly christened "julienned domain sandwich" architecture).
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">endpoints</span> =
+  <span class="org-rainbow-delimiters-depth-1">[</span> loginGetEndpoint
+  loginPostEndpoint
+  logoutEndpoint
+  signupGetEndpoint
+  signupPostEndpoint <span class="org-rainbow-delimiters-depth-1">]</span>
+
+  <span class="org-keyword">let</span> <span class="org-function-name">martenConfig</span> <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-variable-name">storeOptions</span>: <span class="org-type">Marten.</span><span class="org-variable-name">StoreOptions</span><span class="org-rainbow-delimiters-depth-1">)</span> =
+  storeOptions.Projections.Add&lt;UserRecordProjection&gt;<span class="org-rainbow-delimiters-depth-1">(</span>
+  ProjectionLifecycle.Inline
+  <span class="org-rainbow-delimiters-depth-1">)</span>
+  </pre>
+  </div>
+
+  <p>
+  At the moment, with only one domain, this is just an adhoc export of the end points we're wanting to add to the webserver and the projections we want to add to <code>Marten</code>. As the project grows, we'll probably add an interface that each of our domain modules will export which will provide to allow a standardized process for consuming the needed configuration. But there's little point trying to proactively create an abstraction over a single example of a pattern.
+  </p>
+
+  <p>
+  And there you have it; event sourced (basic) user management for our web application. If you have thoughts and questions, drop them as an issue on the <a href="https://gitlab.com/mavnn/caldance/-/blob/e62126228d63e77834112a193fcb0396f4410bc5/Server/src/Domain/User.fs">CalDance repository</a>. I'd love to see example repositories having in depth discussions of when the architecture they suggest is or isn't useful, even if (especially if!) that discussion includes comments critical of the architecture demonstrated.
+  </p>
+
+  <p>
+  Next up: <a href="../../../2024/03/09/dev_journal_5.html">a round of internal quality control</a>.
+  </p>
+  </div>
+  </div>
+  ]]></description>
 </item>
 <item>
   <title>Foundations: Dev Journal 1</title>
@@ -459,30 +643,35 @@
   <b>The series so far</b>
   </p>
 
-  <div id="outline-container-org60748ba" class="outline-3">
-  <h3 id="org60748ba"><span class="section-number-3">2.1.</span> <a href="https://blog.mavnn.co.uk/2024/01/31/dev-journal-1.html">Foundations</a>: Build and package</h3>
-  <div class="outline-text-3" id="text-2-1">
+  <div id="outline-container-org6b92076" class="outline-3">
+  <h3 id="org6b92076"><span class="section-number-3">3.1.</span> <a href="https://blog.mavnn.co.uk/2024/01/31/dev-journal-1.html">Foundations</a>: Build and package</h3>
+  <div class="outline-text-3" id="text-3-1">
   </div>
   </div>
-  <div id="outline-container-org34c2611" class="outline-3">
-  <h3 id="org34c2611"><span class="section-number-3">2.2.</span> <a href="../../../2024/02/06/dev-journal-2.html">Scaffolding</a>: Testing and consistency</h3>
-  <div class="outline-text-3" id="text-2-2">
+  <div id="outline-container-org38a5711" class="outline-3">
+  <h3 id="org38a5711"><span class="section-number-3">3.2.</span> <a href="../../../2024/02/06/dev-journal-2.html">Scaffolding</a>: Testing and consistency</h3>
+  <div class="outline-text-3" id="text-3-2">
   </div>
   </div>
-  <div id="outline-container-orge7a3e1c" class="outline-3">
-  <h3 id="orge7a3e1c"><span class="section-number-3">2.3.</span> <a href="../../../2024/02/20/dev-journal-3.html">Does it run?</a>: Make sure the docker container is valid and stays valid</h3>
-  <div class="outline-text-3" id="text-2-3">
+  <div id="outline-container-orgec7f544" class="outline-3">
+  <h3 id="orgec7f544"><span class="section-number-3">3.3.</span> <a href="../../../2024/02/20/dev-journal-3.html">Does it run?</a>: Make sure the docker container is valid and stays valid</h3>
+  <div class="outline-text-3" id="text-3-3">
   </div>
   </div>
-  <div id="outline-container-org80e6a44" class="outline-3">
-  <h3 id="org80e6a44"><span class="section-number-3">2.4.</span> <a href="../../../2024/03/01/dev_journal_4.html">Log in, log out</a> (and <a href="../../../2024/03/05/dev_journal_4_2.html">part 2</a>): Adding the database and the ability to log into our web site</h3>
-  <div class="outline-text-3" id="text-2-4">
+  <div id="outline-container-org3157be3" class="outline-3">
+  <h3 id="org3157be3"><span class="section-number-3">3.4.</span> <a href="../../../2024/03/01/dev_journal_4.html">Log in, log out</a> (and <a href="../../../2024/03/05/dev_journal_4_2.html">part 2</a>): Adding the database and the ability to log into our web site</h3>
+  <div class="outline-text-3" id="text-3-4">
+  </div>
+  </div>
+  <div id="outline-container-orge501bd1" class="outline-3">
+  <h3 id="orge501bd1"><span class="section-number-3">3.5.</span> <a href="../../../2024/03/09/dev_journal_5.html">Internal quality review</a>: making it easier to make correct changes to our code</h3>
+  <div class="outline-text-3" id="text-3-5">
   </div>
   </div>
 
-  <div id="outline-container-org5f7599b" class="outline-3">
-  <h3 id="org5f7599b"><span class="section-number-3">2.5.</span> Part 1: Foundations</h3>
-  <div class="outline-text-3" id="text-2-5">
+  <div id="outline-container-orgb010324" class="outline-3">
+  <h3 id="orgb010324"><span class="section-number-3">3.6.</span> Part 1: Foundations</h3>
+  <div class="outline-text-3" id="text-3-6">
   <p>
   Our application will eventually be a little web site for <code>redacted in case I change my mind</code>. I'm going to be using mix of tried and new tech (for me personally).
   </p>
@@ -493,38 +682,38 @@
   </div>
   </div>
 
-  <div id="outline-container-org5c15603" class="outline-3">
-  <h3 id="org5c15603"><span class="section-number-3">2.6.</span> <a href="https://htmx.org/">htmx</a> (probably with <a href="https://bulma.io/">bulma</a> for initial styling) to provide the UI. This isn't going to be hugely interactive application, it is mostly going to collect information from forms, and display nice looking output tables so htmx's server side rendering model seems a perfect fit. I've used server side rendering in other projects and liked it, and htmx seems a low impact way to take that to the next level.</h3>
-  <div class="outline-text-3" id="text-2-6">
+  <div id="outline-container-org071904f" class="outline-3">
+  <h3 id="org071904f"><span class="section-number-3">3.7.</span> <a href="https://htmx.org/">htmx</a> (probably with <a href="https://bulma.io/">bulma</a> for initial styling) to provide the UI. This isn't going to be hugely interactive application, it is mostly going to collect information from forms, and display nice looking output tables so htmx's server side rendering model seems a perfect fit. I've used server side rendering in other projects and liked it, and htmx seems a low impact way to take that to the next level.</h3>
+  <div class="outline-text-3" id="text-3-7">
   </div>
   </div>
-  <div id="outline-container-orgb3367bc" class="outline-3">
-  <h3 id="orgb3367bc"><span class="section-number-3">2.7.</span> <a href="https://www.falcoframework.com/">falco</a> for writing the backend server in F#. <a href="https://xyncro.github.io/sites-freya.io/">Freya</a>, my webserver of choice for F# back in the day, is no longer actively maintained but it looks like Falco has taken some of its nicer features and done its own thing with them.</h3>
-  <div class="outline-text-3" id="text-2-7">
+  <div id="outline-container-org32c2482" class="outline-3">
+  <h3 id="org32c2482"><span class="section-number-3">3.8.</span> <a href="https://www.falcoframework.com/">falco</a> for writing the backend server in F#. <a href="https://xyncro.github.io/sites-freya.io/">Freya</a>, my webserver of choice for F# back in the day, is no longer actively maintained but it looks like Falco has taken some of its nicer features and done its own thing with them.</h3>
+  <div class="outline-text-3" id="text-3-8">
   <p>
   On the technologies I've used before and found useful front, we have:
   </p>
   </div>
   </div>
 
-  <div id="outline-container-org1d7c232" class="outline-3">
-  <h3 id="org1d7c232"><span class="section-number-3">2.8.</span> <a href="https://nixos.org/">nix</a> to give a version controlled build/development environments and reproducible packaging.</h3>
-  <div class="outline-text-3" id="text-2-8">
+  <div id="outline-container-org0a8942a" class="outline-3">
+  <h3 id="org0a8942a"><span class="section-number-3">3.9.</span> <a href="https://nixos.org/">nix</a> to give a version controlled build/development environments and reproducible packaging.</h3>
+  <div class="outline-text-3" id="text-3-9">
   </div>
   </div>
-  <div id="outline-container-org8e45286" class="outline-3">
-  <h3 id="org8e45286"><span class="section-number-3">2.9.</span> <a href="https://direnv.net/">direnv</a> for seamless local development environments.</h3>
-  <div class="outline-text-3" id="text-2-9">
+  <div id="outline-container-orgb4765fb" class="outline-3">
+  <h3 id="orgb4765fb"><span class="section-number-3">3.10.</span> <a href="https://direnv.net/">direnv</a> for seamless local development environments.</h3>
+  <div class="outline-text-3" id="text-3-10">
   </div>
   </div>
-  <div id="outline-container-orgbe051f0" class="outline-3">
-  <h3 id="orgbe051f0"><span class="section-number-3">2.10.</span> <a href="https://github.com/JasperFx/marten">marten</a> from the "Critter Stack" as an event store on top of postgresql to build our datastore.</h3>
-  <div class="outline-text-3" id="text-2-10">
+  <div id="outline-container-org0434d8a" class="outline-3">
+  <h3 id="org0434d8a"><span class="section-number-3">3.11.</span> <a href="https://github.com/JasperFx/marten">marten</a> from the "Critter Stack" as an event store on top of postgresql to build our datastore.</h3>
+  <div class="outline-text-3" id="text-3-11">
   </div>
   </div>
-  <div id="outline-container-org7ac9291" class="outline-3">
-  <h3 id="org7ac9291"><span class="section-number-3">2.11.</span> <a href="https://gitlab.com/">gitlab</a> for code repository, container registry and CI/CD pipeline.</h3>
-  <div class="outline-text-3" id="text-2-11">
+  <div id="outline-container-org9e77c4b" class="outline-3">
+  <h3 id="org9e77c4b"><span class="section-number-3">3.12.</span> <a href="https://gitlab.com/">gitlab</a> for code repository, container registry and CI/CD pipeline.</h3>
+  <div class="outline-text-3" id="text-3-12">
   <p>
   I'm not sure how far I'm going to take this experiment publicly, but what I'm going to focus on first is just the basics of any online app: people being able to sign up, log in, and manage an account for a paid service. At least that far the whole project will be MIT licensed, so if you like what you see you can just pick it up and use it as a starter template for your own project.
   </p>
@@ -535,27 +724,27 @@
   </div>
   </div>
 
-  <div id="outline-container-orgea226eb" class="outline-3">
-  <h3 id="orgea226eb"><span class="section-number-3">2.12.</span> run <code>nix run</code> and have a webserver running locally that will respond to get requests to <code>/</code> with "Hello world"</h3>
-  <div class="outline-text-3" id="text-2-12">
+  <div id="outline-container-orgf7ea2f8" class="outline-3">
+  <h3 id="orgf7ea2f8"><span class="section-number-3">3.13.</span> run <code>nix run</code> and have a webserver running locally that will respond to get requests to <code>/</code> with "Hello world"</h3>
+  <div class="outline-text-3" id="text-3-13">
   </div>
   </div>
-  <div id="outline-container-org353f90b" class="outline-3">
-  <h3 id="org353f90b"><span class="section-number-3">2.13.</span> run <code>nix build .#dockerImage</code> to build a docker image with the same architecture they're using (i.e. <code>aarch64-darwin</code> if you run it on a Mac)</h3>
-  <div class="outline-text-3" id="text-2-13">
+  <div id="outline-container-org15a08e0" class="outline-3">
+  <h3 id="org15a08e0"><span class="section-number-3">3.14.</span> run <code>nix build .#dockerImage</code> to build a docker image with the same architecture they're using (i.e. <code>aarch64-darwin</code> if you run it on a Mac)</h3>
+  <div class="outline-text-3" id="text-3-14">
   </div>
   </div>
-  <div id="outline-container-org5f900ab" class="outline-3">
-  <h3 id="org5f900ab"><span class="section-number-3">2.14.</span> by pushing a commit to gitlab trigger a CI pipeline building said docker image for <code>x86_64-linux</code> and pushing it to a package registry ready to deploy</h3>
-  <div class="outline-text-3" id="text-2-14">
+  <div id="outline-container-orge9f7154" class="outline-3">
+  <h3 id="orge9f7154"><span class="section-number-3">3.15.</span> by pushing a commit to gitlab trigger a CI pipeline building said docker image for <code>x86_64-linux</code> and pushing it to a package registry ready to deploy</h3>
+  <div class="outline-text-3" id="text-3-15">
   <p>
   Enough bullet points. What did I actually do? (Sneak preview: <a href="https://gitlab.com/mavnn/caldance/-/tree/6b39d13d98199220d623870faf2b49fbda58d8a5">browse the gitlab repo at the time of the commit that this post describes</a>)
   </p>
   </div>
 
-  <div id="outline-container-org1c00bc3" class="outline-4">
-  <h4 id="org1c00bc3"><span class="section-number-4">2.14.1.</span> Setup a nix flake to provide our environment</h4>
-  <div class="outline-text-4" id="text-2-14-1">
+  <div id="outline-container-orgecefc30" class="outline-4">
+  <h4 id="orgecefc30"><span class="section-number-4">3.15.1.</span> Setup a nix flake to provide our environment</h4>
+  <div class="outline-text-4" id="text-3-15-1">
   <p>
   A nix "flake" is a declarative description of a set of packages we'd like to be able to reference. You can read the <a href="https://gitlab.com/mavnn/caldance/-/blob/6b39d13d98199220d623870faf2b49fbda58d8a5/flake.nix">whole file</a> but the important part for today is that our <code>flake.nix</code> file specifies three outputs in this stanza:
   </p>
@@ -623,9 +812,9 @@
   </div>
   </div>
 
-  <div id="outline-container-org50920ca" class="outline-4">
-  <h4 id="org50920ca"><span class="section-number-4">2.14.2.</span> direnv</h4>
-  <div class="outline-text-4" id="text-2-14-2">
+  <div id="outline-container-orgc422eaa" class="outline-4">
+  <h4 id="orgc422eaa"><span class="section-number-4">3.15.2.</span> direnv</h4>
+  <div class="outline-text-4" id="text-3-15-2">
   <p>
   Direnv is a tool that can add environment variables to your shell when you enter a directory. It also, conveniently, knows about Nix flakes.
   </p>
@@ -647,9 +836,9 @@
   </div>
   </div>
 
-  <div id="outline-container-org901ec26" class="outline-4">
-  <h4 id="org901ec26"><span class="section-number-4">2.14.3.</span> The F# project</h4>
-  <div class="outline-text-4" id="text-2-14-3">
+  <div id="outline-container-orgdf9aedf" class="outline-4">
+  <h4 id="orgdf9aedf"><span class="section-number-4">3.15.3.</span> The F# project</h4>
+  <div class="outline-text-4" id="text-3-15-3">
   <p>
   There's absolutely nothing special about this at all. I just created an F# project with <code>dotnet</code> on the command line, moved <code>Program.fs</code> into a sub directory called <code>src</code> because I prefer it that way, and then added a package dependency on <code>Falco</code> using <code>dotnet add package Falco</code>.
   </p>
@@ -675,9 +864,9 @@
   </div>
   </div>
 
-  <div id="outline-container-orga178d83" class="outline-4">
-  <h4 id="orga178d83"><span class="section-number-4">2.14.4.</span> Set up the CI pipeline</h4>
-  <div class="outline-text-4" id="text-2-14-4">
+  <div id="outline-container-org328c4c7" class="outline-4">
+  <h4 id="org328c4c7"><span class="section-number-4">3.15.4.</span> Set up the CI pipeline</h4>
+  <div class="outline-text-4" id="text-3-15-4">
   <p>
   Having used Nix for our development environment, our CI pipeline becomes exceedingly straight forward. All we need is a build container with Nix available and we have all the other information we need for the build already. Nix themselves provide a <code>nixos/nix</code> image (Nix is the package manager, NixOS is the linux distribution that uses Nix as its package manager) so we'll just use that.
   </p>
@@ -713,9 +902,9 @@
   </div>
   </div>
 
-  <div id="outline-container-orge3b23ea" class="outline-4">
-  <h4 id="orge3b23ea"><span class="section-number-4">2.14.5.</span> Wrapping it all up</h4>
-  <div class="outline-text-4" id="text-2-14-5">
+  <div id="outline-container-orgde69f9d" class="outline-4">
+  <h4 id="orgde69f9d"><span class="section-number-4">3.15.5.</span> Wrapping it all up</h4>
+  <div class="outline-text-4" id="text-3-15-5">
   <p>
   Not a bad first days work, I'd say. Our project is already at a stage that we can work on it with standard .NET tooling (for instance, adding a new nuget package with <code>dotnet package add ...</code> will automatically flow through to that package being added to the docker image) and CI will produce on push a lean deployable artifact. Versions of <i>everything</i> we are using from the .NET SDK to the nuget package we're depending on are fixed across all environments, and we have a nice place to add more developer tooling as we move forwards - for example standardizing the version of postgresql that will be used during development and in CI.
   </p>
@@ -726,18 +915,18 @@
   </div>
   </div>
 
-  <div id="outline-container-org50cb2f8" class="outline-4">
-  <h4 id="org50cb2f8"><span class="section-number-4">2.14.6.</span> Feedback? Comments?</h4>
-  <div class="outline-text-4" id="text-2-14-6">
+  <div id="outline-container-org5076787" class="outline-4">
+  <h4 id="org5076787"><span class="section-number-4">3.15.6.</span> Feedback? Comments?</h4>
+  <div class="outline-text-4" id="text-3-15-6">
   <p>
   Have questions? Comments? Hate something, love something, know a better way of doing something? Drop an issue on the repository at <a href="https://gitlab.com/mavnn/caldance">https://gitlab.com/mavnn/caldance</a> and let me know. I'll be pointing a tag at the commit referenced by each blog post, so I can always branch off and include your ideas in a future revision!
   </p>
   </div>
   </div>
 
-  <div id="outline-container-orgb176f02" class="outline-4">
-  <h4 id="orgb176f02"><span class="section-number-4">2.14.7.</span> Next</h4>
-  <div class="outline-text-4" id="text-2-14-7">
+  <div id="outline-container-orgeae52bf" class="outline-4">
+  <h4 id="orgeae52bf"><span class="section-number-4">3.15.7.</span> Next</h4>
+  <div class="outline-text-4" id="text-3-15-7">
   <p>
   <a href="../../../2024/02/06/dev-journal-2.html">Part 2</a> adds unit tests and consistent formatting to the project.
   </p>
@@ -767,9 +956,9 @@
   A lot has changed, and I'm not going to go into every single detail so if you're following along by hand I made a pull request for the changes added here so that you can <a href="https://gitlab.com/mavnn/caldance/-/merge_requests/2/diffs">see them all in one place</a>.
   </p>
 
-  <div id="outline-container-orgd794a5b" class="outline-3">
-  <h3 id="orgd794a5b"><span class="section-number-3">3.1.</span> Nix pulling its weight</h3>
-  <div class="outline-text-3" id="text-3-1">
+  <div id="outline-container-org187ef90" class="outline-3">
+  <h3 id="org187ef90"><span class="section-number-3">4.1.</span> Nix pulling its weight</h3>
+  <div class="outline-text-3" id="text-4-1">
   <p>
   We're about to add a database to our project, and this is an area where Nix really shines.
   </p>
@@ -820,9 +1009,9 @@
   </div>
   </div>
 
-  <div id="outline-container-org3db4780" class="outline-3">
-  <h3 id="org3db4780"><span class="section-number-3">3.2.</span> Adding some nuget dependencies</h3>
-  <div class="outline-text-3" id="text-3-2">
+  <div id="outline-container-org2b2aaa4" class="outline-3">
+  <h3 id="org2b2aaa4"><span class="section-number-3">4.2.</span> Adding some nuget dependencies</h3>
+  <div class="outline-text-3" id="text-4-2">
   <p>
   We're adding dependencies to our server of <a href="https://martendb.io/">Marten</a> (document/event database library that sits on top of postgres) and <a href="https://serilog.net/">Serilog</a> (a nice structured log library).
   </p>
@@ -861,9 +1050,9 @@
   </div>
   </div>
 
-  <div id="outline-container-orgf6def6d" class="outline-3">
-  <h3 id="orgf6def6d"><span class="section-number-3">3.3.</span> Opinionated endpoint builders</h3>
-  <div class="outline-text-3" id="text-3-3">
+  <div id="outline-container-org5cae633" class="outline-3">
+  <h3 id="org5cae633"><span class="section-number-3">4.3.</span> Opinionated endpoint builders</h3>
+  <div class="outline-text-3" id="text-4-3">
   <p>
   In general, the code to handle an endpoint in an AspNet.Core application is a function from <code>HttpContext</code> to <code>Task</code>, where we mutate the HTTP context and then write the correct output stream.
   </p>
@@ -938,9 +1127,9 @@
   </div>
   </div>
 
-  <div id="outline-container-orgab555ba" class="outline-3">
-  <h3 id="orgab555ba"><span class="section-number-3">3.4.</span> Connecting up the database</h3>
-  <div class="outline-text-3" id="text-3-4">
+  <div id="outline-container-orga38ad9f" class="outline-3">
+  <h3 id="orga38ad9f"><span class="section-number-3">4.4.</span> Connecting up the database</h3>
+  <div class="outline-text-3" id="text-4-4">
   <p>
   Having defined our handler type, it makes sense to make the rest of our tooling easy to use from within the abstraction.
   </p>
@@ -980,9 +1169,9 @@
   </div>
   </div>
 
-  <div id="outline-container-orgdfdadc5" class="outline-3">
-  <h3 id="orgdfdadc5"><span class="section-number-3">3.5.</span> To be continued...</h3>
-  <div class="outline-text-3" id="text-3-5">
+  <div id="outline-container-org242099d" class="outline-3">
+  <h3 id="org242099d"><span class="section-number-3">4.5.</span> To be continued...</h3>
+  <div class="outline-text-3" id="text-4-5">
   <p>
   I think that's about enough for this blog post, because I want to leave a whole post for the real meat of this set of changes: our first domain entity, the <code>User</code>.
   </p>
@@ -994,142 +1183,6 @@
   <p>
   Next up: <a href="../../../2024/03/05/dev_journal_4_2.html">Log in, log out (part 2)</a>
   </p>
-  </div>
-  </div>
-  ]]></description>
-</item>
-<item>
-  <title>Do notation for TypeScript</title>
-  <link>https://blog.mavnn.co.uk/2024/02/19/do-notation-for-typescript.html</link>
-  <author>michael@mavnn.eu (Michael Newton)</author>
-  <guid isPermaLink="false">https://blog.mavnn.co.uk/2024/02/19/do-notation-for-typescript.html</guid>
-  <pubDate>Mon, 19 Feb 2024 00:00:00 +0100</pubDate>
-
-  <description><![CDATA[<p>
-  This is rather an aside from recent blog posts, but something I found interesting none the less.
-  </p>
-
-  <p>
-  Fair warning to start us off: this post assumes that you are aware of and understand "do notation" (or "computational expressions" or "monad syntax") and like the idea of having it available in TypeScript.
-  </p>
-
-  <p>
-  It starts by working through a possible way of implementing a type safe representation of a sequence of monadic operations that has a much nicer user experience than nested continuation functions, and then leads into a lengthy example of both building and showing how to use a monad which I've found very useful when working in TypeScript for handling asynchronous code that needs to meaningfully respond to both successes and failures.
-  </p>
-
-  <p>
-  The idea is that we're going to go from code that looks like this:
-  </p>
-
-  <div class="org-src-container">
-  <pre class="src src-typescript"><span class="org-keyword">export</span> <span class="org-keyword">const</span> <span class="org-variable-name">processLaxCallback</span> = <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-rainbow-delimiters-depth-2">{</span>
-  laxOperations,
-  commands,
-  localFunctions,
-  <span class="org-rainbow-delimiters-depth-2">}</span>: <span class="org-type">LaxCallbackDependencies</span><span class="org-rainbow-delimiters-depth-1">)</span> <span class="org-keyword">=&gt;</span> <span class="org-keyword">async</span> <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-variable-name">httpRequest</span><span class="org-rainbow-delimiters-depth-1">)</span> <span class="org-keyword">=&gt;</span> <span class="org-rainbow-delimiters-depth-1">{</span>
-  <span class="org-keyword">try</span> <span class="org-rainbow-delimiters-depth-2">{</span>
-  <span class="org-keyword">const</span> <span class="org-variable-name">laxSignatureCheck</span> = <span class="org-keyword">await</span> laxOperations.<span class="org-function-name">checkSignature</span><span class="org-rainbow-delimiters-depth-3">(</span>httpRequest<span class="org-rainbow-delimiters-depth-3">)</span>
-  <span class="org-keyword">if</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-function-name">isFailure</span><span class="org-rainbow-delimiters-depth-4">(</span>signature<span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span> <span class="org-rainbow-delimiters-depth-3">{</span>
-  <span class="org-keyword">await</span> <span class="org-function-name">reportError</span><span class="org-rainbow-delimiters-depth-4">(</span>signature<span class="org-rainbow-delimiters-depth-4">)</span>
-  <span class="org-keyword">return</span>
-  <span class="org-rainbow-delimiters-depth-3">}</span>
-  <span class="org-keyword">const</span> <span class="org-variable-name">laxContext</span> = laxOperations.<span class="org-function-name">parseRequest</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-rainbow-delimiters-depth-4">{</span> httpRequest, laxSignatureCheck <span class="org-rainbow-delimiters-depth-4">}</span><span class="org-rainbow-delimiters-depth-3">)</span>
-  <span class="org-keyword">if</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-function-name">isFailure</span><span class="org-rainbow-delimiters-depth-4">(</span>laxContext<span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span> <span class="org-rainbow-delimiters-depth-3">{</span>
-  <span class="org-keyword">await</span> <span class="org-function-name">reportError</span><span class="org-rainbow-delimiters-depth-4">(</span>laxContext<span class="org-rainbow-delimiters-depth-4">)</span>
-  <span class="org-keyword">return</span>
-  <span class="org-rainbow-delimiters-depth-3">}</span>
-  <span class="org-comment-delimiter">// </span><span class="org-comment">...continued</span>
-  <span class="org-rainbow-delimiters-depth-2">}</span> <span class="org-keyword">catch</span> <span class="org-rainbow-delimiters-depth-2">(</span>e<span class="org-rainbow-delimiters-depth-2">)</span> <span class="org-rainbow-delimiters-depth-2">{</span>
-  <span class="org-comment-delimiter">// </span><span class="org-comment">... etc</span>
-  <span class="org-rainbow-delimiters-depth-2">}</span>
-  <span class="org-rainbow-delimiters-depth-1">}</span>
-  </pre>
-  </div>
-
-  <p>
-  ...to code that looks more like this:
-  </p>
-
-  <div class="org-src-container">
-  <pre class="src src-typescript"><span class="org-keyword">export</span> <span class="org-keyword">const</span> <span class="org-variable-name">processLaxCallback</span> = <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-rainbow-delimiters-depth-2">{</span>
-  laxOperations,
-  commands,
-  localFunctions,
-  <span class="org-rainbow-delimiters-depth-2">}</span>: <span class="org-type">LaxCallbackDependencies</span><span class="org-rainbow-delimiters-depth-1">)</span> <span class="org-keyword">=&gt;</span>
-  SolidChain.<span class="org-function-name">start</span>&lt;<span class="org-rainbow-delimiters-depth-1">{</span> httpRequest: <span class="org-type">HttpRequest</span> <span class="org-rainbow-delimiters-depth-1">}</span>, LaxCallBackState&gt;<span class="org-rainbow-delimiters-depth-1">()</span>
-  .<span class="org-function-name">chain</span><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-string">"laxSignatureCheck"</span>, laxOperations.checkSignature<span class="org-rainbow-delimiters-depth-1">)</span>
-  .<span class="org-function-name">chain</span><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-string">"laxContext"</span>, laxOperations.parseRequest<span class="org-rainbow-delimiters-depth-1">)</span>
-  <span class="org-comment-delimiter">// </span><span class="org-comment">...continued</span>
-  </pre>
-  </div>
-
-  <p>
-  If you're impatient you can jump straight to <a href="2024/02/19/do-notation-for-typescript.html#ID-8B8152C2-E896-4933-A30E-E01276B284A8">appendix 2</a> where you will find a cut and pastable code block with everything you need to play with the code in the TypeScript editor of your choice.
-  </p>
-
-  <p>
-  For the avoidance of any doubt, all the code in this blog post is available for re-use under the MIT license as list in <a href="2024/02/19/do-notation-for-typescript.html#ID-E8C7C73E-C564-4CDE-B2D9-328AFDF256F1">appendix 3</a>.
-  </p>
-
-  <div id="outline-container-orgbcb8bdd" class="outline-3">
-  <h3 id="orgbcb8bdd"><span class="section-number-3">4.1.</span> The idea</h3>
-  <div class="outline-text-3" id="text-4-1">
-  <p>
-  TypeScript has one form of monad notation already - the <code>await</code> keyword. Unfortunately, there isn't any way to plug into the mechanism used and define your own alternative <code>bind</code> implementation without doing something dangerously hacky. And, frankly, the last thing your TypeScript code needs is an other sharp edge to cut yourself on.
-  </p>
-
-  <p>
-  But... what does binding a value in monad notation really do? It doesn't allow you to write code you couldn't have written anyway long hand. It allows you to give the result of a calculation in your code in name in the current scope.
-  </p>
-
-  <p>
-  So: if we consider the fact that a scope is really just a mapping from names to values, and that TypeScript allows function inputs to alter the type of their output... maybe we can do something with that?
-  </p>
-  </div>
-  </div>
-
-  <div id="outline-container-org8f6141b" class="outline-3">
-  <h3 id="org8f6141b"><span class="section-number-3">4.2.</span> Defining a scope</h3>
-  <div class="outline-text-3" id="text-4-2">
-  <p>
-  A type that maps names to values is reasonably easy to define in TypeScript. It looks something like this:
-  </p>
-
-  <div class="org-src-container">
-  <pre class="src src-typescript"><span class="org-keyword">export</span> <span class="org-keyword">type</span> <span class="org-type">Scope</span>&lt;<span class="org-type">Keys</span> <span class="org-typescript-access-modifier">extends</span> <span class="org-typescript-primitive">string</span>&gt; = <span class="org-rainbow-delimiters-depth-1">{</span>
-  <span class="org-rainbow-delimiters-depth-2">[</span>K <span class="org-keyword">in</span> Keys<span class="org-rainbow-delimiters-depth-2">]</span>: <span class="org-typescript-primitive">any</span>;
-  <span class="org-rainbow-delimiters-depth-1">}</span>;
-  </pre>
-  </div>
-
-  <p>
-  We can say that anything we're willing to consider as a scope is a type that extends the type above: it will have some keys, which will all be strings, and they will map to some values, which will all be sub types of <code>any</code>.
-  </p>
-
-  <p>
-  Now we need a type safe way to add a value to the scope.
-  </p>
-
-  <p>
-  We start with a calculated type which works out what the result of adding a value with a name to a scope should be:
-  </p>
-
-  <div class="org-src-container">
-  <pre class="src src-typescript"><span class="org-keyword">export</span> <span class="org-keyword">type</span> <span class="org-type">ExtendedScope</span>&lt;
-  OldScope <span class="org-typescript-access-modifier">extends</span> <span class="org-type">Scope</span>&lt;<span class="org-typescript-primitive">any</span>&gt;,
-  NewField <span class="org-typescript-access-modifier">extends</span> <span class="org-typescript-primitive">string</span>,
-  NewValue
-  &gt; = OldScope <span class="org-typescript-access-modifier">extends</span> <span class="org-typescript-primitive">any</span>
-  ? <span class="org-rainbow-delimiters-depth-1">{</span>
-  <span class="org-rainbow-delimiters-depth-2">[</span>K <span class="org-keyword">in</span> <span class="org-keyword">keyof</span> OldScope | NewField<span class="org-rainbow-delimiters-depth-2">]</span>: K <span class="org-typescript-access-modifier">extends</span> <span class="org-type">NewField</span>
-  ? NewValue
-  : K <span class="org-typescript-access-modifier">extends</span> <span class="org-keyword">keyof</span> OldScope
-  ? OldScope<span class="org-rainbow-delimiters-depth-2">[</span>K<span class="org-rainbow-delimiters-depth-2">]</span>
-  : <span class="org-typescript-primitive">never</span>;
-  <span class="org-rainbow-delimiters-depth-1">}</span>
-  : <span class="org-typescript-primitive">never</span>;
-  </pre>
-  </div>
   </div>
   </div>
   ]]></description>

@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2024-03-20 Wed 19:14 -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>With style: Dev Journal 6</title>
+<meta name="author" content="Michael Newton" />
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/org.css">
+<script src="/htmx.min.js"></script>
+</head>
+<body hx-boost="true">
+<div id="org-div-home-and-up"><span class="home-text"><a accesskey="H" href="/">HOME</span><img class="home-logo" src="http://blog.mavnn.co.uk/images/swirl.svg" /></a></div><div id="content" class="container">
+<header>
+<h1 class="title">With style: Dev Journal 6</h1>
+</header><blockquote>
+<p>
+This post is part 6 of the "Dev Journal" series. <a href="../../../2024/01/31/dev-journal-1.html">Part 1</a> contains the series index, while the <a href="https://gitlab.com/mavnn/caldance/-/commits/DevJournal6?ref_type=tags">DevJournal6</a> tag for the CalDance project in GitLab holds the state of the repository as described here.
+</p>
+</blockquote>
+
+<p>
+In theory, our log in mechanism works. But in reality it looks like this:
+</p>
+
+
+<figure id="org778a31c">
+<img src="before.png" alt="before.png">
+
+<figcaption><span class="figure-number">Figure 1: </span>Two unstyled, unlabeled text boxes next to a "Submit" button</figcaption>
+</figure>
+
+<p>
+This is the post where we give it a make over, so that it starts looking more like this&#x2026;
+</p>
+
+
+<figure id="orgd4fe9ca">
+<img src="after.png" alt="after.png">
+
+<figcaption><span class="figure-number">Figure 2: </span>A snazzy looking login page</figcaption>
+</figure>
+
+<p>
+&#x2026;while also starting to build in some interactivity, usability, and feedback via HTMX.
+</p>
+
+<div id="outline-container-orgd0e4acd" class="outline-2">
+<h2 id="orgd0e4acd">The good, the bad, and the ugly</h2>
+<div class="outline-text-2" id="text-orgd0e4acd">
+<p>
+You may remember from <a href="../../../2024/01/31/dev-journal-1.html">part 1</a> that HTMX and Falco's markup library are both tools I'm trying out for the first time. This means that while I'm happy with the <i>results</i> I achieved in this post, I'm not all that happy with the resulting code. Yet. There will be a refactoring follow up.
+</p>
+
+<p>
+Which translates to: don't take anything as an active recommendation of how to do things, but a chance to follow along as I learn a new tool.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgd8aa200" class="outline-2">
+<h2 id="orgd8aa200">The logic behind our changes</h2>
+<div class="outline-text-2" id="text-orgd8aa200">
+<p>
+My first attempt at nice server side UI building hinges on two key ideas. 1) each domain module should be responsible for its own UI requirements and 2) the overall UI should look coherent.
+</p>
+
+<p>
+This sounds like a place for a style guide, so I created a <code>StyleGuide</code> directory and started hacking. We ended up with four files in here, each with their own little area of responsibility.
+</p>
+</div>
+
+<div id="outline-container-org65c9b47" class="outline-3">
+<h3 id="org65c9b47">Htmx</h3>
+<div class="outline-text-3" id="text-org65c9b47">
+<p>
+The <code>Htmx.fs</code> file (<a href="https://gitlab.com/mavnn/caldance/-/merge_requests/5/diffs#e08193e43a637c573f535f953ec65131eded9044">link to the diff</a>) is arguably not really part of the style guide, but it seemed the best place I had to put it.
+</p>
+
+<p>
+It defines a series of HTMX related attributes that I can then add to elements in other places without worrying about misspelling them.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">post</span> <span class="org-variable-name">url</span> = Attr.create <span class="org-string">"hx-post"</span> url
+<span class="org-keyword">let</span> <span class="org-function-name">get</span> <span class="org-variable-name">url</span> = Attr.create <span class="org-string">"hx-get"</span> url
+<span class="org-keyword">let</span> <span class="org-function-name">target</span> <span class="org-variable-name">elemId</span> = Attr.create <span class="org-string">"hx-target"</span> elemId
+<span class="org-keyword">let</span> <span class="org-function-name">swap</span> <span class="org-variable-name">details</span> = Attr.create <span class="org-string">"hx-swap"</span> details
+<span class="org-keyword">let</span> <span class="org-variable-name">boost</span> = Attr.createBool <span class="org-string">"hx-boost"</span>
+<span class="org-keyword">let</span> <span class="org-function-name">indicator</span> <span class="org-variable-name">selector</span> = Attr.create <span class="org-string">"hx-indicator"</span> selector
+</pre>
+</div>
+
+<p>
+It also provides a helper for endpoints responding to requests which may or may not be coming from HTMX. Remember that HTMX works by allowing you to respond to a request with a fragment of HTML which will then get embedded into the already loaded page, rather than requiring a full page refresh. This is great, but it means that endpoints which represent a "whole page" can end up being called in one of two ways: by HTMX wanting just the body of the page to embed, and by the browser trying to just load a URL.
+</p>
+
+<p>
+It felt like the logic for branching between these scenarios was going to come up enough it was worth capturing in a named function, so I did:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">htmxOrFull</span> <span class="org-variable-name">branches</span> =
+  handler <span class="org-rainbow-delimiters-depth-1">{</span>
+    <span class="org-keyword">let!</span> headers = Request.getHeaders <span class="org-fsharp-ui-operator">|&gt;</span> Handler.fromCtx
+
+    <span class="org-keyword">let</span> <span class="org-variable-name">hasHxRequestHeader</span> =
+      headers.Keys.Contains <span class="org-string">"HX-Request"</span>
+
+    <span class="org-keyword">let</span> <span class="org-variable-name">isRequestingFullPage</span> =
+      <span class="org-keyword">match</span>
+        headers.TryGetBoolean <span class="org-string">"HX-History-Restore-Request"</span>
+      <span class="org-keyword">with</span>
+      <span class="org-fsharp-ui-operator">|</span> Some <span class="org-keyword">true</span> -&gt; <span class="org-keyword">true</span>
+      <span class="org-fsharp-ui-operator">|</span> Some <span class="org-keyword">false</span>
+      <span class="org-fsharp-ui-operator">|</span> None -&gt; <span class="org-keyword">false</span>
+
+    <span class="org-keyword">if</span> hasHxRequestHeader &amp;&amp; <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">not</span> isRequestingFullPage<span class="org-rainbow-delimiters-depth-2">)</span> <span class="org-keyword">then</span>
+      <span class="org-keyword">return!</span> branches.onHtmx
+    <span class="org-keyword">else</span>
+      <span class="org-keyword">return!</span> branches.onFull
+  <span class="org-rainbow-delimiters-depth-1">}</span>
+</pre>
+</div>
+
+<p>
+We'll be seeing this again in a bit.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgf670747" class="outline-3">
+<h3 id="orgf670747">Modifier</h3>
+<div class="outline-text-3" id="text-orgf670747">
+<p>
+I'm planning on using Bulma as the basis for my CSS as it hits a reasonably sweet spot for me between having a good enough version of "most things" built in and not requiring me to mutate my HTML <i>too</i> much to accommodate it. So the next thing to add was constants for some of the most common modifier classes that Bulma supports.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">module</span> <span class="org-type">Mavnn.CalDance.StyleGuide.Modifiers</span>
+
+<span class="org-keyword">open</span> <span class="org-type">Falco.Markup</span>
+
+<span class="org-keyword">let</span> <span class="org-variable-name">isPrimary</span> = Attr.class' <span class="org-string">"is-primary"</span>
+
+<span class="org-keyword">let</span> <span class="org-variable-name">isLink</span> = Attr.class' <span class="org-string">"is-link"</span>
+
+<span class="org-keyword">let</span> <span class="org-variable-name">isInfo</span> = Attr.class' <span class="org-string">"is-info"</span>
+
+<span class="org-keyword">let</span> <span class="org-variable-name">isSuccess</span> = Attr.class' <span class="org-string">"is-info"</span>
+
+<span class="org-keyword">let</span> <span class="org-variable-name">isWarning</span> = Attr.class' <span class="org-string">"is-warning"</span>
+
+<span class="org-keyword">let</span> <span class="org-variable-name">isDanger</span> = Attr.class' <span class="org-string">"is-danger"</span>
+</pre>
+</div>
+
+<p>
+Boom. Done. Compiler as a spellcheck, tick.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org9fc04d9" class="outline-3">
+<h3 id="org9fc04d9">Layout</h3>
+<div class="outline-text-3" id="text-org9fc04d9">
+<p>
+As with the modifiers, I wanted to make it a little bit easier to do the "right thing" when creating a view, so I set up <code>Layout.fs</code> (<a href="https://gitlab.com/mavnn/caldance/-/merge_requests/5/diffs#fa9c7c3d5630a543415353918d553e91b7edc402">link to the diff</a>) which includes a <code>page</code> function that takes a title and a list of sections and a set of broadly applicable elements like titles and links.
+</p>
+
+<p>
+At the moment the page template loads all of the libraries from shared CDNs, which is something we'll want to change before going to production. We're grabbing Bulma and HTMX as you'd expect, and also the "morphing" library written by the HTMX authors which attempts to only replace elements in the DOM that have actively changed. We also add a <code>meta</code> element to tell HTMX that when it adds a class to an element to signify it is loading, it should use the <code>is-loading</code> class from Bulma rather than the <code>htmx-request</code> class it defaults to.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org5b3c630" class="outline-3">
+<h3 id="org5b3c630">Form</h3>
+<div class="outline-text-3" id="text-org5b3c630">
+<p>
+The <code>Form.fs</code> module (<a href="https://gitlab.com/mavnn/caldance/-/merge_requests/5/diffs#26465d4af42079e4d5f2d9c698268260af59e9a0">link to the diff</a>) is the place where I feel I've probably over engineered things. I started putting together a set of builder helpers and types for building forms and&#x2026; yeah. I don't know. I think it's probably ended up a case of trying to add the abstraction before building the second use of something, and it shows. I'm not all that happy with the code that results.
+</p>
+
+<p>
+I'm not going to go into too much detail on this one, I'm just going to show it in use and remind the reader that this API may change in the future.
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org843ee59" class="outline-2">
+<h2 id="org843ee59">Actually doing the thing</h2>
+<div class="outline-text-2" id="text-org843ee59">
+<p>
+With our helpers constructed, we can start using them. Simple full page endpoints are quite simple; we just swap in the new <code>Layout</code> functions and we're good to go. For example, the view for the home page now looks like this:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp">Layout.page
+  <span class="org-string">"Home"</span>
+  <span class="org-rainbow-delimiters-depth-1">[</span> Layout.containerSection
+      <span class="org-rainbow-delimiters-depth-2">[</span> Layout.title
+          Layout.T1
+          <span class="org-rainbow-delimiters-depth-3">(</span><span class="org-keyword">match</span> user <span class="org-keyword">with</span>
+            <span class="org-fsharp-ui-operator">|</span> Some u -&gt; $<span class="org-string">"Hi {u.username}!"</span>
+            <span class="org-fsharp-ui-operator">|</span> None -&gt; <span class="org-string">"You should go log in!"</span><span class="org-rainbow-delimiters-depth-3">)</span>
+        Layout.paragraphX
+          <span class="org-rainbow-delimiters-depth-3">[]</span>
+          <span class="org-rainbow-delimiters-depth-3">[</span> Text.raw <span class="org-string">"Would you like to "</span>
+            Layout.link
+              <span class="org-rainbow-delimiters-depth-4">(</span>greeting.greetingLink <span class="org-string">"Bob"</span><span class="org-rainbow-delimiters-depth-4">)</span>
+              <span class="org-string">"greet Bob?"</span> <span class="org-rainbow-delimiters-depth-3">]</span> <span class="org-rainbow-delimiters-depth-2">]</span> <span class="org-rainbow-delimiters-depth-1">]</span>
+</pre>
+</div>
+
+<p>
+As soon as we get to adding things like navigation bars to the page template they will all just appear.
+</p>
+
+<p>
+The magic, again, begins in the <code>User.fs</code> module. Let's have a think about the request life cycle with HTMX.
+</p>
+</div>
+
+<div id="outline-container-orgb9e62e9" class="outline-3">
+<h3 id="orgb9e62e9">Option 1: the user GETS the log in (or sign up) page</h3>
+<div class="outline-text-3" id="text-orgb9e62e9">
+<p>
+In this case, we want to send a full page back to the user with an empty "user details" form; this form should not show any validation errors (don't you hate it when a form tells you empty fields aren't allowed before you've started typing?!).
+</p>
+</div>
+</div>
+
+<div id="outline-container-org313ab70" class="outline-3">
+<h3 id="org313ab70">Option 2: the user POSTS invalid user data</h3>
+<div class="outline-text-3" id="text-org313ab70">
+<p>
+Well, if the form fields just aren't in the POST we should return a 400: something is just broken. But if the correct fields exist and this request is flagged as being made by HTMX, what we want to do is update the form with the information about what the user needs to change. Preferably without removing all the information they've already added!
+</p>
+</div>
+</div>
+
+<div id="outline-container-org5a70bc9" class="outline-3">
+<h3 id="org5a70bc9">Option 3: the user POSTS valid user data</h3>
+<div class="outline-text-3" id="text-org5a70bc9">
+<p>
+In this case we want to log the user in and navigate them somewhere else in the website. We don't just want to return the form, we want to return the special <code>HX-Location</code> header which tells HTMX "load the body of that location and substitute it in to avoid a full page reload".
+</p>
+
+<p>
+In the case where we return an updated form, it is critical that as closely as possible it has exactly the same HTML structure as before to allow the merge logic to do its thing, so to allow that I built a "user data form" builder function that does all the things we need it to.
+</p>
+
+<p>
+It's a bit of a monster, but let's have a look:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-keyword">private</span> <span class="org-variable-name">userForm</span>
+  <span class="org-variable-name">csrfToken</span>
+  <span class="org-variable-name">location</span>
+  <span class="org-variable-name">usernameValue</span>
+  <span class="org-variable-name">usernameProb</span>
+  <span class="org-variable-name">passwordValue</span>
+  <span class="org-variable-name">passwordProb</span>
+  =
+  <span class="org-keyword">let</span> <span class="org-variable-name">userInput</span> =
+    Form.InputConfig.make <span class="org-string">"text"</span> <span class="org-string">"username"</span> <span class="org-string">"Your username"</span>
+    <span class="org-fsharp-ui-operator">|&gt;</span> Form.InputConfig.addLabel <span class="org-string">"Username"</span>
+    <span class="org-fsharp-ui-operator">|&gt;</span> Form.InputConfig.addIcons <span class="org-rainbow-delimiters-depth-1">(</span>Form.Left <span class="org-string">"mdi-account"</span><span class="org-rainbow-delimiters-depth-1">)</span>
+    <span class="org-fsharp-ui-operator">|&gt;</span> Form.InputConfig.setValue usernameValue
+    <span class="org-fsharp-ui-operator">|&gt;</span> <span class="org-keyword">fun</span> <span class="org-variable-name">ic</span> -&gt;
+        <span class="org-keyword">match</span> usernameProb <span class="org-keyword">with</span>
+        <span class="org-fsharp-ui-operator">|</span> Some prob -&gt; Form.InputConfig.addError prob ic
+        <span class="org-fsharp-ui-operator">|</span> None -&gt; ic
+    <span class="org-fsharp-ui-operator">|&gt;</span> Form.input
+
+  <span class="org-keyword">let</span> <span class="org-variable-name">passwordInput</span> =
+    Form.InputConfig.make
+      <span class="org-string">"password"</span>
+      <span class="org-string">"password"</span>
+      <span class="org-string">"Your password"</span>
+    <span class="org-fsharp-ui-operator">|&gt;</span> Form.InputConfig.addLabel <span class="org-string">"Password"</span>
+    <span class="org-fsharp-ui-operator">|&gt;</span> Form.InputConfig.addIcons <span class="org-rainbow-delimiters-depth-1">(</span>Form.Left <span class="org-string">"mdi-lock"</span><span class="org-rainbow-delimiters-depth-1">)</span>
+    <span class="org-fsharp-ui-operator">|&gt;</span> Form.InputConfig.setValue passwordValue
+    <span class="org-fsharp-ui-operator">|&gt;</span> <span class="org-keyword">fun</span> <span class="org-variable-name">ic</span> -&gt;
+        <span class="org-keyword">match</span> passwordProb <span class="org-keyword">with</span>
+        <span class="org-fsharp-ui-operator">|</span> Some prob -&gt; Form.InputConfig.addError prob ic
+        <span class="org-fsharp-ui-operator">|</span> None -&gt; ic
+    <span class="org-fsharp-ui-operator">|&gt;</span> Form.input
+
+  Form.form
+    <span class="org-rainbow-delimiters-depth-1">{</span> csrfToken = csrfToken
+      id = <span class="org-string">"userform"</span>
+      modifiers =
+        <span class="org-rainbow-delimiters-depth-2">[</span> Htmx.post location
+          Htmx.target <span class="org-string">"closest form"</span>
+          Htmx.indicator <span class="org-string">"#userFormSubmit button"</span>
+          Htmx.swap <span class="org-string">"morph:{ignoreActiveValue:true}"</span> <span class="org-rainbow-delimiters-depth-2">]</span>
+      controls =
+        <span class="org-rainbow-delimiters-depth-2">[</span> userInput
+          passwordInput
+          Form.button
+            <span class="org-string">"userFormSubmit"</span>
+            <span class="org-string">"submit"</span>
+            <span class="org-string">"Submit"</span>
+            <span class="org-rainbow-delimiters-depth-3">[</span> Modifiers.isPrimary <span class="org-rainbow-delimiters-depth-3">]</span>
+            <span class="org-string">"Submit"</span> <span class="org-rainbow-delimiters-depth-2">]</span> <span class="org-rainbow-delimiters-depth-1">}</span>
+</pre>
+</div>
+
+<p>
+The start of the function builds are two input fields, and then the interactive logic is all contained within the 4 HTMX attributes towards the end. These tell HTMX that it should post the form values to the location specified, place a loading indicator on the button within the element with ID <code>userFormSubmit</code>, and then should try and morph the HTML it gets back into the closest form element.
+</p>
+
+<p>
+Now are post methods can return one of two different responses (assuming that we have form data, etc); if authentication succeeds we can send an empty 200 response with a location header and our session cookies:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-keyword">private</span> <span class="org-function-name">signIn</span> <span class="org-variable-name">authScheme</span> <span class="org-variable-name">principal</span> <span class="org-variable-name">url</span> =
+  handler <span class="org-rainbow-delimiters-depth-1">{</span>
+    <span class="org-keyword">do!</span>
+      Handler.fromCtxTask <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">fun</span> <span class="org-variable-name">ctx</span> -&gt;
+        task <span class="org-rainbow-delimiters-depth-3">{</span> <span class="org-keyword">do!</span> Auth.signIn authScheme principal ctx <span class="org-rainbow-delimiters-depth-3">}</span><span class="org-rainbow-delimiters-depth-2">)</span>
+
+    <span class="org-keyword">return!</span>
+      Handler.fromCtx <span class="org-rainbow-delimiters-depth-2">(</span>
+        Response.withHeaders <span class="org-rainbow-delimiters-depth-3">[</span> <span class="org-string">"HX-Location"</span>, url <span class="org-rainbow-delimiters-depth-3">]</span>
+        &gt;&gt; ignore
+      <span class="org-rainbow-delimiters-depth-2">)</span>
+  <span class="org-rainbow-delimiters-depth-1">}</span>
+</pre>
+</div>
+
+<p>
+If the data is invalid, we can respond with a form containing the relevant error messages, like so:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-keyword">private</span> <span class="org-function-name">authenticationFailed</span> <span class="org-variable-name">formData</span> <span class="org-variable-name">location</span> =
+  <span class="org-keyword">let</span> <span class="org-variable-name">failedAuth</span> =
+    <span class="org-string">"Matching username and password not found"</span>
+
+  Response.ofHtmlCsrf <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">fun</span> <span class="org-variable-name">token</span> -&gt;
+    userForm
+      token
+      location
+      <span class="org-rainbow-delimiters-depth-2">(</span>Some formData.username<span class="org-rainbow-delimiters-depth-2">)</span>
+      <span class="org-rainbow-delimiters-depth-2">(</span>Some failedAuth<span class="org-rainbow-delimiters-depth-2">)</span>
+      <span class="org-rainbow-delimiters-depth-2">(</span>Some formData.password<span class="org-rainbow-delimiters-depth-2">)</span>
+      <span class="org-rainbow-delimiters-depth-2">(</span>Some failedAuth<span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
+</pre>
+</div>
+
+<p>
+Notice that we're carry through the form data that was posted to us rather than clearing the form out on every submit.
+</p>
+
+<p>
+This is also the module where we start making use of the HTMX branching helper we set up above, so we can add endpoints like:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-keyword">private</span> <span class="org-function-name">logoutEndpoint</span> <span class="org-variable-name">routeNamespace</span> =
+  Handler.toEndpoint
+    get
+    <span class="org-rainbow-delimiters-depth-1">(</span>logoutRoute routeNamespace<span class="org-rainbow-delimiters-depth-1">)</span>
+    <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">fun</span> <span class="org-rainbow-delimiters-depth-2">()</span> -&gt;
+      Htmx.htmxOrFull
+        <span class="org-rainbow-delimiters-depth-2">{</span> onHtmx =
+            handler <span class="org-rainbow-delimiters-depth-3">{</span>
+              <span class="org-keyword">do!</span> signOut <span class="org-string">"Cookies"</span> <span class="org-string">"/"</span>
+              <span class="org-keyword">return</span> Response.ofEmpty
+            <span class="org-rainbow-delimiters-depth-3">}</span>
+          onFull =
+            handler <span class="org-rainbow-delimiters-depth-3">{</span>
+              <span class="org-keyword">return</span>
+                Response.signOutAndRedirect <span class="org-string">"Cookies"</span> <span class="org-string">"/"</span>
+            <span class="org-rainbow-delimiters-depth-3">}</span> <span class="org-rainbow-delimiters-depth-2">}</span><span class="org-rainbow-delimiters-depth-1">)</span>
+</pre>
+</div>
+
+<p>
+Browsing directly to the log out link in your browser will get you a redirect status code response, while clicking a <code>log out</code> link within the web app will take you back to the index page (logged out!) without having to do a full page refresh.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org422764c" class="outline-3">
+<h3 id="org422764c">That's a wrap</h3>
+<div class="outline-text-3" id="text-org422764c">
+<p>
+So, that's the main changes for this post. As normal there's the link at the top of the post to the repo as it was when the post was written. I'm not totally happy with the internal results here, but I'm happy enough that I don't want to spend time refactoring it before I've started using it on a second use case.
+</p>
+
+<p>
+Speaking of which, keep an eye out for the next post where we'll actually let a user <i>do</i> something.
+</p>
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<footer id="my-contacts">
+<p hx-boost="false"><a href="https://blog.mavnn.co.uk/rss.xml">RSS</a></p>
+<p><a href="https://mastodon.sdf.org/@mavnn">Mastodon</a></p>
+<p>Git(<a href="https://github.com/mavnn">Hub</a>|<a href="https://gitlab.com/mavnn">Lab</a>)</p>
+</footer>
+</div>
+</body>
+</html>

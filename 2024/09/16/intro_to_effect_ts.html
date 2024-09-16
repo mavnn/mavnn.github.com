@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- 2024-09-16 Mon 16:54 -->
+<!-- 2024-09-16 Mon 18:28 -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>A gentle introduction to Effect TS</title>
@@ -426,9 +426,9 @@ and get you an actual implementation at run time.
 </p>
 
 <p>
-In general, you just want to let Effect build that up itself; if we add a second service then the type
-system will capture that "automatically". If possible, it's a good idea to leave the types of
-your Effect functions inferred as then it will automatically pick up changes in dependencies. That
+In general, you just want to let Effect build up required dependencies itself; if we add a second service then the type
+system will capture that "automatically". If possible, leave the types of
+your Effect functions inferred as then it will automatically pick up changes in their dependencies. That
 said, I'll carry on adding them here so you can see what's happening.
 </p>
 
@@ -446,11 +446,11 @@ said, I'll carry on adding them here so you can see what's happening.
 </div>
 
 <p>
-Note that the types any capture <i>direct</i> dependencies. Here, the <code>TranslateGreeting</code> service almost
+Note that the types only capture <i>direct</i> dependencies. Here, the <code>TranslateGreeting</code> service almost
 certainly depends in turn on some kind of user or session service, but we don't need to worry about
 that. This makes providing alternative service implementations for tests, or for running on the client
 versus the server, exceedingly straight forward and safe. If you can provide exactly what your code needs
-you're good, and it won't ask you for any more than that. If you're Effect code is starting to build up
+you're good, and it won't ask you for any more than that. If your Effect code is starting to build up
 a huge list of dependencies, that's normally a good indicator that you want to start wrapping it in
 an interface of its own - that way, the things that call your code don't inherit a huge dependency tree,
 and they in turn become more maintainable.

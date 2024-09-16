@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2024-09-16 Mon 13:02 -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>A gentle introduction to Effect TS</title>
+<meta name="author" content="Michael Newton" />
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/org.css">
+<script src="/htmx.min.js"></script>
+</head>
+<body hx-boost="true">
+<div id="org-div-home-and-up"><span class="home-text"><a accesskey="H" href="/">HOME</span><img class="home-logo" src="http://blog.mavnn.co.uk/images/swirl.svg" /></a></div><div id="content" class="container">
+<header>
+<h1 class="title">A gentle introduction to Effect TS</h1>
+</header><p>
+I've recently been writing TypeScript again in a green field project, and we made the decision to
+use the <a href="https://effect.website/">Effect</a> library. It's not a small decision to make: although you can use bits of Effect in
+an existing code base, its real benefit is when it is used as (to quote the website) "the missing
+standard library for TypeScript".
+</p>
+
+<p>
+Overall, we're happy with the choice but the learning curve has a few sharp edges and while the
+<a href="https://effect.website/docs/introduction">docs</a> aren't bad it does feel like they could do a better job of introducing the most used features
+in a way that feels familiar to TypeScript developers so they can at least <b>read existing</b> Effect
+code before starting to introduce the many, many, powerful features that come with the library.
+</p>
+
+<p>
+This post is an attempt to do exactly that.
+</p>
+
+<div id="outline-container-orgb9fa377" class="outline-2">
+<h2 id="orgb9fa377">The Effect type</h2>
+<div class="outline-text-2" id="text-orgb9fa377">
+<p>
+The very first thing you need to understand about Effect is that it is built around a specific type.
+Appropriately enough, the <code>Effect</code> type. This type functions as a replacement for <code>Promise</code>, allowing
+for asynchronous code, but also covers a few other needs.
+</p>
+
+<p>
+Let's get started, in the traditional way:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-typescript"><span class="org-keyword">import</span> <span class="org-rainbow-delimiters-depth-1">{</span> Effect <span class="org-rainbow-delimiters-depth-1">}</span> <span class="org-keyword">from</span> <span class="org-string">"effect"</span>
+
+<span class="org-keyword">const</span> <span class="org-variable-name">hello</span> = <span class="org-rainbow-delimiters-depth-1">(</span>name?: <span class="org-typescript-primitive">string</span><span class="org-rainbow-delimiters-depth-1">)</span>: <span class="org-type">Effect.Effect</span>&lt;<span class="org-typescript-primitive">string</span>&gt; <span class="org-keyword">=&gt;</span>
+  Effect.<span class="org-function-name">gen</span><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">function</span>* <span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+    <span class="org-keyword">return</span> <span class="org-string">`Hello, ${name || "world"}!`</span>
+  <span class="org-rainbow-delimiters-depth-2">}</span><span class="org-rainbow-delimiters-depth-1">)</span>
+</pre>
+</div>
+
+<p>
+This code is spiritually the same as writing:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-typescript"><span class="org-keyword">const</span> <span class="org-variable-name">helloAsync</span> = <span class="org-keyword">async</span> <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-variable-name">name?</span>: <span class="org-typescript-primitive">string</span><span class="org-rainbow-delimiters-depth-1">)</span>: <span class="org-type">Promise</span>&lt;<span class="org-typescript-primitive">string</span>&gt; <span class="org-keyword">=&gt;</span> <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-keyword">return</span> <span class="org-string">`Hello, ${name || "world"}!`</span>
+<span class="org-rainbow-delimiters-depth-1">}</span>
+</pre>
+</div>
+
+<p>
+You can think of the <code>Effect.gen(function* () { ... })</code> as a slightly more verbose version of the <code>async</code> prefix to a function.
+</p>
+
+<p>
+What about calling the function? Again, we have a similar concept but different syntax to <code>async/await</code>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-typescript"><span class="org-comment-delimiter">// </span><span class="org-comment">Effect version</span>
+<span class="org-keyword">const</span> <span class="org-variable-name">sayHello</span>: <span class="org-type">Effect.Effect</span>&lt;<span class="org-typescript-primitive">void</span>&gt; =
+  Effect.<span class="org-function-name">gen</span><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">function</span>* <span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+    <span class="org-keyword">const</span> <span class="org-variable-name">greeting</span> = <span class="org-keyword">yield*</span> <span class="org-function-name">hello</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"world"</span><span class="org-rainbow-delimiters-depth-3">)</span>
+    <span class="org-keyword">yield*</span> <span class="org-function-name">sendGreetings</span><span class="org-rainbow-delimiters-depth-3">(</span>greeting<span class="org-rainbow-delimiters-depth-3">)</span>
+  <span class="org-rainbow-delimiters-depth-2">}</span><span class="org-rainbow-delimiters-depth-1">)</span>
+
+<span class="org-comment-delimiter">// </span><span class="org-comment">Async/await version</span>
+<span class="org-keyword">const</span> <span class="org-variable-name">sayHelloAsync</span>: <span class="org-type">Promise</span>&lt;<span class="org-typescript-primitive">void</span>&gt; = <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-keyword">const</span> <span class="org-variable-name">greeting</span> = <span class="org-keyword">await</span> <span class="org-function-name">helloAsync</span><span class="org-rainbow-delimiters-depth-2">(</span><span class="org-string">"world"</span><span class="org-rainbow-delimiters-depth-2">)</span>
+  <span class="org-keyword">await</span> <span class="org-function-name">sendGreetingsAsync</span><span class="org-rainbow-delimiters-depth-2">(</span>greeting<span class="org-rainbow-delimiters-depth-2">)</span>
+<span class="org-rainbow-delimiters-depth-1">}</span>
+</pre>
+</div>
+
+<p>
+Given that we're using a cooperative scheduling system for asynchronous code, you can think of <code>yield*</code> as
+saying "hey runtime - I'm yielding the thread now, start me back up when the effect on the right has finished."
+</p>
+
+<p>
+There is, however one big difference between these two which will catch you out if you don't know about it.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgeffd01e" class="outline-2">
+<h2 id="orgeffd01e">Hot and cold promises</h2>
+<div class="outline-text-2" id="text-orgeffd01e">
+<p>
+<code>Promise</code> is what is sometimes referred to as a "hot" or "immediate" asynchronous construct. What does that mean?
+</p>
+
+<p>
+Well, in the example above <code>sayHelloAsync</code> is a constant value. As soon as the value is created, the logic within
+the promise will be scheduled for execution and we will start the process of asynchronously running the <code>helloAsync</code>
+function. If we await the result of <code>sayHelloAsync</code> somewhere else, we will block until the function has finished.
+</p>
+
+<p>
+This also means that if we <code>await</code> <code>sayHelloAsync</code> in two different places, we will only send greetings <b>once</b>. After
+all, the <code>Promise</code> type that we are handing around represents the running execution of an asynchronous process; it has
+already started, and awaiting it multiple times won't start it again.
+</p>
+
+<p>
+<code>Effect</code>, by contrast, is a "cold" or "thunked" asynchronous construct. It represents a series of steps that <i>will be</i>
+executed <i>if</i> the result is requested.
+</p>
+
+<p>
+So if we run:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-typescript"><span class="org-keyword">const</span> <span class="org-variable-name">camelot</span>: <span class="org-type">Effect.Effect</span>&lt;<span class="org-typescript-primitive">void</span>&gt; =
+  Effect.<span class="org-function-name">gen</span><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">function</span>* <span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+    <span class="org-keyword">yield*</span> sayHello
+    <span class="org-keyword">yield*</span> sayHello
+    <span class="org-keyword">yield*</span> sayHello
+  <span class="org-rainbow-delimiters-depth-2">}</span><span class="org-rainbow-delimiters-depth-1">)</span>
+</pre>
+</div>
+
+<p>
+We will send the greetings three times, but only when somebody requests the result of running <code>camelot</code>. Until
+then, nothing will happen at all.
+</p>
+
+<p>
+<b>If you remember nothing else from this post</b>, remember that an <code>Effect</code> that nobody executes never runs. This <i>will</i> catch you
+out with logging.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-typescript"><span class="org-comment-delimiter">// </span><span class="org-comment">logs nothing</span>
+<span class="org-keyword">const</span> <span class="org-variable-name">camelot</span>: <span class="org-type">Effect.Effect</span>&lt;<span class="org-typescript-primitive">void</span>&gt; =
+  Effect.<span class="org-function-name">gen</span><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">function</span>* <span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+    Effect.<span class="org-function-name">log</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"Bass voice: spam a looooooot"</span><span class="org-rainbow-delimiters-depth-3">)</span>
+    <span class="org-keyword">yield*</span> sayHello
+    <span class="org-keyword">yield*</span> sayHello
+    <span class="org-keyword">yield*</span> sayHello
+  <span class="org-rainbow-delimiters-depth-2">}</span><span class="org-rainbow-delimiters-depth-1">)</span>
+
+<span class="org-comment-delimiter">// </span><span class="org-comment">logs the bass voice</span>
+<span class="org-keyword">const</span> <span class="org-variable-name">camelot</span>: <span class="org-type">Effect.Effect</span>&lt;<span class="org-typescript-primitive">void</span>&gt; =
+  Effect.<span class="org-function-name">gen</span><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">function</span>* <span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+    <span class="org-keyword">yield*</span> Effect.<span class="org-function-name">log</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"Bass voice: spam a looooooot"</span><span class="org-rainbow-delimiters-depth-3">)</span>
+    <span class="org-keyword">yield*</span> sayHello
+    <span class="org-keyword">yield*</span> sayHello
+    <span class="org-keyword">yield*</span> sayHello
+  <span class="org-rainbow-delimiters-depth-2">}</span><span class="org-rainbow-delimiters-depth-1">)</span>
+</pre>
+</div>
+
+<p>
+Although the ability to create Effects without executing them can be extremely useful, leaving <code>yield*</code> out of
+your code when you actually need it is probably the most frustrating element of learning Effect, and the one
+that the compiler is least able to warn you about.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org00cfd9a" class="outline-2">
+<h2 id="org00cfd9a">Pipes</h2>
+<div class="outline-text-2" id="text-org00cfd9a">
+<p>
+Effect makes heavy usage of a concept it calls "pipes", which is a way of passing a value through a series of functions.
+</p>
+
+<p>
+The main place you'll see this is that we can wrap <code>Effect</code> values in a wide variety of ways. These are very powerful,
+but quickly start suffering from the "lisp effect" of a pyramid of brackets when we start combining them.
+</p>
+
+<p>
+Let's rewrite the <code>camelot</code> function above using the built in <code>Effect.repeatN</code> method:
+</p>
+
+
+<div class="org-src-container">
+<pre class="src src-typescript"><span class="org-keyword">const</span> <span class="org-variable-name">camelot</span>: <span class="org-type">Effect.Effect</span>&lt;<span class="org-typescript-primitive">void</span>&gt; =
+  Effect.<span class="org-function-name">gen</span><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">function</span>* <span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+    <span class="org-keyword">yield*</span> Effect.<span class="org-function-name">repeatN</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-highlight-numbers-number">2</span><span class="org-rainbow-delimiters-depth-3">)(</span>sayHello<span class="org-rainbow-delimiters-depth-3">)</span>
+  <span class="org-rainbow-delimiters-depth-2">}</span><span class="org-rainbow-delimiters-depth-1">)</span>
+</pre>
+</div>
+
+<p>
+Now let's add a timeout on finishing the 3 calls to <code>sayHello</code>; greetings are time critical after all:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-typescript"><span class="org-keyword">const</span> <span class="org-variable-name">camelot</span>: <span class="org-type">Effect.Effect</span>&lt;<span class="org-typescript-primitive">void</span>&gt; = Effect.<span class="org-function-name">gen</span><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">function</span>* <span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+  <span class="org-keyword">yield*</span> Effect.<span class="org-function-name">timeout</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"10 seconds"</span><span class="org-rainbow-delimiters-depth-3">)(</span>Effect.<span class="org-function-name">repeatN</span><span class="org-rainbow-delimiters-depth-4">(</span><span class="org-highlight-numbers-number">2</span><span class="org-rainbow-delimiters-depth-4">)(</span>sayHello<span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span>
+<span class="org-rainbow-delimiters-depth-2">}</span><span class="org-rainbow-delimiters-depth-1">)</span>
+</pre>
+</div>
+
+<p>
+You can see this is already becoming quite hard to follow. This is where pipes come in. We
+can rewrite the above to become:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-typescript"><span class="org-keyword">const</span> <span class="org-variable-name">camelot</span>: <span class="org-type">Effect.Effect</span>&lt;<span class="org-typescript-primitive">void</span>, <span class="org-type">TimeoutException</span>&gt; = Effect.<span class="org-function-name">gen</span><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">function</span>* <span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+  <span class="org-keyword">yield*</span> sayHello.<span class="org-function-name">pipe</span><span class="org-rainbow-delimiters-depth-3">(</span>
+    Effect.<span class="org-function-name">repeatN</span><span class="org-rainbow-delimiters-depth-4">(</span><span class="org-highlight-numbers-number">2</span><span class="org-rainbow-delimiters-depth-4">)</span>,
+    Effect.<span class="org-function-name">timeout</span><span class="org-rainbow-delimiters-depth-4">(</span><span class="org-string">"10 seconds"</span><span class="org-rainbow-delimiters-depth-4">)</span>
+  <span class="org-rainbow-delimiters-depth-3">)</span>
+<span class="org-rainbow-delimiters-depth-2">}</span><span class="org-rainbow-delimiters-depth-1">)</span>
+</pre>
+</div>
+
+<p>
+You'll see this a lot in most code bases as the Effect library contains "pipeable" methods for everything
+from error handling to naming pieces of code for telemetry.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org8fdf420" class="outline-2">
+<h2 id="org8fdf420">Error handling, you say?</h2>
+<div class="outline-text-2" id="text-org8fdf420">
+<p>
+In that last example, <code>Effect</code> suddenly grew its second generic parameter. The <code>timeout</code> wrapper adds the
+explicit possibility that <code>camelot</code> can fail with a <code>TimeoutException</code>.
+</p>
+
+<p>
+Do not get caught out! This doesn't mean that <code>camelot</code> cannot throw other exceptions; it means that we
+do not consider <code>camelot</code> timing out to be a "defect" but a known behavior which we can take action on.
+</p>
+
+<p>
+This is worth spending a moment on, as it can get confusing. Effect executions can "finish early" in three
+main ways:
+</p>
+
+<ul class="org-ul">
+<li>An exception is thrown. This is referred to as a "defect", and the Effect interrupted is said to "die".</li>
+<li>A specific, known, failure type is explicitly returned. The type will be part of the type signature of the Effect, and if this happens the Effect is said to "fail".</li>
+<li>The Effect runtime can interrupt an Effect that is in flight because the result is no longer needed. These Effects are "interrupted".</li>
+</ul>
+
+<p>
+For example, if the timeout is triggered in the code above the <code>camelot</code> function will "fail" with a <code>TimeoutException</code> while the call to <code>sayHello</code> which has taken too long will be "interrupted".
+If, instead, <code>sayHello</code> throws an exception because the network is down then it will "die" and then in turn cause the <code>camelot</code> Effect to "die" as well.
+</p>
+
+<p>
+With the addition of the "empty" case (nothing went wrong!) these four categories are used to define the <code>Cause</code> of an Effect completing execution.
+</p>
+
+<p>
+Here we hit a piece of (in my opinion) terrible naming on the part of the library authors. The <code>Effect.catch</code> wrapper that as a TypeScript developer
+you would expect to, you know, catch thrown exceptions only catches "failures" (i.e. the known, type safe, errors deliberately returned). This is very
+useful in allowing you to apply logic in code that depends on known failure routes, but if you're actually looking for what you <i>thought</i> <code>Effect.catch</code>
+did you're really looking for <code>Effect.catchAllCause</code>.
+</p>
+</div>
+
+<div id="outline-container-org3af35da" class="outline-3">
+<h3 id="org3af35da">Opinion moment</h3>
+<div class="outline-text-3" id="text-org3af35da">
+<p>
+This is my opinion rather than something about how Effect works, but I'd recommend in general that you handle most of the library supplied failure
+types very close to where they happen. The reason is that as library failures, they are by nature very generic (<code>ElementNotFoundException</code>?) and
+so if you don't handle them close to the source, you won't know <i>which</i> element of what wasn't found. Even worse, if you decide that you can't
+do anything about the failure anymore because the context has been lost and you upgrade it to a "defect" using the <code>Effect.orDie</code> wrapper,
+the stack trace will come from the call to <code>orDie</code> <b>not</b> from the Effect that returned the failure.
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgf762ba6" class="outline-2">
+<h2 id="orgf762ba6">Signaling errors</h2>
+<div class="outline-text-2" id="text-orgf762ba6">
+<p>
+If you want to signal that a function should return early due to an error, you can either use <code>Effect.fail</code> or you can
+use any error that is a subtype of <code>YieldableError</code> (part of the Effect library). This introduces the slightly weird
+construct of <code>return yield*</code>, as you can see below.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-typescript"><span class="org-keyword">const</span> <span class="org-variable-name">canGoWrong</span> = <span class="org-rainbow-delimiters-depth-1">(</span>input: <span class="org-typescript-primitive">number</span><span class="org-rainbow-delimiters-depth-1">)</span> <span class="org-keyword">=&gt;</span> <span class="org-type">Effect</span>.<span class="org-function-name">gen</span><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">function</span>* <span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+  <span class="org-keyword">if</span><span class="org-rainbow-delimiters-depth-3">(</span>input &lt; <span class="org-highlight-numbers-number">0</span><span class="org-rainbow-delimiters-depth-3">)</span> <span class="org-rainbow-delimiters-depth-3">{</span>
+    <span class="org-keyword">return</span> <span class="org-keyword">yield*</span> Effect.<span class="org-function-name">fail</span><span class="org-rainbow-delimiters-depth-4">(</span><span class="org-string">"Input must be positive"</span><span class="org-rainbow-delimiters-depth-4">)</span>
+  <span class="org-rainbow-delimiters-depth-3">}</span>
+
+  <span class="org-keyword">if</span> <span class="org-rainbow-delimiters-depth-3">(</span>input &gt; <span class="org-highlight-numbers-number">10</span><span class="org-rainbow-delimiters-depth-3">)</span> <span class="org-rainbow-delimiters-depth-3">{</span>
+    <span class="org-keyword">return</span> <span class="org-keyword">yield*</span> <span class="org-keyword">new</span> <span class="org-type">IllegalArgumentException</span><span class="org-rainbow-delimiters-depth-4">(</span><span class="org-string">"Input must be not too big"</span><span class="org-rainbow-delimiters-depth-4">)</span>
+  <span class="org-rainbow-delimiters-depth-3">}</span>
+
+  <span class="org-keyword">yield*</span> <span class="org-function-name">sendGreeting</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">" Moderate Number Inputter"</span><span class="org-rainbow-delimiters-depth-3">)</span>
+  <span class="org-keyword">return</span> <span class="org-string">"Success!"</span>
+<span class="org-rainbow-delimiters-depth-2">}</span><span class="org-rainbow-delimiters-depth-1">)</span>
+</pre>
+</div>
+
+<p>
+Why can't you just call <code>return</code>? The answer is it messes up the types; the function above has the type:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-typescript"><span class="org-rainbow-delimiters-depth-1">(</span>input: <span class="org-typescript-primitive">number</span><span class="org-rainbow-delimiters-depth-1">)</span> <span class="org-keyword">=&gt;</span> <span class="org-type">Effect.Effect</span>&lt;<span class="org-typescript-primitive">string</span>, <span class="org-typescript-primitive">string</span> | <span class="org-type">IllegalArgumentException</span>&gt;
+</pre>
+</div>
+
+<p>
+But if we were to write:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-typescript"><span class="org-keyword">const</span> <span class="org-variable-name">canGoWrong</span> = <span class="org-rainbow-delimiters-depth-1">(</span>input: <span class="org-typescript-primitive">number</span><span class="org-rainbow-delimiters-depth-1">)</span> <span class="org-keyword">=&gt;</span> <span class="org-type">Effect</span>.<span class="org-function-name">gen</span><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">function</span>* <span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+  <span class="org-keyword">if</span><span class="org-rainbow-delimiters-depth-3">(</span>input &lt; <span class="org-highlight-numbers-number">0</span><span class="org-rainbow-delimiters-depth-3">)</span> <span class="org-rainbow-delimiters-depth-3">{</span>
+    <span class="org-keyword">return</span> Effect.<span class="org-function-name">fail</span><span class="org-rainbow-delimiters-depth-4">(</span><span class="org-string">"Input must be positive"</span><span class="org-rainbow-delimiters-depth-4">)</span>
+  <span class="org-rainbow-delimiters-depth-3">}</span>
+
+  <span class="org-keyword">if</span> <span class="org-rainbow-delimiters-depth-3">(</span>input &gt; <span class="org-highlight-numbers-number">10</span><span class="org-rainbow-delimiters-depth-3">)</span> <span class="org-rainbow-delimiters-depth-3">{</span>
+    <span class="org-keyword">return</span> <span class="org-keyword">new</span> <span class="org-type">IllegalArgumentException</span><span class="org-rainbow-delimiters-depth-4">(</span><span class="org-string">"Input must be not too big"</span><span class="org-rainbow-delimiters-depth-4">)</span>
+  <span class="org-rainbow-delimiters-depth-3">}</span>
+
+  <span class="org-keyword">yield*</span> <span class="org-function-name">sendGreeting</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">" Moderate Number Inputter"</span><span class="org-rainbow-delimiters-depth-3">)</span>
+<span class="org-rainbow-delimiters-depth-2">}</span><span class="org-rainbow-delimiters-depth-1">)</span>
+</pre>
+</div>
+
+<p>
+&#x2026;then it would end up with the type:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-typescript"><span class="org-rainbow-delimiters-depth-1">(</span>
+  input: <span class="org-typescript-primitive">number</span>
+<span class="org-rainbow-delimiters-depth-1">)</span>: <span class="org-type">Effect.Effect</span>&lt;<span class="org-typescript-primitive">string</span> | <span class="org-type">IllegalArgumentException</span> | <span class="org-type">Effect</span>.<span class="org-type">Effect</span>&lt;<span class="org-typescript-primitive">never</span>, <span class="org-typescript-primitive">string</span>&gt;&gt;
+</pre>
+</div>
+
+<p>
+What's happening is that without the <code>yield*</code> we are returning the failures as possible success values.
+That probably isn't what you want!
+</p>
+
+<p>
+In general, if you ever find yourself with an Effect of an Effect, you're probably missing a <code>yield*</code> somewhere.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org73937e1" class="outline-2">
+<h2 id="org73937e1">Dependencies</h2>
+<div class="outline-text-2" id="text-org73937e1">
+<p>
+One of the most powerful features of Effect in day to day usage is the built in, type safe, dependency management. Let's apply some <a href="https://en.wikipedia.org/wiki/Inversion_of_control">inversion of control</a>
+to our <code>sendGreetings</code> service.
+</p>
+
+<p>
+Effect allows us to build "services", which are classes that extend <code>Context.Tag</code> to specify what interface their implementations will provide.
+</p>
+
+<p>
+For example, we can specify a service for sending greetings that looks like this:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-typescript"><span class="org-keyword">import</span> <span class="org-rainbow-delimiters-depth-1">{</span> Effect, Context <span class="org-rainbow-delimiters-depth-1">}</span> <span class="org-keyword">from</span> <span class="org-string">"effect"</span>
+
+<span class="org-keyword">interface</span> <span class="org-type">ISendGreetings</span> <span class="org-rainbow-delimiters-depth-1">{</span>
+  <span class="org-function-name">sendGreetings</span><span class="org-rainbow-delimiters-depth-2">(</span><span class="org-variable-name">name</span>: <span class="org-typescript-primitive">string</span><span class="org-rainbow-delimiters-depth-2">)</span>: <span class="org-type">Effect.Effect</span>&lt;<span class="org-typescript-primitive">void</span>&gt;
+<span class="org-rainbow-delimiters-depth-1">}</span>
+
+<span class="org-keyword">export</span> <span class="org-keyword">class</span> <span class="org-type">SendGreetings</span> <span class="org-typescript-access-modifier">extends</span>
+  Context.<span class="org-function-name">Tag</span><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-string">"SendGreetings"</span><span class="org-rainbow-delimiters-depth-1">)</span>&lt;<span class="org-variable-name">SendGreetings</span>, ISendGreetings&gt;<span class="org-rainbow-delimiters-depth-1">()</span> <span class="org-rainbow-delimiters-depth-1">{}</span>
+</pre>
+</div>
+
+<p>
+And now we can rewrite <code>camelot</code> to use the service:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-typescript"><span class="org-keyword">const</span> <span class="org-variable-name">sayHello</span>: <span class="org-type">Effect.Effect</span>&lt;<span class="org-typescript-primitive">void</span>, <span class="org-typescript-primitive">never</span>, <span class="org-type">SendGreetings</span>&gt; = Effect.<span class="org-function-name">gen</span><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">function</span>* <span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+  <span class="org-keyword">const</span> <span class="org-variable-name">sender</span> = <span class="org-keyword">yield*</span> SendGreetings
+  <span class="org-keyword">const</span> <span class="org-variable-name">greeting</span> = <span class="org-keyword">yield*</span> <span class="org-function-name">hello</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"world"</span><span class="org-rainbow-delimiters-depth-3">)</span>
+  <span class="org-keyword">yield*</span> sender.<span class="org-function-name">sendGreetings</span><span class="org-rainbow-delimiters-depth-3">(</span>greeting<span class="org-rainbow-delimiters-depth-3">)</span>
+<span class="org-rainbow-delimiters-depth-2">}</span><span class="org-rainbow-delimiters-depth-1">)</span>
+
+<span class="org-keyword">const</span> <span class="org-variable-name">camelot</span>: <span class="org-type">Effect.Effect</span>&lt;<span class="org-typescript-primitive">void</span>, <span class="org-type">TimeoutException</span>, <span class="org-type">SendGreetings</span>&gt; = Effect.<span class="org-function-name">gen</span><span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">function</span>* <span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+  <span class="org-keyword">yield*</span> sayHello.<span class="org-function-name">pipe</span><span class="org-rainbow-delimiters-depth-3">(</span>Effect.<span class="org-function-name">repeatN</span><span class="org-rainbow-delimiters-depth-4">(</span><span class="org-highlight-numbers-number">2</span><span class="org-rainbow-delimiters-depth-4">)</span>, Effect.<span class="org-function-name">timeout</span><span class="org-rainbow-delimiters-depth-4">(</span><span class="org-string">"10 seconds"</span><span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span>
+<span class="org-rainbow-delimiters-depth-2">}</span><span class="org-rainbow-delimiters-depth-1">)</span>
+</pre>
+</div>
+
+<p>
+This is where we see Effect's third and final generic parameter, which tracks which dependencies
+your code requires.
+</p>
+
+<p>
+"But I thought we could only yield* Effects?": well, it turns out this isn't quite true. It turns
+out that as you can make your own <code>Awaitable</code> types in TypeScript that are not <code>Promises</code>, you
+can also implement alternative <code>Yieldable</code> types in Effect. And that's exactly what the pre-provided
+<code>Context.Tag</code> class does as a static interface. Which means, slightly bizarrely, you can <code>yield*</code>
+the name of the class and it will then run all of the dependency injection logic needed to go
+and get you an actual implementation at run time.
+</p>
+
+<p>
+In general, you just want to let Effect build that up itself; if we add a second service then the type
+system will capture that "automatically". If possible, it's a good idea to leave the types of
+your Effect functions inferred as then it will automatically pick up changes in dependencies. That
+said, I'll carry on adding them here so you can see what's happening.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-typescript"><span class="org-keyword">const</span> <span class="org-variable-name">sayHello</span>: <span class="org-type">Effect.Effect</span>&lt;<span class="org-typescript-primitive">void</span>, <span class="org-typescript-primitive">never</span>, <span class="org-type">SendGreetings</span> | <span class="org-type">TranslateGreeting</span>&gt; = Effect.<span class="org-function-name">gen</span><span class="org-rainbow-delimiters-depth-1">(</span>
+  <span class="org-keyword">function</span>* <span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-rainbow-delimiters-depth-2">{</span>
+    <span class="org-keyword">const</span> <span class="org-variable-name">sender</span> = <span class="org-keyword">yield*</span> SendGreetings
+    <span class="org-keyword">const</span> <span class="org-variable-name">translator</span> = <span class="org-keyword">yield*</span> TranslateGreeting
+    <span class="org-keyword">const</span> <span class="org-variable-name">greeting</span> = <span class="org-keyword">yield*</span> <span class="org-function-name">hello</span><span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"world"</span><span class="org-rainbow-delimiters-depth-3">)</span>
+    <span class="org-keyword">const</span> <span class="org-variable-name">translated</span> = <span class="org-keyword">yield*</span> translator.<span class="org-function-name">translate</span><span class="org-rainbow-delimiters-depth-3">(</span>greeting<span class="org-rainbow-delimiters-depth-3">)</span>
+    <span class="org-keyword">yield*</span> sender.<span class="org-function-name">sendGreetings</span><span class="org-rainbow-delimiters-depth-3">(</span>translated<span class="org-rainbow-delimiters-depth-3">)</span>
+  <span class="org-rainbow-delimiters-depth-2">}</span>
+<span class="org-rainbow-delimiters-depth-1">)</span>
+</pre>
+</div>
+
+<p>
+Note that the types any capture <i>direct</i> dependencies. Here, the <code>TranslateGreeting</code> service almost
+certainly depends in turn on some kind of user or session service, but we don't need to worry about
+that. This makes providing alternative service implementations for tests, or for running on the client
+versus the server, exceedingly straight forward and safe. If you can provide exactly what your code needs
+you're good, and it won't ask you for any more than that. If you're Effect code is starting to build up
+a huge list of dependencies, that's normally a good indicator that you want to start wrapping it in
+an interface of its own - that way, the things that call your code don't inherit a huge dependency tree,
+and they in turn become more maintainable.
+</p>
+
+<p>
+It is the responsibility of the entry point to the runtime to make sure that all services are
+provided, which is done via the <code>Layer</code> type which provides facilities to manage service implementations
+with caching and life cycle management. But that, unfortunately, is definitely the subject of a complete
+write up of its own.
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<footer id="my-contacts">
+<p hx-boost="false"><a href="https://blog.mavnn.co.uk/rss.xml">RSS</a></p>
+<p><a href="https://mastodon.sdf.org/@mavnn">Mastodon</a></p>
+<p>Git(<a href="https://github.com/mavnn">Hub</a>|<a href="https://gitlab.com/mavnn">Lab</a>)</p>
+</footer>
+</div>
+</body>
+</html>

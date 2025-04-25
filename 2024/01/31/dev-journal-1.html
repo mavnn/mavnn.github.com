@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- 2024-03-19 Tue 18:53 -->
+<!-- 2025-04-25 Fri 18:15 -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Foundations: Dev Journal 1</title>
@@ -32,16 +32,15 @@ As the series progresses, I'll carry on adding the sections here.
 
 <ol class="org-ol">
 <li><a href="https://blog.mavnn.co.uk/2024/01/31/dev-journal-1.html">Foundations</a>: Build and package</li>
-<li><a href="../../../2024/02/06/dev-journal-2.html">Scaffolding</a>: Testing and consistency</li>
-<li><a href="../../../2024/02/20/dev-journal-3.html">Does it run?</a>: Make sure the docker container is valid and stays valid</li>
-<li><a href="../../../2024/03/01/dev_journal_4.html">Log in, log out</a> (and <a href="../../../2024/03/05/dev_journal_4_2.html">part 2</a>): Adding the database and the ability to log into our web site</li>
-<li><a href="../../../2024/03/09/dev_journal_5.html">Internal quality review</a>: making it easier to make correct changes to our code</li>
-<li><a href="../../../2024/03/19/dev_journal_6.html">With style</a>: Adding style and interactivity with server side HTML</li>
+<li><a href="/../../../2024/02/06/dev-journal-2.html">Scaffolding</a>: Testing and consistency</li>
+<li><a href="/../../../2024/02/20/dev-journal-3.html">Does it run?</a>: Make sure the docker container is valid and stays valid</li>
+<li><a href="/../../../2024/03/01/dev_journal_4.html">Log in, log out</a> (and <a href="/../../../2024/03/05/dev_journal_4_2.html">part 2</a>): Adding the database and the ability to log into our web site</li>
+<li><a href="/../../../2024/03/09/dev_journal_5.html">Internal quality review</a>: making it easier to make correct changes to our code</li>
+<li><a href="/../../../2024/03/19/dev_journal_6.html">With style</a>: Adding style and interactivity with server side HTML</li>
 </ol>
-
-<div id="outline-container-org1d3d87a" class="outline-2">
-<h2 id="org1d3d87a">Part 1: Foundations</h2>
-<div class="outline-text-2" id="text-org1d3d87a">
+<div id="outline-container-org87e73e4" class="outline-2">
+<h2 id="org87e73e4">Part 1: Foundations</h2>
+<div class="outline-text-2" id="text-org87e73e4">
 <p>
 Our application will eventually be a little web site for <code>redacted in case I change my mind</code>. I'm going to be using mix of tried and new tech (for me personally).
 </p>
@@ -84,60 +83,59 @@ For today, let's start with a <i>minimum deployable product</i>: a "Hello world"
 Enough bullet points. What did I actually do? (Sneak preview: <a href="https://gitlab.com/mavnn/caldance/-/tree/6b39d13d98199220d623870faf2b49fbda58d8a5">browse the gitlab repo at the time of the commit that this post describes</a>)
 </p>
 </div>
-
-<div id="outline-container-org106f86b" class="outline-3">
-<h3 id="org106f86b">Setup a nix flake to provide our environment</h3>
-<div class="outline-text-3" id="text-org106f86b">
+<div id="outline-container-org7b596d9" class="outline-3">
+<h3 id="org7b596d9">Setup a nix flake to provide our environment</h3>
+<div class="outline-text-3" id="text-org7b596d9">
 <p>
 A nix "flake" is a declarative description of a set of packages we'd like to be able to reference. You can read the <a href="https://gitlab.com/mavnn/caldance/-/blob/6b39d13d98199220d623870faf2b49fbda58d8a5/flake.nix">whole file</a> but the important part for today is that our <code>flake.nix</code> file specifies three outputs in this stanza:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-nix"><span class="org-comment-delimiter"># </span><span class="org-comment">Tools we want available during development</span>
-<span class="org-nix-attribute">devShells.default</span> = pkgs.mkShell <span class="org-rainbow-delimiters-depth-1">{</span>
-  <span class="org-nix-attribute">buildInputs</span> = <span class="org-rainbow-delimiters-depth-2">[</span> dnc.sdk_8_0 pkgs.nixfmt pkgs.skopeo <span class="org-rainbow-delimiters-depth-2">]</span>;
-<span class="org-rainbow-delimiters-depth-1">}</span>;
+<pre class="src src-nix"><span class="org-tree-sitter-hl-faceXcomment"># Tools we want available during development</span>
+<span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">devShells</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXfunction"><span class="org-tree-sitter-hl-faceXproperty">default</span></span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">mkShell</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
+  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">buildInputs</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">[</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">dnc</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">sdk_8_0</span></span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">nixfmt</span></span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">skopeo</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">]</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+<span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
 
-<span class="org-comment-delimiter"># </span><span class="org-comment">Default result of running `nix build` with this</span>
-<span class="org-comment-delimiter"># </span><span class="org-comment">flake; it builds the F# project `CalDance.fsproj`</span>
-<span class="org-nix-attribute">packages.default</span> = pkgs.buildDotnetModule <span class="org-rainbow-delimiters-depth-1">{</span>
-  <span class="org-nix-attribute">pname</span> = name;
-  <span class="org-nix-attribute">version</span> = <span class="org-string">"0.1"</span>;
+<span class="org-tree-sitter-hl-faceXcomment"># Default result of running `nix build` with this</span>
+<span class="org-tree-sitter-hl-faceXcomment"># flake; it builds the F# project `CalDance.fsproj`</span>
+<span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">packages</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">default</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">buildDotnetModule</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
+  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">pname</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">name</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">version</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXstring">"0.1"</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
 
-  <span class="org-nix-attribute">src</span> = <span class="org-nix-constant">./.</span>;
-  <span class="org-nix-attribute">projectFile</span> = <span class="org-string">"CalDance.fsproj"</span>;
-  <span class="org-nix-attribute">nugetDeps</span> = nugets;
+  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">src</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-nix-constant">./.</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">projectFile</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXstring">"CalDance.fsproj"</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">nugetDeps</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">nugets</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
 
-  <span class="org-comment"># We set nix to create an output that contains</span>
-  <span class="org-comment"># everything needed, rather than depending</span>
-  <span class="org-comment"># on the dotnet runtime</span>
-  <span class="org-nix-attribute">selfContainedBuild</span> = <span class="org-nix-builtin">true</span>;
+  <span class="org-tree-sitter-hl-faceXcomment"># We set nix to create an output that contains</span>
+  <span class="org-tree-sitter-hl-faceXcomment"># everything needed, rather than depending</span>
+  <span class="org-tree-sitter-hl-faceXcomment"># on the dotnet runtime</span>
+  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">selfContainedBuild</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXvariableXbuiltin">true</span></span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
 
-  <span class="org-comment"># This is a webserver, and it complains if it</span>
-  <span class="org-comment"># has no access to openssl</span>
-  <span class="org-nix-attribute">runtimeDeps</span> = <span class="org-rainbow-delimiters-depth-2">[</span> pkgs.openssl pkgs.cacert <span class="org-rainbow-delimiters-depth-2">]</span>;
+  <span class="org-tree-sitter-hl-faceXcomment"># This is a webserver, and it complains if it</span>
+  <span class="org-tree-sitter-hl-faceXcomment"># has no access to openssl</span>
+  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">runtimeDeps</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">[</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">openssl</span></span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">cacert</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">]</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
 
-  <span class="org-nix-attribute">dotnet-sdk</span> = dnc.sdk_8_0;
-  <span class="org-nix-attribute">dotnet-runtime</span> = dnc.runtime_8_0;
-  <span class="org-nix-attribute">executables</span> = <span class="org-rainbow-delimiters-depth-2">[</span> <span class="org-string">"CalDance"</span> <span class="org-rainbow-delimiters-depth-2">]</span>;
-<span class="org-rainbow-delimiters-depth-1">}</span>;
+  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">dotnet-sdk</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">dnc</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">sdk_8_0</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">dotnet-runtime</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">dnc</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">runtime_8_0</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">executables</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">[</span> <span class="org-tree-sitter-hl-faceXstring">"CalDance"</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">]</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+<span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
 
-<span class="org-comment-delimiter"># </span><span class="org-comment">A target that builds a fully self-contained docker</span>
-<span class="org-comment-delimiter"># </span><span class="org-comment">file with the project above</span>
-<span class="org-nix-attribute">packages.dockerImage</span> = pkgs.dockerTools.buildImage <span class="org-rainbow-delimiters-depth-1">{</span>
-  <span class="org-nix-attribute">name</span> = name;
-  <span class="org-nix-attribute">config</span> = <span class="org-rainbow-delimiters-depth-2">{</span>
-    <span class="org-comment"># asp.net likes a writable /tmp directory</span>
-    <span class="org-nix-attribute">Cmd</span> = pkgs.writeShellScript <span class="org-string">"runServer"</span> <span class="org-string">''</span>
-<span class="org-string">      </span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-3">{</span></span>pkgs.coreutils<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-3">}</span></span><span class="org-string">/bin/mkdir -p /tmp</span>
-<span class="org-string">      </span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-3">{</span></span>pkgs.coreutils<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-3">}</span></span><span class="org-string">/bin/mount -t tmpfs tmp /tmp</span>
-<span class="org-string">      </span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-3">{</span></span>packages.default<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-3">}</span></span><span class="org-string">/bin/CalDance.Server</span>
-<span class="org-string">    ''</span>;
-    <span class="org-nix-attribute">Env</span> =
-      <span class="org-rainbow-delimiters-depth-3">[</span> <span class="org-string">"DOTNET_EnableDiagnostics=0"</span> <span class="org-string">"ASPNETCORE_URLS=http://+:5001"</span> <span class="org-rainbow-delimiters-depth-3">]</span>;
-    <span class="org-nix-attribute">ExposedPorts</span> = <span class="org-rainbow-delimiters-depth-3">{</span> <span class="org-string">"5001/tcp"</span> = <span class="org-rainbow-delimiters-depth-4">{</span> <span class="org-rainbow-delimiters-depth-4">}</span>; <span class="org-rainbow-delimiters-depth-3">}</span>;
-  <span class="org-rainbow-delimiters-depth-2">}</span>;
-<span class="org-rainbow-delimiters-depth-1">}</span>;
+<span class="org-tree-sitter-hl-faceXcomment"># A target that builds a fully self-contained docker</span>
+<span class="org-tree-sitter-hl-faceXcomment"># file with the project above</span>
+<span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">packages</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">dockerImage</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">dockerTools</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXproperty">.</span></span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">buildImage</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
+  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">name</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">name</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">config</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># asp.net likes a writable /tmp directory</span>
+    <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">Cmd</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXfunction"><span class="org-tree-sitter-hl-faceXproperty">writeShellScript</span></span></span> <span class="org-tree-sitter-hl-faceXstring">"runServer"</span> <span class="org-tree-sitter-hl-faceXstring">''</span>
+<span class="org-tree-sitter-hl-faceXstring">      </span><span class="org-nix-antiquote">${</span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">coreutils</span></span></span></span><span class="org-nix-antiquote">}</span><span class="org-tree-sitter-hl-faceXstring">/bin/mkdir -p /tmp</span>
+<span class="org-tree-sitter-hl-faceXstring">      </span><span class="org-nix-antiquote">${</span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">coreutils</span></span></span></span><span class="org-nix-antiquote">}</span><span class="org-tree-sitter-hl-faceXstring">/bin/mount -t tmpfs tmp /tmp</span>
+<span class="org-tree-sitter-hl-faceXstring">      </span><span class="org-nix-antiquote">${</span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">packages</span></span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">default</span></span></span></span><span class="org-nix-antiquote">}</span><span class="org-tree-sitter-hl-faceXstring">/bin/CalDance.Server</span>
+<span class="org-tree-sitter-hl-faceXstring">    ''</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+    <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">Env</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span>
+      <span class="org-tree-sitter-hl-faceXpunctuationXbracket">[</span> <span class="org-tree-sitter-hl-faceXstring">"DOTNET_EnableDiagnostics=0"</span> <span class="org-tree-sitter-hl-faceXstring">"ASPNETCORE_URLS=http://+:5001"</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">]</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+    <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">ExposedPorts</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span> <span class="org-tree-sitter-hl-faceXstring">"5001/tcp"</span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+  <span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+<span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
 </pre>
 </div>
 
@@ -154,10 +152,9 @@ Finally, we define the <code>dockerImage</code> which uses the <code>dockerTools
 </p>
 </div>
 </div>
-
-<div id="outline-container-org8529c89" class="outline-3">
-<h3 id="org8529c89">direnv</h3>
-<div class="outline-text-3" id="text-org8529c89">
+<div id="outline-container-org50e54d7" class="outline-3">
+<h3 id="org50e54d7">direnv</h3>
+<div class="outline-text-3" id="text-org50e54d7">
 <p>
 Direnv is a tool that can add environment variables to your shell when you enter a directory. It also, conveniently, knows about Nix flakes.
 </p>
@@ -167,9 +164,9 @@ We add a <code>.envrc</code> file to our project with the contents:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-bash"><span class="org-comment-delimiter">#</span><span class="org-comment">!/usr/bin/</span><span class="org-keyword">env</span><span class="org-comment"> bash</span>
-<span class="org-comment-delimiter"># </span><span class="org-comment">the shebang is ignored, but nice for editors</span>
-use flake
+<pre class="src src-bash"><span class="org-tree-sitter-hl-faceXcomment">#!/usr/bin/</span><span class="org-keyword">env</span><span class="org-tree-sitter-hl-faceXcomment"> bash</span>
+<span class="org-tree-sitter-hl-faceXcomment"># the shebang is ignored, but nice for editors</span>
+<span class="org-tree-sitter-hl-faceXfunctionXcall">use</span> flake
 </pre>
 </div>
 
@@ -178,10 +175,9 @@ Next time we move into this directory, direnv will ask us to allow this <code>.e
 </p>
 </div>
 </div>
-
-<div id="outline-container-org5aa1235" class="outline-3">
-<h3 id="org5aa1235">The F# project</h3>
-<div class="outline-text-3" id="text-org5aa1235">
+<div id="outline-container-orgf6a8619" class="outline-3">
+<h3 id="orgf6a8619">The F# project</h3>
+<div class="outline-text-3" id="text-orgf6a8619">
 <p>
 There's absolutely nothing special about this at all. I just created an F# project with <code>dotnet</code> on the command line, moved <code>Program.fs</code> into a sub directory called <code>src</code> because I prefer it that way, and then added a package dependency on <code>Falco</code> using <code>dotnet add package Falco</code>.
 </p>
@@ -197,19 +193,18 @@ Replace the contents of <code>Program.fs</code> with:
 <span class="org-keyword">open</span> <span class="org-type">Falco.Routing</span>
 <span class="org-keyword">open</span> <span class="org-type">Falco.HostBuilder</span>
 
-webHost <span class="org-rainbow-delimiters-depth-1">[</span>||<span class="org-rainbow-delimiters-depth-1">]</span> <span class="org-rainbow-delimiters-depth-1">{</span>
-    endpoints <span class="org-rainbow-delimiters-depth-2">[</span>
-        get <span class="org-string">"/"</span> <span class="org-rainbow-delimiters-depth-3">(</span>Response.ofPlainText <span class="org-string">"Hello World"</span><span class="org-rainbow-delimiters-depth-3">)</span>
-    <span class="org-rainbow-delimiters-depth-2">]</span>
-<span class="org-rainbow-delimiters-depth-1">}</span>
+webHost [||] {
+    endpoints [
+        get <span class="org-string">"/"</span> (Response.ofPlainText <span class="org-string">"Hello World"</span>)
+    ]
+}
 </pre>
 </div>
 </div>
 </div>
-
-<div id="outline-container-org7a9e12c" class="outline-3">
-<h3 id="org7a9e12c">Set up the CI pipeline</h3>
-<div class="outline-text-3" id="text-org7a9e12c">
+<div id="outline-container-orgebd5f1c" class="outline-3">
+<h3 id="orgebd5f1c">Set up the CI pipeline</h3>
+<div class="outline-text-3" id="text-orgebd5f1c">
 <p>
 Having used Nix for our development environment, our CI pipeline becomes exceedingly straight forward. All we need is a build container with Nix available and we have all the other information we need for the build already. Nix themselves provide a <code>nixos/nix</code> image (Nix is the package manager, NixOS is the linux distribution that uses Nix as its package manager) so we'll just use that.
 </p>
@@ -219,23 +214,23 @@ There's a little bit of boilerplate to tell nix that we want to allow flakes and
 </p>
 
 <div class="org-src-container">
-<pre class="src src-yaml"><span class="org-variable-name">build-container</span>:
-  <span class="org-variable-name">image</span>:
-    <span class="org-variable-name">name</span>: <span class="org-string">"nixos/nix:2.19.3"</span>
-  <span class="org-variable-name">variables</span>:
-    <span class="org-variable-name">IMAGE_TAG</span>: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
-  <span class="org-variable-name">before_script</span>:
+<pre class="src src-yaml">build-container:
+  image:
+    name: "nixos/nix:2.19.3"
+  variables:
+    IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+  before_script:
     - nix-env --install --attr nixpkgs.skopeo
-  <span class="org-variable-name">script</span>:
-    - mkdir -p <span class="org-string">"$HOME/.config/nix"</span>
-    - echo <span class="org-string">'experimental-features = nix-command flakes'</span> &gt; <span class="org-string">"$HOME/.config/nix/nix.conf"</span>
-    - mkdir -p <span class="org-string">"/etc/containers/"</span>
-    - echo <span class="org-string">'{"default":[{"type":"insecureAcceptAnything"}]}'</span> &gt; /etc/containers/policy.json
-    - skopeo login --username <span class="org-string">"$CI_REGISTRY_USER"</span> --password <span class="org-string">"$CI_REGISTRY_PASSWORD"</span> <span class="org-string">"$CI_REGISTRY"</span>
-    - <span class="org-string">'nix build .#dockerImage'</span>
+  script:
+    - mkdir -p "$HOME/.config/nix"
+    - echo 'experimental-features = nix-command flakes' &gt; "$HOME/.config/nix/nix.conf"
+    - mkdir -p "/etc/containers/"
+    - echo '{"default":[{"type":"insecureAcceptAnything"}]}' &gt; /etc/containers/policy.json
+    - skopeo login --username "$CI_REGISTRY_USER" --password "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - 'nix build .#dockerImage'
     - ls -lh ./result
-    - <span class="org-string">'skopeo inspect docker-archive://$(readlink -f ./result)'</span>
-    - <span class="org-string">'skopeo copy docker-archive://$(readlink -f ./result) docker://$IMAGE_TAG'</span>
+    - 'skopeo inspect docker-archive://$(readlink -f ./result)'
+    - 'skopeo copy docker-archive://$(readlink -f ./result) docker://$IMAGE_TAG'
 </pre>
 </div>
 
@@ -244,10 +239,9 @@ It's worth noting here that Nix is a deterministic build system (for example, st
 </p>
 </div>
 </div>
-
-<div id="outline-container-org9fc1848" class="outline-3">
-<h3 id="org9fc1848">Wrapping it all up</h3>
-<div class="outline-text-3" id="text-org9fc1848">
+<div id="outline-container-org304a8b4" class="outline-3">
+<h3 id="org304a8b4">Wrapping it all up</h3>
+<div class="outline-text-3" id="text-org304a8b4">
 <p>
 Not a bad first days work, I'd say. Our project is already at a stage that we can work on it with standard .NET tooling (for instance, adding a new nuget package with <code>dotnet package add ...</code> will automatically flow through to that package being added to the docker image) and CI will produce on push a lean deployable artifact. Versions of <i>everything</i> we are using from the .NET SDK to the nuget package we're depending on are fixed across all environments, and we have a nice place to add more developer tooling as we move forwards - for example standardizing the version of postgresql that will be used during development and in CI.
 </p>
@@ -257,21 +251,19 @@ As a bonus extra, anybody with nix installed can build and run the project witho
 </p>
 </div>
 </div>
-
-<div id="outline-container-org7a17689" class="outline-3">
-<h3 id="org7a17689">Feedback? Comments?</h3>
-<div class="outline-text-3" id="text-org7a17689">
+<div id="outline-container-org30c0037" class="outline-3">
+<h3 id="org30c0037">Feedback? Comments?</h3>
+<div class="outline-text-3" id="text-org30c0037">
 <p>
 Have questions? Comments? Hate something, love something, know a better way of doing something? Drop an issue on the repository at <a href="https://gitlab.com/mavnn/caldance">https://gitlab.com/mavnn/caldance</a> and let me know. I'll be pointing a tag at the commit referenced by each blog post, so I can always branch off and include your ideas in a future revision!
 </p>
 </div>
 </div>
-
-<div id="outline-container-org890ce05" class="outline-3">
-<h3 id="org890ce05">Next</h3>
-<div class="outline-text-3" id="text-org890ce05">
+<div id="outline-container-org514d354" class="outline-3">
+<h3 id="org514d354">Next</h3>
+<div class="outline-text-3" id="text-org514d354">
 <p>
-<a href="../../../2024/02/06/dev-journal-2.html">Part 2</a> adds unit tests and consistent formatting to the project.
+<a href="/../../../2024/02/06/dev-journal-2.html">Part 2</a> adds unit tests and consistent formatting to the project.
 </p>
 </div>
 </div>

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- 2024-03-07 Thu 11:53 -->
+<!-- 2024-11-09 Sat 18:33 -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Why your Typescript compiles when you thought you were safe</title>
@@ -18,20 +18,19 @@
 <h2>Table of Contents</h2>
 <div id="text-table-of-contents" role="doc-toc">
 <ul>
-<li><a href="#orgcc0f630">These are not the types you are looking for</a></li>
-<li><a href="#orgc3c06b2">The code</a></li>
-<li><a href="#org7d23584">What actually <i>is</i> TypeScript anyway?</a></li>
-<li><a href="#org4948d91">Erm... what's this got to do with the code above?</a></li>
-<li><a href="#org90fb945">The mystery resolved</a></li>
-<li><a href="#org089614b">But: the safety?!</a></li>
-<li><a href="#org1fb1763">That's a wrap</a></li>
+<li><a href="#org781baec">These are not the types you are looking for</a></li>
+<li><a href="#orgf2371a7">The code</a></li>
+<li><a href="#orgedc20d6">What actually <i>is</i> TypeScript anyway?</a></li>
+<li><a href="#org44f754d">Erm... what's this got to do with the code above?</a></li>
+<li><a href="#orgd21f24e">The mystery resolved</a></li>
+<li><a href="#orgff607b9">But: the safety?!</a></li>
+<li><a href="#org9121850">That's a wrap</a></li>
 </ul>
 </div>
 </nav>
-
-<div id="outline-container-orgcc0f630" class="outline-2">
-<h2 id="orgcc0f630">These are not the types you are looking for</h2>
-<div class="outline-text-2" id="text-orgcc0f630">
+<div id="outline-container-org781baec" class="outline-2">
+<h2 id="org781baec">These are not the types you are looking for</h2>
+<div class="outline-text-2" id="text-org781baec">
 <p>
 TypeScript's compiler will let you write code that looks illegal - but compiles just fine.
 </p>
@@ -45,10 +44,9 @@ Let's walk through what that means.
 </p>
 </div>
 </div>
-
-<div id="outline-container-orgc3c06b2" class="outline-2">
-<h2 id="orgc3c06b2">The code</h2>
-<div class="outline-text-2" id="text-orgc3c06b2">
+<div id="outline-container-orgf2371a7" class="outline-2">
+<h2 id="orgf2371a7">The code</h2>
+<div class="outline-text-2" id="text-orgf2371a7">
 <p>
 I'm writing code to make defining GraphQL resolvers a type safe experience (earlier developer feedback for the win). You don't need to know the details of GQL to follow this example though; all you need to know is that I have a type for defining the configuration of a resolver, and once certain information is supplied, I know the config is valid.
 </p>
@@ -58,24 +56,24 @@ Let's have a look at some code:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-typescript"><span class="org-keyword">type</span> <span class="org-type">ConfigValid</span> = <span class="org-string">"valid"</span> | <span class="org-string">"invalid"</span>
+<pre class="src src-typescript"><span class="org-tree-sitter-hl-faceXkeyword">type</span> <span class="org-tree-sitter-hl-faceXtype">ConfigValid</span> <span class="org-tree-sitter-hl-faceXoperator">=</span> <span class="org-tree-sitter-hl-faceXstring">"valid"</span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">|</span> <span class="org-tree-sitter-hl-faceXstring">"invalid"</span>
 
-<span class="org-keyword">class</span> <span class="org-type">Config</span>&lt;<span class="org-type">T</span> <span class="org-typescript-access-modifier">extends</span> <span class="org-type">ConfigValid</span>&gt; <span class="org-rainbow-delimiters-depth-1">{</span>
-  <span class="org-typescript-access-modifier">private</span> myConfig: <span class="org-typescript-primitive">string</span> | <span class="org-constant">null</span> = <span class="org-constant">null</span>
+<span class="org-tree-sitter-hl-faceXkeyword">class</span> <span class="org-tree-sitter-hl-faceXtype">Config</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&lt;</span></span><span class="org-tree-sitter-hl-faceXtype">T</span> <span class="org-tree-sitter-hl-faceXkeyword">extends</span> <span class="org-tree-sitter-hl-faceXtype">ConfigValid</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&gt;</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
+  <span class="org-typescript-access-modifier">private</span> myConfig<span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">:</span> <span class="org-tree-sitter-hl-faceXtypeXbuiltin">string</span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">|</span> <span class="org-constant">null</span> <span class="org-tree-sitter-hl-faceXoperator">=</span> <span class="org-constant">null</span>
 
-  <span class="org-typescript-access-modifier">private</span> <span class="org-keyword">constructor</span><span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-rainbow-delimiters-depth-2">{}</span>
+  <span class="org-typescript-access-modifier">private</span> <span class="org-tree-sitter-hl-faceXmethod">constructor</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">()</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{}</span>
 
-  <span class="org-typescript-access-modifier">public</span> <span class="org-typescript-access-modifier">static</span> <span class="org-function-name">make</span><span class="org-rainbow-delimiters-depth-2">()</span>: <span class="org-type">Config</span>&lt;<span class="org-string">"invalid"</span>&gt; <span class="org-rainbow-delimiters-depth-2">{</span>
-    <span class="org-keyword">return</span> <span class="org-keyword">new</span> <span class="org-type">Config</span>&lt;<span class="org-string">"invalid"</span>&gt;<span class="org-rainbow-delimiters-depth-3">()</span>
-  <span class="org-rainbow-delimiters-depth-2">}</span>
+  <span class="org-typescript-access-modifier">public</span> <span class="org-tree-sitter-hl-faceXkeyword">static</span> <span class="org-tree-sitter-hl-faceXmethod">make</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">()</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">:</span> <span class="org-tree-sitter-hl-faceXtype">Config</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&lt;</span></span><span class="org-tree-sitter-hl-faceXstring">"invalid"</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&gt;</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
+    <span class="org-tree-sitter-hl-faceXkeyword">return</span> <span class="org-tree-sitter-hl-faceXkeyword">new</span> <span class="org-tree-sitter-hl-faceXconstructor">Config</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&lt;</span></span><span class="org-tree-sitter-hl-faceXstring">"invalid"</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&gt;</span></span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">()</span>
+  <span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span>
 
-  <span class="org-comment-delimiter">// </span><span class="org-comment">I want this function to only accept valid configurations, and I want to</span>
-  <span class="org-comment-delimiter">// </span><span class="org-comment">check if they are valid *at compile time*</span>
-  <span class="org-typescript-access-modifier">public</span> <span class="org-typescript-access-modifier">static</span> <span class="org-function-name">build</span><span class="org-rainbow-delimiters-depth-2">(</span><span class="org-variable-name">config</span>: <span class="org-type">Config</span>&lt;<span class="org-string">"valid"</span>&gt;<span class="org-rainbow-delimiters-depth-2">)</span> <span class="org-rainbow-delimiters-depth-2">{</span>
-    <span class="org-comment-delimiter">// </span><span class="org-comment">do stuff!</span>
-    <span class="org-type">console</span>.<span class="org-function-name">log</span><span class="org-rainbow-delimiters-depth-3">(</span>config.myConfig<span class="org-rainbow-delimiters-depth-3">)</span>
-  <span class="org-rainbow-delimiters-depth-2">}</span>
-<span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-tree-sitter-hl-faceXcomment">// I want this function to only accept valid configurations, and I want to</span>
+  <span class="org-tree-sitter-hl-faceXcomment">// check if they are valid *at compile time*</span>
+  <span class="org-typescript-access-modifier">public</span> <span class="org-tree-sitter-hl-faceXkeyword">static</span> <span class="org-tree-sitter-hl-faceXmethod">build</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">(</span><span class="org-variable-name">config</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">:</span> <span class="org-tree-sitter-hl-faceXtype">Config</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&lt;</span></span><span class="org-tree-sitter-hl-faceXstring">"valid"</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&gt;</span></span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">)</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
+    <span class="org-tree-sitter-hl-faceXcomment">// do stuff!</span>
+    <span class="org-tree-sitter-hl-faceXvariableXbuiltin">console</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-function-name">log</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">(</span>config<span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXproperty">myConfig</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">)</span>
+  <span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span>
+<span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span>
 </pre>
 </div>
 
@@ -92,10 +90,9 @@ Why?
 </p>
 </div>
 </div>
-
-<div id="outline-container-org7d23584" class="outline-2">
-<h2 id="org7d23584">What actually <i>is</i> TypeScript anyway?</h2>
-<div class="outline-text-2" id="text-org7d23584">
+<div id="outline-container-orgedc20d6" class="outline-2">
+<h2 id="orgedc20d6">What actually <i>is</i> TypeScript anyway?</h2>
+<div class="outline-text-2" id="text-orgedc20d6">
 <p>
 Don't get whiplash, I'm going somewhere with this.
 </p>
@@ -125,10 +122,9 @@ TypeScript has been designed to make demonstrating correctness as easy as possib
 </p>
 </div>
 </div>
-
-<div id="outline-container-org4948d91" class="outline-2">
-<h2 id="org4948d91">Erm... what's this got to do with the code above?</h2>
-<div class="outline-text-2" id="text-org4948d91">
+<div id="outline-container-org44f754d" class="outline-2">
+<h2 id="org44f754d">Erm... what's this got to do with the code above?</h2>
+<div class="outline-text-2" id="text-org44f754d">
 <p>
 We're not there yet. Stage 2 in our journey is structural typing.
 </p>
@@ -142,15 +138,15 @@ So in, for example, F#, the following two types are not the same, and a function
 </p>
 
 <div class="org-src-container">
-<pre class="src src-fsharp"><span class="org-keyword">type</span> <span class="org-type">FirstRecord</span> = <span class="org-rainbow-delimiters-depth-1">{</span>
+<pre class="src src-fsharp"><span class="org-keyword">type</span> <span class="org-type">FirstRecord</span> = {
     name: <span class="org-type">string</span>
-<span class="org-rainbow-delimiters-depth-1">}</span>
+}
 
-<span class="org-keyword">type</span> <span class="org-type">SecondRecord</span> = <span class="org-rainbow-delimiters-depth-1">{</span>
+<span class="org-keyword">type</span> <span class="org-type">SecondRecord</span> = {
     name: <span class="org-type">string</span>
-<span class="org-rainbow-delimiters-depth-1">}</span>
+}
 
-<span class="org-keyword">let</span> <span class="org-function-name">withFirstRecord</span> <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-variable-name">record</span>: <span class="org-type">FirstRecord</span><span class="org-rainbow-delimiters-depth-1">)</span> =
+<span class="org-keyword">let</span> <span class="org-function-name">withFirstRecord</span> (<span class="org-variable-name">record</span>: <span class="org-type">FirstRecord</span>) =
   record.name
 </pre>
 </div>
@@ -161,7 +157,7 @@ Trying to send a record of <code>SecondRecord</code> to <code>withFirstRecord</c
 
 <div class="org-src-container">
 <pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-keyword">inline</span> <span class="org-function-name">withName</span> <span class="org-variable-name">arg</span> =
-  <span class="org-rainbow-delimiters-depth-1">(</span>^a : <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">member</span> <span class="org-function-name">name</span> : <span class="org-type">string</span><span class="org-rainbow-delimiters-depth-2">)</span> arg<span class="org-rainbow-delimiters-depth-1">)</span>
+  (^a : (<span class="org-keyword">member</span> <span class="org-function-name">name</span> : <span class="org-type">string</span>) arg)
 </pre>
 </div>
 
@@ -188,33 +184,32 @@ In F#, we're comparing the <b>type definition</b> to the constraints. But in Typ
 </p>
 </div>
 </div>
-
-<div id="outline-container-org90fb945" class="outline-2">
-<h2 id="org90fb945">The mystery resolved</h2>
-<div class="outline-text-2" id="text-org90fb945">
+<div id="outline-container-orgd21f24e" class="outline-2">
+<h2 id="orgd21f24e">The mystery resolved</h2>
+<div class="outline-text-2" id="text-orgd21f24e">
 <p>
 Back to our code:   
 </p>
 
 <div class="org-src-container">
-<pre class="src src-typescript"><span class="org-keyword">type</span> <span class="org-type">ConfigValid</span> = <span class="org-string">"valid"</span> | <span class="org-string">"invalid"</span>
+<pre class="src src-typescript"><span class="org-tree-sitter-hl-faceXkeyword">type</span> <span class="org-tree-sitter-hl-faceXtype">ConfigValid</span> <span class="org-tree-sitter-hl-faceXoperator">=</span> <span class="org-tree-sitter-hl-faceXstring">"valid"</span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">|</span> <span class="org-tree-sitter-hl-faceXstring">"invalid"</span>
 
-<span class="org-keyword">class</span> <span class="org-type">Config</span>&lt;<span class="org-type">T</span> <span class="org-typescript-access-modifier">extends</span> <span class="org-type">ConfigValid</span>&gt; <span class="org-rainbow-delimiters-depth-1">{</span>
-  <span class="org-typescript-access-modifier">private</span> myConfig: <span class="org-typescript-primitive">string</span> | <span class="org-constant">null</span> = <span class="org-constant">null</span>
+<span class="org-tree-sitter-hl-faceXkeyword">class</span> <span class="org-tree-sitter-hl-faceXtype">Config</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&lt;</span></span><span class="org-tree-sitter-hl-faceXtype">T</span> <span class="org-tree-sitter-hl-faceXkeyword">extends</span> <span class="org-tree-sitter-hl-faceXtype">ConfigValid</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&gt;</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
+  <span class="org-typescript-access-modifier">private</span> myConfig<span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">:</span> <span class="org-tree-sitter-hl-faceXtypeXbuiltin">string</span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">|</span> <span class="org-constant">null</span> <span class="org-tree-sitter-hl-faceXoperator">=</span> <span class="org-constant">null</span>
 
-  <span class="org-typescript-access-modifier">private</span> <span class="org-keyword">constructor</span><span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-rainbow-delimiters-depth-2">{}</span>
+  <span class="org-typescript-access-modifier">private</span> <span class="org-tree-sitter-hl-faceXmethod">constructor</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">()</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{}</span>
 
-  <span class="org-typescript-access-modifier">public</span> <span class="org-typescript-access-modifier">static</span> <span class="org-function-name">make</span><span class="org-rainbow-delimiters-depth-2">()</span>: <span class="org-type">Config</span>&lt;<span class="org-string">"invalid"</span>&gt; <span class="org-rainbow-delimiters-depth-2">{</span>
-    <span class="org-keyword">return</span> <span class="org-keyword">new</span> <span class="org-type">Config</span>&lt;<span class="org-string">"invalid"</span>&gt;<span class="org-rainbow-delimiters-depth-3">()</span>
-  <span class="org-rainbow-delimiters-depth-2">}</span>
+  <span class="org-typescript-access-modifier">public</span> <span class="org-tree-sitter-hl-faceXkeyword">static</span> <span class="org-tree-sitter-hl-faceXmethod">make</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">()</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">:</span> <span class="org-tree-sitter-hl-faceXtype">Config</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&lt;</span></span><span class="org-tree-sitter-hl-faceXstring">"invalid"</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&gt;</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
+    <span class="org-tree-sitter-hl-faceXkeyword">return</span> <span class="org-tree-sitter-hl-faceXkeyword">new</span> <span class="org-tree-sitter-hl-faceXconstructor">Config</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&lt;</span></span><span class="org-tree-sitter-hl-faceXstring">"invalid"</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&gt;</span></span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">()</span>
+  <span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span>
 
-  <span class="org-comment-delimiter">// </span><span class="org-comment">I want this function to only accept valid configurations, and I want to</span>
-  <span class="org-comment-delimiter">// </span><span class="org-comment">check if they are valid *at compile time*</span>
-  <span class="org-typescript-access-modifier">public</span> <span class="org-typescript-access-modifier">static</span> <span class="org-function-name">build</span><span class="org-rainbow-delimiters-depth-2">(</span><span class="org-variable-name">config</span>: <span class="org-type">Config</span>&lt;<span class="org-string">"valid"</span>&gt;<span class="org-rainbow-delimiters-depth-2">)</span> <span class="org-rainbow-delimiters-depth-2">{</span>
-    <span class="org-comment-delimiter">// </span><span class="org-comment">do stuff!</span>
-    <span class="org-type">console</span>.<span class="org-function-name">log</span><span class="org-rainbow-delimiters-depth-3">(</span>config.myConfig<span class="org-rainbow-delimiters-depth-3">)</span>
-  <span class="org-rainbow-delimiters-depth-2">}</span>
-<span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-tree-sitter-hl-faceXcomment">// I want this function to only accept valid configurations, and I want to</span>
+  <span class="org-tree-sitter-hl-faceXcomment">// check if they are valid *at compile time*</span>
+  <span class="org-typescript-access-modifier">public</span> <span class="org-tree-sitter-hl-faceXkeyword">static</span> <span class="org-tree-sitter-hl-faceXmethod">build</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">(</span><span class="org-variable-name">config</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">:</span> <span class="org-tree-sitter-hl-faceXtype">Config</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&lt;</span></span><span class="org-tree-sitter-hl-faceXstring">"valid"</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&gt;</span></span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">)</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
+    <span class="org-tree-sitter-hl-faceXcomment">// do stuff!</span>
+    <span class="org-tree-sitter-hl-faceXvariableXbuiltin">console</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-function-name">log</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">(</span>config<span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXproperty">myConfig</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">)</span>
+  <span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span>
+<span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span>
 </pre>
 </div>
 
@@ -231,36 +226,35 @@ The generic parameter on the type is not used or stored at runtime (i.e. in Java
 </p>
 </div>
 </div>
-
-<div id="outline-container-org089614b" class="outline-2">
-<h2 id="org089614b">But: the safety?!</h2>
-<div class="outline-text-2" id="text-org089614b">
+<div id="outline-container-orgff607b9" class="outline-2">
+<h2 id="orgff607b9">But: the safety?!</h2>
+<div class="outline-text-2" id="text-orgff607b9">
 <p>
 Okay, so the code above doesn't work. But now we know what the problem actually is, so... let's fix it!
 </p>
 
 <div class="org-src-container">
-<pre class="src src-typescript"><span class="org-keyword">type</span> <span class="org-type">ConfigValid</span> = <span class="org-string">"valid"</span> | <span class="org-string">"invalid"</span>
+<pre class="src src-typescript"><span class="org-tree-sitter-hl-faceXkeyword">type</span> <span class="org-tree-sitter-hl-faceXtype">ConfigValid</span> <span class="org-tree-sitter-hl-faceXoperator">=</span> <span class="org-tree-sitter-hl-faceXstring">"valid"</span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">|</span> <span class="org-tree-sitter-hl-faceXstring">"invalid"</span>
 
-<span class="org-keyword">class</span> <span class="org-type">Config</span>&lt;<span class="org-type">T</span> <span class="org-typescript-access-modifier">extends</span> <span class="org-type">ConfigValid</span>&gt; <span class="org-rainbow-delimiters-depth-1">{</span>
-  <span class="org-typescript-access-modifier">private</span> myConfig: <span class="org-typescript-primitive">string</span> | <span class="org-constant">null</span> = <span class="org-constant">null</span>
-  <span class="org-typescript-access-modifier">private</span> _isValid: T
+<span class="org-tree-sitter-hl-faceXkeyword">class</span> <span class="org-tree-sitter-hl-faceXtype">Config</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&lt;</span></span><span class="org-tree-sitter-hl-faceXtype">T</span> <span class="org-tree-sitter-hl-faceXkeyword">extends</span> <span class="org-tree-sitter-hl-faceXtype">ConfigValid</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&gt;</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
+  <span class="org-typescript-access-modifier">private</span> myConfig<span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">:</span> <span class="org-tree-sitter-hl-faceXtypeXbuiltin">string</span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">|</span> <span class="org-constant">null</span> <span class="org-tree-sitter-hl-faceXoperator">=</span> <span class="org-constant">null</span>
+  <span class="org-typescript-access-modifier">private</span> _isValid<span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">:</span> <span class="org-tree-sitter-hl-faceXtype">T</span>
 
-  <span class="org-typescript-access-modifier">private</span> <span class="org-keyword">constructor</span><span class="org-rainbow-delimiters-depth-2">(</span>isValid: T<span class="org-rainbow-delimiters-depth-2">)</span> <span class="org-rainbow-delimiters-depth-2">{</span>
-    <span class="org-typescript-this">this</span>._isValid = isValid
-  <span class="org-rainbow-delimiters-depth-2">}</span>
+  <span class="org-typescript-access-modifier">private</span> <span class="org-tree-sitter-hl-faceXmethod">constructor</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">(</span><span class="org-variable-name">isValid</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">:</span> <span class="org-tree-sitter-hl-faceXtype">T</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">)</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
+    <span class="org-tree-sitter-hl-faceXvariableXbuiltin">this</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">_isValid</span></span> <span class="org-tree-sitter-hl-faceXoperator">=</span> isValid
+  <span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span>
 
-  <span class="org-typescript-access-modifier">public</span> <span class="org-typescript-access-modifier">static</span> <span class="org-function-name">make</span><span class="org-rainbow-delimiters-depth-2">()</span>: <span class="org-type">Config</span>&lt;<span class="org-string">"invalid"</span>&gt; <span class="org-rainbow-delimiters-depth-2">{</span>
-    <span class="org-keyword">return</span> <span class="org-keyword">new</span> <span class="org-type">Config</span>&lt;<span class="org-string">"invalid"</span>&gt;<span class="org-rainbow-delimiters-depth-3">(</span><span class="org-string">"invalid"</span><span class="org-rainbow-delimiters-depth-3">)</span>
-  <span class="org-rainbow-delimiters-depth-2">}</span>
+  <span class="org-typescript-access-modifier">public</span> <span class="org-tree-sitter-hl-faceXkeyword">static</span> <span class="org-tree-sitter-hl-faceXmethod">make</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">()</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">:</span> <span class="org-tree-sitter-hl-faceXtype">Config</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&lt;</span></span><span class="org-tree-sitter-hl-faceXstring">"invalid"</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&gt;</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
+    <span class="org-tree-sitter-hl-faceXkeyword">return</span> <span class="org-tree-sitter-hl-faceXkeyword">new</span> <span class="org-tree-sitter-hl-faceXconstructor">Config</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&lt;</span></span><span class="org-tree-sitter-hl-faceXstring">"invalid"</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&gt;</span></span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">(</span><span class="org-tree-sitter-hl-faceXstring">"invalid"</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">)</span>
+  <span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span>
 
-  <span class="org-comment-delimiter">// </span><span class="org-comment">I want this function to only accept valid configurations, and I want to</span>
-  <span class="org-comment-delimiter">// </span><span class="org-comment">check if they are valid *at compile time*</span>
-  <span class="org-typescript-access-modifier">public</span> <span class="org-typescript-access-modifier">static</span> <span class="org-function-name">build</span><span class="org-rainbow-delimiters-depth-2">(</span><span class="org-variable-name">config</span>: <span class="org-type">Config</span>&lt;<span class="org-string">"valid"</span>&gt;<span class="org-rainbow-delimiters-depth-2">)</span> <span class="org-rainbow-delimiters-depth-2">{</span>
-    <span class="org-comment-delimiter">// </span><span class="org-comment">do stuff!</span>
-    <span class="org-type">console</span>.<span class="org-function-name">log</span><span class="org-rainbow-delimiters-depth-3">(</span>config.myConfig<span class="org-rainbow-delimiters-depth-3">)</span>
-  <span class="org-rainbow-delimiters-depth-2">}</span>
-<span class="org-rainbow-delimiters-depth-1">}</span>
+  <span class="org-tree-sitter-hl-faceXcomment">// I want this function to only accept valid configurations, and I want to</span>
+  <span class="org-tree-sitter-hl-faceXcomment">// check if they are valid *at compile time*</span>
+  <span class="org-typescript-access-modifier">public</span> <span class="org-tree-sitter-hl-faceXkeyword">static</span> <span class="org-tree-sitter-hl-faceXmethod">build</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">(</span><span class="org-variable-name">config</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">:</span> <span class="org-tree-sitter-hl-faceXtype">Config</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&lt;</span></span><span class="org-tree-sitter-hl-faceXstring">"valid"</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&gt;</span></span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">)</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
+    <span class="org-tree-sitter-hl-faceXcomment">// do stuff!</span>
+    <span class="org-tree-sitter-hl-faceXvariableXbuiltin">console</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-function-name">log</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">(</span>config<span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXproperty">myConfig</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">)</span>
+  <span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span>
+<span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span>
 </pre>
 </div>
 
@@ -269,10 +263,9 @@ You see that <code>_isValid</code> field? Now we're storing a value in that fiel
 </p>
 </div>
 </div>
-
-<div id="outline-container-org1fb1763" class="outline-2">
-<h2 id="org1fb1763">That's a wrap</h2>
-<div class="outline-text-2" id="text-org1fb1763">
+<div id="outline-container-org9121850" class="outline-2">
+<h2 id="org9121850">That's a wrap</h2>
+<div class="outline-text-2" id="text-org9121850">
 <p>
 I hope you've enjoyed this little journey into making <a href="https://blog.janestreet.com/effective-ml-revisited/">making illegal states unrepresentable</a>, and if you think you could enjoy this kind of thing (or even using the results to just build stuff!) I'm currently working with Blissfully and we're <a href="https://www.blissfully.com/careers/">currently hiring</a> (it says backend developers, but we're also hiring for our Elm frontend where making illegal states unrepresentable is even easier...).
 </p>

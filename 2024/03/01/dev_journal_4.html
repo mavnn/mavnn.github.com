@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- 2024-03-07 Thu 11:53 -->
+<!-- 2024-11-09 Sat 18:33 -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Log in, log out: Dev Journal 4 (part 1)</title>
@@ -16,7 +16,7 @@
 <h1 class="title">Log in, log out: Dev Journal 4 (part 1)</h1>
 </header><blockquote>
 <p>
-This post is part of the "Dev Journal" series. <a href="../../../2024/01/31/dev-journal-1.html">Part 1</a> contains the series index, while the <a href="https://gitlab.com/mavnn/caldance/-/commits/DevJournal4?ref_type=tags">DevJournal4</a> tag for the CalDance project in GitLab holds the state of the repository as described here.
+This post is part of the "Dev Journal" series. <a href="/../../../2024/01/31/dev-journal-1.html">Part 1</a> contains the series index, while the <a href="https://gitlab.com/mavnn/caldance/-/commits/DevJournal4?ref_type=tags">DevJournal4</a> tag for the CalDance project in GitLab holds the state of the repository as described here.
 </p>
 </blockquote>
 
@@ -27,10 +27,9 @@ This is the big one: we have our first piece of event sourcing, and a bunch of i
 <p>
 A lot has changed, and I'm not going to go into every single detail so if you're following along by hand I made a pull request for the changes added here so that you can <a href="https://gitlab.com/mavnn/caldance/-/merge_requests/2/diffs">see them all in one place</a>.
 </p>
-
-<div id="outline-container-org90cf577" class="outline-2">
-<h2 id="org90cf577">Nix pulling its weight</h2>
-<div class="outline-text-2" id="text-org90cf577">
+<div id="outline-container-orgbedfd23" class="outline-2">
+<h2 id="orgbedfd23">Nix pulling its weight</h2>
+<div class="outline-text-2" id="text-orgbedfd23">
 <p>
 We're about to add a database to our project, and this is an area where Nix really shines.
 </p>
@@ -40,20 +39,20 @@ Adding services with pinned versions of dependencies to are development environm
 </p>
 
 <div class="org-src-container">
-<pre class="src src-nix"><span class="org-nix-attribute">devShells.default</span> = pkgs.mkShell <span class="org-rainbow-delimiters-depth-1">{</span>
-  <span class="org-nix-attribute">buildInputs</span> = <span class="org-rainbow-delimiters-depth-2">[</span>
-    dnc.sdk_8_0
-    pkgs.nixfmt
-    pkgs.skopeo
-    pkgs.overmind
-    pkgs.tmux
-    pkgs.postgresql
-    fantomas
-    format-all
-    format-stdin
-    local_postgres
-  <span class="org-rainbow-delimiters-depth-2">]</span>;
-<span class="org-rainbow-delimiters-depth-1">}</span>;
+<pre class="src src-nix"><span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">devShells</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXfunction"><span class="org-tree-sitter-hl-faceXproperty">default</span></span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">mkShell</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
+  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">buildInputs</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">[</span>
+    <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">dnc</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">sdk_8_0</span></span>
+    <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">nixfmt</span></span>
+    <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">skopeo</span></span>
+    <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">overmind</span></span>
+    <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">tmux</span></span>
+    <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">postgresql</span></span>
+    <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">fantomas</span></span>
+    <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">format-all</span></span>
+    <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">format-stdin</span></span>
+    <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">local_postgres</span></span>
+  <span class="org-tree-sitter-hl-faceXpunctuationXbracket">]</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+<span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
 </pre>
 </div>
 
@@ -80,10 +79,9 @@ Now we can run <code>overmind s</code> to start both postgres and a dotnet watch
 </p>
 </div>
 </div>
-
-<div id="outline-container-orga8005f4" class="outline-2">
-<h2 id="orga8005f4">Adding some nuget dependencies</h2>
-<div class="outline-text-2" id="text-orga8005f4">
+<div id="outline-container-org3fd1bde" class="outline-2">
+<h2 id="org3fd1bde">Adding some nuget dependencies</h2>
+<div class="outline-text-2" id="text-org3fd1bde">
 <p>
 We're adding dependencies to our server of <a href="https://martendb.io/">Marten</a> (document/event database library that sits on top of postgres) and <a href="https://serilog.net/">Serilog</a> (a nice structured log library).
 </p>
@@ -97,11 +95,11 @@ This isn't a huge issue once you know you need to do it; you just add a <code>Ru
 </p>
 
 <div class="org-src-container">
-<pre class="src src-xml"><span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">PropertyGroup</span><span class="org-nxml-tag-delimiter">&gt;</span>
-  <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">OutputType</span><span class="org-nxml-tag-delimiter">&gt;</span><span class="org-nxml-text">Exe</span><span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-tag-slash">/</span><span class="org-nxml-element-local-name">OutputType</span><span class="org-nxml-tag-delimiter">&gt;</span>
-  <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">TargetFramework</span><span class="org-nxml-tag-delimiter">&gt;</span><span class="org-nxml-text">net8.0</span><span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-tag-slash">/</span><span class="org-nxml-element-local-name">TargetFramework</span><span class="org-nxml-tag-delimiter">&gt;</span>
-  <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">RuntimeIdentifiers</span><span class="org-nxml-tag-delimiter">&gt;</span><span class="org-nxml-text">osx-arm64;linux-x64;linux-arm64</span><span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-tag-slash">/</span><span class="org-nxml-element-local-name">RuntimeIdentifiers</span><span class="org-nxml-tag-delimiter">&gt;</span>
-<span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-tag-slash">/</span><span class="org-nxml-element-local-name">PropertyGroup</span><span class="org-nxml-tag-delimiter">&gt;</span>
+<pre class="src src-xml"><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&lt;</span></span><span class="org-tree-sitter-hl-faceXtag"><span class="org-nxml-element-local-name">PropertyGroup</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&gt;</span></span>
+  <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&lt;</span></span><span class="org-tree-sitter-hl-faceXtag"><span class="org-nxml-element-local-name">OutputType</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&gt;</span></span><span class="org-nxml-text">Exe</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&lt;</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-slash">/</span></span><span class="org-tree-sitter-hl-faceXtag"><span class="org-nxml-element-local-name">OutputType</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&gt;</span></span>
+  <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&lt;</span></span><span class="org-tree-sitter-hl-faceXtag"><span class="org-nxml-element-local-name">TargetFramework</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&gt;</span></span><span class="org-nxml-text">net8.0</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&lt;</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-slash">/</span></span><span class="org-tree-sitter-hl-faceXtag"><span class="org-nxml-element-local-name">TargetFramework</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&gt;</span></span>
+  <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&lt;</span></span><span class="org-tree-sitter-hl-faceXtag"><span class="org-nxml-element-local-name">RuntimeIdentifiers</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&gt;</span></span><span class="org-nxml-text">osx-arm64;linux-x64;linux-arm64</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&lt;</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-slash">/</span></span><span class="org-tree-sitter-hl-faceXtag"><span class="org-nxml-element-local-name">RuntimeIdentifiers</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&gt;</span></span>
+<span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&lt;</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-slash">/</span></span><span class="org-tree-sitter-hl-faceXtag"><span class="org-nxml-element-local-name">PropertyGroup</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&gt;</span></span>
 </pre>
 </div>
 
@@ -110,21 +108,20 @@ Then we can add our nuget packages as normal and everything continues to work:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-xml"><span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">ItemGroup</span><span class="org-nxml-tag-delimiter">&gt;</span>
-  <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">PackageReference</span> <span class="org-nxml-attribute-local-name">Include</span>=<span class="org-string">"Falco"</span> <span class="org-nxml-attribute-local-name">Version</span>=<span class="org-string">"4.0.6"</span> <span class="org-nxml-tag-slash">/</span><span class="org-nxml-tag-delimiter">&gt;</span>
-  <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">PackageReference</span> <span class="org-nxml-attribute-local-name">Include</span>=<span class="org-string">"Marten"</span> <span class="org-nxml-attribute-local-name">Version</span>=<span class="org-string">"6.4.1"</span> <span class="org-nxml-tag-slash">/</span><span class="org-nxml-tag-delimiter">&gt;</span>
-  <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">PackageReference</span> <span class="org-nxml-attribute-local-name">Include</span>=<span class="org-string">"Serilog"</span> <span class="org-nxml-attribute-local-name">Version</span>=<span class="org-string">"3.1.1"</span> <span class="org-nxml-tag-slash">/</span><span class="org-nxml-tag-delimiter">&gt;</span>
-  <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">PackageReference</span> <span class="org-nxml-attribute-local-name">Include</span>=<span class="org-string">"Serilog.AspNetCore"</span> <span class="org-nxml-attribute-local-name">Version</span>=<span class="org-string">"8.0.1"</span> <span class="org-nxml-tag-slash">/</span><span class="org-nxml-tag-delimiter">&gt;</span>
-  <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">PackageReference</span> <span class="org-nxml-attribute-local-name">Include</span>=<span class="org-string">"Serilog.Sinks.Console"</span> <span class="org-nxml-attribute-local-name">Version</span>=<span class="org-string">"5.0.1"</span> <span class="org-nxml-tag-slash">/</span><span class="org-nxml-tag-delimiter">&gt;</span>
-<span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-tag-slash">/</span><span class="org-nxml-element-local-name">ItemGroup</span><span class="org-nxml-tag-delimiter">&gt;</span>
+<pre class="src src-xml"><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&lt;</span></span><span class="org-tree-sitter-hl-faceXtag"><span class="org-nxml-element-local-name">ItemGroup</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&gt;</span></span>
+  <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&lt;</span></span><span class="org-tree-sitter-hl-faceXtag"><span class="org-nxml-element-local-name">PackageReference</span></span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-nxml-attribute-local-name">Include</span></span><span class="org-tree-sitter-hl-faceXoperator">=</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXstring">"</span></span><span class="org-tree-sitter-hl-faceXstring">Falco</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXstring">"</span></span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-nxml-attribute-local-name">Version</span></span><span class="org-tree-sitter-hl-faceXoperator">=</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXstring">"</span></span><span class="org-tree-sitter-hl-faceXstring">4.0.6</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXstring">"</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-slash">/</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&gt;</span></span>
+  <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&lt;</span></span><span class="org-tree-sitter-hl-faceXtag"><span class="org-nxml-element-local-name">PackageReference</span></span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-nxml-attribute-local-name">Include</span></span><span class="org-tree-sitter-hl-faceXoperator">=</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXstring">"</span></span><span class="org-tree-sitter-hl-faceXstring">Marten</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXstring">"</span></span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-nxml-attribute-local-name">Version</span></span><span class="org-tree-sitter-hl-faceXoperator">=</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXstring">"</span></span><span class="org-tree-sitter-hl-faceXstring">6.4.1</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXstring">"</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-slash">/</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&gt;</span></span>
+  <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&lt;</span></span><span class="org-tree-sitter-hl-faceXtag"><span class="org-nxml-element-local-name">PackageReference</span></span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-nxml-attribute-local-name">Include</span></span><span class="org-tree-sitter-hl-faceXoperator">=</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXstring">"</span></span><span class="org-tree-sitter-hl-faceXstring">Serilog</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXstring">"</span></span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-nxml-attribute-local-name">Version</span></span><span class="org-tree-sitter-hl-faceXoperator">=</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXstring">"</span></span><span class="org-tree-sitter-hl-faceXstring">3.1.1</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXstring">"</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-slash">/</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&gt;</span></span>
+  <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&lt;</span></span><span class="org-tree-sitter-hl-faceXtag"><span class="org-nxml-element-local-name">PackageReference</span></span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-nxml-attribute-local-name">Include</span></span><span class="org-tree-sitter-hl-faceXoperator">=</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXstring">"</span></span><span class="org-tree-sitter-hl-faceXstring">Serilog.AspNetCore</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXstring">"</span></span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-nxml-attribute-local-name">Version</span></span><span class="org-tree-sitter-hl-faceXoperator">=</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXstring">"</span></span><span class="org-tree-sitter-hl-faceXstring">8.0.1</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXstring">"</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-slash">/</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&gt;</span></span>
+  <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&lt;</span></span><span class="org-tree-sitter-hl-faceXtag"><span class="org-nxml-element-local-name">PackageReference</span></span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-nxml-attribute-local-name">Include</span></span><span class="org-tree-sitter-hl-faceXoperator">=</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXstring">"</span></span><span class="org-tree-sitter-hl-faceXstring">Serilog.Sinks.Console</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXstring">"</span></span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-nxml-attribute-local-name">Version</span></span><span class="org-tree-sitter-hl-faceXoperator">=</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXstring">"</span></span><span class="org-tree-sitter-hl-faceXstring">5.0.1</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXstring">"</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-slash">/</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&gt;</span></span>
+<span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&lt;</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-slash">/</span></span><span class="org-tree-sitter-hl-faceXtag"><span class="org-nxml-element-local-name">ItemGroup</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&gt;</span></span>
 </pre>
 </div>
 </div>
 </div>
-
-<div id="outline-container-org89a606f" class="outline-2">
-<h2 id="org89a606f">Opinionated endpoint builders</h2>
-<div class="outline-text-2" id="text-org89a606f">
+<div id="outline-container-org4297002" class="outline-2">
+<h2 id="org4297002">Opinionated endpoint builders</h2>
+<div class="outline-text-2" id="text-org4297002">
 <p>
 In general, the code to handle an endpoint in an AspNet.Core application is a function from <code>HttpContext</code> to <code>Task</code>, where we mutate the HTTP context and then write the correct output stream.
 </p>
@@ -163,33 +160,33 @@ The revised <code>indexEndpoint</code> in the main program file gives a good exa
 <pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-variable-name">indexRoute</span> = literalSection <span class="org-string">"/"</span>
 
 <span class="org-keyword">let</span> <span class="org-variable-name">indexEndpoint</span> =
-  Handler.toEndpoint get indexRoute <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">fun</span> <span class="org-rainbow-delimiters-depth-2">()</span> -&gt;
-    handler <span class="org-rainbow-delimiters-depth-2">{</span>
+  Handler.toEndpoint get indexRoute (<span class="org-keyword">fun</span> () -&gt;
+    handler {
       <span class="org-keyword">let!</span> user = User.getSessionUser
 
       <span class="org-keyword">return</span>
-        <span class="org-rainbow-delimiters-depth-3">(</span>Response.ofHtml <span class="org-rainbow-delimiters-depth-4">(</span>
+        (Response.ofHtml (
           Elem.html
-            <span class="org-rainbow-delimiters-depth-5">[]</span>
-            <span class="org-rainbow-delimiters-depth-5">[</span> Elem.body
-                <span class="org-rainbow-delimiters-depth-6">[]</span>
-                <span class="org-rainbow-delimiters-depth-6">[</span> Elem.h1
-                    <span class="org-rainbow-delimiters-depth-7">[]</span>
-                    <span class="org-rainbow-delimiters-depth-7">[</span> <span class="org-keyword">match</span> user <span class="org-keyword">with</span>
+            []
+            [ Elem.body
+                []
+                [ Elem.h1
+                    []
+                    [ <span class="org-keyword">match</span> user <span class="org-keyword">with</span>
                       <span class="org-fsharp-ui-operator">|</span> Some u -&gt;
                         Text.raw $<span class="org-string">"Hi {u.username}!"</span>
                       <span class="org-fsharp-ui-operator">|</span> None -&gt;
-                        Text.raw <span class="org-string">"You should go log in!"</span> <span class="org-rainbow-delimiters-depth-7">]</span>
+                        Text.raw <span class="org-string">"You should go log in!"</span> ]
                   Elem.p
-                    <span class="org-rainbow-delimiters-depth-7">[]</span>
-                    <span class="org-rainbow-delimiters-depth-7">[</span> Text.raw <span class="org-string">"Would you like to "</span>
+                    []
+                    [ Text.raw <span class="org-string">"Would you like to "</span>
                       Elem.a
-                        <span class="org-rainbow-delimiters-depth-8">[</span> Attr.href <span class="org-rainbow-delimiters-depth-9">(</span>
+                        [ Attr.href (
                             greetingRoute.link <span class="org-string">"Bob"</span>
-                          <span class="org-rainbow-delimiters-depth-9">)</span> <span class="org-rainbow-delimiters-depth-8">]</span>
-                        <span class="org-rainbow-delimiters-depth-8">[</span> Text.raw <span class="org-string">"greet Bob?"</span> <span class="org-rainbow-delimiters-depth-8">]</span> <span class="org-rainbow-delimiters-depth-7">]</span> <span class="org-rainbow-delimiters-depth-6">]</span> <span class="org-rainbow-delimiters-depth-5">]</span>
-        <span class="org-rainbow-delimiters-depth-4">)</span><span class="org-rainbow-delimiters-depth-3">)</span>
-    <span class="org-rainbow-delimiters-depth-2">}</span><span class="org-rainbow-delimiters-depth-1">)</span>
+                          ) ]
+                        [ Text.raw <span class="org-string">"greet Bob?"</span> ] ] ] ]
+        ))
+    })
 </pre>
 </div>
 
@@ -198,10 +195,9 @@ Note the <code>let!</code> on the first line where we pull the user session out 
 </p>
 </div>
 </div>
-
-<div id="outline-container-orgb650d36" class="outline-2">
-<h2 id="orgb650d36">Connecting up the database</h2>
-<div class="outline-text-2" id="text-orgb650d36">
+<div id="outline-container-orge6bb7f9" class="outline-2">
+<h2 id="orge6bb7f9">Connecting up the database</h2>
+<div class="outline-text-2" id="text-orge6bb7f9">
 <p>
 Having defined our handler type, it makes sense to make the rest of our tooling easy to use from within the abstraction.
 </p>
@@ -212,15 +208,15 @@ The new <code>Marten</code> module contains some boiler plate to configure Marte
 
 <div class="org-src-container">
 <pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">withMarten</span> <span class="org-variable-name">f</span> =
-  Handler.fromCtx <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">fun</span> <span class="org-variable-name">ctx</span> -&gt;
-    ctx.GetService&lt;IDocumentSession&gt;<span class="org-rainbow-delimiters-depth-2">()</span><span class="org-rainbow-delimiters-depth-1">)</span>
-  <span class="org-fsharp-ui-operator">|&gt;</span> Handler.bind <span class="org-rainbow-delimiters-depth-1">(</span>f &gt;&gt; Handler.returnTask<span class="org-rainbow-delimiters-depth-1">)</span>
+  Handler.fromCtx (<span class="org-keyword">fun</span> <span class="org-variable-name">ctx</span> -&gt;
+    ctx.GetService&lt;IDocumentSession&gt;())
+  <span class="org-fsharp-ui-operator">|&gt;</span> Handler.bind (f &gt;&gt; Handler.returnTask)
 
 <span class="org-comment-delimiter">// </span><span class="org-comment">Marten returns null if a record isn't found, but</span>
 <span class="org-comment-delimiter">// </span><span class="org-comment">F# records declare they can't be null. This works</span>
 <span class="org-comment-delimiter">// </span><span class="org-comment">around that to return an option instead</span>
 <span class="org-keyword">let</span> <span class="org-function-name">returnOption</span> <span class="org-variable-name">v</span> =
-  <span class="org-keyword">if</span> <span class="org-rainbow-delimiters-depth-1">(</span>v <span class="org-fsharp-ui-operator">|&gt;</span> box <span class="org-fsharp-ui-operator">|&gt;</span> isNull<span class="org-rainbow-delimiters-depth-1">)</span> <span class="org-keyword">then</span> None <span class="org-keyword">else</span> Some v
+  <span class="org-keyword">if</span> (v <span class="org-fsharp-ui-operator">|&gt;</span> box <span class="org-fsharp-ui-operator">|&gt;</span> isNull) <span class="org-keyword">then</span> None <span class="org-keyword">else</span> Some v
 </pre>
 </div>
 
@@ -230,8 +226,8 @@ Now from within any HTTP handler we're writing, we can write code like:
 
 <div class="org-src-container">
 <pre class="src src-fsharp"><span class="org-keyword">let!</span> user =
-  Marten.withMarten <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">fun</span> <span class="org-variable-name">marten</span> -&gt;
-    marten.LoadAsync&lt;UserRecord&gt;<span class="org-rainbow-delimiters-depth-2">(</span>id<span class="org-rainbow-delimiters-depth-2">)</span><span class="org-rainbow-delimiters-depth-1">)</span>
+  Marten.withMarten (<span class="org-keyword">fun</span> <span class="org-variable-name">marten</span> -&gt;
+    marten.LoadAsync&lt;UserRecord&gt;(id))
 </pre>
 </div>
 
@@ -240,10 +236,9 @@ Now from within any HTTP handler we're writing, we can write code like:
 </p>
 </div>
 </div>
-
-<div id="outline-container-org9babb27" class="outline-2">
-<h2 id="org9babb27">To be continued...</h2>
-<div class="outline-text-2" id="text-org9babb27">
+<div id="outline-container-org3e15453" class="outline-2">
+<h2 id="org3e15453">To be continued...</h2>
+<div class="outline-text-2" id="text-org3e15453">
 <p>
 I think that's about enough for this blog post, because I want to leave a whole post for the real meat of this set of changes: our first domain entity, the <code>User</code>.
 </p>
@@ -253,7 +248,7 @@ If you want a sneak peak, you can check out the PR and see how we can define a n
 </p>
 
 <p>
-Next up: <a href="../../../2024/03/05/dev_journal_4_2.html">Log in, log out (part 2)</a>
+Next up: <a href="/../../../2024/03/05/dev_journal_4_2.html">Log in, log out (part 2)</a>
 </p>
 </div>
 </div>

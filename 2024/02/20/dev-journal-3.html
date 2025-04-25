@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- 2024-03-09 Sat 18:40 -->
+<!-- 2024-11-09 Sat 18:33 -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Does it run? Dev Journal 3</title>
@@ -16,7 +16,7 @@
 <h1 class="title">Does it run? Dev Journal 3</h1>
 </header><blockquote>
 <p>
-This post is part of the "Dev Journal" series. <a href="../../../2024/01/31/dev-journal-1.html">Part 1</a> contains the series index, while the <a href="https://gitlab.com/mavnn/caldance/-/commits/DevJournal3?ref_type=tags">DevJournal3</a> tag for the CalDance project in GitLab holds the state of the repository as described here.
+This post is part of the "Dev Journal" series. <a href="/../../../2024/01/31/dev-journal-1.html">Part 1</a> contains the series index, while the <a href="https://gitlab.com/mavnn/caldance/-/commits/DevJournal3?ref_type=tags">DevJournal3</a> tag for the CalDance project in GitLab holds the state of the repository as described here.
 </p>
 </blockquote>
 
@@ -49,54 +49,54 @@ You can check out the revised <code>.gitlab-ci.yml</code> file below:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-yaml"><span class="org-variable-name">stages</span>:
+<pre class="src src-yaml">stages:
   - build-container
   - end-to-end-tests
 
-<span class="org-variable-name">build-container</span>:
-  <span class="org-variable-name">stage</span>: build-container
-  <span class="org-variable-name">image</span>:
-    <span class="org-variable-name">name</span>: <span class="org-string">"nixos/nix:2.19.3"</span>
-  <span class="org-variable-name">variables</span>:
-    <span class="org-variable-name">IMAGE_TAG</span>: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
-  <span class="org-variable-name">before_script</span>:
+build-container:
+  stage: build-container
+  image:
+    name: "nixos/nix:2.19.3"
+  variables:
+    IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+  before_script:
     - nix-env --install --attr nixpkgs.skopeo
-  <span class="org-variable-name">script</span>:
-    - mkdir -p <span class="org-string">"$HOME/.config/nix"</span>
-    - echo <span class="org-string">'experimental-features = nix-command flakes'</span> &gt; <span class="org-string">"$HOME/.config/nix/nix.conf"</span>
-    - mkdir -p <span class="org-string">"/etc/containers/"</span>
-    - echo <span class="org-string">'{"default":[{"type":"insecureAcceptAnything"}]}'</span> &gt; /etc/containers/policy.json
-    - skopeo login --username <span class="org-string">"$CI_REGISTRY_USER"</span> --password <span class="org-string">"$CI_REGISTRY_PASSWORD"</span> <span class="org-string">"$CI_REGISTRY"</span>
-    - <span class="org-string">'nix build .#dockerImage .#test'</span>
+  script:
+    - mkdir -p "$HOME/.config/nix"
+    - echo 'experimental-features = nix-command flakes' &gt; "$HOME/.config/nix/nix.conf"
+    - mkdir -p "/etc/containers/"
+    - echo '{"default":[{"type":"insecureAcceptAnything"}]}' &gt; /etc/containers/policy.json
+    - skopeo login --username "$CI_REGISTRY_USER" --password "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - 'nix build .#dockerImage .#test'
     - mkdir testResults
-    - <span class="org-string">'cp result-1/* testResults'</span>
+    - 'cp result-1/* testResults'
     - ls -lh ./result
-    - <span class="org-string">'skopeo inspect docker-archive://$(readlink -f ./result)'</span>
-    - <span class="org-string">'skopeo copy docker-archive://$(readlink -f ./result) docker://$IMAGE_TAG'</span>
-  <span class="org-variable-name">artifacts</span>:
-    <span class="org-variable-name">when</span>: always
-    <span class="org-variable-name">paths</span>:
-      - <span class="org-string">'testResults/*.xml'</span>
-    <span class="org-variable-name">reports</span>:
-      <span class="org-variable-name">junit</span>: <span class="org-string">'testResults/*.xml'</span>
+    - 'skopeo inspect docker-archive://$(readlink -f ./result)'
+    - 'skopeo copy docker-archive://$(readlink -f ./result) docker://$IMAGE_TAG'
+  artifacts:
+    when: always
+    paths:
+      - 'testResults/*.xml'
+    reports:
+      junit: 'testResults/*.xml'
 
-<span class="org-variable-name">end-to-end-tests</span>:
-  <span class="org-variable-name">stage</span>: end-to-end-tests
-  <span class="org-variable-name">image</span>:
-    <span class="org-variable-name">name</span>: <span class="org-string">"nixos/nix:2.19.3"</span>
-  <span class="org-variable-name">variables</span>:
-    <span class="org-variable-name">IMAGE_TAG</span>: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
-    <span class="org-variable-name">GIT_STRATEGY</span>: none
-  <span class="org-variable-name">services</span>:
-    - <span class="org-variable-name">name</span>: $IMAGE_TAG
-      <span class="org-variable-name">alias</span>: caldance
-  <span class="org-variable-name">script</span>:
-    - curl -f <span class="org-string">"http://caldance:5001/"</span>
+end-to-end-tests:
+  stage: end-to-end-tests
+  image:
+    name: "nixos/nix:2.19.3"
+  variables:
+    IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+    GIT_STRATEGY: none
+  services:
+    - name: $IMAGE_TAG
+      alias: caldance
+  script:
+    - curl -f "http://caldance:5001/"
 </pre>
 </div>
 
 <p>
-Next up: <a href="../../../2024/03/01/dev_journal_4.html">adding in the database</a>
+Next up: <a href="/../../../2024/03/01/dev_journal_4.html">adding in the database</a>
 </p>
 </div>
 <div id="postamble" class="status">

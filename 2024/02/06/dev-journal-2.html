@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- 2024-03-07 Thu 11:53 -->
+<!-- 2024-11-09 Sat 18:33 -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Scaffolding: Dev Journal 2</title>
@@ -16,7 +16,7 @@
 <h1 class="title">Scaffolding: Dev Journal 2</h1>
 </header><blockquote>
 <p>
-This post is part of the "Dev Journal" series. <a href="../../../2024/01/31/dev-journal-1.html">Part 1</a> contains the series index, while the <a href="https://gitlab.com/mavnn/caldance/-/commits/DevJournal2?ref_type=tags">DevJournal2</a> tag for the CalDance project in GitLab holds the state of the repository as described here.
+This post is part of the "Dev Journal" series. <a href="/../../../2024/01/31/dev-journal-1.html">Part 1</a> contains the series index, while the <a href="https://gitlab.com/mavnn/caldance/-/commits/DevJournal2?ref_type=tags">DevJournal2</a> tag for the CalDance project in GitLab holds the state of the repository as described here.
 </p>
 </blockquote>
 
@@ -42,29 +42,29 @@ Adding the <code>Routing.fs</code> file to the F# project went exactly as you'd 
 <span class="org-keyword">let</span> <span class="org-variable-name">indexRoute</span> = literalSection <span class="org-string">"/"</span>
 
 <span class="org-keyword">let</span> <span class="org-variable-name">indexEndpoint</span> =
-  htmxGet indexRoute <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">fun</span> <span class="org-rainbow-delimiters-depth-2">()</span> <span class="org-variable-name">_</span> -&gt;
+  htmxGet indexRoute (<span class="org-keyword">fun</span> () <span class="org-variable-name">_</span> -&gt;
     Elem.html
-      <span class="org-rainbow-delimiters-depth-2">[]</span>
-      <span class="org-rainbow-delimiters-depth-2">[</span> Elem.body
-          <span class="org-rainbow-delimiters-depth-3">[]</span>
-          <span class="org-rainbow-delimiters-depth-3">[</span> Elem.h1 <span class="org-rainbow-delimiters-depth-4">[]</span> <span class="org-rainbow-delimiters-depth-4">[</span> Text.raw <span class="org-string">"Hi!"</span> <span class="org-rainbow-delimiters-depth-4">]</span>
+      []
+      [ Elem.body
+          []
+          [ Elem.h1 [] [ Text.raw <span class="org-string">"Hi!"</span> ]
             Elem.p
-              <span class="org-rainbow-delimiters-depth-4">[]</span>
-              <span class="org-rainbow-delimiters-depth-4">[</span> Text.raw <span class="org-string">"Would you like to "</span>
-                htmxLink greetingRoute <span class="org-string">"Bob"</span> <span class="org-string">"greet Bob?"</span> <span class="org-rainbow-delimiters-depth-4">]</span> <span class="org-rainbow-delimiters-depth-3">]</span> <span class="org-rainbow-delimiters-depth-2">]</span><span class="org-rainbow-delimiters-depth-1">)</span>
+              []
+              [ Text.raw <span class="org-string">"Would you like to "</span>
+                htmxLink greetingRoute <span class="org-string">"Bob"</span> <span class="org-string">"greet Bob?"</span> ] ] ])
 
 <span class="org-keyword">let</span> <span class="org-variable-name">greetingEndpoint</span> =
-  htmxGet greetingRoute <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-keyword">fun</span> <span class="org-variable-name">name</span> <span class="org-variable-name">_</span> -&gt;
+  htmxGet greetingRoute (<span class="org-keyword">fun</span> <span class="org-variable-name">name</span> <span class="org-variable-name">_</span> -&gt;
     Elem.html
-      <span class="org-rainbow-delimiters-depth-2">[]</span>
-      <span class="org-rainbow-delimiters-depth-2">[</span> Elem.body
-          <span class="org-rainbow-delimiters-depth-3">[]</span>
-          <span class="org-rainbow-delimiters-depth-3">[</span> Elem.h1 <span class="org-rainbow-delimiters-depth-4">[]</span> <span class="org-rainbow-delimiters-depth-4">[</span> Text.rawf <span class="org-string">"Hi %s!"</span> name <span class="org-rainbow-delimiters-depth-4">]</span> <span class="org-rainbow-delimiters-depth-3">]</span> <span class="org-rainbow-delimiters-depth-2">]</span><span class="org-rainbow-delimiters-depth-1">)</span>
+      []
+      [ Elem.body
+          []
+          [ Elem.h1 [] [ Text.rawf <span class="org-string">"Hi %s!"</span> name ] ] ])
 
-webHost <span class="org-rainbow-delimiters-depth-1">[</span>||<span class="org-rainbow-delimiters-depth-1">]</span> <span class="org-rainbow-delimiters-depth-1">{</span>
+webHost [||] {
   add_antiforgery
-  endpoints <span class="org-rainbow-delimiters-depth-2">[</span> indexEndpoint; greetingEndpoint <span class="org-rainbow-delimiters-depth-2">]</span>
-<span class="org-rainbow-delimiters-depth-1">}</span>
+  endpoints [ indexEndpoint; greetingEndpoint ]
+}
 </pre>
 </div>
 
@@ -79,10 +79,9 @@ This is all type safe, and that's lovely and all... but now we have two problems
 <p>
 Let's tackle the biggest problem first!
 </p>
-
-<div id="outline-container-orgb383e13" class="outline-2">
-<h2 id="orgb383e13">Clarity and style</h2>
-<div class="outline-text-2" id="text-orgb383e13">
+<div id="outline-container-org4caec92" class="outline-2">
+<h2 id="org4caec92">Clarity and style</h2>
+<div class="outline-text-2" id="text-org4caec92">
 <p>
 Writing lists of lists is a succinct and powerful way of representing HTML, but it is also a pain in the backside to format nicely by hand. It's also very easy to bike shed<sup><a id="fnr.1" class="footref" href="#fn.1" role="doc-backlink">1</a></sup> about, leading to a lot of wasted time and churn in commits.
 </p>
@@ -96,29 +95,29 @@ One of the best solutions to this is to automate code formatting following a rea
 </p>
 
 <div class="org-src-container">
-<pre class="src src-nix"><span class="org-rainbow-delimiters-depth-1">{</span> pkgs, dnc <span class="org-rainbow-delimiters-depth-1">}</span>:
-<span class="org-nix-keyword">let</span> <span class="org-nix-attribute">version</span> = <span class="org-string">"6.2.3"</span>;
-<span class="org-nix-keyword">in</span> pkgs.stdenv.mkDerivation <span class="org-rainbow-delimiters-depth-1">{</span>
-  <span class="org-nix-attribute">pname</span> = <span class="org-string">"fantomas"</span>;
-  <span class="org-nix-attribute">version</span> = version;
-  <span class="org-nix-attribute">nativeBuildInputs</span> = <span class="org-nix-keyword">with</span> pkgs; <span class="org-rainbow-delimiters-depth-2">[</span> unzip makeWrapper <span class="org-rainbow-delimiters-depth-2">]</span>;
-  <span class="org-nix-attribute">src</span> = pkgs.fetchurl <span class="org-rainbow-delimiters-depth-2">{</span>
-    <span class="org-nix-attribute">url</span> = <span class="org-string">"https://globalcdn.nuget.org/packages/fantomas.</span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-3">{</span></span>version<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-3">}</span></span><span class="org-string">.nupkg"</span>;
-    <span class="org-nix-attribute">hash</span> = <span class="org-string">"sha256-Aol10o5Q7l8s6SdX0smVdi3ec2IgAx+gMksAMjXhIfU="</span>;
-  <span class="org-rainbow-delimiters-depth-2">}</span>;
-  <span class="org-nix-attribute">unpackPhase</span> = <span class="org-string">''</span>
-<span class="org-string">    ls -al $src</span>
-<span class="org-string">    unzip "$src" -d $out</span>
-<span class="org-string">  ''</span>;
-  <span class="org-nix-attribute">installPhase</span> = <span class="org-string">''</span>
-<span class="org-string">    mkdir -p $out/bin</span>
-<span class="org-string">    cp -r * $out/bin</span>
-<span class="org-string">    echo '#! </span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-2">{</span></span>pkgs.bash<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-2">}</span></span><span class="org-string">/bin/bash -e' &gt; $out/bin/fantomas</span>
-<span class="org-string">    echo "FANTOMAS_PATH=$out/tools/net6.0/any/fantomas.dll" &gt;&gt; $out/bin/fantomas</span>
-<span class="org-string">    echo '</span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-2">{</span></span>dnc.runtime_8_0<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-2">}</span></span><span class="org-string">/bin/dotnet $FANTOMAS_PATH "$@"' &gt;&gt; $out/bin/fantomas</span>
-<span class="org-string">    chmod +x $out/bin/fantomas</span>
-<span class="org-string">  ''</span>;
-<span class="org-rainbow-delimiters-depth-1">}</span>
+<pre class="src src-nix"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span> <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariableXparameter">pkgs</span></span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">,</span> <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariableXparameter">dnc</span></span></span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span>:
+<span class="org-tree-sitter-hl-faceXkeyword">let</span> <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">version</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXstring">"6.2.3"</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+<span class="org-tree-sitter-hl-faceXkeyword">in</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">stdenv</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXproperty">.</span></span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXfunction"><span class="org-tree-sitter-hl-faceXproperty">mkDerivation</span></span></span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
+  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">pname</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXstring">"fantomas"</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">version</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">version</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">nativeBuildInputs</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXkeyword">with</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">[</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">unzip</span></span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">makeWrapper</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">]</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">src</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXfunction"><span class="org-tree-sitter-hl-faceXproperty">fetchurl</span></span></span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
+    <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">url</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXstring">"https://globalcdn.nuget.org/packages/fantomas.</span><span class="org-nix-antiquote">${</span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">version</span></span></span></span><span class="org-nix-antiquote">}</span><span class="org-tree-sitter-hl-faceXstring">.nupkg"</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+    <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">hash</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXstring">"sha256-Aol10o5Q7l8s6SdX0smVdi3ec2IgAx+gMksAMjXhIfU="</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+  <span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">unpackPhase</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXstring">''</span>
+<span class="org-tree-sitter-hl-faceXstring">    ls -al $src</span>
+<span class="org-tree-sitter-hl-faceXstring">    unzip "$src" -d $out</span>
+<span class="org-tree-sitter-hl-faceXstring">  ''</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">installPhase</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXstring">''</span>
+<span class="org-tree-sitter-hl-faceXstring">    mkdir -p $out/bin</span>
+<span class="org-tree-sitter-hl-faceXstring">    cp -r * $out/bin</span>
+<span class="org-tree-sitter-hl-faceXstring">    echo '#! </span><span class="org-nix-antiquote">${</span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">bash</span></span></span></span><span class="org-nix-antiquote">}</span><span class="org-tree-sitter-hl-faceXstring">/bin/bash -e' &gt; $out/bin/fantomas</span>
+<span class="org-tree-sitter-hl-faceXstring">    echo "FANTOMAS_PATH=$out/tools/net6.0/any/fantomas.dll" &gt;&gt; $out/bin/fantomas</span>
+<span class="org-tree-sitter-hl-faceXstring">    echo '</span><span class="org-nix-antiquote">${</span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">dnc</span></span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">runtime_8_0</span></span></span></span><span class="org-nix-antiquote">}</span><span class="org-tree-sitter-hl-faceXstring">/bin/dotnet $FANTOMAS_PATH "$@"' &gt;&gt; $out/bin/fantomas</span>
+<span class="org-tree-sitter-hl-faceXstring">    chmod +x $out/bin/fantomas</span>
+<span class="org-tree-sitter-hl-faceXstring">  ''</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+<span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span>
 </pre>
 </div>
 
@@ -135,27 +134,27 @@ In our top level <code>flake.nix</code> file we can now import these tools and e
 </p>
 
 <div class="org-src-container">
-<pre class="src src-nix"><span class="org-nix-keyword">let</span>
-  <span class="org-comment"># ... snip ...</span>
-  <span class="org-nix-attribute">fantomas</span> = <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-nix-builtin">import</span> <span class="org-nix-constant">./nix/fantomas.nix</span><span class="org-rainbow-delimiters-depth-1">)</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-nix-keyword">inherit</span> pkgs dnc; <span class="org-rainbow-delimiters-depth-1">}</span>;
-  <span class="org-nix-attribute">format-all</span> = <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-nix-builtin">import</span> <span class="org-nix-constant">./nix/format-all.nix</span><span class="org-rainbow-delimiters-depth-1">)</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-nix-keyword">inherit</span> pkgs fantomas; <span class="org-rainbow-delimiters-depth-1">}</span>;
-  <span class="org-nix-attribute">format-stdin</span> =
-    <span class="org-rainbow-delimiters-depth-1">(</span><span class="org-nix-builtin">import</span> <span class="org-nix-constant">./nix/format-stdin.nix</span><span class="org-rainbow-delimiters-depth-1">)</span> <span class="org-rainbow-delimiters-depth-1">{</span> <span class="org-nix-keyword">inherit</span> pkgs fantomas; <span class="org-rainbow-delimiters-depth-1">}</span>;
-  <span class="org-comment"># ... snip ...</span>
-<span class="org-nix-keyword">in</span> rec <span class="org-rainbow-delimiters-depth-1">{</span>
-  <span class="org-comment"># Tools we want available during development</span>
-  <span class="org-nix-attribute">devShells.default</span> = pkgs.mkShell <span class="org-rainbow-delimiters-depth-2">{</span>
-    <span class="org-nix-attribute">buildInputs</span> = <span class="org-rainbow-delimiters-depth-3">[</span>
-      dnc.sdk_8_0
-      pkgs.nixfmt
-      pkgs.skopeo
-      fantomas
-      format-all
-      format-stdin
-    <span class="org-rainbow-delimiters-depth-3">]</span>;
-  <span class="org-rainbow-delimiters-depth-2">}</span>;
-  <span class="org-comment"># ... snip ...</span>
-<span class="org-rainbow-delimiters-depth-1">}</span>
+<pre class="src src-nix"><span class="org-tree-sitter-hl-faceXkeyword">let</span>
+  <span class="org-tree-sitter-hl-faceXcomment"># ... snip ...</span>
+  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">fantomas</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">(</span><span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXfunction"><span class="org-tree-sitter-hl-faceXfunctionXbuiltin">import</span></span></span></span> <span class="org-nix-constant">./nix/fantomas.nix</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">)</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span> <span class="org-tree-sitter-hl-faceXkeyword">inherit</span> <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">pkgs</span></span> <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">dnc</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">format-all</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">(</span><span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXfunction"><span class="org-tree-sitter-hl-faceXfunctionXbuiltin">import</span></span></span></span> <span class="org-nix-constant">./nix/format-all.nix</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">)</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span> <span class="org-tree-sitter-hl-faceXkeyword">inherit</span> <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">pkgs</span></span> <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">fantomas</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">format-stdin</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span>
+    <span class="org-tree-sitter-hl-faceXpunctuationXbracket">(</span><span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXfunction"><span class="org-tree-sitter-hl-faceXfunctionXbuiltin">import</span></span></span></span> <span class="org-nix-constant">./nix/format-stdin.nix</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">)</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span> <span class="org-tree-sitter-hl-faceXkeyword">inherit</span> <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">pkgs</span></span> <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">fantomas</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+  <span class="org-tree-sitter-hl-faceXcomment"># ... snip ...</span>
+<span class="org-tree-sitter-hl-faceXkeyword">in</span> <span class="org-tree-sitter-hl-faceXkeyword">rec</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
+  <span class="org-tree-sitter-hl-faceXcomment"># Tools we want available during development</span>
+  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">devShells</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXproperty">.</span></span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">default</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXfunction"><span class="org-tree-sitter-hl-faceXproperty">mkShell</span></span></span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
+    <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">buildInputs</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">[</span>
+      <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">dnc</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">sdk_8_0</span></span>
+      <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">nixfmt</span></span>
+      <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">skopeo</span></span>
+      <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">fantomas</span></span>
+      <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">format-all</span></span>
+      <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">format-stdin</span></span>
+    <span class="org-tree-sitter-hl-faceXpunctuationXbracket">]</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+  <span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+  <span class="org-tree-sitter-hl-faceXcomment"># ... snip ...</span>
+<span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span>
 </pre>
 </div>
 
@@ -168,10 +167,9 @@ I'm normally quite keen on leaving the formatter settings on their default, but 
 </p>
 </div>
 </div>
-
-<div id="outline-container-org1f47623" class="outline-2">
-<h2 id="org1f47623">Testing (local)</h2>
-<div class="outline-text-2" id="text-org1f47623">
+<div id="outline-container-org8861012" class="outline-2">
+<h2 id="org8861012">Testing (local)</h2>
+<div class="outline-text-2" id="text-org8861012">
 <p>
 Nearly as importantly as the code being readable is whether it actually works. <a href="https://github.com/haf/expecto">Expecto</a> is an F# unit test library that allows you to write executable test programs and defines tests as pieces of data rather than class methods with particular attributes. This can be insanely helpful in writing parameterized tests, which we'll get back to in a later post.
 </p>
@@ -197,21 +195,21 @@ Let's add one to <code>Program.fs</code>:
 
 <span class="org-keyword">open</span> <span class="org-type">Expecto</span>
 
-<span class="org-preprocessor"><span class="org-rainbow-delimiters-depth-1">[</span></span><span class="org-preprocessor">&lt;Tests&gt;</span><span class="org-preprocessor"><span class="org-rainbow-delimiters-depth-1">]</span></span>
+<span class="org-preprocessor">[&lt;Tests&gt;]</span>
 <span class="org-keyword">let</span> <span class="org-variable-name">tests</span> =
   testList
     <span class="org-string">"My list"</span>
-    <span class="org-rainbow-delimiters-depth-1">[</span> testCase <span class="org-string">"hello"</span> <span class="org-rainbow-delimiters-depth-2">(</span><span class="org-keyword">fun</span> <span class="org-rainbow-delimiters-depth-3">()</span> -&gt;
+    [ testCase <span class="org-string">"hello"</span> (<span class="org-keyword">fun</span> () -&gt;
         Expect.equal
           <span class="org-string">"hello"</span>
           <span class="org-string">"hello"</span>
-          <span class="org-string">"Is it me you're looking for?"</span><span class="org-rainbow-delimiters-depth-2">)</span> <span class="org-rainbow-delimiters-depth-1">]</span>
+          <span class="org-string">"Is it me you're looking for?"</span>) ]
 
-<span class="org-preprocessor"><span class="org-rainbow-delimiters-depth-1">[</span></span><span class="org-preprocessor">&lt;EntryPoint&gt;</span><span class="org-preprocessor"><span class="org-rainbow-delimiters-depth-1">]</span></span>
+<span class="org-preprocessor">[&lt;EntryPoint&gt;]</span>
 <span class="org-keyword">let</span> <span class="org-function-name">main</span> <span class="org-variable-name">args</span> =
   <span class="org-comment-delimiter">// </span><span class="org-comment">This allows running with different arguments from the command line,</span>
   <span class="org-comment-delimiter">// </span><span class="org-comment">as well as via `dotnet test`</span>
-  runTestsWithCLIArgs <span class="org-rainbow-delimiters-depth-1">[]</span> args tests
+  runTestsWithCLIArgs [] args tests
 </pre>
 </div>
 
@@ -220,14 +218,14 @@ And then we can run it from the root of our project:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-shell">CalDance on &#57504; main via &#10052;&#65039;  impure <span class="org-rainbow-delimiters-depth-1">(</span>nix-shell<span class="org-rainbow-delimiters-depth-1">)</span>
-&#10095; dotnet run --project  Server.Test
-<span class="org-comment-delimiter"># </span><span class="org-comment">snipped warning messages about FSharp.Core versions</span>
-<span class="org-rainbow-delimiters-depth-1">[</span><span class="org-highlight-numbers-number">15:59:00</span> INF<span class="org-rainbow-delimiters-depth-1">]</span> EXPECTO? Running tests... &lt;Expecto&gt;
-<span class="org-rainbow-delimiters-depth-1">[</span><span class="org-highlight-numbers-number">15:59:00</span> INF<span class="org-rainbow-delimiters-depth-1">]</span> EXPECTO! <span class="org-highlight-numbers-number">1</span> tests run<span class="org-keyword"> in</span> <span class="org-highlight-numbers-number">00:00:00.0262215</span> for My list.hello &#8211; <span class="org-highlight-numbers-number">1</span> passed, <span class="org-highlight-numbers-number">0</span> ignored, <span class="org-highlight-numbers-number">0</span> failed, <span class="org-highlight-numbers-number">0</span> errored. Success! &lt;Expecto&gt;
+<pre class="src src-shell"><span class="org-tree-sitter-hl-faceXfunctionXcall">CalDance</span> on &#57504; main via &#10052;&#65039;  impure (<span class="org-tree-sitter-hl-faceXfunctionXcall">nix-shell</span>)
+<span class="org-tree-sitter-hl-faceXfunctionXcall">&#10095;</span> dotnet run <span class="org-tree-sitter-hl-faceXconstant">--project</span>  Server.Test
+<span class="org-tree-sitter-hl-faceXcomment"># snipped warning messages about FSharp.Core versions</span>
+[<span class="org-tree-sitter-hl-faceXfunctionXcall">15:59:00</span> INF] EXPECTO? Running tests... <span class="org-tree-sitter-hl-faceXoperator">&lt;</span>Expecto<span class="org-tree-sitter-hl-faceXoperator">&gt;</span>
+[15:59:00 INF] <span class="org-tree-sitter-hl-faceXfunctionXcall">EXPECTO!</span> 1 tests run<span class="org-keyword"> in</span> 00:00:00.0262215 for My list.hello &#8211; 1 passed, 0 ignored, 0 failed, 0 errored. Success! <span class="org-tree-sitter-hl-faceXoperator">&lt;</span>Expecto<span class="org-tree-sitter-hl-faceXoperator">&gt;</span>
 
-CalDance on &#57504; main via &#10052;&#65039;  impure <span class="org-rainbow-delimiters-depth-1">(</span>nix-shell<span class="org-rainbow-delimiters-depth-1">)</span>
-&#10095;
+CalDance on &#57504; main via &#10052;&#65039;  impure (<span class="org-tree-sitter-hl-faceXfunctionXcall">nix-shell</span>)
+<span class="org-tree-sitter-hl-faceXfunctionXcall">&#10095;</span>
 </pre>
 </div>
 
@@ -236,10 +234,9 @@ The current version of Expecto hasn't been updated to the latest FSharp.Core yet
 </p>
 </div>
 </div>
-
-<div id="outline-container-orgc60328e" class="outline-2">
-<h2 id="orgc60328e">Testing (CI)</h2>
-<div class="outline-text-2" id="text-orgc60328e">
+<div id="outline-container-org1897f08" class="outline-2">
+<h2 id="org1897f08">Testing (CI)</h2>
+<div class="outline-text-2" id="text-org1897f08">
 <p>
 Now though, we have a problem. The promise of using Nix was that we wouldn't need to configure CI with lots of setup for things likes tests because our build environment is self contained, and that we could incrementally and deterministically build our sub-components. But now we either create a single nix derivation that has both our projects in, or we need to somehow package the tests separately. We don't want to create a joint derivation because we're compiling down our server code into a self contained enclosure including its own copy of the dotnet runtime.
 </p>
@@ -257,16 +254,16 @@ It also turns out that the way the F# helpers in nix manage incremental builds i
 </p>
 
 <div class="org-src-container">
-<pre class="src src-nix"><span class="org-comment-delimiter"># </span><span class="org-comment">... snip ...</span>
-<span class="org-nix-attribute">postInstall</span> = <span class="org-string">''</span>
-<span class="org-string">  </span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-1">{</span></span>dnc.sdk_8_0<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-1">}</span></span><span class="org-string">/bin/dotnet \</span>
-<span class="org-string">      pack \</span>
-<span class="org-string">      -p:ContinuousIntegrationBuild=true \</span>
-<span class="org-string">      -p:Deterministic=true \</span>
-<span class="org-string">      --output "$out/share" \</span>
-<span class="org-string">      --configuration "Release"</span>
-<span class="org-string">''</span>;
-<span class="org-comment-delimiter"># </span><span class="org-comment">... snip ...</span>
+<pre class="src src-nix"><span class="org-tree-sitter-hl-faceXcomment"># ... snip ...</span>
+<span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXfunction">postInstall</span></span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXstring">''</span>
+<span class="org-tree-sitter-hl-faceXstring">  </span><span class="org-tree-sitter-hl-faceXpunctuationXspecial"><span class="org-tree-sitter-hl-faceXstring">${</span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">dnc</span></span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">sdk_8_0</span></span></span></span><span class="org-tree-sitter-hl-faceXpunctuationXspecial"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span></span></span><span class="org-tree-sitter-hl-faceXstring">/bin/dotnet \</span>
+<span class="org-tree-sitter-hl-faceXstring">      pack \</span>
+<span class="org-tree-sitter-hl-faceXstring">      -p:ContinuousIntegrationBuild=true \</span>
+<span class="org-tree-sitter-hl-faceXstring">      -p:Deterministic=true \</span>
+<span class="org-tree-sitter-hl-faceXstring">      --output "$out/share" \</span>
+<span class="org-tree-sitter-hl-faceXstring">      --configuration "Release"</span>
+<span class="org-tree-sitter-hl-faceXstring">''</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+<span class="org-tree-sitter-hl-faceXcomment"># ... snip ...</span>
 </pre>
 </div>
 
@@ -287,10 +284,10 @@ This in turn allows us to define a derivation for the <a href="https://gitlab.co
 </p>
 
 <div class="org-src-container">
-<pre class="src src-xml"><span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">ItemGroup</span><span class="org-nxml-tag-delimiter">&gt;</span>
-  <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">ProjectReference</span> <span class="org-nxml-attribute-local-name">Include</span>=<span class="org-string">"..\Server\CalDance.Server.fsproj"</span> <span class="org-nxml-tag-slash">/</span><span class="org-nxml-tag-delimiter">&gt;</span>
-  <span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-element-local-name">PackageReference</span> <span class="org-nxml-attribute-local-name">Include</span>=<span class="org-string">"CalDance.Server"</span> <span class="org-nxml-attribute-local-name">Version</span>=<span class="org-string">"*"</span> <span class="org-nxml-attribute-local-name">Condition</span>=<span class="org-string">" '$(ContinuousIntegrationBuild)'=='true' "</span> <span class="org-nxml-tag-slash">/</span><span class="org-nxml-tag-delimiter">&gt;</span>
-<span class="org-nxml-tag-delimiter">&lt;</span><span class="org-nxml-tag-slash">/</span><span class="org-nxml-element-local-name">ItemGroup</span><span class="org-nxml-tag-delimiter">&gt;</span>
+<pre class="src src-xml"><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&lt;</span></span><span class="org-tree-sitter-hl-faceXtag"><span class="org-nxml-element-local-name">ItemGroup</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&gt;</span></span>
+  <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&lt;</span></span><span class="org-tree-sitter-hl-faceXtag"><span class="org-nxml-element-local-name">ProjectReference</span></span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-nxml-attribute-local-name">Include</span></span><span class="org-tree-sitter-hl-faceXoperator">=</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXstring">"</span></span><span class="org-tree-sitter-hl-faceXstring">..\Server\CalDance.Server.fsproj</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXstring">"</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-slash">/</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&gt;</span></span>
+  <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&lt;</span></span><span class="org-tree-sitter-hl-faceXtag"><span class="org-nxml-element-local-name">PackageReference</span></span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-nxml-attribute-local-name">Include</span></span><span class="org-tree-sitter-hl-faceXoperator">=</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXstring">"</span></span><span class="org-tree-sitter-hl-faceXstring">CalDance.Server</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXstring">"</span></span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-nxml-attribute-local-name">Version</span></span><span class="org-tree-sitter-hl-faceXoperator">=</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXstring">"</span></span><span class="org-tree-sitter-hl-faceXstring">*</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXstring">"</span></span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-nxml-attribute-local-name">Condition</span></span><span class="org-tree-sitter-hl-faceXoperator">=</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXstring">"</span></span><span class="org-tree-sitter-hl-faceXstring"> '$(ContinuousIntegrationBuild)'=='true' </span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXstring">"</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-slash">/</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&gt;</span></span>
+<span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&lt;</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-slash">/</span></span><span class="org-tree-sitter-hl-faceXtag"><span class="org-nxml-element-local-name">ItemGroup</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-nxml-tag-delimiter">&gt;</span></span>
 </pre>
 </div>
 
@@ -299,15 +296,15 @@ To finish off our test setup, we add a new output to our flake file - a request 
 </p>
 
 <div class="org-src-container">
-<pre class="src src-nix"><span class="org-nix-attribute">packages.test</span> = pkgs.stdenv.mkDerivation <span class="org-rainbow-delimiters-depth-1">{</span>
-  <span class="org-nix-attribute">name</span> = <span class="org-string">"</span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-2">{</span></span>baseName<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-2">}</span></span><span class="org-string">.TestResults"</span>;
-  <span class="org-nix-attribute">version</span> = version;
-  <span class="org-nix-attribute">unpackPhase</span> = <span class="org-string">"true"</span>;
+<pre class="src src-nix"><span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">packages</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXfunction"><span class="org-tree-sitter-hl-faceXproperty">test</span></span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">stdenv</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXproperty">.</span></span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">mkDerivation</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
+  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">name</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXpunctuationXspecial"><span class="org-tree-sitter-hl-faceXstring">${</span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">baseName</span></span></span></span><span class="org-tree-sitter-hl-faceXpunctuationXspecial"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span></span></span><span class="org-tree-sitter-hl-faceXstring">.TestResults"</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">version</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">version</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">unpackPhase</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXstring">"true"</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
 
-  <span class="org-nix-attribute">installPhase</span> = <span class="org-string">''</span>
-<span class="org-string">    </span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-2">{</span></span>testExecutable<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-2">}</span></span><span class="org-string">/bin/CalDance.Server.Test --junit-summary $out/server.test.junit.xml</span>
-<span class="org-string">  ''</span>;
-<span class="org-rainbow-delimiters-depth-1">}</span>;
+  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">installPhase</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXstring">''</span>
+<span class="org-tree-sitter-hl-faceXstring">    </span><span class="org-tree-sitter-hl-faceXpunctuationXspecial"><span class="org-tree-sitter-hl-faceXstring">${</span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">testExecutable</span></span></span></span><span class="org-tree-sitter-hl-faceXpunctuationXspecial"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span></span></span><span class="org-tree-sitter-hl-faceXstring">/bin/CalDance.Server.Test --junit-summary $out/server.test.junit.xml</span>
+<span class="org-tree-sitter-hl-faceXstring">  ''</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+<span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
 </pre>
 </div>
 
@@ -320,27 +317,26 @@ Some boiler plate additions to the GitLab CI configuration finishes things off; 
 </p>
 
 <div class="org-src-container">
-<pre class="src src-yaml"><span class="org-comment-delimiter"># </span><span class="org-comment">Nothing before the build command in the script has changed since the previous post</span>
-  - <span class="org-string">'nix build .#dockerImage .#test'</span>
+<pre class="src src-yaml"># Nothing before the build command in the script has changed since the previous post
+  - 'nix build .#dockerImage .#test'
   - mkdir testResults
-  - <span class="org-string">'cp result-1/* testResults'</span>
+  - 'cp result-1/* testResults'
   - ls -lh ./result
-  - <span class="org-string">'skopeo inspect docker-archive://$(readlink -f ./result)'</span>
-  - <span class="org-string">'skopeo copy docker-archive://$(readlink -f ./result) docker://$IMAGE_TAG'</span>
-<span class="org-variable-name">artifacts</span>:
-  <span class="org-variable-name">when</span>: always
-  <span class="org-variable-name">paths</span>:
-    - <span class="org-string">'testResults/*.xml'</span>
-  <span class="org-variable-name">reports</span>:
-    <span class="org-variable-name">junit</span>: <span class="org-string">'testResults/*.xml'</span>
+  - 'skopeo inspect docker-archive://$(readlink -f ./result)'
+  - 'skopeo copy docker-archive://$(readlink -f ./result) docker://$IMAGE_TAG'
+artifacts:
+  when: always
+  paths:
+    - 'testResults/*.xml'
+  reports:
+    junit: 'testResults/*.xml'
 </pre>
 </div>
 </div>
 </div>
-
-<div id="outline-container-org7447bbb" class="outline-2">
-<h2 id="org7447bbb">Wrapping it all up</h2>
-<div class="outline-text-2" id="text-org7447bbb">
+<div id="outline-container-org4cb0f2f" class="outline-2">
+<h2 id="org4cb0f2f">Wrapping it all up</h2>
+<div class="outline-text-2" id="text-org4cb0f2f">
 <p>
 That seems like a nice breaking off point for now. In this next stage we have:
 </p>
@@ -365,12 +361,11 @@ If you'd like to see the next post starting to actually hook up a form and a dat
 </p>
 </div>
 </div>
-
-<div id="outline-container-orga4cb97e" class="outline-2">
-<h2 id="orga4cb97e">Next</h2>
-<div class="outline-text-2" id="text-orga4cb97e">
+<div id="outline-container-org60eefef" class="outline-2">
+<h2 id="org60eefef">Next</h2>
+<div class="outline-text-2" id="text-org60eefef">
 <p>
-<a href="../../../2024/02/20/dev-journal-3.html">Part 3</a> continues with an end to end test of our docker container.
+<a href="/../../../2024/02/20/dev-journal-3.html">Part 3</a> continues with an end to end test of our docker container.
 </p>
 </div>
 </div>
@@ -387,26 +382,26 @@ The code for the helpers looks like this:
 </p>
 
 <div class="org-src-container">
-<pre class="src src-nix"><span class="org-rainbow-delimiters-depth-1">{</span> pkgs, fantomas <span class="org-rainbow-delimiters-depth-1">}</span>:
-pkgs.writeShellScriptBin <span class="org-string">"format-all"</span> <span class="org-string">''</span>
-<span class="org-string">  </span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-1">{</span></span>fantomas<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-1">}</span></span><span class="org-string">/bin/fantomas */src/*.fs</span>
-<span class="org-string">''</span>
+<pre class="src src-nix"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span> <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariableXparameter">pkgs</span></span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">,</span> <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariableXparameter">fantomas</span></span></span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span>:
+<span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXfunction"><span class="org-tree-sitter-hl-faceXproperty">writeShellScriptBin</span></span></span> <span class="org-tree-sitter-hl-faceXstring">"format-all"</span> <span class="org-tree-sitter-hl-faceXstring">''</span>
+<span class="org-tree-sitter-hl-faceXstring">  </span><span class="org-nix-antiquote">${</span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">fantomas</span></span></span></span><span class="org-nix-antiquote">}</span><span class="org-tree-sitter-hl-faceXstring">/bin/fantomas */src/*.fs</span>
+<span class="org-tree-sitter-hl-faceXstring">''</span>
 </pre>
 </div>
 
 <div class="org-src-container">
-<pre class="src src-nix"><span class="org-rainbow-delimiters-depth-1">{</span> pkgs, fantomas <span class="org-rainbow-delimiters-depth-1">}</span>:
-pkgs.writeShellScriptBin <span class="org-string">"format-stdin"</span> <span class="org-string">''</span>
-<span class="org-string">  TMP_FILE=$(mktemp --suffix=".fs" || exit 1)</span>
-<span class="org-string">  if [ $? -ne 0 ]; then</span>
-<span class="org-string">    echo "$0: Cannot create temp file"</span>
-<span class="org-string">    exit 1</span>
-<span class="org-string">  fi</span>
-<span class="org-string">  echo "$(&lt;/dev/stdin)" &gt; $TMP_FILE</span>
-<span class="org-string">  </span><span class="org-nix-antiquote">$</span><span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-1">{</span></span>fantomas<span class="org-nix-antiquote"><span class="org-rainbow-delimiters-depth-1">}</span></span><span class="org-string">/bin/fantomas $TMP_FILE &amp;&gt; /dev/null</span>
-<span class="org-string">  cat $TMP_FILE</span>
-<span class="org-string">  rm $TMP_FILE</span>
-<span class="org-string">''</span>
+<pre class="src src-nix"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span> <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariableXparameter">pkgs</span></span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">,</span> <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariableXparameter">fantomas</span></span></span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span>:
+<span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXfunction"><span class="org-tree-sitter-hl-faceXproperty">writeShellScriptBin</span></span></span> <span class="org-tree-sitter-hl-faceXstring">"format-stdin"</span> <span class="org-tree-sitter-hl-faceXstring">''</span>
+<span class="org-tree-sitter-hl-faceXstring">  TMP_FILE=$(mktemp --suffix=".fs" || exit 1)</span>
+<span class="org-tree-sitter-hl-faceXstring">  if [ $? -ne 0 ]; then</span>
+<span class="org-tree-sitter-hl-faceXstring">    echo "$0: Cannot create temp file"</span>
+<span class="org-tree-sitter-hl-faceXstring">    exit 1</span>
+<span class="org-tree-sitter-hl-faceXstring">  fi</span>
+<span class="org-tree-sitter-hl-faceXstring">  echo "$(&lt;/dev/stdin)" &gt; $TMP_FILE</span>
+<span class="org-tree-sitter-hl-faceXstring">  </span><span class="org-nix-antiquote">${</span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">fantomas</span></span></span></span><span class="org-nix-antiquote">}</span><span class="org-tree-sitter-hl-faceXstring">/bin/fantomas $TMP_FILE &amp;&gt; /dev/null</span>
+<span class="org-tree-sitter-hl-faceXstring">  cat $TMP_FILE</span>
+<span class="org-tree-sitter-hl-faceXstring">  rm $TMP_FILE</span>
+<span class="org-tree-sitter-hl-faceXstring">''</span>
 </pre>
 </div></div></div>
 

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2025-08-16 Sat 12:57 -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Conflict free syncthing notes</title>
+<meta name="author" content="Michael Newton" />
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/org.css">
+<script src="/htmx.min.js"></script>
+</head>
+<body hx-boost="true">
+<div id="org-div-home-and-up"><span class="home-text"><a accesskey="H" href="/">HOME</span><img class="home-logo" src="http://blog.mavnn.co.uk/images/swirl.svg" /></a></div><div id="content" class="container">
+<header>
+<h1 class="title">Conflict free syncthing notes</h1>
+</header><p>
+Just a short trick this time, mostly for my own records. As a family we've started moving to Syncthing for syncing files across devices, and "open" note taking formats like ".org" and ".md" for long term note taking. I've been using org-mode for a while personally, and now the rest of the family have been burned enough by the alternatives over the years that they're coming to similar conclusions even if not all of them want to use Emacs!
+</p>
+
+<p>
+Syncthing has a sensible general purpose policy with conflicts of creating a copy of a file where a conflict exists with a <code>.sync-conflict-&lt;date&gt;-&lt;time&gt;-&lt;device-id&gt;.</code> pseudo-extension added before the files true extension (or to the end of the filename if it didn't have one).
+</p>
+
+<p>
+In general, this is great as it means that a) all in sync devices have a shared understanding of the "winning" version of the file, and b) you can manually do any comparisons you need to and by saving a new version of the "original" file name and deleting the conflicting copies you resolve the conflict for everybody.
+</p>
+
+<p>
+But with plain text note files, we can actually do a bit better than that. Because these files are always text, we can use a standard merge algorithm on them. And because the places where conflicts happen most are (almost by definition) things like todo lists and similar, we can even go a step further and specify that even if there is a line/word level conflict that the algorithm can't resolve, we can allow the resolution to be "just in line the changes from both sides."
+</p>
+
+<p>
+So there's now a cron job running on the Raspberry Pi that acts as our "introducer" node in our Syncthing mesh, which looks like this:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-bash"><span class="org-tree-sitter-hl-faceXcomment">#!/usr/bin/</span><span class="org-keyword">env</span><span class="org-tree-sitter-hl-faceXcomment"> bash</span>
+<span class="org-tree-sitter-hl-faceXcomment"># Find all files that are syncthing conflict markers, and have</span>
+<span class="org-tree-sitter-hl-faceXcomment"># a "note" extension (md or txt or org)</span>
+<span class="org-tree-sitter-hl-faceXfunctionXcall">readarray</span> <span class="org-tree-sitter-hl-faceXconstant">-t</span> CONFLICTS <span class="org-tree-sitter-hl-faceXoperator">&lt;</span> <span class="org-tree-sitter-hl-faceXpunctuationXspecial">&lt;(</span> <span class="org-sh-escaped-newline">\</span>
+  <span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXfunctionXcall">find</span></span><span class="org-tree-sitter-hl-faceXembedded"> /syncthing/share/parent/directory </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXconstant">-type</span></span><span class="org-tree-sitter-hl-faceXembedded"> f \</span>
+<span class="org-tree-sitter-hl-faceXembedded">       </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXconstant">-name</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring">"*.sync-conflict*"</span></span><span class="org-tree-sitter-hl-faceXembedded"> \</span>
+<span class="org-tree-sitter-hl-faceXembedded">       \( </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXconstant">-name</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring">"*.md"</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXconstant">-o</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXconstant">-name</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring">"*.org"</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXconstant">-o</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXconstant">-name</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring">"*.txt"</span></span><span class="org-tree-sitter-hl-faceXembedded"> \)</span> <span class="org-sh-escaped-newline">\</span>
+<span class="org-tree-sitter-hl-faceXpunctuationXspecial">)</span>
+<span class="org-tree-sitter-hl-faceXcomment"># For each file:</span>
+<span class="org-tree-sitter-hl-faceXkeyword">for</span> <span class="org-tree-sitter-hl-faceXproperty">CONFLICT</span> <span class="org-tree-sitter-hl-faceXkeyword">in</span> <span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">${</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXproperty">CONFLICTS</span></span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXembedded">[@]</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">}</span></span><span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXoperator">;</span>
+<span class="org-tree-sitter-hl-faceXkeyword">do</span>
+   <span class="org-tree-sitter-hl-faceXcomment"># Build the regex for matching conflict files and extracting</span>
+   <span class="org-tree-sitter-hl-faceXcomment"># the original file name.</span>
+   <span class="org-tree-sitter-hl-faceXcomment"># 1. The marker, capturing the file name in a group.</span>
+   <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">REG</span></span>=<span class="org-tree-sitter-hl-faceXstring">"\(.*\)sync-conflict-"</span>
+   <span class="org-tree-sitter-hl-faceXcomment"># 2. The date</span>
+   <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">REG</span></span>+=<span class="org-tree-sitter-hl-faceXstring">"[[:digit:]]\{8\}-"</span>
+   <span class="org-tree-sitter-hl-faceXcomment"># 3. The time</span>
+   <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">REG</span></span>+=<span class="org-tree-sitter-hl-faceXstring">"[[:digit:]]\{6\}-"</span>
+   <span class="org-tree-sitter-hl-faceXcomment"># 4. The originating device ID</span>
+   <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">REG</span></span>+=<span class="org-tree-sitter-hl-faceXstring">"-[A-Z0-9]\{7\}"</span>
+   <span class="org-tree-sitter-hl-faceXcomment"># 5. The original file extension</span>
+   <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">REG</span></span>+=<span class="org-tree-sitter-hl-faceXstring">".\(.*\)"</span>
+   <span class="org-tree-sitter-hl-faceXcomment"># Find the "winning" version with the original file name</span>
+   <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">CHOSEN</span></span>=<span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXpunctuationXspecial"><span class="org-tree-sitter-hl-faceXstring">$(</span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXfunctionXcall"><span class="org-tree-sitter-hl-faceXfunctionXbuiltin">echo</span></span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"> "</span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">$</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty">CONFLICT</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring">" </span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXoperator">|</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"> </span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXfunctionXcall">sed</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"> </span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXconstant">-n</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"> "s/</span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">${</span></span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXproperty">REG</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">}</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring">/\1\2/p"</span></span><span class="org-tree-sitter-hl-faceXstring"> </span><span class="org-tree-sitter-hl-faceXpunctuationXspecial"><span class="org-tree-sitter-hl-faceXstring">)</span></span><span class="org-tree-sitter-hl-faceXstring">"</span>
+   <span class="org-tree-sitter-hl-faceXfunctionXcall"><span class="org-tree-sitter-hl-faceXfunctionXbuiltin">echo</span></span> Merging <span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">$</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty">CHOSEN</span></span><span class="org-tree-sitter-hl-faceXstring">"</span> <span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">$</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty">CONFLICT</span></span><span class="org-tree-sitter-hl-faceXstring">"</span>
+   <span class="org-tree-sitter-hl-faceXcomment"># If the original file actually exists (nothing stops a user from deleting it)</span>
+   <span class="org-tree-sitter-hl-faceXkeyword">if</span> [ -f <span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">$</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty">CHOSEN</span></span><span class="org-tree-sitter-hl-faceXstring">"</span> ]<span class="org-tree-sitter-hl-faceXoperator">;</span> <span class="org-tree-sitter-hl-faceXkeyword">then</span>
+     <span class="org-tree-sitter-hl-faceXcomment"># Merge the two versions of the file, taking from both in case of conflict;</span>
+     <span class="org-tree-sitter-hl-faceXcomment"># this may cause repetition but won't lose data. Delete the conflict file</span>
+     <span class="org-tree-sitter-hl-faceXcomment"># but only if the merge reported no errors.</span>
+     <span class="org-tree-sitter-hl-faceXfunctionXcall">git</span> merge-file <span class="org-tree-sitter-hl-faceXconstant">--union</span> <span class="org-sh-escaped-newline">\</span>
+         <span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">$</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty">CHOSEN</span></span><span class="org-tree-sitter-hl-faceXstring">"</span> <span class="org-tree-sitter-hl-faceXstring">"/syncthing/share/parent/directory/empty_file"</span> <span class="org-sh-escaped-newline">\</span>
+         <span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">$</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty">CONFLICT</span></span><span class="org-tree-sitter-hl-faceXstring">"</span> <span class="org-tree-sitter-hl-faceXoperator">&amp;&amp;</span> <span class="org-tree-sitter-hl-faceXfunctionXcall">rm</span> <span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">$</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty">CONFLICT</span></span><span class="org-tree-sitter-hl-faceXstring">"</span>
+   <span class="org-tree-sitter-hl-faceXkeyword">else</span>
+     <span class="org-tree-sitter-hl-faceXfunctionXcall"><span class="org-tree-sitter-hl-faceXfunctionXbuiltin">echo</span></span> <span class="org-tree-sitter-hl-faceXstring">"No current file found"</span>
+   <span class="org-tree-sitter-hl-faceXkeyword">fi</span>
+<span class="org-tree-sitter-hl-faceXkeyword">done</span>
+</pre>
+</div>
+
+<p>
+The only slight gotcha is you'll need to run <code>touch /syncthing/share/parent/directory/empty_file</code> to create an empty file to be used as the "parent" of the two conflicting versions. Extra internet points available to anyone who instead works out how to use a historical version from syncthing's archive functionality, but for me on this occasion that wasn't really needed.
+</p>
+</div>
+<div id="postamble" class="status">
+<footer id="my-contacts">
+<p hx-boost="false"><a href="https://blog.mavnn.co.uk/rss.xml">RSS</a></p>
+<p><a href="https://mastodon.sdf.org/@mavnn">Mastodon</a></p>
+<p>Git(<a href="https://github.com/mavnn">Hub</a>|<a href="https://gitlab.com/mavnn">Lab</a>)</p>
+</footer>
+</div>
+</body>
+</html>

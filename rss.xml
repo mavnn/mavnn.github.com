@@ -14,8 +14,8 @@
   <link>https://blog.mavnn.co.uk/</link>
   <description><![CDATA[]]></description>
   <language>en</language>
-  <pubDate>Fri, 25 Apr 2025 18:15:41 +0200</pubDate>
-  <lastBuildDate>Fri, 25 Apr 2025 18:15:41 +0200</lastBuildDate>
+  <pubDate>Sat, 16 Aug 2025 12:57:38 +0200</pubDate>
+  <lastBuildDate>Sat, 16 Aug 2025 12:57:38 +0200</lastBuildDate>
   <generator>Emacs 30.1 Org-mode 9.8-pre</generator>
   <webMaster>michael@mavnn.eu (Michael Newton)</webMaster>
   <image>
@@ -25,95 +25,172 @@
   </image>
 
   <item>
-    <title>Types et al as accessibility tools for the ADHD brain</title>
-    <link>https://blog.mavnn.co.uk/2024/05/17/adhd_refs.html</link>
+    <title>Conflict free syncthing notes</title>
+    <link>https://blog.mavnn.co.uk/2025/08/15/conflict_free_syncthing_notes.html</link>
     <author>michael@mavnn.eu (Michael Newton)</author>
-    <guid isPermaLink="false">https://blog.mavnn.co.uk/2024/05/17/adhd_refs.html</guid>
-    <pubDate>Fri, 17 May 2024 00:00:00 +0200</pubDate>
+    <guid isPermaLink="false">https://blog.mavnn.co.uk/2025/08/15/conflict_free_syncthing_notes.html</guid>
+    <pubDate>Fri, 15 Aug 2025 00:00:00 +0200</pubDate>
 
     <description><![CDATA[<p>
-    :ID:       16B63501-8C0C-4F3A-82FA-5EE453BBBBC7
+    :ID:       0C23E268-F37F-4C6C-8E38-F04C03486EED
     </p>
     <p>
-    I ended up with a fair number of references for my talks at <a href="https://www.youtube.com/watch?v=vd1-rAIYV6I">Software You Can Love</a> and <a href="https://www.youtube.com/watch?v=DG5gLPFKcbk">LambdaDays 2024</a> on how I use various tools and techniques to compensate for my late diagnosed ADHD. The two talks are based off the same outline and slides, although the speaker having ADHD the content does vary a bit between them...
+    Just a short trick this time, mostly for my own records. As a family we've started moving to Syncthing for syncing files across devices, and "open" note taking formats like ".org" and ".md" for long term note taking. I've been using org-mode for a while personally, and now the rest of the family have been burned enough by the alternatives over the years that they're coming to similar conclusions even if not all of them want to use Emacs!
     </p>
 
     <p>
-    Now, the list of links!
-    </p>
-    <div id="outline-container-ID-7D9DE119-23F9-4A45-B541-52DACF9F0B15" class="outline-3">
-    <h3 id="ID-7D9DE119-23F9-4A45-B541-52DACF9F0B15"><span class="section-number-3">1.1.</span> About ADHD</h3>
-    <div class="outline-text-3" id="text-1-1">
-    <p>
-    "How to ADHD" has lots of material on what ADHD is, how it manifests, and what you can do about it: <a href="https://howtoadhd.com/">https://howtoadhd.com/</a>
+    Syncthing has a sensible general purpose policy with conflicts of creating a copy of a file where a conflict exists with a <code>.sync-conflict-&lt;date&gt;-&lt;time&gt;-&lt;device-id&gt;.</code> pseudo-extension added before the files true extension (or to the end of the filename if it didn't have one).
     </p>
 
     <p>
-    A paper reviewing research on working memory in adults with ADHD: <a href="https://psycnet.apa.org/record/2013-16996-001">https://psycnet.apa.org/record/2013-16996-001</a>
+    In general, this is great as it means that a) all in sync devices have a shared understanding of the "winning" version of the file, and b) you can manually do any comparisons you need to and by saving a new version of the "original" file name and deleting the conflicting copies you resolve the conflict for everybody.
     </p>
 
     <p>
-    Mads Torgersen (lead designer of C# at Microsoft) talks about his own diagnosis on the No Dogma Podcast: <a href="https://nodogmapodcast.bryanhogan.net/165-mads-torgersen-adhd/">https://nodogmapodcast.bryanhogan.net/165-mads-torgersen-adhd/</a>
+    But with plain text note files, we can actually do a bit better than that. Because these files are always text, we can use a standard merge algorithm on them. And because the places where conflicts happen most are (almost by definition) things like todo lists and similar, we can even go a step further and specify that even if there is a line/word level conflict that the algorithm can't resolve, we can allow the resolution to be "just in line the changes from both sides."
     </p>
 
     <p>
-    (Bonus extra: that last link has <i>more</i> links to more ADHD resources)
+    So there's now a cron job running on the Raspberry Pi that acts as our "introducer" node in our Syncthing mesh, which looks like this:
     </p>
 
-    <p>
-    Finally, I mentioned at one point an organization tool that happens to mesh fairly well with my own variant of ADHD called SkedPal: <a href="https://skedpal.com/">https://skedpal.com/</a>. You prioritize tasks in advance, and assign them to "time maps" (i.e. this times are work times, these times are home times). Then you hit the button and it suggests a calendar of tasks. I've found it useful because it allows things like "this task is important to me but it doesn't matter when it is done" and "this task isn't very important but if I'm going to do it, it needs happen by Friday" and it will suggest a sane next thing to do. And when you (inevitably) fail to actually follow the plan, you just hit the button again and it suggests a new plan based on the things you actually did rather than the things it thought you were going to do. Caveat: it's not free software, and it does charge a monthly fee.
-    </p>
+    <div class="org-src-container">
+    <pre class="src src-bash"><span class="org-tree-sitter-hl-faceXcomment">#!/usr/bin/</span><span class="org-keyword">env</span><span class="org-tree-sitter-hl-faceXcomment"> bash</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># Find all files that are syncthing conflict markers, and have</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># a "note" extension (md or txt or org)</span>
+    <span class="org-tree-sitter-hl-faceXfunctionXcall">readarray</span> <span class="org-tree-sitter-hl-faceXconstant">-t</span> CONFLICTS <span class="org-tree-sitter-hl-faceXoperator">&lt;</span> <span class="org-tree-sitter-hl-faceXpunctuationXspecial">&lt;(</span> <span class="org-sh-escaped-newline">\</span>
+    <span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXfunctionXcall">find</span></span><span class="org-tree-sitter-hl-faceXembedded"> /syncthing/share/parent/directory </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXconstant">-type</span></span><span class="org-tree-sitter-hl-faceXembedded"> f \</span>
+    <span class="org-tree-sitter-hl-faceXembedded">       </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXconstant">-name</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring">"*.sync-conflict*"</span></span><span class="org-tree-sitter-hl-faceXembedded"> \</span>
+    <span class="org-tree-sitter-hl-faceXembedded">       \( </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXconstant">-name</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring">"*.md"</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXconstant">-o</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXconstant">-name</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring">"*.org"</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXconstant">-o</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXconstant">-name</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring">"*.txt"</span></span><span class="org-tree-sitter-hl-faceXembedded"> \)</span> <span class="org-sh-escaped-newline">\</span>
+    <span class="org-tree-sitter-hl-faceXpunctuationXspecial">)</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># For each file:</span>
+    <span class="org-tree-sitter-hl-faceXkeyword">for</span> <span class="org-tree-sitter-hl-faceXproperty">CONFLICT</span> <span class="org-tree-sitter-hl-faceXkeyword">in</span> <span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">${</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXproperty">CONFLICTS</span></span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXembedded">[@]</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">}</span></span><span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXoperator">;</span>
+    <span class="org-tree-sitter-hl-faceXkeyword">do</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># Build the regex for matching conflict files and extracting</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># the original file name.</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># 1. The marker, capturing the file name in a group.</span>
+    <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">REG</span></span>=<span class="org-tree-sitter-hl-faceXstring">"\(.*\)sync-conflict-"</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># 2. The date</span>
+    <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">REG</span></span>+=<span class="org-tree-sitter-hl-faceXstring">"[[:digit:]]\{8\}-"</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># 3. The time</span>
+    <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">REG</span></span>+=<span class="org-tree-sitter-hl-faceXstring">"[[:digit:]]\{6\}-"</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># 4. The originating device ID</span>
+    <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">REG</span></span>+=<span class="org-tree-sitter-hl-faceXstring">"-[A-Z0-9]\{7\}"</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># 5. The original file extension</span>
+    <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">REG</span></span>+=<span class="org-tree-sitter-hl-faceXstring">".\(.*\)"</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># Find the "winning" version with the original file name</span>
+    <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">CHOSEN</span></span>=<span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXpunctuationXspecial"><span class="org-tree-sitter-hl-faceXstring">$(</span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXfunctionXcall"><span class="org-tree-sitter-hl-faceXfunctionXbuiltin">echo</span></span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"> "</span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">$</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty">CONFLICT</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring">" </span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXoperator">|</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"> </span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXfunctionXcall">sed</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"> </span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXconstant">-n</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"> "s/</span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">${</span></span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXproperty">REG</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">}</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring">/\1\2/p"</span></span><span class="org-tree-sitter-hl-faceXstring"> </span><span class="org-tree-sitter-hl-faceXpunctuationXspecial"><span class="org-tree-sitter-hl-faceXstring">)</span></span><span class="org-tree-sitter-hl-faceXstring">"</span>
+    <span class="org-tree-sitter-hl-faceXfunctionXcall"><span class="org-tree-sitter-hl-faceXfunctionXbuiltin">echo</span></span> Merging <span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">$</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty">CHOSEN</span></span><span class="org-tree-sitter-hl-faceXstring">"</span> <span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">$</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty">CONFLICT</span></span><span class="org-tree-sitter-hl-faceXstring">"</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># If the original file actually exists (nothing stops a user from deleting it)</span>
+    <span class="org-tree-sitter-hl-faceXkeyword">if</span> [ -f <span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">$</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty">CHOSEN</span></span><span class="org-tree-sitter-hl-faceXstring">"</span> ]<span class="org-tree-sitter-hl-faceXoperator">;</span> <span class="org-tree-sitter-hl-faceXkeyword">then</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># Merge the two versions of the file, taking from both in case of conflict;</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># this may cause repetition but won't lose data. Delete the conflict file</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># but only if the merge reported no errors.</span>
+    <span class="org-tree-sitter-hl-faceXfunctionXcall">git</span> merge-file <span class="org-tree-sitter-hl-faceXconstant">--union</span> <span class="org-sh-escaped-newline">\</span>
+    <span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">$</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty">CHOSEN</span></span><span class="org-tree-sitter-hl-faceXstring">"</span> <span class="org-tree-sitter-hl-faceXstring">"/syncthing/share/parent/directory/empty_file"</span> <span class="org-sh-escaped-newline">\</span>
+    <span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">$</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty">CONFLICT</span></span><span class="org-tree-sitter-hl-faceXstring">"</span> <span class="org-tree-sitter-hl-faceXoperator">&amp;&amp;</span> <span class="org-tree-sitter-hl-faceXfunctionXcall">rm</span> <span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">$</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty">CONFLICT</span></span><span class="org-tree-sitter-hl-faceXstring">"</span>
+    <span class="org-tree-sitter-hl-faceXkeyword">else</span>
+    <span class="org-tree-sitter-hl-faceXfunctionXcall"><span class="org-tree-sitter-hl-faceXfunctionXbuiltin">echo</span></span> <span class="org-tree-sitter-hl-faceXstring">"No current file found"</span>
+    <span class="org-tree-sitter-hl-faceXkeyword">fi</span>
+    <span class="org-tree-sitter-hl-faceXkeyword">done</span>
+    </pre>
     </div>
-    </div>
-    <div id="outline-container-ID-1A46A656-CD42-4CB9-868B-3882B58201D1" class="outline-3">
-    <h3 id="ID-1A46A656-CD42-4CB9-868B-3882B58201D1"><span class="section-number-3">1.2.</span> Evidence (or not) of my favourite programming techniques being better</h3>
-    <div class="outline-text-3" id="text-1-2">
-    <p>
-    Dan Luu's tour de force review of research into whether or not strong typing leads to more reliable code: <a href="https://danluu.com/empirical-pl/">https://danluu.com/empirical-pl/</a>
-    </p>
 
     <p>
-    Brian Marick has a well thought out post on why he's not fully convinced by property based testing: <a href="https://www.crustofcode.com/a-reluctant-rebuttal/">https://www.crustofcode.com/a-reluctant-rebuttal/</a>. Most importantly he links to a paper written in <i>1990</i> that partition testing has some issues, all of which would also apply to property based testing: <a href="https://www.site.uottawa.ca/~gvj/papers/Software%20Engineering%20IEEE%20Transactions%20on%201990%20Hamlet.pdf">https://www.site.uottawa.ca/~gvj/papers/Software%20Engineering%20IEEE%20Transactions%20on%201990%20Hamlet.pdf</a>. It is worth noting that both Marick (about PBT), and Hamlet and Taylor (about partition testing) do state that they see use cases for these testing methods, but that they do also have concerns.
+    The only slight gotcha is you'll need to run <code>touch /syncthing/share/parent/directory/empty_file</code> to create an empty file to be used as the "parent" of the two conflicting versions. Extra internet points available to anyone who instead works out how to use a historical version from syncthing's archive functionality, but for me on this occasion that wasn't really needed.
     </p>
-
-    <p>
-    The arguments I've heard against domain driven design have tended to be more anecdotal but mostly boil down to: "you're making the code harder to understand by forcing developers to understand both the code <i>and</i> the specialist terminology of the users at the same time."
-    </p>
-    </div>
-    </div>
-    <div id="outline-container-ID-AFD54626-D0A7-4AE6-BF2E-39F5B1665763" class="outline-3">
-    <h3 id="ID-AFD54626-D0A7-4AE6-BF2E-39F5B1665763"><span class="section-number-3">1.3.</span> Going deeper on Property Based Testing</h3>
-    <div class="outline-text-3" id="text-1-3">
-    <p>
-    I happen to be a fan of Scott Wlaschin's video and blog posts at <a href="https://fsharpforfunandprofit.com/pbt/">https://fsharpforfunandprofit.com/pbt/</a> titled "The lazy programmer's guide to writing 1000's of tests".
-    </p>
-
-    <p>
-    Otherwise, a quick google search for "John Hughes" will net you many talks from the author of the first property based testing framework.
-    </p>
-
-    <p>
-    Fuzz testing is a related topic which somewhat overlaps, but with a different focus.
-    </p>
-    </div>
-    </div>
-    <div id="outline-container-ID-D025B476-C026-4238-8F5F-9EF555BD920C" class="outline-3">
-    <h3 id="ID-D025B476-C026-4238-8F5F-9EF555BD920C"><span class="section-number-3">1.4.</span> Leaning into union types, and domain driven design</h3>
-    <div class="outline-text-3" id="text-1-4">
-    <p>
-    I cannot over stress how amazing a book "Domain Modeling Made Functional" is (again, by Scott Wlaschin) <a href="https://pragprog.com/titles/swdddf/domain-modeling-made-functional/">https://pragprog.com/titles/swdddf/domain-modeling-made-functional/</a>. There is also a talk covering the basics available at <a href="https://www.youtube.com/watch?v=MlPQ0FsPxPY">https://www.youtube.com/watch?v=MlPQ0FsPxPY</a>.
-    </p>
-    </div>
-    </div>
-    <div id="outline-container-ID-4B738CE0-DA6A-46CE-9237-8446A8BDE9A8" class="outline-3">
-    <h3 id="ID-4B738CE0-DA6A-46CE-9237-8446A8BDE9A8"><span class="section-number-3">1.5.</span> Pushing the boundaries on types</h3>
-    <div class="outline-text-3" id="text-1-5">
-    <p>
-    Probably the place to start is the Idris programming language <a href="https://www.idris-lang.org/">https://www.idris-lang.org/</a>
-    </p>
-    </div>
-    </div>
     ]]></description>
+</item>
+<item>
+  <title>Types et al as accessibility tools for the ADHD brain</title>
+  <link>https://blog.mavnn.co.uk/2024/05/17/adhd_refs.html</link>
+  <author>michael@mavnn.eu (Michael Newton)</author>
+  <guid isPermaLink="false">https://blog.mavnn.co.uk/2024/05/17/adhd_refs.html</guid>
+  <pubDate>Fri, 17 May 2024 00:00:00 +0200</pubDate>
+
+  <description><![CDATA[<p>
+  :ID:       16B63501-8C0C-4F3A-82FA-5EE453BBBBC7
+  </p>
+  <p>
+  I ended up with a fair number of references for my talks at <a href="https://www.youtube.com/watch?v=vd1-rAIYV6I">Software You Can Love</a> and <a href="https://www.youtube.com/watch?v=DG5gLPFKcbk">LambdaDays 2024</a> on how I use various tools and techniques to compensate for my late diagnosed ADHD. The two talks are based off the same outline and slides, although the speaker having ADHD the content does vary a bit between them...
+  </p>
+
+  <p>
+  Now, the list of links!
+  </p>
+  <div id="outline-container-ID-3E10E6B3-96E4-4CA3-9195-E8FB77D6EA37" class="outline-3">
+  <h3 id="ID-3E10E6B3-96E4-4CA3-9195-E8FB77D6EA37"><span class="section-number-3">2.1.</span> About ADHD</h3>
+  <div class="outline-text-3" id="text-2-1">
+  <p>
+  "How to ADHD" has lots of material on what ADHD is, how it manifests, and what you can do about it: <a href="https://howtoadhd.com/">https://howtoadhd.com/</a>
+  </p>
+
+  <p>
+  A paper reviewing research on working memory in adults with ADHD: <a href="https://psycnet.apa.org/record/2013-16996-001">https://psycnet.apa.org/record/2013-16996-001</a>
+  </p>
+
+  <p>
+  Mads Torgersen (lead designer of C# at Microsoft) talks about his own diagnosis on the No Dogma Podcast: <a href="https://nodogmapodcast.bryanhogan.net/165-mads-torgersen-adhd/">https://nodogmapodcast.bryanhogan.net/165-mads-torgersen-adhd/</a>
+  </p>
+
+  <p>
+  (Bonus extra: that last link has <i>more</i> links to more ADHD resources)
+  </p>
+
+  <p>
+  Finally, I mentioned at one point an organization tool that happens to mesh fairly well with my own variant of ADHD called SkedPal: <a href="https://skedpal.com/">https://skedpal.com/</a>. You prioritize tasks in advance, and assign them to "time maps" (i.e. this times are work times, these times are home times). Then you hit the button and it suggests a calendar of tasks. I've found it useful because it allows things like "this task is important to me but it doesn't matter when it is done" and "this task isn't very important but if I'm going to do it, it needs happen by Friday" and it will suggest a sane next thing to do. And when you (inevitably) fail to actually follow the plan, you just hit the button again and it suggests a new plan based on the things you actually did rather than the things it thought you were going to do. Caveat: it's not free software, and it does charge a monthly fee.
+  </p>
+  </div>
+  </div>
+  <div id="outline-container-ID-2F8EA028-8A8B-4FB8-B893-EBE3AA4ABE2E" class="outline-3">
+  <h3 id="ID-2F8EA028-8A8B-4FB8-B893-EBE3AA4ABE2E"><span class="section-number-3">2.2.</span> Evidence (or not) of my favourite programming techniques being better</h3>
+  <div class="outline-text-3" id="text-2-2">
+  <p>
+  Dan Luu's tour de force review of research into whether or not strong typing leads to more reliable code: <a href="https://danluu.com/empirical-pl/">https://danluu.com/empirical-pl/</a>
+  </p>
+
+  <p>
+  Brian Marick has a well thought out post on why he's not fully convinced by property based testing: <a href="https://www.crustofcode.com/a-reluctant-rebuttal/">https://www.crustofcode.com/a-reluctant-rebuttal/</a>. Most importantly he links to a paper written in <i>1990</i> that partition testing has some issues, all of which would also apply to property based testing: <a href="https://www.site.uottawa.ca/~gvj/papers/Software%20Engineering%20IEEE%20Transactions%20on%201990%20Hamlet.pdf">https://www.site.uottawa.ca/~gvj/papers/Software%20Engineering%20IEEE%20Transactions%20on%201990%20Hamlet.pdf</a>. It is worth noting that both Marick (about PBT), and Hamlet and Taylor (about partition testing) do state that they see use cases for these testing methods, but that they do also have concerns.
+  </p>
+
+  <p>
+  The arguments I've heard against domain driven design have tended to be more anecdotal but mostly boil down to: "you're making the code harder to understand by forcing developers to understand both the code <i>and</i> the specialist terminology of the users at the same time."
+  </p>
+  </div>
+  </div>
+  <div id="outline-container-ID-C111C902-C18A-4493-B185-8BB270696DF4" class="outline-3">
+  <h3 id="ID-C111C902-C18A-4493-B185-8BB270696DF4"><span class="section-number-3">2.3.</span> Going deeper on Property Based Testing</h3>
+  <div class="outline-text-3" id="text-2-3">
+  <p>
+  I happen to be a fan of Scott Wlaschin's video and blog posts at <a href="https://fsharpforfunandprofit.com/pbt/">https://fsharpforfunandprofit.com/pbt/</a> titled "The lazy programmer's guide to writing 1000's of tests".
+  </p>
+
+  <p>
+  Otherwise, a quick google search for "John Hughes" will net you many talks from the author of the first property based testing framework.
+  </p>
+
+  <p>
+  Fuzz testing is a related topic which somewhat overlaps, but with a different focus.
+  </p>
+  </div>
+  </div>
+  <div id="outline-container-ID-F0DF1C64-9EDC-4D2B-BA5F-0F565C401ED6" class="outline-3">
+  <h3 id="ID-F0DF1C64-9EDC-4D2B-BA5F-0F565C401ED6"><span class="section-number-3">2.4.</span> Leaning into union types, and domain driven design</h3>
+  <div class="outline-text-3" id="text-2-4">
+  <p>
+  I cannot over stress how amazing a book "Domain Modeling Made Functional" is (again, by Scott Wlaschin) <a href="https://pragprog.com/titles/swdddf/domain-modeling-made-functional/">https://pragprog.com/titles/swdddf/domain-modeling-made-functional/</a>. There is also a talk covering the basics available at <a href="https://www.youtube.com/watch?v=MlPQ0FsPxPY">https://www.youtube.com/watch?v=MlPQ0FsPxPY</a>.
+  </p>
+  </div>
+  </div>
+  <div id="outline-container-ID-BFE137AB-83CE-425E-869B-CF6DAB892B38" class="outline-3">
+  <h3 id="ID-BFE137AB-83CE-425E-869B-CF6DAB892B38"><span class="section-number-3">2.5.</span> Pushing the boundaries on types</h3>
+  <div class="outline-text-3" id="text-2-5">
+  <p>
+  Probably the place to start is the Idris programming language <a href="https://www.idris-lang.org/">https://www.idris-lang.org/</a>
+  </p>
+  </div>
+  </div>
+  ]]></description>
 </item>
 <item>
   <title>Short term help</title>

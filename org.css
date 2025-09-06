@@ -1,3 +1,42 @@
+@font-face {
+  font-family: charter;
+  font-style: normal;
+  font-weight: normal;
+  font-stretch: normal;
+  src: url('/fonts/charter_regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: charter;
+  font-style: italic;
+  font-weight: normal;
+  font-stretch: normal;
+  src: url('/fonts/charter_italic.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: charter;
+  font-style: normal;
+  font-weight: bold;
+  font-stretch: normal;
+  src: url('/fonts/charter_bold.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: charter;
+  font-style: italic;
+  font-weight: bold;
+  font-stretch: normal;
+  src: url('/fonts/charter_bold_italic.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: source_code_pro;
+  font-style: regular;
+  font-weight: normal;
+  src: url('/fonts/SourceCodePro-Regular.otf.woff2') format('woff2');
+}
+
 /**
  * These colors are taken from `water.css`, rearranged to
  * my liking and expanded a bit for code highlighting.
@@ -65,14 +104,14 @@
 }
 
 html {
-  font-size: 2.0vw;
+  font-size: 2.4vw;
   height: 100%;
 }
 /** Make sure that while font size scales smoothly, it never gets
  * too big or small.
  */
-@media all and (min-width:1000px) { html { font-size: 20px; } }
-@media all and (max-width:670px) { html{ font-size: 14px; } }
+@media all and (min-width:1000px) { html { font-size: 24px; } }
+@media all and (max-width:670px) { html{ font-size: 18px; } }
 
 body {
   margin: 20px auto;
@@ -80,12 +119,13 @@ body {
   max-width: 1000px;
   min-height: 100%;
   position: relative; z-index: -10000; -webkit-font-smoothing: subpixel-antialiased; /* corrects safari rendering */
-  font-family: ui-rounded, 'Hiragino Maru Gothic ProN', Quicksand, Comfortaa, Manjari, 'Arial Rounded MT', 'Arial Rounded MT Bold', Calibri, source-sans-pro, sans-serif;
+  font-family: charter, serif;
   font-weight: normal;
   line-height: 1.4;
   word-wrap: break-word;
   color: var(--text-main);
   background: var(--background-body);
+  text-rendering: optimizeLegibility;
 }
 
 img.home-logo {
@@ -111,6 +151,10 @@ header::after {
   height: 1px;
   width: 100%;
   background: var(--border);
+}
+
+header + p::first-letter {
+  color: var(--text-bright);
 }
 
 /* The class given to divs containing a top level org heading */
@@ -149,8 +193,9 @@ header::after {
 }
 
 pre.src {
-  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
+  font-family: source_code_pro, monospace;
   font-weight: normal;
+  font-size: 0.8rem;
   position: relative;
   white-space: pre;
   margin: 0px;
@@ -163,9 +208,14 @@ pre.src {
   color: var(--code-text);
 }
 
+code {
+  font-size: 80%;
+}
+
 pre.src {
   /* Rule for keywords etc */
-  & > span[class*="keyword"], & > span[class*="access-modifier"] {
+  & > span[class*="keyword"],
+  & > span[class*="access-modifier"] {
       color: var(--code-keyword);
   }
 
@@ -193,6 +243,7 @@ pre.src {
   & > span[class*="attribute"],
   & > span[class*="tag"],
   & > span[class*="primitive"],
+  & > span[class*="property"],
   & > span[class*="builtin"] {
       color: var(--code-type);
   }
@@ -306,6 +357,9 @@ p.verse { margin-left: 3%; }
 /* added manually after generation */
 .org-src-container:has(pre.src-typescript):before { content: 'TypeScript'; }
 .org-src-container:has(pre.src-fsharp):before { content: 'F#'; }
+.org-src-container:has(pre.src-nix):before { content: 'nix'; }
+.org-src-container:has(pre.src-procfile):before { content: 'procfile'; }
+.org-src-container:has(pre.src-yaml):before { content: 'yaml'; }
 
 caption.t-above { caption-side: top; }
 caption.t-bottom { caption-side: bottom; }
@@ -577,7 +631,6 @@ blockquote {
   border-left: 4px solid var(--focus);
   margin: 1.5em 0;
   padding: 0.5em 1em;
-  font-style: italic;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -1345,7 +1398,6 @@ code {
   color: var(--code);
   padding: 2.5px 5px;
   border-radius: 6px;
-  font-size: 1em;
 }
 
 @media (prefers-color-scheme: dark) {

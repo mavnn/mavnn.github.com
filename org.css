@@ -47,59 +47,78 @@
  */
 
 :root {
-  --code-keyword: #3b5998;
-  --code-value: #e9c;
-  --code-type: #d14;
-  --code-comment: #2c5115;
-  --code-punctuation: #2c3114;
-  --code-background: #f6f7f9;
-  --code-text: #363636;
-  --background-body: #fff;
-  --background: #efefef;
-  --background-alt: #f7f7f7;
-  --selection: #9e9e9e;
-  --text-main: #363636;
-  --text-bright: #000;
-  --text-muted: #70777f;
-  --links: #0076d1;
-  --focus: #0096bfab;
-  --border: #dbdbdb;
-  --code: #000;
+  /* re-usable names for quickly experimenting */
+  --dominant-base: #EC0000;
+  --complement-base: #00BD00;
+  --secondary-base: #EC6B00;
+  --secondary-complement-base: #008E8E;
+  
+  --dominant: color-mix(in oklab, var(--dominant-base), var(--mixin-foreground) 10%);
+  --complement: color-mix(in oklab, var(--complement-base), var(--mixin-foreground) 25%);
+  --secondary: color-mix(in oklab, var(--secondary-base), var(--mixin-foreground) 25%);
+  --secondary-complement: color-mix(in oklab, var(--secondary-complement-base), var(--mixin-foreground) 10%);
+
+  --mixin-foreground: black;
+  --mixin-background: white;
+  
+  --nearly-foreground: 98%;
+  --mostly-foreground: 95%;
+  --half-foreground: 50%;
+  --slightly-foreground: 25%;
+  --nearly-background: 99%;
+  --mostly-background: 94%;
+  --half-background: 50%;
+  --slightly-background: 25%;
+  
+  --text-main: color-mix(in oklab, var(--dominant), var(--mixin-foreground) var(--nearly-foreground));
+  --text-bright: color-mix(in oklab, var(--dominant), var(--mixin-foreground) var(--mostly-foreground));
+  --text-muted: color-mix(in oklab, var(--dominant), var(--mixin-background) var(--slightly-background));
+  
+  --background-body: color-mix(in oklab, var(--complement-base), var(--mixin-background) var(--nearly-background));
+  --background: color-mix(in oklab, var(--complement-base), var(--mixin-background) var(--mostly-background));
+  --background-alt: color-mix(in oklab, var(--complement-base), var(--mixin-background) var(--half-background));
+  
+  --code-keyword: var(--dominant);
+  --code-value: var(--complement);
+  --code-type: var(--secondary);
+  --code-comment: var(--secondary-complement);
+  --code-punctuation: var(--text-main);
+  --code-background: var(--background);
+  --code: var(--text-main);
+  
+  --selection: var(--complement);
+  --links: var(--secondary);
+  --focus: var(--secondary);
+  --border: var(--secondary-complement);
   --animation-duration: 0.1s;
-  --button-base: #d0cfcf;
-  --button-hover: #9b9b9b;
-  --scrollbar-thumb: rgb(170, 170, 170);
-  --scrollbar-thumb-hover: var(--button-hover);
-  --form-placeholder: #949494;
-  --form-text: #1d1d1d;
-  --variable: #39a33c;
-  --highlight: #ff0;
+  --button-base: var(--background-alt);
+  --button-hover: color-mix(in oklab,var(--background-alt), var(--mixin-foreground) var(--slightly-foreground));
+  --form-placeholder: var(--text-muted);
+  --form-text: var(--text-main);
+  --variable: var(--code);
+  --highlight: var(--complement);
   --select-arrow: url("data:image/svg+xml;charset=utf-8,%3C?xml version='1.0' encoding='utf-8'?%3E %3Csvg version='1.1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' height='62.5' width='116.9' fill='%23161f27'%3E %3Cpath d='M115.3,1.6 C113.7,0 111.1,0 109.5,1.6 L58.5,52.7 L7.4,1.6 C5.8,0 3.2,0 1.6,1.6 C0,3.2 0,5.8 1.6,7.4 L55.5,61.3 C56.3,62.1 57.3,62.5 58.4,62.5 C59.4,62.5 60.5,62.1 61.3,61.3 L115.2,7.4 C116.9,5.8 116.9,3.2 115.3,1.6Z'/%3E %3C/svg%3E");
 }
 
 @media (prefers-color-scheme: dark) {
 :root {
-  --background-body: #202b38;
-  --background: #161f27;
-  --background-alt: #1a242f;
-  --selection: #1c76c5;
-  --text-main: #dbdbdb;
-  --text-bright: #fff;
-  --text-muted: #a9b1ba;
-  --links: #41adff;
-  --focus: #0096bfab;
-  --border: #526980;
-  --code: #ffbe85;
-  --animation-duration: 0.1s;
-  --button-base: #0c151c;
-  --button-hover: #040a0f;
-  --scrollbar-thumb: var(--button-hover);
-  --scrollbar-thumb-hover: rgb(0, 0, 0);
-  --form-placeholder: #a9a9a9;
-  --form-text: #fff;
-  --variable: #d941e2;
-  --highlight: #efdb43;
-  --select-arrow: url("data:image/svg+xml;charset=utf-8,%3C?xml version='1.0' encoding='utf-8'?%3E %3Csvg version='1.1' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' height='62.5' width='116.9' fill='%23efefef'%3E %3Cpath d='M115.3,1.6 C113.7,0 111.1,0 109.5,1.6 L58.5,52.7 L7.4,1.6 C5.8,0 3.2,0 1.6,1.6 C0,3.2 0,5.8 1.6,7.4 L55.5,61.3 C56.3,62.1 57.3,62.5 58.4,62.5 C59.4,62.5 60.5,62.1 61.3,61.3 L115.2,7.4 C116.9,5.8 116.9,3.2 115.3,1.6Z'/%3E %3C/svg%3E");
+  --mixin-foreground: white;
+  --mixin-background: #121212;
+  
+  --dominant: color-mix(in oklab, var(--dominant-base), var(--mixin-foreground));
+  --complement: color-mix(in oklab, var(--complement-base), var(--mixin-foreground));
+  --secondary: color-mix(in oklab, var(--secondary-base), var(--mixin-foreground));
+  --secondary-complement: color-mix(in oklab, var(--secondary-complement-base), var(--mixin-foreground));
+  
+  --nearly-foreground: 98%;
+  --mostly-foreground: 95%;
+  --half-foreground: 50%;
+  --slightly-foreground: 25%;
+  --nearly-background: 90%;
+  --mostly-background: 75%;
+  --half-background: 20%;
+  --slightly-background: 10%;
+  
 }
 }
 
@@ -153,10 +172,6 @@ header::after {
   background: var(--border);
 }
 
-header + p::first-letter {
-  color: var(--text-bright);
-}
-
 /* The class given to divs containing a top level org heading */
 .outline-2 {
   border-top: 1px solid var(--border);
@@ -205,7 +220,7 @@ pre.src {
   padding: 5px;
   border-radius: 0px 0px 8px 8px;
   margin-top: 0px;
-  color: var(--code-text);
+  color: var(--code);
 }
 
 code {

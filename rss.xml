@@ -14,8 +14,8 @@
   <link>https://blog.mavnn.co.uk/</link>
   <description><![CDATA[]]></description>
   <language>en</language>
-  <pubDate>Sun, 07 Sep 2025 17:45:06 +0200</pubDate>
-  <lastBuildDate>Sun, 07 Sep 2025 17:45:06 +0200</lastBuildDate>
+  <pubDate>Mon, 08 Sep 2025 13:13:14 +0200</pubDate>
+  <lastBuildDate>Mon, 08 Sep 2025 13:13:14 +0200</lastBuildDate>
   <generator>Emacs 30.1 Org-mode 9.8-pre</generator>
   <webMaster>michael@mavnn.eu (Michael Newton)</webMaster>
   <image>
@@ -25,772 +25,266 @@
   </image>
 
   <item>
-    <title>Short term help</title>
-    <link>https://blog.mavnn.co.uk/2024/01/29/short_term_help.html</link>
+    <title>Conflict free syncthing notes</title>
+    <link>https://blog.mavnn.co.uk/2025/08/15/conflict_free_syncthing_notes.html</link>
     <author>michael@mavnn.eu (Michael Newton)</author>
-    <guid isPermaLink="false">https://blog.mavnn.co.uk/2024/01/29/short_term_help.html</guid>
-    <pubDate>Mon, 29 Jan 2024 00:00:00 +0100</pubDate>
+    <guid isPermaLink="false">https://blog.mavnn.co.uk/2025/08/15/conflict_free_syncthing_notes.html</guid>
+    <pubDate>Fri, 15 Aug 2025 00:00:00 +0200</pubDate>
 
     <description><![CDATA[<p>
-    :ID:       13C93632-F856-4CE5-A937-12C264E40684
-    </p>
-    <p>
-    These days I generally work longer term contracts, which means I'm not often available for the more immediate "pay money for a solved problem" services I could offer while I was consulting. Right now though, I'm between long term contracts.
+    Just a short trick this time, mostly for my own records. As a family we've started moving to Syncthing for syncing files across devices, and "open" note taking formats like ".org" and ".md" for long term note taking. I've been using org-mode for a while personally, and now the rest of the family have been burned enough by the alternatives over the years that they're coming to similar conclusions even if not all of them want to use Emacs!
     </p>
 
     <p>
-    "But Michael," I hear you say, "what problems can I give you money to solve so that I can avoid distracting my own amazing team from actually <b>building the product</b>?"
+    Syncthing has a sensible general purpose policy with conflicts of creating a copy of a file where a conflict exists with a <code>.sync-conflict-&lt;date&gt;-&lt;time&gt;-&lt;device-id&gt;.</code> pseudo-extension added before the files true extension (or to the end of the filename if it didn't have one).
     </p>
 
     <p>
-    I'm so glad you asked. Or, you know, you can just skip straight to the <a href="#ID-1AC24D36-F2CC-4484-B158-758BFABCCFAB">logistics</a> section if you already know what you want.
-    </p>
-
-    <nav id="table-of-contents" role="doc-toc">
-    <h2>Table of Contents</h2>
-    <div id="text-table-of-contents" role="doc-toc">
-    <ul>
-    <li><a href="#ID-FC480CC2-993D-4C89-943B-5D799F26455E">1. Short term help</a>
-    <ul>
-    <li><a href="#ID-638BD143-AA6A-49A5-85C6-92856AFF7517">1.1. Consulting</a></li>
-    <li><a href="#ID-8FD25D59-031C-438A-8623-FB1F7DFF0E82">1.2. Build, packaging, and continuous integration</a></li>
-    <li><a href="#ID-0D28EB4C-8A7E-4C0C-9DF2-852DC6CC05AA">1.3. Making sure that CI/CD is managed <b>in the code repository</b> so that running the build locally and on the build server does the same thing in the same way, and the build can evolve in a safe, version controlled way just like the rest of your code</a></li>
-    <li><a href="#ID-1734050E-298D-4289-AF82-99714756212D">1.4. Helping trace and encode the <i>real</i> dependencies in your code base to unlock incremental, cachable build steps and reduce overall build times with concurrency</a></li>
-    <li><a href="#ID-3EA767D7-F819-476E-A338-CB858CEB9F42">1.5. Split your test suite so tests can be run in parallel (yes, even integration tests) and then aggregate the results</a></li>
-    <li><a href="#ID-B2C4D135-19EA-4AE1-BDD2-9A9B0B55696A">1.6. Use tools like Nix or multi-step docker/podman builds to create minimal containers that only contain what they really need</a></li>
-    <li><a href="#ID-66D42273-20E9-4571-9E3E-2437E9173D2B">1.7. Architecture review</a></li>
-    <li><a href="#ID-B7BDA429-6D17-46FD-B712-86B750E1C3A9">1.8. Code audit</a></li>
-    <li><a href="#ID-E0CFE33C-7348-4459-A534-800B83DDE672">1.9. Technology evaluation</a></li>
-    <li><a href="#ID-54180DBB-EB5D-4286-A5FB-1F2CBA1CCAE2">1.10. Workshops and training</a></li>
-    <li><a href="#ID-DB44E6D2-DCF4-4997-B326-5B4E4D0B89C4">1.11. Domain driven design coaching</a></li>
-    <li><a href="#ID-F06E5183-9787-4C2F-8473-7013F31998F2">1.12. Event sourcing</a></li>
-    <li><a href="#ID-C4BBFDE6-9DAC-472E-9B19-7A48317298E8">1.13. Teach property based testing</a></li>
-    <li><a href="#ID-8DC1B810-93FD-4A59-BD1C-D4D173F9484D">1.14. Bespoke software creation</a></li>
-    <li><a href="#ID-E7E0899B-3812-47AF-8F1B-DE29456F500E">1.15. Build a tool/library</a></li>
-    <li><a href="#ID-3AC61BA9-2E22-4737-9FCE-ADA321234F5E">1.16. Build a project skeleton</a></li>
-    <li><a href="#ID-1AC24D36-F2CC-4484-B158-758BFABCCFAB">1.17. Logistics</a></li>
-    <li><a href="#ID-528A3A49-3DD3-48AB-87CF-205BB361297F">1.18. I will <i>always</i> want to have an extensive conversation(s) and will normally want to provide a quote before starting a short term piece of work. Book a slot to talk on Calendly or just send me an email (michael at mavnn.eu)</a></li>
-    <li><a href="#ID-AAEB61E4-8DDF-4FA2-A9B5-D16B7E20E343">1.19. I currently live in Italy, about an hour away from Rome. I can offer all of the services above remotely. Asking me to attend in person will add travel costs and at least 2 billable days of my time.</a></li>
-    <li><a href="#ID-9B1B2539-F7F6-4FA1-8C65-20E9359338CD">1.20. You can hire me by the day, but in general for short term work I quote and then charge you for the work delivered rather than bill by unit time. I will consider discounts for non-profits, student organizations, etc. It it's easier for you, I can give a quote that includes all expenses rather than reclaiming them separately. (Hint: if you're in a large organization and this is the first time you're arranging to get a consultant in - <i>this will be easier for you</i>)</a></li>
-    <li><a href="#ID-8C5B4595-7E2A-4A5C-82FC-0F01C9DB52B5">1.21. In the rare occasion where it turns out that I cannot deliver what I promised (I'm just one human - things like illness can happen) I will let you know promptly, and before the work is due to be delivered, so we can renegotiate where to go from the reality of the situation.</a></li>
-    </ul>
-    </li>
-    <li><a href="#ID-BD1851E9-E993-484F-8F0A-FB0CA3E02D57">2. Conflict free syncthing notes</a></li>
-    <li><a href="#ID-08AA953F-A7C5-44AC-AE51-57AB57A49036">3. Types et al as accessibility tools for the ADHD brain</a>
-    <ul>
-    <li><a href="#ID-0B46CA6D-8978-4437-8F06-2363600A7E3E">3.1. About ADHD</a></li>
-    <li><a href="#ID-AFD6C06E-AF94-4958-94E9-0B829118A474">3.2. Evidence (or not) of my favourite programming techniques being better</a></li>
-    <li><a href="#ID-ADBA1C2B-5C32-4E8E-9C75-0D1D9727F73E">3.3. Going deeper on Property Based Testing</a></li>
-    <li><a href="#ID-28A39542-386E-4B31-A5F9-C5C3B3801A45">3.4. Leaning into union types, and domain driven design</a></li>
-    <li><a href="#ID-6BADF240-8830-47C5-BBF4-BB09C7576C7B">3.5. Pushing the boundaries on types</a></li>
-    </ul>
-    </li>
-    <li><a href="#ID-2E37F5DE-6407-4B29-AC32-BBC5CEE7440E">4. Foundations: Dev Journal 1</a>
-    <ul>
-    <li><a href="#ID-F65317F1-1ABC-4E3D-8221-FFC4343C9C67">4.1. Foundations: Build and package</a></li>
-    <li><a href="#ID-11B6759B-43D8-40B2-9CA7-255D55896CE4">4.2. Scaffolding: Testing and consistency</a></li>
-    <li><a href="#ID-1D139F0E-FFB1-4AB5-B81D-CD8807790AAC">4.3. Does it run?: Make sure the docker container is valid and stays valid</a></li>
-    <li><a href="#ID-0DFAD68A-CD09-4E77-A5A0-EDB31E28E87E">4.4. Log in, log out (and part 2): Adding the database and the ability to log into our web site</a></li>
-    <li><a href="#ID-87D5ED2B-F03D-4BEB-AE4A-8E6E36C63312">4.5. Internal quality review: making it easier to make correct changes to our code</a></li>
-    <li><a href="#ID-826E6B40-EB9E-4767-9B94-B50A1790BE3A">4.6. With style: Adding style and interactivity with server side HTML</a></li>
-    <li><a href="#ID-E01196D8-EBC2-4FA3-B555-6B2F722398B7">4.7. Part 1: Foundations</a></li>
-    <li><a href="#ID-4648B48D-3B02-481B-832C-E84DCBD7556A">4.8. htmx (probably with bulma for initial styling) to provide the UI. This isn't going to be hugely interactive application, it is mostly going to collect information from forms, and display nice looking output tables so htmx's server side rendering model seems a perfect fit. I've used server side rendering in other projects and liked it, and htmx seems a low impact way to take that to the next level.</a></li>
-    <li><a href="#ID-6BF0B10D-5595-4037-908B-03D2A16EAF42">4.9. falco for writing the backend server in F#. Freya, my webserver of choice for F# back in the day, is no longer actively maintained but it looks like Falco has taken some of its nicer features and done its own thing with them.</a></li>
-    <li><a href="#ID-F9ACD8B3-CFE8-4FC7-B246-220E6EEBD182">4.10. nix to give a version controlled build/development environments and reproducible packaging.</a></li>
-    <li><a href="#ID-8619F77F-7B7F-4908-B2DD-11478428324A">4.11. direnv for seamless local development environments.</a></li>
-    <li><a href="#ID-8CFA0A9A-E865-4E4E-8E84-3DB986B2D7D1">4.12. marten from the "Critter Stack" as an event store on top of postgresql to build our datastore.</a></li>
-    <li><a href="#ID-B7A820CA-0007-45F7-ABA8-A6815B74B74B">4.13. gitlab for code repository, container registry and CI/CD pipeline.</a></li>
-    <li><a href="#ID-12566AFE-C776-42F5-AF5E-1A471440929E">4.14. run <code>nix run</code> and have a webserver running locally that will respond to get requests to <code>/</code> with "Hello world"</a></li>
-    <li><a href="#ID-21DE2713-A4F4-4B5B-B8D8-9F7CB7A9E5ED">4.15. run <code>nix build .#dockerImage</code> to build a docker image with the same architecture they're using (i.e. <code>aarch64-darwin</code> if you run it on a Mac)</a></li>
-    <li><a href="#ID-FF6049A3-F631-4BA7-96D9-D0F675560C6E">4.16. by pushing a commit to gitlab trigger a CI pipeline building said docker image for <code>x86_64-linux</code> and pushing it to a package registry ready to deploy</a></li>
-    </ul>
-    </li>
-    </ul>
-    </div>
-    </nav>
-    <div id="outline-container-ID-638BD143-AA6A-49A5-85C6-92856AFF7517" class="outline-3">
-    <h3 id="ID-638BD143-AA6A-49A5-85C6-92856AFF7517"><span class="section-number-3">1.1.</span> Consulting</h3>
-    <div class="outline-text-3" id="text-1-1">
-    </div>
-    </div>
-    <div id="outline-container-ID-8FD25D59-031C-438A-8623-FB1F7DFF0E82" class="outline-3">
-    <h3 id="ID-8FD25D59-031C-438A-8623-FB1F7DFF0E82"><span class="section-number-3">1.2.</span> Build, packaging, and continuous integration</h3>
-    <div class="outline-text-3" id="text-1-2">
-    <p>
-    I have spent a <i>lot</i> of time getting build, test, and deployment pipelines up and running. Most of the advice out there assumes that you are using one technology and you can just use "the build tool" for that stack. Reality tends to be more complicated than that, with many projects involving multiple languages, code generation, and extensive test set up.
+    In general, this is great as it means that a) all in sync devices have a shared understanding of the "winning" version of the file, and b) you can manually do any comparisons you need to and by saving a new version of the "original" file name and deleting the conflicting copies you resolve the conflict for everybody.
     </p>
 
     <p>
-    What kind of things could your CI/CD process do for you? It depends on <i>your</i> needs, but things that have really helped in other places include:
-    </p>
-    </div>
-    </div>
-    <div id="outline-container-ID-0D28EB4C-8A7E-4C0C-9DF2-852DC6CC05AA" class="outline-3">
-    <h3 id="ID-0D28EB4C-8A7E-4C0C-9DF2-852DC6CC05AA"><span class="section-number-3">1.3.</span> Making sure that CI/CD is managed <b>in the code repository</b> so that running the build locally and on the build server does the same thing in the same way, and the build can evolve in a safe, version controlled way just like the rest of your code</h3>
-    <div class="outline-text-3" id="text-1-3">
-    </div>
-    </div>
-    <div id="outline-container-ID-1734050E-298D-4289-AF82-99714756212D" class="outline-3">
-    <h3 id="ID-1734050E-298D-4289-AF82-99714756212D"><span class="section-number-3">1.4.</span> Helping trace and encode the <i>real</i> dependencies in your code base to unlock incremental, cachable build steps and reduce overall build times with concurrency</h3>
-    <div class="outline-text-3" id="text-1-4">
-    </div>
-    </div>
-    <div id="outline-container-ID-3EA767D7-F819-476E-A338-CB858CEB9F42" class="outline-3">
-    <h3 id="ID-3EA767D7-F819-476E-A338-CB858CEB9F42"><span class="section-number-3">1.5.</span> Split your test suite so tests can be run in parallel (yes, even integration tests) and then aggregate the results</h3>
-    <div class="outline-text-3" id="text-1-5">
-    </div>
-    </div>
-    <div id="outline-container-ID-B2C4D135-19EA-4AE1-BDD2-9A9B0B55696A" class="outline-3">
-    <h3 id="ID-B2C4D135-19EA-4AE1-BDD2-9A9B0B55696A"><span class="section-number-3">1.6.</span> Use tools like Nix or multi-step docker/podman builds to create minimal containers that only contain what they really need</h3>
-    <div class="outline-text-3" id="text-1-6">
-    </div>
-    <div id="outline-container-ID-63C9F891-1EE1-4CD6-BEF8-36F98AE32739" class="outline-4">
-    <h4 id="ID-63C9F891-1EE1-4CD6-BEF8-36F98AE32739"><span class="section-number-4">1.6.1.</span> bonus extra: doing this with Nix also gives you development environments as code and reproducible deployment artifacts - same code in, same container out</h4>
-    <div class="outline-text-4" id="text-1-6-1">
-    <p>
-    If this is a new product/project and you just want someone to make all these considerations go away I can also build you <a href="#ID-3AC61BA9-2E22-4737-9FCE-ADA321234F5E">a project skeleton</a> with everything set up and ready to go for your preferred CI provider and deployment environment.
-    </p>
-    </div>
-    </div>
-    </div>
-    <div id="outline-container-ID-66D42273-20E9-4571-9E3E-2437E9173D2B" class="outline-3">
-    <h3 id="ID-66D42273-20E9-4571-9E3E-2437E9173D2B"><span class="section-number-3">1.7.</span> Architecture review</h3>
-    <div class="outline-text-3" id="text-1-7">
-    <p>
-    Putting together a new project, or have a code base that's moving from "minimum viable" to "oh - I've got customers"? I can review your plans, or, given your constraints and objectives I can put together a suggested system architecture for you.
+    But with plain text note files, we can actually do a bit better than that. Because these files are always text, we can use a standard merge algorithm on them. And because the places where conflicts happen most are (almost by definition) things like todo lists and similar, we can even go a step further and specify that even if there is a line/word level conflict that the algorithm can't resolve, we can allow the resolution to be "just in line the changes from both sides."
     </p>
 
     <p>
-    It's worth noting that I don't have a personal axe to grind here. I won't tell you to use a "clean" architecture because that's my thing, or to use microservices because they are fashionable. Different architectural styles exist for a reason, and each has its own trade offs in terms of constraints you choose to accept in order to gain certain benefits.
+    So there's now a cron job running on the Raspberry Pi that acts as our "introducer" node in our Syncthing mesh, which looks like this:
+    </p>
+
+    <div class="org-src-container">
+    <pre class="src src-bash"><span class="org-tree-sitter-hl-faceXcomment">#!/usr/bin/</span><span class="org-keyword">env</span><span class="org-tree-sitter-hl-faceXcomment"> bash</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># Find all files that are syncthing conflict markers, and have</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># a "note" extension (md or txt or org)</span>
+    <span class="org-tree-sitter-hl-faceXfunctionXcall">readarray</span> <span class="org-tree-sitter-hl-faceXconstant">-t</span> CONFLICTS <span class="org-tree-sitter-hl-faceXoperator">&lt;</span> <span class="org-tree-sitter-hl-faceXpunctuationXspecial">&lt;(</span> <span class="org-sh-escaped-newline">\</span>
+    <span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXfunctionXcall">find</span></span><span class="org-tree-sitter-hl-faceXembedded"> /syncthing/share/parent/directory </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXconstant">-type</span></span><span class="org-tree-sitter-hl-faceXembedded"> f \</span>
+    <span class="org-tree-sitter-hl-faceXembedded">       </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXconstant">-name</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring">"*.sync-conflict*"</span></span><span class="org-tree-sitter-hl-faceXembedded"> \</span>
+    <span class="org-tree-sitter-hl-faceXembedded">       \( </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXconstant">-name</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring">"*.md"</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXconstant">-o</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXconstant">-name</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring">"*.org"</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXconstant">-o</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXconstant">-name</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring">"*.txt"</span></span><span class="org-tree-sitter-hl-faceXembedded"> \)</span> <span class="org-sh-escaped-newline">\</span>
+    <span class="org-tree-sitter-hl-faceXpunctuationXspecial">)</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># For each file:</span>
+    <span class="org-tree-sitter-hl-faceXkeyword">for</span> <span class="org-tree-sitter-hl-faceXproperty">CONFLICT</span> <span class="org-tree-sitter-hl-faceXkeyword">in</span> <span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">${</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXproperty">CONFLICTS</span></span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXembedded">[@]</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">}</span></span><span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXoperator">;</span>
+    <span class="org-tree-sitter-hl-faceXkeyword">do</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># Build the regex for matching conflict files and extracting</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># the original file name.</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># 1. The marker, capturing the file name in a group.</span>
+    <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">REG</span></span>=<span class="org-tree-sitter-hl-faceXstring">"\(.*\)sync-conflict-"</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># 2. The date</span>
+    <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">REG</span></span>+=<span class="org-tree-sitter-hl-faceXstring">"[[:digit:]]\{8\}-"</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># 3. The time</span>
+    <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">REG</span></span>+=<span class="org-tree-sitter-hl-faceXstring">"[[:digit:]]\{6\}-"</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># 4. The originating device ID</span>
+    <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">REG</span></span>+=<span class="org-tree-sitter-hl-faceXstring">"[A-Z0-9]\{7\}"</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># 5. The original file extension</span>
+    <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">REG</span></span>+=<span class="org-tree-sitter-hl-faceXstring">".\(.*\)"</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># Find the "winning" version with the original file name</span>
+    <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">CHOSEN</span></span>=<span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXpunctuationXspecial"><span class="org-tree-sitter-hl-faceXstring">$(</span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXfunctionXcall"><span class="org-tree-sitter-hl-faceXfunctionXbuiltin">echo</span></span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"> "</span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">$</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty">CONFLICT</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring">" </span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXoperator">|</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"> </span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXfunctionXcall">sed</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"> </span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXconstant">-n</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"> "s/</span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">${</span></span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXproperty">REG</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">}</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring">/\1\2/p"</span></span><span class="org-tree-sitter-hl-faceXstring"> </span><span class="org-tree-sitter-hl-faceXpunctuationXspecial"><span class="org-tree-sitter-hl-faceXstring">)</span></span><span class="org-tree-sitter-hl-faceXstring">"</span>
+    <span class="org-tree-sitter-hl-faceXfunctionXcall"><span class="org-tree-sitter-hl-faceXfunctionXbuiltin">echo</span></span> Merging <span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">$</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty">CHOSEN</span></span><span class="org-tree-sitter-hl-faceXstring">"</span> <span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">$</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty">CONFLICT</span></span><span class="org-tree-sitter-hl-faceXstring">"</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># If the original file actually exists (nothing stops a user from deleting it)</span>
+    <span class="org-tree-sitter-hl-faceXkeyword">if</span> [ -f <span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">$</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty">CHOSEN</span></span><span class="org-tree-sitter-hl-faceXstring">"</span> ]<span class="org-tree-sitter-hl-faceXoperator">;</span> <span class="org-tree-sitter-hl-faceXkeyword">then</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># Merge the two versions of the file, taking from both in case of conflict;</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># this may cause repetition but won't lose data. Delete the conflict file</span>
+    <span class="org-tree-sitter-hl-faceXcomment"># but only if the merge reported no errors.</span>
+    <span class="org-tree-sitter-hl-faceXfunctionXcall">git</span> merge-file <span class="org-tree-sitter-hl-faceXconstant">--union</span> <span class="org-sh-escaped-newline">\</span>
+    <span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">$</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty">CHOSEN</span></span><span class="org-tree-sitter-hl-faceXstring">"</span> <span class="org-tree-sitter-hl-faceXstring">"/syncthing/share/parent/directory/empty_file"</span> <span class="org-sh-escaped-newline">\</span>
+    <span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">$</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty">CONFLICT</span></span><span class="org-tree-sitter-hl-faceXstring">"</span> <span class="org-tree-sitter-hl-faceXoperator">&amp;&amp;</span> <span class="org-tree-sitter-hl-faceXfunctionXcall">rm</span> <span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">$</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty">CONFLICT</span></span><span class="org-tree-sitter-hl-faceXstring">"</span>
+    <span class="org-tree-sitter-hl-faceXkeyword">else</span>
+    <span class="org-tree-sitter-hl-faceXfunctionXcall"><span class="org-tree-sitter-hl-faceXfunctionXbuiltin">echo</span></span> <span class="org-tree-sitter-hl-faceXstring">"No current file found"</span>
+    <span class="org-tree-sitter-hl-faceXkeyword">fi</span>
+    <span class="org-tree-sitter-hl-faceXkeyword">done</span>
+    </pre>
+    </div>
+
+    <p>
+    The only slight gotcha is you'll need to run <code>touch /syncthing/share/parent/directory/empty_file</code> to create an empty file to be used as the "parent" of the two conflicting versions. Extra internet points available to anyone who instead works out how to use a historical version from syncthing's archive functionality, but for me on this occasion that wasn't really needed.
     </p>
 
     <p>
-    I have the advantage of having helped architect and design solutions in a variety of styles in production environments.
+    Got comments or ideas? The Mastodon post for this blog can be found here: <a href="https://mastodon.sdf.org/@mavnn/115038110993820603">https://mastodon.sdf.org/@mavnn/115038110993820603</a>
     </p>
-
-    <p>
-    This is a bit of a hybrid service that includes aspects of <a href="#ID-E0CFE33C-7348-4459-A534-800B83DDE672">technology evaluation</a> and <a href="#ID-B7BDA429-6D17-46FD-B712-86B750E1C3A9">code audit</a> with a splash of <a href="#ID-DB44E6D2-DCF4-4997-B326-5B4E4D0B89C4">domain driven design by example</a> (so that I understand what you're building) - but zoomed out to look at "how do I put all this together."
-    </p>
-    </div>
-    </div>
-    <div id="outline-container-ID-B7BDA429-6D17-46FD-B712-86B750E1C3A9" class="outline-3">
-    <h3 id="ID-B7BDA429-6D17-46FD-B712-86B750E1C3A9"><span class="section-number-3">1.8.</span> Code audit</h3>
-    <div class="outline-text-3" id="text-1-8">
-    <p>
-    For ecosystems I've built decent sized projects in (.NET, TypeScript) I can spend some time reviewing your code and pointing out things you may want to improve.
-    </p>
-
-    <p>
-    This isn't the kind of code review you'd do on an individual PR: this is the kind of code review where I can (as an outsider) come in with fresh eyes and point out broader patterns in your code base that may be problematic. I can also help you take your conventions and "traditions" and turn them into a coding style guide with (in many cases) automated tooling to help the team put it into practice.
-    </p>
-    </div>
-    </div>
-    <div id="outline-container-ID-E0CFE33C-7348-4459-A534-800B83DDE672" class="outline-3">
-    <h3 id="ID-E0CFE33C-7348-4459-A534-800B83DDE672"><span class="section-number-3">1.9.</span> Technology evaluation</h3>
-    <div class="outline-text-3" id="text-1-9">
-    <p>
-    Considering buying a new service, picking up a new programming language, or changing to a new database library? I can do the research and evaluation you need based on your requirements. I've been helping drive technology choices in organizations for well over a decade now, and I can help you spot the good, the bad, and the ugly of the options you're considering. I may even be aware of options you haven't considered.
-    </p>
-    </div>
-    </div>
-    <div id="outline-container-ID-54180DBB-EB5D-4286-A5FB-1F2CBA1CCAE2" class="outline-3">
-    <h3 id="ID-54180DBB-EB5D-4286-A5FB-1F2CBA1CCAE2"><span class="section-number-3">1.10.</span> Workshops and training</h3>
-    <div class="outline-text-3" id="text-1-10">
-    <p>
-    Unlike more general consultancy, workshops on topics I know well such as the ones below are a fairly fixed commitment. If you're considering using your training budget, you can assume around 2500 euros/day for up to 6 people online. In person will increase the cost but allows for groups of up to 10 people.
-    </p>
-
-    <p>
-    I have also offered bespoke training courses in the past (examples: giving a team of Ruby developers a 5 day crash course in everything they needed to know to take over maintenance of a .NET code base, tailored to the project in question) but that requires significant preparation and a quote.
-    </p>
-    </div>
-    </div>
-    <div id="outline-container-ID-DB44E6D2-DCF4-4997-B326-5B4E4D0B89C4" class="outline-3">
-    <h3 id="ID-DB44E6D2-DCF4-4997-B326-5B4E4D0B89C4"><span class="section-number-3">1.11.</span> Domain driven design coaching</h3>
-    <div class="outline-text-3" id="text-1-11">
-    <p>
-    At its heart, the promise of domain driven design is simple: a code base that uses the same language as the people using it do, so that developers and domain experts can accurately share understanding of what the code <i>should</i> do and why.
-    </p>
-
-    <p>
-    Actually <i>doing</i> domain driven design is not simple at all, because it is a process to help you model reality and it turns out <a href="http://johnsalvatier.org/blog/2017/reality-has-a-surprising-amount-of-detail">reality has a surprising amount of detail</a>.
-    </p>
-
-    <p>
-    I can help with the process of getting started with DDD, help lead the early exploratory meetings between developers and domain experts, and give advice on how to capture what you discover in code while keeping everything maintainable.
-    </p>
-    </div>
-    </div>
-    <div id="outline-container-ID-F06E5183-9787-4C2F-8473-7013F31998F2" class="outline-3">
-    <h3 id="ID-F06E5183-9787-4C2F-8473-7013F31998F2"><span class="section-number-3">1.12.</span> Event sourcing</h3>
-    <div class="outline-text-3" id="text-1-12">
-    <p>
-    Event sourcing is a technique for capturing all the events that "have happened" and using those to calculate the current state of your system.
-    </p>
-
-    <p>
-    For example, if a customer of yours moves you may publish a <code>CustomerHasMoved</code> event when they tell you, and a <code>CustomerAddressHasChanged</code> event when you have finished the business process that manages customers moving.
-    </p>
-
-    <p>
-    This has enormous benefits for auditing, for being able to look at how the system has changed over time, and for being able to fix bugs "retroactively" as you don't only have the current state of the system but also all of the steps that got you here.
-    </p>
-
-    <p>
-    It <i>also</i> requires a slightly different way of thinking about your code base and some specific tooling to avoid a system that slows down over time. And it affects how you think about business constraints like data retention and <a href="https://www.dataprotection.ie/en/individuals/know-your-rights/right-erasure-articles-17-19-gdpr">the right to erasure</a>.
-    </p>
-
-    <p>
-    As the saying goes: been there, done that. I can help you do it too.
-    </p>
-    </div>
-    </div>
-    <div id="outline-container-ID-C4BBFDE6-9DAC-472E-9B19-7A48317298E8" class="outline-3">
-    <h3 id="ID-C4BBFDE6-9DAC-472E-9B19-7A48317298E8"><span class="section-number-3">1.13.</span> Teach property based testing</h3>
-    <div class="outline-text-3" id="text-1-13">
-    <p>
-    I'm a huge fan of property based testing, and I'm more than happy to give interactive workshops on getting started with it in .NET, TypeScript, and probably other languages if you ask nicely. Why pay for this when you could download a conference talk about it for free (including ones I've given myself)? Because I'll use a piece of <i>your</i> code to get started with you will walk away with an up and running example in your code base. This will keep us focused on the reality of doing property based testing in practice rather than seeing the nice, easy, examples you tend to be shown in a 45 minute talk.
-    </p>
-    </div>
-    </div>
-    <div id="outline-container-ID-8DC1B810-93FD-4A59-BD1C-D4D173F9484D" class="outline-3">
-    <h3 id="ID-8DC1B810-93FD-4A59-BD1C-D4D173F9484D"><span class="section-number-3">1.14.</span> Bespoke software creation</h3>
-    <div class="outline-text-3" id="text-1-14">
-    </div>
-    </div>
-    <div id="outline-container-ID-E7E0899B-3812-47AF-8F1B-DE29456F500E" class="outline-3">
-    <h3 id="ID-E7E0899B-3812-47AF-8F1B-DE29456F500E"><span class="section-number-3">1.15.</span> Build a tool/library</h3>
-    <div class="outline-text-3" id="text-1-15">
-    <p>
-    I do just write good code as well. If you need a self contained library or a small solution built, I can do that for you. Whether it is parsing an obscure data format, efficient immutable directed graph data structures, or just a nice F# wrapper around a dotnet library, I will make sure it fits the style you're asking for and is well tested. Significant discounts apply if the results are going to be released under an open source licence.
-    </p>
-    </div>
-    </div>
-    <div id="outline-container-ID-3AC61BA9-2E22-4737-9FCE-ADA321234F5E" class="outline-3">
-    <h3 id="ID-3AC61BA9-2E22-4737-9FCE-ADA321234F5E"><span class="section-number-3">1.16.</span> Build a project skeleton</h3>
-    <div class="outline-text-3" id="text-1-16">
-    <p>
-    If you're starting a green field project, I can create a "skeleton" repository with a managed developer environment, CI/CD and testing story set up and ready to use. You and your team get to start with actually writing your product.
-    </p>
-    </div>
-    </div>
-    <div id="outline-container-ID-1AC24D36-F2CC-4484-B158-758BFABCCFAB" class="outline-3">
-    <h3 id="ID-1AC24D36-F2CC-4484-B158-758BFABCCFAB"><span class="section-number-3">1.17.</span> Logistics</h3>
-    <div class="outline-text-3" id="text-1-17">
-    <p>
-    Let's cover the basics. I don't want us to waste time, so I'm going to try and keep this as straight forward as possible:
-    </p>
-    </div>
-    </div>
-    <div id="outline-container-ID-528A3A49-3DD3-48AB-87CF-205BB361297F" class="outline-3">
-    <h3 id="ID-528A3A49-3DD3-48AB-87CF-205BB361297F"><span class="section-number-3">1.18.</span> I will <i>always</i> want to have an extensive conversation(s) and will normally want to provide a quote before starting a short term piece of work. Book a slot to talk on <a href="https://calendly.com/mavnn/1-hour-slot">Calendly</a> or just send me an email (michael at mavnn.eu)</h3>
-    <div class="outline-text-3" id="text-1-18">
-    </div>
-    </div>
-    <div id="outline-container-ID-AAEB61E4-8DDF-4FA2-A9B5-D16B7E20E343" class="outline-3">
-    <h3 id="ID-AAEB61E4-8DDF-4FA2-A9B5-D16B7E20E343"><span class="section-number-3">1.19.</span> I currently live in Italy, about an hour away from Rome. I can offer all of the services above remotely. Asking me to attend in person will add travel costs and at least 2 billable days of my time.</h3>
-    <div class="outline-text-3" id="text-1-19">
-    </div>
-    </div>
-    <div id="outline-container-ID-9B1B2539-F7F6-4FA1-8C65-20E9359338CD" class="outline-3">
-    <h3 id="ID-9B1B2539-F7F6-4FA1-8C65-20E9359338CD"><span class="section-number-3">1.20.</span> You can hire me by the day, but in general for short term work I quote and then charge you for the work delivered rather than bill by unit time. I will consider discounts for non-profits, student organizations, etc. It it's easier for you, I can give a quote that includes all expenses rather than reclaiming them separately. (Hint: if you're in a large organization and this is the first time you're arranging to get a consultant in - <i>this will be easier for you</i>)</h3>
-    <div class="outline-text-3" id="text-1-20">
-    </div>
-    <div id="outline-container-ID-6F320D99-031A-4AD4-A7DD-48BD1C2C694C" class="outline-4">
-    <h4 id="ID-6F320D99-031A-4AD4-A7DD-48BD1C2C694C"><span class="section-number-4">1.20.1.</span> I am VAT registered in the EU</h4>
-    <div class="outline-text-4" id="text-1-20-1">
-    </div>
-    </div>
-    </div>
-    <div id="outline-container-ID-8C5B4595-7E2A-4A5C-82FC-0F01C9DB52B5" class="outline-3">
-    <h3 id="ID-8C5B4595-7E2A-4A5C-82FC-0F01C9DB52B5"><span class="section-number-3">1.21.</span> In the rare occasion where it turns out that I cannot deliver what I promised (I'm just one human - things like illness can happen) I will let you know promptly, and before the work is due to be delivered, so we can renegotiate where to go from the reality of the situation.</h3>
-    <div class="outline-text-3" id="text-1-21">
-    <p>
-    That's about everything, I think.
-    </p>
-    </div>
-    </div>
     ]]></description>
 </item>
 <item>
-  <title>Conflict free syncthing notes</title>
-  <link>https://blog.mavnn.co.uk/2025/08/15/conflict_free_syncthing_notes.html</link>
+  <title>A gentle introduction to Effect TS</title>
+  <link>https://blog.mavnn.co.uk/2024/09/16/intro_to_effect_ts.html</link>
   <author>michael@mavnn.eu (Michael Newton)</author>
-  <guid isPermaLink="false">https://blog.mavnn.co.uk/2025/08/15/conflict_free_syncthing_notes.html</guid>
-  <pubDate>Fri, 15 Aug 2025 00:00:00 +0200</pubDate>
+  <guid isPermaLink="false">https://blog.mavnn.co.uk/2024/09/16/intro_to_effect_ts.html</guid>
+  <pubDate>Mon, 16 Sep 2024 00:00:00 +0200</pubDate>
 
   <description><![CDATA[<p>
-  :ID:       0C23E268-F37F-4C6C-8E38-F04C03486EED
-  </p>
-  <p>
-  Just a short trick this time, mostly for my own records. As a family we've started moving to Syncthing for syncing files across devices, and "open" note taking formats like ".org" and ".md" for long term note taking. I've been using org-mode for a while personally, and now the rest of the family have been burned enough by the alternatives over the years that they're coming to similar conclusions even if not all of them want to use Emacs!
-  </p>
-
-  <p>
-  Syncthing has a sensible general purpose policy with conflicts of creating a copy of a file where a conflict exists with a <code>.sync-conflict-&lt;date&gt;-&lt;time&gt;-&lt;device-id&gt;.</code> pseudo-extension added before the files true extension (or to the end of the filename if it didn't have one).
+  I've recently been writing TypeScript again in a green field project, and we made the decision to
+  use the <a href="https://effect.website/">Effect</a> library. It's not a small decision to make: although you can use bits of Effect in
+  an existing code base, its real benefit is when it is used as (to quote the website) "the missing
+  standard library for TypeScript".
   </p>
 
   <p>
-  In general, this is great as it means that a) all in sync devices have a shared understanding of the "winning" version of the file, and b) you can manually do any comparisons you need to and by saving a new version of the "original" file name and deleting the conflicting copies you resolve the conflict for everybody.
+  Overall, we're happy with the choice but the learning curve has a few sharp edges and while the
+  <a href="https://effect.website/docs/introduction">docs</a> aren't bad it does feel like they could do a better job of introducing the most used features
+  in a way that feels familiar to TypeScript developers so they can at least <b>read existing</b> Effect
+  code before starting to introduce the many, many, powerful features that come with the library.
   </p>
 
   <p>
-  But with plain text note files, we can actually do a bit better than that. Because these files are always text, we can use a standard merge algorithm on them. And because the places where conflicts happen most are (almost by definition) things like todo lists and similar, we can even go a step further and specify that even if there is a line/word level conflict that the algorithm can't resolve, we can allow the resolution to be "just in line the changes from both sides."
+  This post is an attempt to do exactly that.
+  </p>
+  <div id="outline-container-ID-01E0F350-37A9-4E0D-AA0D-7D63E111CE5C" class="outline-3">
+  <h3 id="ID-01E0F350-37A9-4E0D-AA0D-7D63E111CE5C"><span class="section-number-3">2.1.</span> The Effect type</h3>
+  <div class="outline-text-3" id="text-2-1">
+  <p>
+  The very first thing you need to understand about Effect is that it is built around a specific type.
+  Appropriately enough, the <code>Effect</code> type. This type functions as a replacement for <code>Promise</code>, allowing
+  for asynchronous code, but also covers a few other needs.
   </p>
 
   <p>
-  So there's now a cron job running on the Raspberry Pi that acts as our "introducer" node in our Syncthing mesh, which looks like this:
+  Let's get started, in the traditional way:
   </p>
 
   <div class="org-src-container">
-  <pre class="src src-bash"><span class="org-tree-sitter-hl-faceXcomment">#!/usr/bin/</span><span class="org-keyword">env</span><span class="org-tree-sitter-hl-faceXcomment"> bash</span>
-  <span class="org-tree-sitter-hl-faceXcomment"># Find all files that are syncthing conflict markers, and have</span>
-  <span class="org-tree-sitter-hl-faceXcomment"># a "note" extension (md or txt or org)</span>
-  <span class="org-tree-sitter-hl-faceXfunctionXcall">readarray</span> <span class="org-tree-sitter-hl-faceXconstant">-t</span> CONFLICTS <span class="org-tree-sitter-hl-faceXoperator">&lt;</span> <span class="org-tree-sitter-hl-faceXpunctuationXspecial">&lt;(</span> <span class="org-sh-escaped-newline">\</span>
-  <span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXfunctionXcall">find</span></span><span class="org-tree-sitter-hl-faceXembedded"> /syncthing/share/parent/directory </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXconstant">-type</span></span><span class="org-tree-sitter-hl-faceXembedded"> f \</span>
-  <span class="org-tree-sitter-hl-faceXembedded">       </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXconstant">-name</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring">"*.sync-conflict*"</span></span><span class="org-tree-sitter-hl-faceXembedded"> \</span>
-  <span class="org-tree-sitter-hl-faceXembedded">       \( </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXconstant">-name</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring">"*.md"</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXconstant">-o</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXconstant">-name</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring">"*.org"</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXconstant">-o</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXconstant">-name</span></span><span class="org-tree-sitter-hl-faceXembedded"> </span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring">"*.txt"</span></span><span class="org-tree-sitter-hl-faceXembedded"> \)</span> <span class="org-sh-escaped-newline">\</span>
-  <span class="org-tree-sitter-hl-faceXpunctuationXspecial">)</span>
-  <span class="org-tree-sitter-hl-faceXcomment"># For each file:</span>
-  <span class="org-tree-sitter-hl-faceXkeyword">for</span> <span class="org-tree-sitter-hl-faceXproperty">CONFLICT</span> <span class="org-tree-sitter-hl-faceXkeyword">in</span> <span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">${</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXproperty">CONFLICTS</span></span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXembedded">[@]</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">}</span></span><span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXoperator">;</span>
-  <span class="org-tree-sitter-hl-faceXkeyword">do</span>
-  <span class="org-tree-sitter-hl-faceXcomment"># Build the regex for matching conflict files and extracting</span>
-  <span class="org-tree-sitter-hl-faceXcomment"># the original file name.</span>
-  <span class="org-tree-sitter-hl-faceXcomment"># 1. The marker, capturing the file name in a group.</span>
-  <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">REG</span></span>=<span class="org-tree-sitter-hl-faceXstring">"\(.*\)sync-conflict-"</span>
-  <span class="org-tree-sitter-hl-faceXcomment"># 2. The date</span>
-  <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">REG</span></span>+=<span class="org-tree-sitter-hl-faceXstring">"[[:digit:]]\{8\}-"</span>
-  <span class="org-tree-sitter-hl-faceXcomment"># 3. The time</span>
-  <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">REG</span></span>+=<span class="org-tree-sitter-hl-faceXstring">"[[:digit:]]\{6\}-"</span>
-  <span class="org-tree-sitter-hl-faceXcomment"># 4. The originating device ID</span>
-  <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">REG</span></span>+=<span class="org-tree-sitter-hl-faceXstring">"[A-Z0-9]\{7\}"</span>
-  <span class="org-tree-sitter-hl-faceXcomment"># 5. The original file extension</span>
-  <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">REG</span></span>+=<span class="org-tree-sitter-hl-faceXstring">".\(.*\)"</span>
-  <span class="org-tree-sitter-hl-faceXcomment"># Find the "winning" version with the original file name</span>
-  <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">CHOSEN</span></span>=<span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXpunctuationXspecial"><span class="org-tree-sitter-hl-faceXstring">$(</span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXfunctionXcall"><span class="org-tree-sitter-hl-faceXfunctionXbuiltin">echo</span></span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"> "</span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">$</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty">CONFLICT</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring">" </span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXoperator">|</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"> </span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXfunctionXcall">sed</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"> </span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXconstant">-n</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"> "s/</span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">${</span></span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXproperty">REG</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">}</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring">/\1\2/p"</span></span><span class="org-tree-sitter-hl-faceXstring"> </span><span class="org-tree-sitter-hl-faceXpunctuationXspecial"><span class="org-tree-sitter-hl-faceXstring">)</span></span><span class="org-tree-sitter-hl-faceXstring">"</span>
-  <span class="org-tree-sitter-hl-faceXfunctionXcall"><span class="org-tree-sitter-hl-faceXfunctionXbuiltin">echo</span></span> Merging <span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">$</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty">CHOSEN</span></span><span class="org-tree-sitter-hl-faceXstring">"</span> <span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">$</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty">CONFLICT</span></span><span class="org-tree-sitter-hl-faceXstring">"</span>
-  <span class="org-tree-sitter-hl-faceXcomment"># If the original file actually exists (nothing stops a user from deleting it)</span>
-  <span class="org-tree-sitter-hl-faceXkeyword">if</span> [ -f <span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">$</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty">CHOSEN</span></span><span class="org-tree-sitter-hl-faceXstring">"</span> ]<span class="org-tree-sitter-hl-faceXoperator">;</span> <span class="org-tree-sitter-hl-faceXkeyword">then</span>
-  <span class="org-tree-sitter-hl-faceXcomment"># Merge the two versions of the file, taking from both in case of conflict;</span>
-  <span class="org-tree-sitter-hl-faceXcomment"># this may cause repetition but won't lose data. Delete the conflict file</span>
-  <span class="org-tree-sitter-hl-faceXcomment"># but only if the merge reported no errors.</span>
-  <span class="org-tree-sitter-hl-faceXfunctionXcall">git</span> merge-file <span class="org-tree-sitter-hl-faceXconstant">--union</span> <span class="org-sh-escaped-newline">\</span>
-  <span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">$</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty">CHOSEN</span></span><span class="org-tree-sitter-hl-faceXstring">"</span> <span class="org-tree-sitter-hl-faceXstring">"/syncthing/share/parent/directory/empty_file"</span> <span class="org-sh-escaped-newline">\</span>
-  <span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">$</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty">CONFLICT</span></span><span class="org-tree-sitter-hl-faceXstring">"</span> <span class="org-tree-sitter-hl-faceXoperator">&amp;&amp;</span> <span class="org-tree-sitter-hl-faceXfunctionXcall">rm</span> <span class="org-tree-sitter-hl-faceXstring">"</span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXspecial">$</span></span><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty">CONFLICT</span></span><span class="org-tree-sitter-hl-faceXstring">"</span>
-  <span class="org-tree-sitter-hl-faceXkeyword">else</span>
-  <span class="org-tree-sitter-hl-faceXfunctionXcall"><span class="org-tree-sitter-hl-faceXfunctionXbuiltin">echo</span></span> <span class="org-tree-sitter-hl-faceXstring">"No current file found"</span>
-  <span class="org-tree-sitter-hl-faceXkeyword">fi</span>
-  <span class="org-tree-sitter-hl-faceXkeyword">done</span>
+  <pre class="src src-typescript"><span class="org-tree-sitter-hl-faceXkeyword">import</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span> <span class="org-tree-sitter-hl-faceXconstructor">Effect</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span> <span class="org-tree-sitter-hl-faceXkeyword">from</span> <span class="org-tree-sitter-hl-faceXstring">"effect"</span>
+
+  <span class="org-tree-sitter-hl-faceXkeyword">const</span> <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXfunction">hello</span></span> <span class="org-tree-sitter-hl-faceXoperator">=</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">(</span><span class="org-tree-sitter-hl-faceXvariableXparameter">name</span><span class="org-tree-sitter-hl-faceXpunctuationXspecial">?</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">:</span> <span class="org-tree-sitter-hl-faceXtypeXbuiltin">string</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">)</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">:</span> <span class="org-tree-sitter-hl-faceXconstructor">Effect</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXtype">Effect</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&lt;</span></span><span class="org-tree-sitter-hl-faceXtypeXbuiltin">string</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&gt;</span></span> <span class="org-tree-sitter-hl-faceXoperator">=&gt;</span>
+  <span class="org-tree-sitter-hl-faceXconstructor">Effect</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-function-name">gen</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">(</span><span class="org-tree-sitter-hl-faceXkeyword">function</span>* <span class="org-tree-sitter-hl-faceXpunctuationXbracket">()</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
+  <span class="org-tree-sitter-hl-faceXkeyword">return</span> <span class="org-tree-sitter-hl-faceXstring">`Hello, </span><span class="org-keyword">${</span><span class="org-default">name || "world"</span><span class="org-keyword">}</span><span class="org-tree-sitter-hl-faceXstring">!`</span>
+  <span class="org-tree-sitter-hl-faceXpunctuationXbracket">})</span>
   </pre>
   </div>
 
   <p>
-  The only slight gotcha is you'll need to run <code>touch /syncthing/share/parent/directory/empty_file</code> to create an empty file to be used as the "parent" of the two conflicting versions. Extra internet points available to anyone who instead works out how to use a historical version from syncthing's archive functionality, but for me on this occasion that wasn't really needed.
-  </p>
-
-  <p>
-  Got comments or ideas? The Mastodon post for this blog can be found here: <a href="https://mastodon.sdf.org/@mavnn/115038110993820603">https://mastodon.sdf.org/@mavnn/115038110993820603</a>
-  </p>
-  ]]></description>
-</item>
-<item>
-  <title>Types et al as accessibility tools for the ADHD brain</title>
-  <link>https://blog.mavnn.co.uk/2024/05/17/adhd_refs.html</link>
-  <author>michael@mavnn.eu (Michael Newton)</author>
-  <guid isPermaLink="false">https://blog.mavnn.co.uk/2024/05/17/adhd_refs.html</guid>
-  <pubDate>Fri, 17 May 2024 00:00:00 +0200</pubDate>
-
-  <description><![CDATA[<p>
-  :ID:       16B63501-8C0C-4F3A-82FA-5EE453BBBBC7
-  </p>
-  <p>
-  I ended up with a fair number of references for my talks at <a href="https://www.youtube.com/watch?v=vd1-rAIYV6I">Software You Can Love</a> and <a href="https://www.youtube.com/watch?v=DG5gLPFKcbk">LambdaDays 2024</a> on how I use various tools and techniques to compensate for my late diagnosed ADHD. The two talks are based off the same outline and slides, although the speaker having ADHD the content does vary a bit between them...
-  </p>
-
-  <p>
-  Now, the list of links!
-  </p>
-  <div id="outline-container-ID-0B46CA6D-8978-4437-8F06-2363600A7E3E" class="outline-3">
-  <h3 id="ID-0B46CA6D-8978-4437-8F06-2363600A7E3E"><span class="section-number-3">3.1.</span> About ADHD</h3>
-  <div class="outline-text-3" id="text-3-1">
-  <p>
-  "How to ADHD" has lots of material on what ADHD is, how it manifests, and what you can do about it: <a href="https://howtoadhd.com/">https://howtoadhd.com/</a>
-  </p>
-
-  <p>
-  A paper reviewing research on working memory in adults with ADHD: <a href="https://psycnet.apa.org/record/2013-16996-001">https://psycnet.apa.org/record/2013-16996-001</a>
-  </p>
-
-  <p>
-  Mads Torgersen (lead designer of C# at Microsoft) talks about his own diagnosis on the No Dogma Podcast: <a href="https://nodogmapodcast.bryanhogan.net/165-mads-torgersen-adhd/">https://nodogmapodcast.bryanhogan.net/165-mads-torgersen-adhd/</a>
-  </p>
-
-  <p>
-  (Bonus extra: that last link has <i>more</i> links to more ADHD resources)
-  </p>
-
-  <p>
-  Finally, I mentioned at one point an organization tool that happens to mesh fairly well with my own variant of ADHD called SkedPal: <a href="https://skedpal.com/">https://skedpal.com/</a>. You prioritize tasks in advance, and assign them to "time maps" (i.e. this times are work times, these times are home times). Then you hit the button and it suggests a calendar of tasks. I've found it useful because it allows things like "this task is important to me but it doesn't matter when it is done" and "this task isn't very important but if I'm going to do it, it needs happen by Friday" and it will suggest a sane next thing to do. And when you (inevitably) fail to actually follow the plan, you just hit the button again and it suggests a new plan based on the things you actually did rather than the things it thought you were going to do. Caveat: it's not free software, and it does charge a monthly fee.
-  </p>
-  </div>
-  </div>
-  <div id="outline-container-ID-AFD6C06E-AF94-4958-94E9-0B829118A474" class="outline-3">
-  <h3 id="ID-AFD6C06E-AF94-4958-94E9-0B829118A474"><span class="section-number-3">3.2.</span> Evidence (or not) of my favourite programming techniques being better</h3>
-  <div class="outline-text-3" id="text-3-2">
-  <p>
-  Dan Luu's tour de force review of research into whether or not strong typing leads to more reliable code: <a href="https://danluu.com/empirical-pl/">https://danluu.com/empirical-pl/</a>
-  </p>
-
-  <p>
-  Brian Marick has a well thought out post on why he's not fully convinced by property based testing: <a href="https://www.crustofcode.com/a-reluctant-rebuttal/">https://www.crustofcode.com/a-reluctant-rebuttal/</a>. Most importantly he links to a paper written in <i>1990</i> that partition testing has some issues, all of which would also apply to property based testing: <a href="https://www.site.uottawa.ca/~gvj/papers/Software%20Engineering%20IEEE%20Transactions%20on%201990%20Hamlet.pdf">https://www.site.uottawa.ca/~gvj/papers/Software%20Engineering%20IEEE%20Transactions%20on%201990%20Hamlet.pdf</a>. It is worth noting that both Marick (about PBT), and Hamlet and Taylor (about partition testing) do state that they see use cases for these testing methods, but that they do also have concerns.
-  </p>
-
-  <p>
-  The arguments I've heard against domain driven design have tended to be more anecdotal but mostly boil down to: "you're making the code harder to understand by forcing developers to understand both the code <i>and</i> the specialist terminology of the users at the same time."
-  </p>
-  </div>
-  </div>
-  <div id="outline-container-ID-ADBA1C2B-5C32-4E8E-9C75-0D1D9727F73E" class="outline-3">
-  <h3 id="ID-ADBA1C2B-5C32-4E8E-9C75-0D1D9727F73E"><span class="section-number-3">3.3.</span> Going deeper on Property Based Testing</h3>
-  <div class="outline-text-3" id="text-3-3">
-  <p>
-  I happen to be a fan of Scott Wlaschin's video and blog posts at <a href="https://fsharpforfunandprofit.com/pbt/">https://fsharpforfunandprofit.com/pbt/</a> titled "The lazy programmer's guide to writing 1000's of tests".
-  </p>
-
-  <p>
-  Otherwise, a quick google search for "John Hughes" will net you many talks from the author of the first property based testing framework.
-  </p>
-
-  <p>
-  Fuzz testing is a related topic which somewhat overlaps, but with a different focus.
-  </p>
-  </div>
-  </div>
-  <div id="outline-container-ID-28A39542-386E-4B31-A5F9-C5C3B3801A45" class="outline-3">
-  <h3 id="ID-28A39542-386E-4B31-A5F9-C5C3B3801A45"><span class="section-number-3">3.4.</span> Leaning into union types, and domain driven design</h3>
-  <div class="outline-text-3" id="text-3-4">
-  <p>
-  I cannot over stress how amazing a book "Domain Modeling Made Functional" is (again, by Scott Wlaschin) <a href="https://pragprog.com/titles/swdddf/domain-modeling-made-functional/">https://pragprog.com/titles/swdddf/domain-modeling-made-functional/</a>. There is also a talk covering the basics available at <a href="https://www.youtube.com/watch?v=MlPQ0FsPxPY">https://www.youtube.com/watch?v=MlPQ0FsPxPY</a>.
-  </p>
-  </div>
-  </div>
-  <div id="outline-container-ID-6BADF240-8830-47C5-BBF4-BB09C7576C7B" class="outline-3">
-  <h3 id="ID-6BADF240-8830-47C5-BBF4-BB09C7576C7B"><span class="section-number-3">3.5.</span> Pushing the boundaries on types</h3>
-  <div class="outline-text-3" id="text-3-5">
-  <p>
-  Probably the place to start is the Idris programming language <a href="https://www.idris-lang.org/">https://www.idris-lang.org/</a>
-  </p>
-  </div>
-  </div>
-  ]]></description>
-</item>
-<item>
-  <title>Foundations: Dev Journal 1</title>
-  <link>https://blog.mavnn.co.uk/2024/01/31/dev-journal-1.html</link>
-  <author>michael@mavnn.eu (Michael Newton)</author>
-  <guid isPermaLink="false">https://blog.mavnn.co.uk/2024/01/31/dev-journal-1.html</guid>
-  <pubDate>Wed, 31 Jan 2024 00:00:00 +0100</pubDate>
-
-  <description><![CDATA[<p>
-  :ID:       BEC296E9-14FB-4C4B-9F41-B15462323B56
-  </p>
-  <p>
-  This is something a little bit new. A series I'm starting that documents the building of a simple project from the ground up using a set of tools and techniques I've come to either really like, or that I'd like to try out.
-  </p>
-
-  <p>
-  On the one hand this is a personal project. On the other, I'd like to take advantage of nice things like CI/CD, testing, etc, even when I'm working on something for myself. So this is also a mini-tour of many of the things I would do setting up a new greenfield project for a team.
-  </p>
-
-  <p>
-  As the series progresses, I'll carry on adding the sections here.
-  </p>
-
-  <p>
-  <b>The series so far</b>
-  </p>
-  <div id="outline-container-ID-F65317F1-1ABC-4E3D-8221-FFC4343C9C67" class="outline-3">
-  <h3 id="ID-F65317F1-1ABC-4E3D-8221-FFC4343C9C67"><span class="section-number-3">4.1.</span> <a href="https://blog.mavnn.co.uk/2024/01/31/dev-journal-1.html">Foundations</a>: Build and package</h3>
-  <div class="outline-text-3" id="text-4-1">
-  </div>
-  </div>
-  <div id="outline-container-ID-11B6759B-43D8-40B2-9CA7-255D55896CE4" class="outline-3">
-  <h3 id="ID-11B6759B-43D8-40B2-9CA7-255D55896CE4"><span class="section-number-3">4.2.</span> <a href="https://blog.mavnn.co.uk/../../../2024/02/06/dev-journal-2.html">Scaffolding</a>: Testing and consistency</h3>
-  <div class="outline-text-3" id="text-4-2">
-  </div>
-  </div>
-  <div id="outline-container-ID-1D139F0E-FFB1-4AB5-B81D-CD8807790AAC" class="outline-3">
-  <h3 id="ID-1D139F0E-FFB1-4AB5-B81D-CD8807790AAC"><span class="section-number-3">4.3.</span> <a href="https://blog.mavnn.co.uk/../../../2024/02/20/dev-journal-3.html">Does it run?</a>: Make sure the docker container is valid and stays valid</h3>
-  <div class="outline-text-3" id="text-4-3">
-  </div>
-  </div>
-  <div id="outline-container-ID-0DFAD68A-CD09-4E77-A5A0-EDB31E28E87E" class="outline-3">
-  <h3 id="ID-0DFAD68A-CD09-4E77-A5A0-EDB31E28E87E"><span class="section-number-3">4.4.</span> <a href="https://blog.mavnn.co.uk/../../../2024/03/01/dev_journal_4.html">Log in, log out</a> (and <a href="https://blog.mavnn.co.uk/../../../2024/03/05/dev_journal_4_2.html">part 2</a>): Adding the database and the ability to log into our web site</h3>
-  <div class="outline-text-3" id="text-4-4">
-  </div>
-  </div>
-  <div id="outline-container-ID-87D5ED2B-F03D-4BEB-AE4A-8E6E36C63312" class="outline-3">
-  <h3 id="ID-87D5ED2B-F03D-4BEB-AE4A-8E6E36C63312"><span class="section-number-3">4.5.</span> <a href="https://blog.mavnn.co.uk/../../../2024/03/09/dev_journal_5.html">Internal quality review</a>: making it easier to make correct changes to our code</h3>
-  <div class="outline-text-3" id="text-4-5">
-  </div>
-  </div>
-  <div id="outline-container-ID-826E6B40-EB9E-4767-9B94-B50A1790BE3A" class="outline-3">
-  <h3 id="ID-826E6B40-EB9E-4767-9B94-B50A1790BE3A"><span class="section-number-3">4.6.</span> <a href="https://blog.mavnn.co.uk/../../../2024/03/19/dev_journal_6.html">With style</a>: Adding style and interactivity with server side HTML</h3>
-  <div class="outline-text-3" id="text-4-6">
-  </div>
-  </div>
-  <div id="outline-container-ID-E01196D8-EBC2-4FA3-B555-6B2F722398B7" class="outline-3">
-  <h3 id="ID-E01196D8-EBC2-4FA3-B555-6B2F722398B7"><span class="section-number-3">4.7.</span> Part 1: Foundations</h3>
-  <div class="outline-text-3" id="text-4-7">
-  <p>
-  Our application will eventually be a little web site for <code>redacted in case I change my mind</code>. I'm going to be using mix of tried and new tech (for me personally).
-  </p>
-
-  <p>
-  On the things I'd like to try front, we have:
-  </p>
-  </div>
-  </div>
-  <div id="outline-container-ID-4648B48D-3B02-481B-832C-E84DCBD7556A" class="outline-3">
-  <h3 id="ID-4648B48D-3B02-481B-832C-E84DCBD7556A"><span class="section-number-3">4.8.</span> <a href="https://htmx.org/">htmx</a> (probably with <a href="https://bulma.io/">bulma</a> for initial styling) to provide the UI. This isn't going to be hugely interactive application, it is mostly going to collect information from forms, and display nice looking output tables so htmx's server side rendering model seems a perfect fit. I've used server side rendering in other projects and liked it, and htmx seems a low impact way to take that to the next level.</h3>
-  <div class="outline-text-3" id="text-4-8">
-  </div>
-  </div>
-  <div id="outline-container-ID-6BF0B10D-5595-4037-908B-03D2A16EAF42" class="outline-3">
-  <h3 id="ID-6BF0B10D-5595-4037-908B-03D2A16EAF42"><span class="section-number-3">4.9.</span> <a href="https://www.falcoframework.com/">falco</a> for writing the backend server in F#. <a href="https://xyncro.github.io/sites-freya.io/">Freya</a>, my webserver of choice for F# back in the day, is no longer actively maintained but it looks like Falco has taken some of its nicer features and done its own thing with them.</h3>
-  <div class="outline-text-3" id="text-4-9">
-  <p>
-  On the technologies I've used before and found useful front, we have:
-  </p>
-  </div>
-  </div>
-  <div id="outline-container-ID-F9ACD8B3-CFE8-4FC7-B246-220E6EEBD182" class="outline-3">
-  <h3 id="ID-F9ACD8B3-CFE8-4FC7-B246-220E6EEBD182"><span class="section-number-3">4.10.</span> <a href="https://nixos.org/">nix</a> to give a version controlled build/development environments and reproducible packaging.</h3>
-  <div class="outline-text-3" id="text-4-10">
-  </div>
-  </div>
-  <div id="outline-container-ID-8619F77F-7B7F-4908-B2DD-11478428324A" class="outline-3">
-  <h3 id="ID-8619F77F-7B7F-4908-B2DD-11478428324A"><span class="section-number-3">4.11.</span> <a href="https://direnv.net/">direnv</a> for seamless local development environments.</h3>
-  <div class="outline-text-3" id="text-4-11">
-  </div>
-  </div>
-  <div id="outline-container-ID-8CFA0A9A-E865-4E4E-8E84-3DB986B2D7D1" class="outline-3">
-  <h3 id="ID-8CFA0A9A-E865-4E4E-8E84-3DB986B2D7D1"><span class="section-number-3">4.12.</span> <a href="https://github.com/JasperFx/marten">marten</a> from the "Critter Stack" as an event store on top of postgresql to build our datastore.</h3>
-  <div class="outline-text-3" id="text-4-12">
-  </div>
-  </div>
-  <div id="outline-container-ID-B7A820CA-0007-45F7-ABA8-A6815B74B74B" class="outline-3">
-  <h3 id="ID-B7A820CA-0007-45F7-ABA8-A6815B74B74B"><span class="section-number-3">4.13.</span> <a href="https://gitlab.com/">gitlab</a> for code repository, container registry and CI/CD pipeline.</h3>
-  <div class="outline-text-3" id="text-4-13">
-  <p>
-  I'm not sure how far I'm going to take this experiment publicly, but what I'm going to focus on first is just the basics of any online app: people being able to sign up, log in, and manage an account for a paid service. At least that far the whole project will be MIT licensed, so if you like what you see you can just pick it up and use it as a starter template for your own project.
-  </p>
-
-  <p>
-  For today, let's start with a <i>minimum deployable product</i>: a "Hello world" Falco server with CI/CD pipeline in place. We'll have a gitlab hosted project anybody with a working nix environment can pull down and:
-  </p>
-  </div>
-  </div>
-  <div id="outline-container-ID-12566AFE-C776-42F5-AF5E-1A471440929E" class="outline-3">
-  <h3 id="ID-12566AFE-C776-42F5-AF5E-1A471440929E"><span class="section-number-3">4.14.</span> run <code>nix run</code> and have a webserver running locally that will respond to get requests to <code>/</code> with "Hello world"</h3>
-  <div class="outline-text-3" id="text-4-14">
-  </div>
-  </div>
-  <div id="outline-container-ID-21DE2713-A4F4-4B5B-B8D8-9F7CB7A9E5ED" class="outline-3">
-  <h3 id="ID-21DE2713-A4F4-4B5B-B8D8-9F7CB7A9E5ED"><span class="section-number-3">4.15.</span> run <code>nix build .#dockerImage</code> to build a docker image with the same architecture they're using (i.e. <code>aarch64-darwin</code> if you run it on a Mac)</h3>
-  <div class="outline-text-3" id="text-4-15">
-  </div>
-  </div>
-  <div id="outline-container-ID-FF6049A3-F631-4BA7-96D9-D0F675560C6E" class="outline-3">
-  <h3 id="ID-FF6049A3-F631-4BA7-96D9-D0F675560C6E"><span class="section-number-3">4.16.</span> by pushing a commit to gitlab trigger a CI pipeline building said docker image for <code>x86_64-linux</code> and pushing it to a package registry ready to deploy</h3>
-  <div class="outline-text-3" id="text-4-16">
-  <p>
-  Enough bullet points. What did I actually do? (Sneak preview: <a href="https://gitlab.com/mavnn/caldance/-/tree/6b39d13d98199220d623870faf2b49fbda58d8a5">browse the gitlab repo at the time of the commit that this post describes</a>)
-  </p>
-  </div>
-  <div id="outline-container-ID-FDA3289B-7FA2-4ED4-A8F4-2608D019486B" class="outline-4">
-  <h4 id="ID-FDA3289B-7FA2-4ED4-A8F4-2608D019486B"><span class="section-number-4">4.16.1.</span> Setup a nix flake to provide our environment</h4>
-  <div class="outline-text-4" id="text-4-16-1">
-  <p>
-  A nix "flake" is a declarative description of a set of packages we'd like to be able to reference. You can read the <a href="https://gitlab.com/mavnn/caldance/-/blob/6b39d13d98199220d623870faf2b49fbda58d8a5/flake.nix">whole file</a> but the important part for today is that our <code>flake.nix</code> file specifies three outputs in this stanza:
+  This code is spiritually the same as writing:
   </p>
 
   <div class="org-src-container">
-  <pre class="src src-nix"><span class="org-tree-sitter-hl-faceXcomment"># Tools we want available during development</span>
-  <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">devShells</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXfunction"><span class="org-tree-sitter-hl-faceXproperty">default</span></span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">mkShell</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
-  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">buildInputs</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">[</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">dnc</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">sdk_8_0</span></span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">nixfmt</span></span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">skopeo</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">]</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
-  <span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
-
-  <span class="org-tree-sitter-hl-faceXcomment"># Default result of running `nix build` with this</span>
-  <span class="org-tree-sitter-hl-faceXcomment"># flake; it builds the F# project `CalDance.fsproj`</span>
-  <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">packages</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">default</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">buildDotnetModule</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
-  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">pname</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">name</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
-  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">version</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXstring">"0.1"</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
-
-  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">src</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-nix-constant">./.</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
-  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">projectFile</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXstring">"CalDance.fsproj"</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
-  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">nugetDeps</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">nugets</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
-
-  <span class="org-tree-sitter-hl-faceXcomment"># We set nix to create an output that contains</span>
-  <span class="org-tree-sitter-hl-faceXcomment"># everything needed, rather than depending</span>
-  <span class="org-tree-sitter-hl-faceXcomment"># on the dotnet runtime</span>
-  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">selfContainedBuild</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXvariableXbuiltin">true</span></span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
-
-  <span class="org-tree-sitter-hl-faceXcomment"># This is a webserver, and it complains if it</span>
-  <span class="org-tree-sitter-hl-faceXcomment"># has no access to openssl</span>
-  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">runtimeDeps</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">[</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">openssl</span></span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">cacert</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">]</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
-
-  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">dotnet-sdk</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">dnc</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">sdk_8_0</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
-  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">dotnet-runtime</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">dnc</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">runtime_8_0</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
-  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">executables</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">[</span> <span class="org-tree-sitter-hl-faceXstring">"CalDance"</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">]</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
-  <span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
-
-  <span class="org-tree-sitter-hl-faceXcomment"># A target that builds a fully self-contained docker</span>
-  <span class="org-tree-sitter-hl-faceXcomment"># file with the project above</span>
-  <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">packages</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">dockerImage</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">dockerTools</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter"><span class="org-tree-sitter-hl-faceXproperty">.</span></span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">buildImage</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
-  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">name</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">name</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
-  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">config</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
-  <span class="org-tree-sitter-hl-faceXcomment"># asp.net likes a writable /tmp directory</span>
-  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">Cmd</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXfunction"><span class="org-tree-sitter-hl-faceXproperty">writeShellScript</span></span></span> <span class="org-tree-sitter-hl-faceXstring">"runServer"</span> <span class="org-tree-sitter-hl-faceXstring">''</span>
-  <span class="org-tree-sitter-hl-faceXstring">      </span><span class="org-nix-antiquote">${</span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">coreutils</span></span></span></span><span class="org-nix-antiquote">}</span><span class="org-tree-sitter-hl-faceXstring">/bin/mkdir -p /tmp</span>
-  <span class="org-tree-sitter-hl-faceXstring">      </span><span class="org-nix-antiquote">${</span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">pkgs</span></span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">coreutils</span></span></span></span><span class="org-nix-antiquote">}</span><span class="org-tree-sitter-hl-faceXstring">/bin/mount -t tmpfs tmp /tmp</span>
-  <span class="org-tree-sitter-hl-faceXstring">      </span><span class="org-nix-antiquote">${</span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXproperty"><span class="org-tree-sitter-hl-faceXvariable">packages</span></span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span></span></span><span class="org-tree-sitter-hl-faceXembedded"><span class="org-tree-sitter-hl-faceXstring"><span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">default</span></span></span></span><span class="org-nix-antiquote">}</span><span class="org-tree-sitter-hl-faceXstring">/bin/CalDance.Server</span>
-  <span class="org-tree-sitter-hl-faceXstring">    ''</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
-  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">Env</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span>
-  <span class="org-tree-sitter-hl-faceXpunctuationXbracket">[</span> <span class="org-tree-sitter-hl-faceXstring">"DOTNET_EnableDiagnostics=0"</span> <span class="org-tree-sitter-hl-faceXstring">"ASPNETCORE_URLS=http://+:5001"</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">]</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
-  <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXproperty">ExposedPorts</span></span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span> <span class="org-tree-sitter-hl-faceXstring">"5001/tcp"</span> <span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">=</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
-  <span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
-  <span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">;</span>
+  <pre class="src src-typescript"><span class="org-tree-sitter-hl-faceXkeyword">const</span> <span class="org-tree-sitter-hl-faceXvariable"><span class="org-tree-sitter-hl-faceXfunction">helloAsync</span></span> <span class="org-tree-sitter-hl-faceXoperator">=</span> <span class="org-tree-sitter-hl-faceXkeyword">async</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">(</span><span class="org-variable-name">name?</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">:</span> <span class="org-tree-sitter-hl-faceXtypeXbuiltin">string</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">)</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">:</span> <span class="org-tree-sitter-hl-faceXtype">Promise</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&lt;</span></span><span class="org-tree-sitter-hl-faceXtypeXbuiltin">string</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&gt;</span></span> <span class="org-tree-sitter-hl-faceXoperator">=&gt;</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
+  <span class="org-tree-sitter-hl-faceXkeyword">return</span> <span class="org-tree-sitter-hl-faceXstring">`Hello, </span><span class="org-keyword">${</span><span class="org-default">name || "world"</span><span class="org-keyword">}</span><span class="org-tree-sitter-hl-faceXstring">!`</span>
+  <span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span>
   </pre>
   </div>
 
   <p>
-  First we say we want a shell environment which includes the dotnet core SDK (version 8), nixfmt (for formatting nix files), and skopeo which we can use for moving docker images around.
+  You can think of the <code>Effect.gen(function* () { ... })</code> as a slightly more verbose version of the <code>async</code> prefix to a function.
   </p>
 
   <p>
-  Then we define the default output for this flake: it uses the <code>buildDotnetModule</code> to specify that in our case it should build the executable <code>CalDance</code> based on the F# project file <code>CalDance.fsproj</code>. A helper makes sure that Nix is aware of which nuget packages the project has referenced, so that they can be packaged correctly.
-  </p>
-
-  <p>
-  Finally, we define the <code>dockerImage</code> which uses the <code>dockerTools.buildImage</code> helper to say we want to be able to build a docker image that contains the executable from the default package above, everything it needs to run and <i>nothing else at all</i>. In our case, this produces a docker image weighing in at around 80MB - similar to what you'd get optimising a <a href="https://blogit.create.pt/telmorodrigues/2022/03/08/smaller-net-6-docker-images/">two step hand crafted dockerfile</a>, and significantly smaller than using the official <a href="https://hub.docker.com/_/microsoft-dotnet-aspnet/">Microsoft ASP.NET runtime image</a>.
-  </p>
-  </div>
-  </div>
-  <div id="outline-container-ID-DC672BF7-5DEA-4F99-B8F1-4A45FE1FE16E" class="outline-4">
-  <h4 id="ID-DC672BF7-5DEA-4F99-B8F1-4A45FE1FE16E"><span class="section-number-4">4.16.2.</span> direnv</h4>
-  <div class="outline-text-4" id="text-4-16-2">
-  <p>
-  Direnv is a tool that can add environment variables to your shell when you enter a directory. It also, conveniently, knows about Nix flakes.
-  </p>
-
-  <p>
-  We add a <code>.envrc</code> file to our project with the contents:
+  What about calling the function? Again, we have a similar concept but different syntax to <code>async/await</code>.
   </p>
 
   <div class="org-src-container">
-  <pre class="src src-bash"><span class="org-tree-sitter-hl-faceXcomment">#!/usr/bin/</span><span class="org-keyword">env</span><span class="org-tree-sitter-hl-faceXcomment"> bash</span>
-  <span class="org-tree-sitter-hl-faceXcomment"># the shebang is ignored, but nice for editors</span>
-  <span class="org-tree-sitter-hl-faceXfunctionXcall">use</span> flake
+  <pre class="src src-typescript"><span class="org-tree-sitter-hl-faceXcomment">// Effect version</span>
+  <span class="org-tree-sitter-hl-faceXkeyword">const</span> <span class="org-tree-sitter-hl-faceXvariable">sayHello</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">:</span> <span class="org-tree-sitter-hl-faceXconstructor">Effect</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXtype">Effect</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&lt;</span></span><span class="org-tree-sitter-hl-faceXkeyword"><span class="org-tree-sitter-hl-faceXtypeXbuiltin">void</span></span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&gt;</span></span> <span class="org-tree-sitter-hl-faceXoperator">=</span>
+  <span class="org-tree-sitter-hl-faceXconstructor">Effect</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-function-name">gen</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">(</span><span class="org-tree-sitter-hl-faceXkeyword">function</span>* <span class="org-tree-sitter-hl-faceXpunctuationXbracket">()</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
+  <span class="org-tree-sitter-hl-faceXkeyword">const</span> <span class="org-tree-sitter-hl-faceXvariable">greeting</span> <span class="org-tree-sitter-hl-faceXoperator">=</span> <span class="org-tree-sitter-hl-faceXkeyword">yield</span>* <span class="org-tree-sitter-hl-faceXfunctionXcall">hello</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">(</span><span class="org-tree-sitter-hl-faceXstring">"world"</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">)</span>
+  <span class="org-tree-sitter-hl-faceXkeyword">yield</span>* <span class="org-tree-sitter-hl-faceXfunctionXcall">sendGreetings</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">(</span>greeting<span class="org-tree-sitter-hl-faceXpunctuationXbracket">)</span>
+  <span class="org-tree-sitter-hl-faceXpunctuationXbracket">})</span>
+
+  <span class="org-tree-sitter-hl-faceXcomment">// Async/await version</span>
+  <span class="org-tree-sitter-hl-faceXkeyword">const</span> <span class="org-variable-name">sayHelloAsync</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">:</span> <span class="org-tree-sitter-hl-faceXtype">Promise</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&lt;</span></span><span class="org-tree-sitter-hl-faceXkeyword"><span class="org-tree-sitter-hl-faceXtypeXbuiltin">void</span></span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&gt;</span></span> <span class="org-tree-sitter-hl-faceXoperator">=</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
+  <span class="org-keyword">const</span> <span class="org-variable-name">greeting</span> <span class="org-tree-sitter-hl-faceXoperator">=</span> <span class="org-tree-sitter-hl-faceXkeyword">await</span> <span class="org-tree-sitter-hl-faceXfunctionXcall">helloAsync</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">(</span><span class="org-tree-sitter-hl-faceXstring">"world"</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">)</span>
+  <span class="org-tree-sitter-hl-faceXkeyword">await</span> <span class="org-tree-sitter-hl-faceXfunctionXcall">sendGreetingsAsync</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">(</span>greeting<span class="org-tree-sitter-hl-faceXpunctuationXbracket">)</span>
+  <span class="org-tree-sitter-hl-faceXpunctuationXbracket">}</span>
   </pre>
   </div>
 
   <p>
-  Next time we move into this directory, direnv will ask us to allow this <code>.envrc</code> file. If we accept, our normal local shell will have everything specified in the <code>devShell</code> above added to its path. This means we can, for example, use the <code>dotnet</code> command and we will use the version specified in <code>flake.nix</code> even if we haven't installed a system wide version of dotnet at all.
-  </p>
-  </div>
-  </div>
-  <div id="outline-container-ID-5D73D2BE-2AC9-4F75-898B-9691CA8C3539" class="outline-4">
-  <h4 id="ID-5D73D2BE-2AC9-4F75-898B-9691CA8C3539"><span class="section-number-4">4.16.3.</span> The F# project</h4>
-  <div class="outline-text-4" id="text-4-16-3">
-  <p>
-  There's absolutely nothing special about this at all. I just created an F# project with <code>dotnet</code> on the command line, moved <code>Program.fs</code> into a sub directory called <code>src</code> because I prefer it that way, and then added a package dependency on <code>Falco</code> using <code>dotnet add package Falco</code>.
+  Given that we're using a cooperative scheduling system for asynchronous code, you can think of <code>yield*</code> as
+  saying "hey runtime - I'm yielding the thread now, start me back up when the effect on the right has finished."
   </p>
 
   <p>
-  Replace the contents of <code>Program.fs</code> with:
+  There is, however one big difference between these two which will catch you out if you don't know about it.
+  </p>
+  </div>
+  </div>
+  <div id="outline-container-ID-0244A81A-7C2E-4DAF-8149-8E18B8B442E0" class="outline-3">
+  <h3 id="ID-0244A81A-7C2E-4DAF-8149-8E18B8B442E0"><span class="section-number-3">2.2.</span> Hot and cold promises</h3>
+  <div class="outline-text-3" id="text-2-2">
+  <p>
+  <code>Promise</code> is what is sometimes referred to as a "hot" or "immediate" asynchronous construct. What does that mean?
+  </p>
+
+  <p>
+  Well, in the example above <code>sayHelloAsync</code> is a constant value. As soon as the value is created, the logic within
+  the promise will be scheduled for execution and we will start the process of asynchronously running the <code>helloAsync</code>
+  function. If we await the result of <code>sayHelloAsync</code> somewhere else, we will block until the function has finished.
+  </p>
+
+  <p>
+  This also means that if we <code>await</code> <code>sayHelloAsync</code> in two different places, we will only send greetings <b>once</b>. After
+  all, the <code>Promise</code> type that we are handing around represents the running execution of an asynchronous process; it has
+  already started, and awaiting it multiple times won't start it again.
+  </p>
+
+  <p>
+  <code>Effect</code>, by contrast, is a "cold" or "thunked" asynchronous construct. It represents a series of steps that <i>will be</i>
+  executed <i>if</i> the result is requested.
+  </p>
+
+  <p>
+  So if we run:
   </p>
 
   <div class="org-src-container">
-  <pre class="src src-fsharp"><span class="org-keyword">module</span> <span class="org-type">Mavnn.CalDance.Server</span>
-
-  <span class="org-keyword">open</span> <span class="org-type">Falco</span>
-  <span class="org-keyword">open</span> <span class="org-type">Falco.Routing</span>
-  <span class="org-keyword">open</span> <span class="org-type">Falco.HostBuilder</span>
-
-  webHost [||] {
-  endpoints [
-  get <span class="org-string">"/"</span> (Response.ofPlainText <span class="org-string">"Hello World"</span>)
-  ]
-  }
-  </pre>
-  </div>
-  </div>
-  </div>
-  <div id="outline-container-ID-E91D9723-3972-4495-AE15-15CA58EA0960" class="outline-4">
-  <h4 id="ID-E91D9723-3972-4495-AE15-15CA58EA0960"><span class="section-number-4">4.16.4.</span> Set up the CI pipeline</h4>
-  <div class="outline-text-4" id="text-4-16-4">
-  <p>
-  Having used Nix for our development environment, our CI pipeline becomes exceedingly straight forward. All we need is a build container with Nix available and we have all the other information we need for the build already. Nix themselves provide a <code>nixos/nix</code> image (Nix is the package manager, NixOS is the linux distribution that uses Nix as its package manager) so we'll just use that.
-  </p>
-
-  <p>
-  There's a little bit of boilerplate to tell nix that we want to allow flakes and to allow connection to the gitlab package registry. Once that is done, we log into the registry for this project using the CI provided environment variables, run <code>nix build .#dockerImage</code> and then push the results up to the registry.
-  </p>
-
-  <div class="org-src-container">
-  <pre class="src src-yaml">build-container:
-  image:
-  name: "nixos/nix:2.19.3"
-  variables:
-  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
-  before_script:
-  - nix-env --install --attr nixpkgs.skopeo
-  script:
-  - mkdir -p "$HOME/.config/nix"
-  - echo 'experimental-features = nix-command flakes' &gt; "$HOME/.config/nix/nix.conf"
-  - mkdir -p "/etc/containers/"
-  - echo '{"default":[{"type":"insecureAcceptAnything"}]}' &gt; /etc/containers/policy.json
-  - skopeo login --username "$CI_REGISTRY_USER" --password "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
-  - 'nix build .#dockerImage'
-  - ls -lh ./result
-  - 'skopeo inspect docker-archive://$(readlink -f ./result)'
-  - 'skopeo copy docker-archive://$(readlink -f ./result) docker://$IMAGE_TAG'
+  <pre class="src src-typescript"><span class="org-tree-sitter-hl-faceXkeyword">const</span> <span class="org-tree-sitter-hl-faceXvariable">camelot</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">:</span> <span class="org-tree-sitter-hl-faceXconstructor">Effect</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXtype">Effect</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&lt;</span></span><span class="org-tree-sitter-hl-faceXkeyword"><span class="org-tree-sitter-hl-faceXtypeXbuiltin">void</span></span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&gt;</span></span> <span class="org-tree-sitter-hl-faceXoperator">=</span>
+  <span class="org-tree-sitter-hl-faceXconstructor">Effect</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-function-name">gen</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">(</span><span class="org-tree-sitter-hl-faceXkeyword">function</span>* <span class="org-tree-sitter-hl-faceXpunctuationXbracket">()</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
+  <span class="org-tree-sitter-hl-faceXkeyword">yield</span>* sayHello
+  <span class="org-tree-sitter-hl-faceXkeyword">yield</span>* sayHello
+  <span class="org-tree-sitter-hl-faceXkeyword">yield</span>* sayHello
+  <span class="org-tree-sitter-hl-faceXpunctuationXbracket">})</span>
   </pre>
   </div>
 
   <p>
-  It's worth noting here that Nix is a deterministic build system (for example, stripping dates from compiled metadata so building the same source code on a different day doesn't product a different binary). In a "real life" context I would be caching the results of the nix build steps to a service like <a href="https://www.cachix.org/">Cachix</a> so that they could be reused between builds, which becomes increasingly useful as the project grows and starts to be comprised of multiple build steps (Nix will be able to cache each "step" individually, even if you only ask for the final outcome of the process).
-  </p>
-  </div>
-  </div>
-  <div id="outline-container-ID-1FA171CF-0B37-4B66-AB4F-8BE3AD911AA1" class="outline-4">
-  <h4 id="ID-1FA171CF-0B37-4B66-AB4F-8BE3AD911AA1"><span class="section-number-4">4.16.5.</span> Wrapping it all up</h4>
-  <div class="outline-text-4" id="text-4-16-5">
-  <p>
-  Not a bad first days work, I'd say. Our project is already at a stage that we can work on it with standard .NET tooling (for instance, adding a new nuget package with <code>dotnet package add ...</code> will automatically flow through to that package being added to the docker image) and CI will produce on push a lean deployable artifact. Versions of <i>everything</i> we are using from the .NET SDK to the nuget package we're depending on are fixed across all environments, and we have a nice place to add more developer tooling as we move forwards - for example standardizing the version of postgresql that will be used during development and in CI.
+  We will send the greetings three times, but only when somebody requests the result of running <code>camelot</code>. Until
+  then, nothing will happen at all.
   </p>
 
   <p>
-  As a bonus extra, anybody with nix installed can build and run the project without having to know .NET or have any .NET tooling installed; a very nice feature when you have others depending on your work who might want to run your code locally, but may not have chosen the same tech stack.
+  <b>If you remember nothing else from this post</b>, remember that an <code>Effect</code> that nobody executes never runs. This <i>will</i> catch you
+  out with logging.
   </p>
+
+  <div class="org-src-container">
+  <pre class="src src-typescript"><span class="org-tree-sitter-hl-faceXcomment">// logs nothing</span>
+  <span class="org-tree-sitter-hl-faceXkeyword">const</span> <span class="org-tree-sitter-hl-faceXvariable">camelot</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">:</span> <span class="org-tree-sitter-hl-faceXconstructor">Effect</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXtype">Effect</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&lt;</span></span><span class="org-tree-sitter-hl-faceXkeyword"><span class="org-tree-sitter-hl-faceXtypeXbuiltin">void</span></span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&gt;</span></span> <span class="org-tree-sitter-hl-faceXoperator">=</span>
+  <span class="org-tree-sitter-hl-faceXconstructor">Effect</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-function-name">gen</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">(</span><span class="org-tree-sitter-hl-faceXkeyword">function</span>* <span class="org-tree-sitter-hl-faceXpunctuationXbracket">()</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
+  <span class="org-tree-sitter-hl-faceXconstructor">Effect</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-function-name">log</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">(</span><span class="org-tree-sitter-hl-faceXstring">"Bass voice: spam a looooooot"</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">)</span>
+  <span class="org-tree-sitter-hl-faceXkeyword">yield</span>* sayHello
+  <span class="org-tree-sitter-hl-faceXkeyword">yield</span>* sayHello
+  <span class="org-tree-sitter-hl-faceXkeyword">yield</span>* sayHello
+  <span class="org-tree-sitter-hl-faceXpunctuationXbracket">})</span>
+
+  <span class="org-tree-sitter-hl-faceXcomment">// logs the bass voice</span>
+  <span class="org-tree-sitter-hl-faceXkeyword">const</span> <span class="org-tree-sitter-hl-faceXvariable">camelot</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">:</span> <span class="org-tree-sitter-hl-faceXconstructor">Effect</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-tree-sitter-hl-faceXtype">Effect</span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&lt;</span></span><span class="org-tree-sitter-hl-faceXkeyword"><span class="org-tree-sitter-hl-faceXtypeXbuiltin">void</span></span><span class="org-tree-sitter-hl-faceXoperator"><span class="org-tree-sitter-hl-faceXpunctuationXbracket">&gt;</span></span> <span class="org-tree-sitter-hl-faceXoperator">=</span>
+  <span class="org-tree-sitter-hl-faceXconstructor">Effect</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-function-name">gen</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">(</span><span class="org-tree-sitter-hl-faceXkeyword">function</span>* <span class="org-tree-sitter-hl-faceXpunctuationXbracket">()</span> <span class="org-tree-sitter-hl-faceXpunctuationXbracket">{</span>
+  <span class="org-tree-sitter-hl-faceXkeyword">yield</span>* <span class="org-tree-sitter-hl-faceXconstructor">Effect</span><span class="org-tree-sitter-hl-faceXpunctuationXdelimiter">.</span><span class="org-function-name">log</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">(</span><span class="org-tree-sitter-hl-faceXstring">"Bass voice: spam a looooooot"</span><span class="org-tree-sitter-hl-faceXpunctuationXbracket">)</span>
+  <span class="org-tree-sitter-hl-faceXkeyword">yield</span>* sayHello
+  <span class="org-tree-sitter-hl-faceXkeyword">yield</span>* sayHello
+  <span class="org-tree-sitter-hl-faceXkeyword">yield</span>* sayHello
+  <span class="org-tree-sitter-hl-faceXpunctuationXbracket">})</span>
+  </pre>
   </div>
-  </div>
-  <div id="outline-container-ID-87BD3AC9-47D4-4571-A7C9-CFA453586EC0" class="outline-4">
-  <h4 id="ID-87BD3AC9-47D4-4571-A7C9-CFA453586EC0"><span class="section-number-4">4.16.6.</span> Feedback? Comments?</h4>
-  <div class="outline-text-4" id="text-4-16-6">
+
   <p>
-  Have questions? Comments? Hate something, love something, know a better way of doing something? Drop an issue on the repository at <a href="https://gitlab.com/mavnn/caldance">https://gitlab.com/mavnn/caldance</a> and let me know. I'll be pointing a tag at the commit referenced by each blog post, so I can always branch off and include your ideas in a future revision!
+  Although the ability to create Effects without executing them can be extremely useful, leaving <code>yield*</code> out of
+  your code when you actually need it is probably the most frustrating element of learning Effect, and the one
+  that the compiler is least able to warn you about.
   </p>
   </div>
   </div>
-  <div id="outline-container-ID-CF974ECC-320F-484D-B98E-50F32F3EEA89" class="outline-4">
-  <h4 id="ID-CF974ECC-320F-484D-B98E-50F32F3EEA89"><span class="section-number-4">4.16.7.</span> Next</h4>
-  <div class="outline-text-4" id="text-4-16-7">
+  <div id="outline-container-ID-5EDA0F5B-25E3-4493-A6E7-7A7E4E2ED6CF" class="outline-3">
+  <h3 id="ID-5EDA0F5B-25E3-4493-A6E7-7A7E4E2ED6CF"><span class="section-number-3">2.3.</span> Pipes</h3>
+  <div class="outline-text-3" id="text-2-3">
   <p>
-  <a href="https://blog.mavnn.co.uk/../../../2024/02/06/dev-journal-2.html">Part 2</a> adds unit tests and consistent formatting to the project.
+  Effect makes heavy usage of a concept it calls "pipes", which is a way of passing a value through a series of functions.
   </p>
-  </div>
+
+  <p>
+  The main place you'll see this is that we can wrap <code>Effect</code> values in a wide variety of ways. These are very powerful,
+  but quickly start suffering from the "lisp effect" of a pyramid of brackets when we start combining them.
+  </p>
+
+  <p>
+  Let's rewrite the <code>camelot</code> function above using the built in <code>Effect.repeatN</code> method:
+  </p>
   </div>
   </div>
   ]]></description>

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- 2025-09-08 Mon 16:56 -->
+<!-- 2025-09-16 Tue 13:18 -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>With style: Dev Journal 6</title>
@@ -25,7 +25,7 @@ In theory, our log in mechanism works. But in reality it looks like this:
 </p>
 
 
-<figure id="org5e6b540">
+<figure id="orgc16e9e0">
 <img src="before.png" alt="before.png">
 
 <figcaption><span class="figure-number">Figure 1: </span>Two unstyled, unlabeled text boxes next to a "Submit" button</figcaption>
@@ -36,7 +36,7 @@ This is the post where we give it a make over, so that it starts looking more li
 </p>
 
 
-<figure id="orgeb4e322">
+<figure id="orge414eae">
 <img src="after.png" alt="after.png">
 
 <figcaption><span class="figure-number">Figure 2: </span>A snazzy looking login page</figcaption>
@@ -45,9 +45,9 @@ This is the post where we give it a make over, so that it starts looking more li
 <p>
 ...while also starting to build in some interactivity, usability, and feedback via HTMX.
 </p>
-<div id="outline-container-org75109e1" class="outline-2">
-<h2 id="org75109e1">The good, the bad, and the ugly</h2>
-<div class="outline-text-2" id="text-org75109e1">
+<div id="outline-container-org7360fd8" class="outline-2">
+<h2 id="org7360fd8">The good, the bad, and the ugly</h2>
+<div class="outline-text-2" id="text-org7360fd8">
 <p>
 You may remember from <a href="../../../2024/01/31/dev-journal-1.html">part 1</a> that HTMX and Falco's markup library are both tools I'm trying out for the first time. This means that while I'm happy with the <i>results</i> I achieved in this post, I'm not all that happy with the resulting code. Yet. There will be a refactoring follow up.
 </p>
@@ -57,9 +57,9 @@ Which translates to: don't take anything as an active recommendation of how to d
 </p>
 </div>
 </div>
-<div id="outline-container-orga46f0c3" class="outline-2">
-<h2 id="orga46f0c3">The logic behind our changes</h2>
-<div class="outline-text-2" id="text-orga46f0c3">
+<div id="outline-container-org5588bb2" class="outline-2">
+<h2 id="org5588bb2">The logic behind our changes</h2>
+<div class="outline-text-2" id="text-org5588bb2">
 <p>
 My first attempt at nice server side UI building hinges on two key ideas. 1) each domain module should be responsible for its own UI requirements and 2) the overall UI should look coherent.
 </p>
@@ -68,9 +68,9 @@ My first attempt at nice server side UI building hinges on two key ideas. 1) eac
 This sounds like a place for a style guide, so I created a <code>StyleGuide</code> directory and started hacking. We ended up with four files in here, each with their own little area of responsibility.
 </p>
 </div>
-<div id="outline-container-orgbc14335" class="outline-3">
-<h3 id="orgbc14335">Htmx</h3>
-<div class="outline-text-3" id="text-orgbc14335">
+<div id="outline-container-orgb35f915" class="outline-3">
+<h3 id="orgb35f915">Htmx</h3>
+<div class="outline-text-3" id="text-orgb35f915">
 <p>
 The <code>Htmx.fs</code> file (<a href="https://gitlab.com/mavnn/caldance/-/merge_requests/5/diffs#e08193e43a637c573f535f953ec65131eded9044">link to the diff</a>) is arguably not really part of the style guide, but it seemed the best place I had to put it.
 </p>
@@ -126,9 +126,9 @@ We'll be seeing this again in a bit.
 </p>
 </div>
 </div>
-<div id="outline-container-org1c94481" class="outline-3">
-<h3 id="org1c94481">Modifier</h3>
-<div class="outline-text-3" id="text-org1c94481">
+<div id="outline-container-org83cad52" class="outline-3">
+<h3 id="org83cad52">Modifier</h3>
+<div class="outline-text-3" id="text-org83cad52">
 <p>
 I'm planning on using Bulma as the basis for my CSS as it hits a reasonably sweet spot for me between having a good enough version of "most things" built in and not requiring me to mutate my HTML <i>too</i> much to accommodate it. So the next thing to add was constants for some of the most common modifier classes that Bulma supports.
 </p>
@@ -157,9 +157,9 @@ Boom. Done. Compiler as a spellcheck, tick.
 </p>
 </div>
 </div>
-<div id="outline-container-orgd2776b9" class="outline-3">
-<h3 id="orgd2776b9">Layout</h3>
-<div class="outline-text-3" id="text-orgd2776b9">
+<div id="outline-container-org81b8592" class="outline-3">
+<h3 id="org81b8592">Layout</h3>
+<div class="outline-text-3" id="text-org81b8592">
 <p>
 As with the modifiers, I wanted to make it a little bit easier to do the "right thing" when creating a view, so I set up <code>Layout.fs</code> (<a href="https://gitlab.com/mavnn/caldance/-/merge_requests/5/diffs#fa9c7c3d5630a543415353918d553e91b7edc402">link to the diff</a>) which includes a <code>page</code> function that takes a title and a list of sections and a set of broadly applicable elements like titles and links.
 </p>
@@ -169,9 +169,9 @@ At the moment the page template loads all of the libraries from shared CDNs, whi
 </p>
 </div>
 </div>
-<div id="outline-container-org385d42a" class="outline-3">
-<h3 id="org385d42a">Form</h3>
-<div class="outline-text-3" id="text-org385d42a">
+<div id="outline-container-org60e1e9f" class="outline-3">
+<h3 id="org60e1e9f">Form</h3>
+<div class="outline-text-3" id="text-org60e1e9f">
 <p>
 The <code>Form.fs</code> module (<a href="https://gitlab.com/mavnn/caldance/-/merge_requests/5/diffs#26465d4af42079e4d5f2d9c698268260af59e9a0">link to the diff</a>) is the place where I feel I've probably over engineered things. I started putting together a set of builder helpers and types for building forms and... yeah. I don't know. I think it's probably ended up a case of trying to add the abstraction before building the second use of something, and it shows. I'm not all that happy with the code that results.
 </p>
@@ -182,9 +182,9 @@ I'm not going to go into too much detail on this one, I'm just going to show it 
 </div>
 </div>
 </div>
-<div id="outline-container-org6413893" class="outline-2">
-<h2 id="org6413893">Actually doing the thing</h2>
-<div class="outline-text-2" id="text-org6413893">
+<div id="outline-container-org30c45ec" class="outline-2">
+<h2 id="org30c45ec">Actually doing the thing</h2>
+<div class="outline-text-2" id="text-org30c45ec">
 <p>
 With our helpers constructed, we can start using them. Simple full page endpoints are quite simple; we just swap in the new <code>Layout</code> functions and we're good to go. For example, the view for the home page now looks like this:
 </p>
@@ -215,25 +215,25 @@ As soon as we get to adding things like navigation bars to the page template the
 The magic, again, begins in the <code>User.fs</code> module. Let's have a think about the request life cycle with HTMX.
 </p>
 </div>
-<div id="outline-container-org39bc3ed" class="outline-3">
-<h3 id="org39bc3ed">Option 1: the user GETS the log in (or sign up) page</h3>
-<div class="outline-text-3" id="text-org39bc3ed">
+<div id="outline-container-org50410a1" class="outline-3">
+<h3 id="org50410a1">Option 1: the user GETS the log in (or sign up) page</h3>
+<div class="outline-text-3" id="text-org50410a1">
 <p>
 In this case, we want to send a full page back to the user with an empty "user details" form; this form should not show any validation errors (don't you hate it when a form tells you empty fields aren't allowed before you've started typing?!).
 </p>
 </div>
 </div>
-<div id="outline-container-org3babc44" class="outline-3">
-<h3 id="org3babc44">Option 2: the user POSTS invalid user data</h3>
-<div class="outline-text-3" id="text-org3babc44">
+<div id="outline-container-org0168f69" class="outline-3">
+<h3 id="org0168f69">Option 2: the user POSTS invalid user data</h3>
+<div class="outline-text-3" id="text-org0168f69">
 <p>
 Well, if the form fields just aren't in the POST we should return a 400: something is just broken. But if the correct fields exist and this request is flagged as being made by HTMX, what we want to do is update the form with the information about what the user needs to change. Preferably without removing all the information they've already added!
 </p>
 </div>
 </div>
-<div id="outline-container-orga70af91" class="outline-3">
-<h3 id="orga70af91">Option 3: the user POSTS valid user data</h3>
-<div class="outline-text-3" id="text-orga70af91">
+<div id="outline-container-org60380dc" class="outline-3">
+<h3 id="org60380dc">Option 3: the user POSTS valid user data</h3>
+<div class="outline-text-3" id="text-org60380dc">
 <p>
 In this case we want to log the user in and navigate them somewhere else in the website. We don't just want to return the form, we want to return the special <code>HX-Location</code> header which tells HTMX "load the body of that location and substitute it in to avoid a full page reload".
 </p>
@@ -377,9 +377,9 @@ Browsing directly to the log out link in your browser will get you a redirect st
 </p>
 </div>
 </div>
-<div id="outline-container-org7eb66bc" class="outline-3">
-<h3 id="org7eb66bc">That's a wrap</h3>
-<div class="outline-text-3" id="text-org7eb66bc">
+<div id="outline-container-org18da11d" class="outline-3">
+<h3 id="org18da11d">That's a wrap</h3>
+<div class="outline-text-3" id="text-org18da11d">
 <p>
 So, that's the main changes for this post. As normal there's the link at the top of the post to the repo as it was when the post was written. I'm not totally happy with the internal results here, but I'm happy enough that I don't want to spend time refactoring it before I've started using it on a second use case.
 </p>

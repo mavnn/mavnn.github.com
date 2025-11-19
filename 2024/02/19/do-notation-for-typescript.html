@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- 2025-09-16 Tue 13:18 -->
+<!-- 2025-11-19 Wed 11:12 -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Do notation for TypeScript</title>
@@ -92,9 +92,9 @@ If you're impatient you can jump straight to <a href="#ID-8B8152C2-E896-4933-A30
 <p>
 For the avoidance of any doubt, all the code in this blog post is available for re-use under the MIT license as list in <a href="#ID-E8C7C73E-C564-4CDE-B2D9-328AFDF256F1">appendix 3</a>.
 </p>
-<div id="outline-container-org6d0b005" class="outline-2">
-<h2 id="org6d0b005">The idea</h2>
-<div class="outline-text-2" id="text-org6d0b005">
+<div id="outline-container-org61b0012" class="outline-2">
+<h2 id="org61b0012">The idea</h2>
+<div class="outline-text-2" id="text-org61b0012">
 <p>
 TypeScript has one form of monad notation already - the <code>await</code> keyword. Unfortunately, there isn't any way to plug into the mechanism used and define your own alternative <code>bind</code> implementation without doing something dangerously hacky. And, frankly, the last thing your TypeScript code needs is an other sharp edge to cut yourself on.
 </p>
@@ -108,9 +108,9 @@ So: if we consider the fact that a scope is really just a mapping from names to 
 </p>
 </div>
 </div>
-<div id="outline-container-org461e17a" class="outline-2">
-<h2 id="org461e17a">Defining a scope</h2>
-<div class="outline-text-2" id="text-org461e17a">
+<div id="outline-container-org0fbe444" class="outline-2">
+<h2 id="org0fbe444">Defining a scope</h2>
+<div class="outline-text-2" id="text-org0fbe444">
 <p>
 A type that maps names to values is reasonably easy to define in TypeScript. It looks something like this:
 </p>
@@ -262,9 +262,9 @@ This is all starting to look quite hopeful with us now having a representation o
 </p>
 </div>
 </div>
-<div id="outline-container-org5397eff" class="outline-2">
-<h2 id="org5397eff">Building an operation</h2>
-<div class="outline-text-2" id="text-org5397eff">
+<div id="outline-container-org7612248" class="outline-2">
+<h2 id="org7612248">Building an operation</h2>
+<div class="outline-text-2" id="text-org7612248">
 <p>
 The next question we need to answer is what is this going to be the scope <i>of</i>. Monad friendly syntax normally binds names in the scope of a function body, so let's generalize that idea slightly (and with a lot of hand waving) to the idea of the scope of an operation.
 </p>
@@ -367,13 +367,13 @@ The pattern of how we implement the builder for each type of monad is going to b
 </div>
 </div>
 </div>
-<div id="outline-container-org98295a1" class="outline-2">
-<h2 id="org98295a1">Some working examples</h2>
-<div class="outline-text-2" id="text-org98295a1">
+<div id="outline-container-org4f33485" class="outline-2">
+<h2 id="org4f33485">Some working examples</h2>
+<div class="outline-text-2" id="text-org4f33485">
 </div>
-<div id="outline-container-org2937592" class="outline-3">
-<h3 id="org2937592">Maybe</h3>
-<div class="outline-text-3" id="text-org2937592">
+<div id="outline-container-org6a54b2f" class="outline-3">
+<h3 id="org6a54b2f">Maybe</h3>
+<div class="outline-text-3" id="text-org6a54b2f">
 <p>
 Let's start with the classics. Tried of handling nulls and undefined manually? Redefine our bind method and we're done: apart from changing the name, nothing else changes.
 </p>
@@ -463,9 +463,9 @@ The rest of the code is behind the cut to avoid us being too repetitive.
 </p>
 </div>
 </div>
-<div id="outline-container-org6d36106" class="outline-3">
-<h3 id="org6d36106">AsyncMaybe</h3>
-<div class="outline-text-3" id="text-org6d36106">
+<div id="outline-container-orgd79b54e" class="outline-3">
+<h3 id="orgd79b54e">AsyncMaybe</h3>
+<div class="outline-text-3" id="text-orgd79b54e">
 <p>
 Of course, TypeScript has fairly robust tools for handling null and undefined already. But they get pretty painfully verbose if you start needing to handle a lot of asynchronous calls. Chains to the rescue!
 </p>
@@ -729,9 +729,9 @@ The full code is here if you want to be able to see it all in context.
 </div>
 </div>
 </div>
-<div id="outline-container-org09a4c8f" class="outline-2">
-<h2 id="org09a4c8f">Diving deeper: handling errors with style and panache</h2>
-<div class="outline-text-2" id="text-org09a4c8f">
+<div id="outline-container-org288a393" class="outline-2">
+<h2 id="org288a393">Diving deeper: handling errors with style and panache</h2>
+<div class="outline-text-2" id="text-org288a393">
 <p>
 For our last example we're going to both take things up a notch, and take a bit more advantage of TypeScript's type level programming.
 </p>
@@ -882,9 +882,9 @@ Once we've called our code, we can then exhaustively handle any errors it may ha
 Let's do it! We need to both build out our monad, and then also think about how to write the code that uses it.
 </p>
 </div>
-<div id="outline-container-orge1aadb0" class="outline-3">
-<h3 id="orge1aadb0">The monad itself</h3>
-<div class="outline-text-3" id="text-orge1aadb0">
+<div id="outline-container-org82eb640" class="outline-3">
+<h3 id="org82eb640">The monad itself</h3>
+<div class="outline-text-3" id="text-org82eb640">
 <p>
 First let's build the monad we're going to need. To write the code we want to, we know that we need a few properties. Our operations will frequently be asynchronous, so we need to deal with that. They need to be able to declare how they can fail, so we need them to return a success or failure result type. And they need to be able to capture information during the operation <i>even if the operation then fails</i> so that we can make that information available during error handling.
 </p>
@@ -1128,9 +1128,9 @@ We have a monad now, so our chain should look very familiar; let's put the whole
 </div>
 </div>
 </div>
-<div id="outline-container-org4079ef5" class="outline-3">
-<h3 id="org4079ef5">Writing the code</h3>
-<div class="outline-text-3" id="text-org4079ef5">
+<div id="outline-container-org3ec9dad" class="outline-3">
+<h3 id="org3ec9dad">Writing the code</h3>
+<div class="outline-text-3" id="text-org3ec9dad">
 <p>
 To fully take advantage of our new shiny monad, there's a few simple rules we want to follow.
 </p>
@@ -1168,9 +1168,9 @@ Following these patterns and combining them with the type safety of the chain bu
 </div>
 </div>
 </div>
-<div id="outline-container-org61ce080" class="outline-2">
-<h2 id="org61ce080">Appendix 1: Stealing from the best</h2>
-<div class="outline-text-2" id="text-org61ce080">
+<div id="outline-container-orge169482" class="outline-2">
+<h2 id="orge169482">Appendix 1: Stealing from the best</h2>
+<div class="outline-text-2" id="text-orge169482">
 <p>
 The advantage of using a standard abstraction like a monad is that someone has done most of the hard thinking already for you. In TypeScript we don't have a nice way of defining code that works on "anything which is a monad", but in Haskell you can - and that means that there's <a href="https://hackage.haskell.org/package/base-4.19.0.0/docs/Control-Monad.html#g:4">collections of functions</a> that you can refer to that are implemented on the basis of something being a monad. This means that if you have a working knowledge of Haskell (or Scala, or an other language where someone has done this work for you already) you can easily add features to your <code>XChain</code> class as you discover you need them.
 </p>
@@ -1281,7 +1281,7 @@ Warning: there's an argument for not adding too many of these helpers too quickl
 </div>
 <div id="outline-container-ID-8B8152C2-E896-4933-A30E-E01276B284A8" class="outline-2">
 <h2 id="ID-8B8152C2-E896-4933-A30E-E01276B284A8">Appendix 2: A slightly excessive example of the Solid monad in action</h2>
-<div class="outline-text-2" id="text-orgbf85390">
+<div class="outline-text-2" id="text-org22df9bd">
 <p>
 <details><summary>
 You can cut and paste this big fat code block into the TS editor of your choice and have a play with the Solid monad. Go on. It's fun!
@@ -1875,7 +1875,7 @@ You can cut and paste this big fat code block into the TS editor of your choice 
 </div>
 <div id="outline-container-ID-E8C7C73E-C564-4CDE-B2D9-328AFDF256F1" class="outline-2">
 <h2 id="ID-E8C7C73E-C564-4CDE-B2D9-328AFDF256F1">Appendix 3: license</h2>
-<div class="outline-text-2" id="text-orgdbd2d3b">
+<div class="outline-text-2" id="text-orga9e6e3a">
 <p>
 All the code (and only the code) in this blog post is licensed with the MIT license below:
 </p>
@@ -1899,9 +1899,9 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 </blockquote>
 </div>
 </div>
-<div id="outline-container-orgabf07b3" class="outline-2">
-<h2 id="orgabf07b3">I have <i>opinions</i></h2>
-<div class="outline-text-2" id="text-orgabf07b3">
+<div id="outline-container-org165880e" class="outline-2">
+<h2 id="org165880e">I have <i>opinions</i></h2>
+<div class="outline-text-2" id="text-org165880e">
 <p>
 Good stuff! You may have noticed I do as well: the "official" place to comment is on this mastodon post. <a href="https://mastodon.sdf.org/@mavnn/111957791763779112">https://mastodon.sdf.org/@mavnn/111957791763779112</a>
 </p>
@@ -1911,7 +1911,7 @@ Good stuff! You may have noticed I do as well: the "official" place to comment i
 <div id="postamble" class="status">
 <footer id="my-contacts">
 <p hx-boost="false"><a href="https://blog.mavnn.co.uk/rss.xml">RSS</a></p>
-<p><a href="https://mastodon.sdf.org/@mavnn">Mastodon</a></p>
+<p><a href="https://bonfire.mavnn.eu/@mavnn">Fediverse</a></p>
 <p>Git(<a href="https://github.com/mavnn">Hub</a>|<a href="https://gitlab.com/mavnn">Lab</a>)</p>
 </footer>
 </div>

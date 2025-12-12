@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2025-12-12 Fri 13:47 -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Stacks in Ink</title>
+<meta name="author" content="Michael Newton" />
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/org.css">
+<script src="/htmx.min.js"></script>
+</head>
+<body hx-boost="true">
+<div id="org-div-home-and-up"><span class="home-text"><a accesskey="H" href="/">HOME</span><img class="home-logo" src="http://blog.mavnn.co.uk/images/swirl.svg" /></a></div><div id="content" class="container">
+<header>
+<h1 class="title">Stacks in Ink</h1>
+</header><p>
+I'm currently running courses on building visual novels using Ink (with my <a href="https://visualink.mavnn.eu/">VisualInk</a> site providing both editing environment and 'runner'). Shameless plug: if you're looking for an unusual present for a 9-18 year old in your life, you could book them onto one of these courses for next term - <a href="https://www.thinkersmeetup.com/scholars/michael-newton">link to my page at the course provider</a>.
+</p>
+
+<p>
+I chose Ink because it is brilliant at helping manage the complexity of branching narrative, but in working through the examples in the course there was one particular weakness we came upon. Because Ink is designed to be embedded in a larger game, it deliberately limits the options for state management within the Ink language - that's not the job it is there for. VisualInk, on the other hand, is built on the assumption that the Ink <i>is</i> the game, and it is just providing the sound and visuals.
+</p>
+
+<p>
+Ink LISTs are very powerful for capturing flags, but they don't capture the order in which things are added to the list, and they can't contain duplicate values. Let's look at two examples that made us struggle, and then I'll move on to how I'm solving the problem.
+</p>
+<div id="outline-container-org0ec291b" class="outline-2">
+<h2 id="org0ec291b">What is best in life, sensei?</h2>
+<div class="outline-text-2" id="text-org0ec291b">
+<p>
+In the example visual novel Tournament you play a martial artist sent out into the world by your sensei. If you want to try it, you can play it <a href="https://visualink.mavnn.eu/published/KJtX3GyWGqeciSHmm4j33E76">here</a> (it's a couple of minutes long). The novel opens by establishing what is important to your sensei, where you flashback to your training and select what he taught you as foundational, as being important, and as final polish.
+</p>
+
+<p>
+These are the qualities in question:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ink">LIST qualities =
+  strength, skill, control, 
+  speed, honour
+</pre>
+</div>
+
+<p>
+Ideally, it would be trivial to just add the qualities to a variable of some kind in order, at which point you'd immediately know which is which. Instead, we end up having to create multiple variables and keep track of which one it is we're filling.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ink">VAR most_important = honour
+VAR important = honour
+VAR least_important = honour
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgb4cc599" class="outline-2">
+<h2 id="orgb4cc599">Card battler</h2>
+<div class="outline-text-2" id="text-orgb4cc599">
+<p>
+We discussed in one of the lessons the idea of a 'card battler' mechanic within our visual novels, and quickly realized that keeping track of a deck of cards within Ink that could have cards added to it during the story (especially duplicate cards) would be very hard if not impossible.
+</p>
+</div>
+</div>
+<div id="outline-container-orgf510bef" class="outline-2">
+<h2 id="orgf510bef">The solution</h2>
+<div class="outline-text-2" id="text-orgf510bef">
+<p>
+Fortunately, all is not lost. Ink allows compiler plugins, and VisualInk now implements one for STACKs. 
+</p>
+
+<p>
+A stack definition consists of a name, a maximum size, and the "empty" value for the stack - the value you'll be given if you ask for a stack slot that isn't filled, or "pop" a value from an empty stack. It allows us to do things like this:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ink">LIST qualities =
+  strength, skill, control, 
+  speed, honour
+
+STACK sensei_values 3 strength
+
+~sensei_values_push(strength)
+~sensei_values_push(skill)
+~sensei_values_push(honour)
+
+// Oops, sensei had a change of heart
+~sensei_values_set(3, speed)
+
+Sensei values {sensei_values_index(1)}, {sensei_values_index(2)}, &lt;&gt;
+{sensei_values_index(3)}.
+
+// Outputs: Sensei values strength, skill, and speed.
+</pre>
+</div>
+
+<p>
+As you can see, the stack tracks values being pushed into it, and can change and read values at specific indexes (the first value in at <code>1</code>, not <code>0</code>, for the programmers among you).
+</p>
+
+<p>
+The push and pop functions also let you know if you're successfully pushing or popping if that's important. Push returns true for success, and false if the stack is full, while pop will return the "empty" value you specified if the stack has no more values.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ink">STACK cards 2 false
+
+-&gt; draw_card
+
+=== draw_card
+~temp did_draw = cards_push(RANDOM(1, 10))
+{ did_draw:
+  You now have {cards_last} cards in your hand
+  -&gt; draw_card
+- else:
+  Your hand is full
+  -&gt; play_card
+}
+
+=== play_card
+~temp next_card = cards_pop()
+{ next_card == false:
+  You're out of cards!
+  -&gt; END
+- else:
+  You play a {next_card}.
+  -&gt; play_card
+}
+
+// Draws two cards and then plays two cards
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-orgdb85209" class="outline-2">
+<h2 id="orgdb85209">The implementation</h2>
+<div class="outline-text-2" id="text-orgdb85209">
+<p>
+Things get immediately technical from here on in, so if you just want to use stacks you can feel free to leave at this point! If, on the other hand, you're interested in extending Ink in a larger coding project, here's how I did it.
+</p>
+
+<p>
+The implementation of this is two fold. Firstly, we have a <code>IPlugin</code> for the Ink compiler that does a simple search and replace on the script provided. It looks for lines in the correct format, and replaces them with <code>INCLUDE</code> lines with, er, slightly odd filenames.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">module</span> <span class="org-type">VisualInk.Server.VisualInkPlugin</span>
+
+<span class="org-keyword">open</span> <span class="org-type">Ink</span>
+<span class="org-keyword">open</span> <span class="org-type">System.Text.RegularExpressions</span>
+
+<span class="org-keyword">let</span> <span class="org-keyword">private</span> <span class="org-variable-name">StackDefinitionRegex</span> =
+  Regex(
+    <span class="org-string">"^STACK\s+(?&lt;label&gt;\w+)\s+(?&lt;size&gt;\d+)\s+(?&lt;nil&gt;.*)$"</span>,
+    RegexOptions.Multiline ||| RegexOptions.Compiled
+  )
+
+<span class="org-keyword">let</span> <span class="org-keyword">private</span> <span class="org-variable-name">StackIncludeRegex</span> =
+  Regex(
+    <span class="org-string">"^VisualInkStack (?&lt;label&gt;\w+) (?&lt;size&gt;\d+) (?&lt;nil&gt;.*)$"</span>,
+    RegexOptions.Multiline ||| RegexOptions.Compiled
+  )
+
+<span class="org-keyword">type</span> <span class="org-type">PluginInclude</span> =
+    <span class="org-fsharp-ui-operator">|</span> StackInclude <span class="org-keyword">of</span> string * int * string
+
+<span class="org-keyword">type</span> <span class="org-type">VisualInkPlugin</span>() =
+  <span class="org-keyword">interface</span> IPlugin <span class="org-keyword">with</span>
+    <span class="org-keyword">member</span> <span class="org-variable-name">_</span>.<span class="org-function-name">PreParse</span>(<span class="org-variable-name">storyContent</span>: <span class="org-type">byref</span><span class="org-fsharp-ui-generic">&lt;string&gt;</span>) : <span class="org-type">unit</span> =
+      storyContent &lt;-
+        StackDefinitionRegex.Replace(
+          storyContent,
+          <span class="org-string">"INCLUDE VisualInkStack ${label} ${size} ${nil}"</span>
+        )
+
+    <span class="org-keyword">member</span> <span class="org-variable-name">_</span>.<span class="org-function-name">PostExport</span>
+      (<span class="org-variable-name">parsedStory</span>: <span class="org-type">Parsed.</span><span class="org-variable-name">Story</span>, <span class="org-variable-name">runtimeStory</span>: <span class="org-type">byref</span><span class="org-fsharp-ui-generic">&lt;Runtime.Story&gt;</span>)
+      : <span class="org-type">unit</span> =
+      ()
+
+    <span class="org-keyword">member</span> <span class="org-variable-name">_</span>.<span class="org-function-name">PostParse</span>(<span class="org-variable-name">parsedStory</span>: <span class="org-type">byref</span><span class="org-fsharp-ui-generic">&lt;Parsed.Story&gt;</span>) : <span class="org-type">unit</span> = ()
+</pre>
+</div>
+
+<p>
+This means we replace lines on a 1-1 basis, preserving lint error locations and similar without having to do any complex mapping work.
+</p>
+
+<p>
+In our implementation of <code>Ink.IFileHandler</code> (responsible for finding including Ink files for the compiler), we then add a check for filenames matching the include regular expression above. If it matches, we provide generated content instead of the content of an other actual file.
+</p>
+
+<p>
+The actual Ink code driving the stack is simple, but very verbose. Here's the F# code for generating it:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">generatePluginInclude</span> (<span class="org-variable-name">StackInclude</span> (<span class="org-variable-name">label</span>, <span class="org-variable-name">size</span>, <span class="org-variable-name">nil</span>)) =
+    <span class="org-keyword">let</span> <span class="org-variable-name">last</span> = $<span class="org-string">"{label}_last"</span>
+    <span class="org-keyword">let</span> <span class="org-variable-name">content</span> = seq {
+      <span class="org-comment-delimiter">// </span><span class="org-comment">Set up storage</span>
+      <span class="org-keyword">yield</span> $<span class="org-string">"VAR {label}_size = {size}"</span>
+      <span class="org-keyword">yield</span> $<span class="org-string">"VAR {last} = 0"</span>
+      <span class="org-keyword">for</span> i <span class="org-keyword">in</span> 1 .. size <span class="org-keyword">do</span>
+        <span class="org-keyword">yield</span> $<span class="org-string">"VAR {label}_{i} = {nil}"</span>
+      <span class="org-keyword">yield</span> <span class="org-string">""</span>
+
+      <span class="org-comment-delimiter">// </span><span class="org-comment">Access via index</span>
+      <span class="org-keyword">yield</span> $<span class="org-string">"=== function {label}_index(index)"</span>
+      <span class="org-keyword">yield</span> <span class="org-string">"{ index:"</span>
+      <span class="org-keyword">for</span> i <span class="org-keyword">in</span> 1 .. size <span class="org-keyword">do</span>
+        <span class="org-keyword">yield</span> $<span class="org-string">"  - {i}:"</span>
+        <span class="org-keyword">yield</span> $<span class="org-string">"    ~return {label}_{i}"</span>
+      <span class="org-keyword">yield</span> <span class="org-string">"}"</span>
+      <span class="org-keyword">yield</span> <span class="org-string">""</span>
+
+      <span class="org-comment-delimiter">// </span><span class="org-comment">Set via index</span>
+      <span class="org-keyword">yield</span> $<span class="org-string">"=== function {label}_set(index, value)"</span>
+      <span class="org-keyword">yield</span> <span class="org-string">"{ index:"</span>
+      <span class="org-keyword">for</span> i <span class="org-keyword">in</span> 1 .. size <span class="org-keyword">do</span>
+        <span class="org-keyword">yield</span> $<span class="org-string">"  - {i}:"</span>
+        <span class="org-keyword">yield</span> $<span class="org-string">"    ~{label}_{i} = value"</span>
+      <span class="org-keyword">yield</span> <span class="org-string">"}"</span>
+      <span class="org-keyword">yield</span> <span class="org-string">""</span>
+
+      <span class="org-comment-delimiter">// </span><span class="org-comment">Push</span>
+      <span class="org-keyword">yield</span> $<span class="org-string">"=== function {label}_push(value)"</span>
+      <span class="org-keyword">yield</span> $<span class="org-string">"{{ {last} &gt;= {size}:"</span>
+      <span class="org-keyword">yield</span> <span class="org-string">"  ~return false"</span>
+      <span class="org-keyword">yield</span> <span class="org-string">"- else:"</span>
+      <span class="org-keyword">yield</span> $<span class="org-string">"  ~{last}++"</span>
+      <span class="org-keyword">yield</span> $<span class="org-string">"  ~{label}_set({last}, value)"</span>
+      <span class="org-keyword">yield</span> <span class="org-string">"  ~return true"</span>
+      <span class="org-keyword">yield</span> <span class="org-string">"}"</span>
+
+      <span class="org-comment-delimiter">// </span><span class="org-comment">Pop</span>
+      <span class="org-keyword">yield</span> $<span class="org-string">"=== function {label}_pop()"</span>
+      <span class="org-keyword">yield</span> $<span class="org-string">"{{ {last} &lt;= 0:"</span>
+      <span class="org-keyword">yield</span> $<span class="org-string">"  ~return {nil}"</span>
+      <span class="org-keyword">yield</span> <span class="org-string">"- else:"</span>
+      <span class="org-keyword">yield</span> $<span class="org-string">"  ~temp result = {label}_index({last})"</span>
+      <span class="org-keyword">yield</span> $<span class="org-string">"  ~{label}_set({last}, {nil})"</span>
+      <span class="org-keyword">yield</span> $<span class="org-string">"  ~{last}--"</span>
+      <span class="org-keyword">yield</span> <span class="org-string">"  ~return result"</span>
+      <span class="org-keyword">yield</span> <span class="org-string">"}"</span>
+    }
+    content <span class="org-fsharp-ui-operator">|&gt;</span> String.concat <span class="org-string">"\n"</span>
+</pre>
+</div>
+
+<p>
+So. Hopefully that's useful for you, and here's to more interesting stories to explore together.
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<footer id="my-contacts">
+<p hx-boost="false"><a href="https://blog.mavnn.co.uk/rss.xml">RSS</a></p>
+<p><a href="https://bonfire.mavnn.eu/@mavnn">Fediverse</a></p>
+<p>Git(<a href="https://github.com/mavnn">Hub</a>|<a href="https://gitlab.com/mavnn">Lab</a>)</p>
+</footer>
+</div>
+</body>
+</html>

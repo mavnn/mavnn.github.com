@@ -14,8 +14,8 @@
   <link>https://blog.mavnn.co.uk/</link>
   <description><![CDATA[]]></description>
   <language>en</language>
-  <pubDate>Sat, 13 Dec 2025 11:45:19 +0100</pubDate>
-  <lastBuildDate>Sat, 13 Dec 2025 11:45:19 +0100</lastBuildDate>
+  <pubDate>Thu, 22 Jan 2026 18:58:25 +0100</pubDate>
+  <lastBuildDate>Thu, 22 Jan 2026 18:58:25 +0100</lastBuildDate>
   <generator>Emacs 30.1 Org-mode 9.8-pre</generator>
   <webMaster>michael@mavnn.eu (Michael Newton)</webMaster>
   <image>
@@ -25,265 +25,591 @@
   </image>
 
   <item>
-    <title>Stacks in Ink</title>
-    <link>https://blog.mavnn.co.uk/2025/12/12/stacks_in_ink.html</link>
+    <title>Stacks in Ink: Deep dive edition</title>
+    <link>https://blog.mavnn.co.uk/2026/01/22/stacks_in_ink_2.html</link>
     <author>michael@mavnn.eu (Michael Newton)</author>
-    <guid isPermaLink="false">https://blog.mavnn.co.uk/2025/12/12/stacks_in_ink.html</guid>
-    <pubDate>Fri, 12 Dec 2025 00:00:00 +0100</pubDate>
+    <guid isPermaLink="false">https://blog.mavnn.co.uk/2026/01/22/stacks_in_ink_2.html</guid>
+    <pubDate>Thu, 22 Jan 2026 00:00:00 +0100</pubDate>
 
-    <description><![CDATA[<p>
-    I'm currently running courses on building visual novels using Ink (with my <a href="https://visualink.mavnn.eu/">VisualInk</a> site providing both editing environment and 'runner'). Shameless plug: if you're looking for an unusual present for a 9-18 year old in your life, you could book them onto one of these courses for next term - <a href="https://www.thinkersmeetup.com/scholars/michael-newton">link to my page at the course provider</a>.
+    <description><![CDATA[<blockquote>
+    <p>
+    Warning! This entire blog post is about a <b>proposed</b> addition to the Ink language. It is not included in the current official builds of Ink. It may not ever become part of the language, or even if the idea does this specific implementation may not.
     </p>
 
     <p>
-    I chose Ink because it is brilliant at helping manage the complexity of branching narrative, but in working through the examples in the course there was one particular weakness we came upon. Because Ink is designed to be embedded in a larger game, it deliberately limits the options for state management within the Ink language - that's not the job it is there for. VisualInk, on the other hand, is built on the assumption that the Ink <i>is</i> the game, and it is just providing the sound and visuals.
+    To try out the stacks presented here, you can run the examples at <a href="https://visualink.mavnn.eu/script/demo">VisualInk</a> which uses a version of Ink that includes the stack functionality.
     </p>
 
     <p>
-    Ink LISTs are very powerful for capturing flags, but they don't capture the order in which things are added to the list, and they can't contain duplicate values. Let's look at two examples that made us struggle, and then I'll move on to how I'm solving the problem.
+    To use the 'stack' data type in your own project right now, you would have to either build your own copy of Ink including the changes from <a href="https://github.com/inkle/ink/pull/969">the proposal pull request</a> and <a href="https://github.com/inkle/ink/pull/971">this bug fix</a> or you would need to trust me enough to download the <a href="https://github.com/mavnn/VisualInk/tree/main/external">pre-compiled versions</a> I'm using for the VisualInk server.
     </p>
-    <div id="outline-container-ID-301B36AA-7793-434C-826D-89CB0C957EBA" class="outline-3">
-    <h3 id="ID-301B36AA-7793-434C-826D-89CB0C957EBA"><span class="section-number-3">1.1.</span> What is best in life, sensei?</h3>
+    </blockquote>
+
+    <p>
+    Last <a href="#ID-F481A812-BAD8-47C3-A0E7-262E298ED5B5">time I was blogging</a>, I wrote about tracking 'ordered data' in Ink by using a compiler extension to generate Ink code. It works, but it doesn't have the most friendly interface in the world and it isn't great from an efficiency point of view either at runtime or in terms of the compiled Ink json output it produces.
+    </p>
+
+    <p>
+    So over the Christmas holidays, I thought that I'd see what a fully integrated data type could look like it if were to be added to the actual language design as opposed to layered on top.
+    </p>
+
+    <p>
+    Meet the new and improved stack.
+    </p>
+    <div id="outline-container-ID-073E96DD-1A31-4E5C-AF82-B67263D7A794" class="outline-3">
+    <h3 id="ID-073E96DD-1A31-4E5C-AF82-B67263D7A794"><span class="section-number-3">1.1.</span> The basics</h3>
     <div class="outline-text-3" id="text-1-1">
     <p>
-    In the example visual novel Tournament you play a martial artist sent out into the world by your sensei. If you want to try it, you can play it <a href="https://visualink.mavnn.eu/published/KJtX3GyWGqeciSHmm4j33E76">here</a> (it's a couple of minutes long). The novel opens by establishing what is important to your sensei, where you flashback to your training and select what he taught you as foundational, as being important, and as final polish.
-    </p>
-
-    <p>
-    These are the qualities in question:
+    Stack literals are declared by wrapping a comma separated list of values in square brackets (<code>[</code> / <code>]</code>).
     </p>
 
     <div class="org-src-container">
-    <pre class="src src-ink">LIST qualities =
-    strength, skill, control, 
-    speed, honour
+    <pre class="src src-ink">VAR my_stack = ["hello", "stacks"]
     </pre>
     </div>
 
     <p>
-    Ideally, it would be trivial to just add the qualities to a variable of some kind in order, at which point you'd immediately know which is which. Instead, we end up having to create multiple variables and keep track of which one it is we're filling.
+    There's no particular restrictions on what a stack can hold, except when declaring a global variable for the first time when the normal restrictions on not referencing other variables apply.
     </p>
 
     <div class="org-src-container">
-    <pre class="src src-ink">VAR most_important = honour
-    VAR important = honour
-    VAR least_important = honour
+    <pre class="src src-ink">VAR my_stack = ["hello", 22, false, -&gt; bananas]
+
+    == bananas
+    Hmmm. Bananas.
+    -&gt; END
     </pre>
     </div>
+
+    <p>
+    Mixing types up like this in a stack is generally not recommended, but you be you if you want to deal with the headaches it would cause down the line <i>or</i> you know exactly what you're doing and why.
+    </p>
+
+    <p>
+    Like most data in Ink, stacks are "immutable". That means if you want to add or remove something from a stack, you create a new stack with items added or removed instead. That sounds complex, but this is already exactly how things like strings and numbers work in Ink.
+    </p>
+
+    <div class="org-src-container">
+    <pre class="src src-ink">VAR my_number = 5
+
+    Who is Number 1?
+    You are Number {my_number + 1}!
+
+    // my_number is still 5, not 6
+
+    VAR my_stack = ["strawberries"]
+    You eat your {my_stack + "cream"}.
+
+    // my_stack is still ["strawberries"]
+    </pre>
+    </div>
+
+    <p>
+    We say two stacks are equal if they have the same number of items, and all of the items in the two stacks are equal to each other when compared in order.
+    </p>
+
+    <div class="org-src-container">
+    <pre class="src src-ink">VAR stack1 = ["one", "two"]
+    VAR stack2 = ["one", "two"] // equal to stack1
+    VAR stack3 = ["two", "one"] // not equal to stack1
+    VAR stack4 = ["one"] // not equal to stack1
+    </pre>
+    </div>
+
+    <p>
+    And we can 'add' or 'substract' with stacks, although with a slightly different meaning to numerical addition and substraction. Addition concatinates the two stacks (i.e. sticks them together, in order).
+    </p>
+
+    <div class="org-src-container">
+    <pre class="src src-ink">VAR stack1 = ["one", "two"]
+    // ["one", "two", "three", "four"]
+    {stack1 + ["three", "four"]}
+    </pre>
+    </div>
+
+    <p>
+    While subtraction looks for the first time each value in the subtrahend (the stack on the right) appears in the minuend and removes it <i>if it exists</i>. It is not an error to 'subtract' a value that isn't in the original stack, it just results in an unchanged stack.
+    </p>
+
+    <div class="org-src-container">
+    <pre class="src src-ink">VAR stack1 = ["three", "one", "one", "two"]
+    // In order, we remove the first "one" (leaving the second) then the "three"
+    // ["one", "two"]
+    {stack1 - ["one", "three"]}
+    </pre>
+    </div>
+
+    <p>
+    For the other mathematicians in the audience: these operations are not inverses, and addition is not commutative. I apologize for the brain hurty.
+    </p>
     </div>
     </div>
-    <div id="outline-container-ID-3EDA3347-21EA-4036-B9FB-E18EE073DCF0" class="outline-3">
-    <h3 id="ID-3EDA3347-21EA-4036-B9FB-E18EE073DCF0"><span class="section-number-3">1.2.</span> Card battler</h3>
+    <div id="outline-container-ID-88C96ECA-5B7F-4A4D-8D75-0AF789463023" class="outline-3">
+    <h3 id="ID-88C96ECA-5B7F-4A4D-8D75-0AF789463023"><span class="section-number-3">1.2.</span> Example</h3>
     <div class="outline-text-3" id="text-1-2">
     <p>
-    We discussed in one of the lessons the idea of a 'card battler' mechanic within our visual novels, and quickly realized that keeping track of a deck of cards within Ink that could have cards added to it during the story (especially duplicate cards) would be very hard if not impossible.
+    We've already got something quite nice here for situations where it is important for our story to know if things have been selected in the correct order. Let's say you want to have a runic magic system in your game similar to the one from <a href="https://crpgaddict.blogspot.com/2010/11/dungeon-master-runic-magic.html">Dungeon Master</a>. We can set up a list of valid, meaningful spells easily and add more as needed.
     </p>
+
+    <div class="org-src-container">
+    <pre class="src src-ink">LIST runes = fire, earth, water, air, me, target, explode, weal, woe
+
+    VAR fireball = [woe, fire, target, explode]
+    VAR heal = [weal, me, water]
+    VAR current_cast = []
+
+    Time to cast a spell. &lt;&gt;
+
+    -&gt; select_rune_or_cast -&gt; END
+
+    == select_rune_or_cast
+
+    Add a rune, or release the magic! {current_cast}
+
+    + [Fire] {add_rune(fire)}
+    + [Earth] {add_rune(earth)}
+    + [Water] {add_rune(water)}
+    + [Air] {add_rune(air)}
+    + [Internal] {add_rune(me)}
+    + [External] {add_rune(target)}
+    + [Explode] {add_rune(explode)}
+    + [Weal] {add_rune(weal)}
+    + [Woe] {add_rune(woe)}
+    + [Cast the spell!] -&gt; cast_spell -&gt;-&gt;
+    -
+
+    -&gt; select_rune_or_cast
+
+    === cast_spell
+    {
+    - current_cast == fireball:
+    Kaboom!
+    - current_cast == heal:
+    Oooh. Refreshing!
+    - else:
+    Fizz, buzz
+    }
+    ~current_cast = []
+    -&gt;-&gt;
+
+    === function add_rune(r) ===
+    ~current_cast += r
+    </pre>
     </div>
     </div>
-    <div id="outline-container-ID-733E41D5-9673-4D31-88C4-18C5B7419276" class="outline-3">
-    <h3 id="ID-733E41D5-9673-4D31-88C4-18C5B7419276"><span class="section-number-3">1.3.</span> The solution</h3>
+    </div>
+    <div id="outline-container-ID-C77E2B32-05A1-4848-8BE8-9DE9674EF36C" class="outline-3">
+    <h3 id="ID-C77E2B32-05A1-4848-8BE8-9DE9674EF36C"><span class="section-number-3">1.3.</span> Stack functions</h3>
     <div class="outline-text-3" id="text-1-3">
     <p>
-    Fortunately, all is not lost. Ink allows compiler plugins, and VisualInk now implements one for STACKs. 
+    We also have several functions that allow use to work through the values in a stack. 
     </p>
 
     <p>
-    A stack definition consists of a name, a maximum size, and the "empty" value for the stack - the value you'll be given if you ask for a stack slot that isn't filled, or "pop" a value from an empty stack. It allows us to do things like this:
+    The simplest is <code>STACK_COUNT</code> which returns the current number of values in a stack. We then have three variations of the <code>STACK_POP</code> function; <code>STACK_POP_NEWEST</code>, <code>STACK_POP_OLDEST</code>, and <code>STACK_POP_RANDOM</code>. All three functions work in the same way: they take two parameters, which must be a stack and a variable. They will return the stack with the "popped" value removed, and they will assign the popped value to the variable. They will return a null value if the  stack doesn't contain anything.
+    </p>
+
+    <p>
+    Example:
     </p>
 
     <div class="org-src-container">
-    <pre class="src src-ink">LIST qualities =
-    strength, skill, control, 
-    speed, honour
+    <pre class="src src-ink">VAR stack1 = ["oldest item", "middle item", "newest item"]
+    VAR popped = ""
 
-    STACK sensei_values 3 strength
+    ~STACK_POP_NEWEST(stack1, popped)
+    {popped} // "newest item"
 
-    ~sensei_values_push(strength)
-    ~sensei_values_push(skill)
-    ~sensei_values_push(honour)
+    ~stack1 = STACK_POP_NEWEST(stack1, popped)
+    {popped} // still "newest item" - we didn't update stack1 last time
+    {stack1} // now "oldest item, middle item"
 
-    // Oops, sensei had a change of heart
-    ~sensei_values_set(3, speed)
+    ~STACK_POP_OLDEST(stack1, popped)
+    {popped} // "oldest item"
 
-    Sensei values {sensei_values_index(1)}, {sensei_values_index(2)}, &lt;&gt;
-    {sensei_values_index(3)}.
-
-    // Outputs: Sensei values strength, skill, and speed.
+    ~stack1 = STACK_POP_RANDOM(stack1, popped)
+    {popped} // might be "oldest item" or "middle item"
+    {stack1} // a stack with which ever item wasn't popped at random
     </pre>
     </div>
 
     <p>
-    As you can see, the stack tracks values being pushed into it, and can change and read values at specific indexes (the first value in at <code>1</code>, not <code>0</code>, for the programmers among you).
+    We can combine the use of these functions to build knots that work their way through a stack in an order chosen by the player - either directly as below, or implicitly by the choices they made along the way.
     </p>
 
     <p>
-    The push and pop functions also let you know if you're successfully pushing or popping if that's important. Push returns true for success, and false if the stack is full, while pop will return the "empty" value you specified if the stack has no more values.
+    Small technical note here: if you want to add (or subtract) diverts with a stack, you'll need to wrap it in square brackets to make sure it can't be confused with other operators such as the minus sign.
     </p>
 
     <div class="org-src-container">
-    <pre class="src src-ink">STACK cards 2 false
+    <pre class="src src-ink">VAR visits = []
 
-    -&gt; draw_card
+    -&gt; pick_visits
 
-    === draw_card
-    ~temp did_draw = cards_push(RANDOM(1, 10))
-    { did_draw:
-    You now have {cards_last} cards in your hand
-    -&gt; draw_card
+    == pick_visits
+
+    Which patient will you visit {first|after that}?
+
+    * [Critically ill guy]
+    ~visits += [-&gt; critical]
+    * [Grazed child]
+    ~visits += [-&gt; grazed]
+    * -&gt; do_rounds
+    -
+
+    -&gt; pick_visits
+
+    == do_rounds
+    {
+    - STACK_COUNT(visits):
+    ~temp next_visit = ""
+    ~visits = STACK_POP_OLDEST(visits, next_visit)
+    -&gt; next_visit -&gt; do_rounds
     - else:
-    Your hand is full
-    -&gt; play_card
+    Well, I'm done for the day!
     }
 
-    === play_card
-    ~temp next_card = cards_pop()
-    { next_card == false:
-    You're out of cards!
     -&gt; END
+
+    == critical
+    Check if it is too late.
+    -&gt;-&gt;
+
+    == grazed
+    Doesn't matter when you get here.
+    -&gt;-&gt;
+    </pre>
+    </div>
+
+    <p>
+    Possibly most useful of all, is the ability to present a choice for each item in a stack by combining stacks and threads. Going back to our runic magic system, we can automate the spell casting menu system by building it from stacks rather than writing it all out by hand.
+    </p>
+
+    <p>
+    This opens up new possibilities; in our next example, the player only has a limited number of owned runes and may need multiple copies of the same rune to activate a spell. This allows us to write narratives where runes are found over time, or can be stolen. It also allows us as game designers to add to the list of runes that exist without having to change any of the underlying mechanics that already exist.
+    </p>
+
+    <div class="org-src-container">
+    <pre class="src src-ink">LIST runes = fire, earth, water, air, protect, attack
+
+    VAR ignite = [fire]
+    VAR fireball = [fire, fire, attack]
+    VAR heal = [protect, water]
+    VAR current_cast = []
+    VAR owned_runes =  [fire, fire, protect, attack]
+    VAR available_runes = []
+
+    Time to cast a spell.
+
+    -&gt; select_rune_or_cast -&gt; END
+
+    == select_rune_or_cast
+
+    Add a rune, or release the magic!
+
+    ~available_runes = owned_runes
+
+    -&gt; pick_available_rune(available_runes) -&gt;-&gt;
+
+    === pick_available_rune(still_available_runes)
+    {
+    - STACK_COUNT(still_available_runes):
+    ~temp next_rune = ""
+    ~temp remaining_runes = STACK_POP_NEWEST(still_available_runes, next_rune)
+    &lt;- pick_available_rune(remaining_runes)
+    + [Add {next_rune} to spell]
+    ~add_rune(next_rune)
+    You're currently casting: {current_cast}
+    ~available_runes -= next_rune
+    -&gt; pick_available_rune(available_runes)
     - else:
-    You play a {next_card}.
-    -&gt; play_card
+    + [Cast the spell!] -&gt; cast_spell -&gt;-&gt;
     }
 
-    // Draws two cards and then plays two cards
-    </pre>
-    </div>
-    </div>
-    </div>
-    <div id="outline-container-ID-6539CB31-2138-4D39-B13F-1BD798CAE3A9" class="outline-3">
-    <h3 id="ID-6539CB31-2138-4D39-B13F-1BD798CAE3A9"><span class="section-number-3">1.4.</span> I'm not using VisualInk and I don't want to build my own compiler plugin</h3>
-    <div class="outline-text-3" id="text-1-4">
-    <p>
-    We have you covered! The plugin is just generating Ink code to include under the hood (see below), and you can get the same code by browsing to <a href="https://visualink.mavnn.eu/inkTools/cards/2/false">https://visualink.mavnn.eu/inkTools/cards/2/false</a> and copying and pasting the code there into a file to include in your project manually. Just change the last three parts of the address to match what you need.
-    </p>
-    </div>
-    </div>
-    <div id="outline-container-ID-B83EAE1B-4C0F-43FE-8029-9E3C9CA25CC1" class="outline-3">
-    <h3 id="ID-B83EAE1B-4C0F-43FE-8029-9E3C9CA25CC1"><span class="section-number-3">1.5.</span> The implementation</h3>
-    <div class="outline-text-3" id="text-1-5">
-    <p>
-    Things get immediately technical from here on in, so if you just want to use stacks you can feel free to leave at this point! If, on the other hand, you're interested in extending Ink in a larger coding project, here's how I did it.
-    </p>
-
-    <p>
-    The implementation of this is two fold. Firstly, we have a <code>IPlugin</code> for the Ink compiler that does a simple search and replace on the script provided. It looks for lines in the correct format, and replaces them with <code>INCLUDE</code> lines with, er, slightly odd filenames.
-    </p>
-
-    <div class="org-src-container">
-    <pre class="src src-fsharp"><span class="org-keyword">module</span> <span class="org-type">VisualInk.Server.VisualInkPlugin</span>
-
-    <span class="org-keyword">open</span> <span class="org-type">Ink</span>
-    <span class="org-keyword">open</span> <span class="org-type">System.Text.RegularExpressions</span>
-
-    <span class="org-keyword">let</span> <span class="org-keyword">private</span> <span class="org-variable-name">StackDefinitionRegex</span> =
-    Regex(
-    <span class="org-string">"^STACK\s+(?&lt;label&gt;\w+)\s+(?&lt;size&gt;\d+)\s+(?&lt;nil&gt;.*)$"</span>,
-    RegexOptions.Multiline ||| RegexOptions.Compiled
-    )
-
-    <span class="org-keyword">let</span> <span class="org-keyword">private</span> <span class="org-variable-name">StackIncludeRegex</span> =
-    Regex(
-    <span class="org-string">"^VisualInkStack (?&lt;label&gt;\w+) (?&lt;size&gt;\d+) (?&lt;nil&gt;.*)$"</span>,
-    RegexOptions.Multiline ||| RegexOptions.Compiled
-    )
-
-    <span class="org-keyword">type</span> <span class="org-type">PluginInclude</span> =
-    <span class="org-fsharp-ui-operator">|</span> StackInclude <span class="org-keyword">of</span> string * int * string
-
-    <span class="org-keyword">type</span> <span class="org-type">VisualInkPlugin</span>() =
-    <span class="org-keyword">interface</span> IPlugin <span class="org-keyword">with</span>
-    <span class="org-keyword">member</span> <span class="org-variable-name">_</span>.<span class="org-function-name">PreParse</span>(<span class="org-variable-name">storyContent</span>: <span class="org-type">byref</span><span class="org-fsharp-ui-generic">&lt;string&gt;</span>) : <span class="org-type">unit</span> =
-    storyContent &lt;-
-    StackDefinitionRegex.Replace(
-    storyContent,
-    <span class="org-string">"INCLUDE VisualInkStack ${label} ${size} ${nil}"</span>
-    )
-
-    <span class="org-keyword">member</span> <span class="org-variable-name">_</span>.<span class="org-function-name">PostExport</span>
-    (<span class="org-variable-name">parsedStory</span>: <span class="org-type">Parsed.</span><span class="org-variable-name">Story</span>, <span class="org-variable-name">runtimeStory</span>: <span class="org-type">byref</span><span class="org-fsharp-ui-generic">&lt;Runtime.Story&gt;</span>)
-    : <span class="org-type">unit</span> =
-    ()
-
-    <span class="org-keyword">member</span> <span class="org-variable-name">_</span>.<span class="org-function-name">PostParse</span>(<span class="org-variable-name">parsedStory</span>: <span class="org-type">byref</span><span class="org-fsharp-ui-generic">&lt;Parsed.Story&gt;</span>) : <span class="org-type">unit</span> = ()
-    </pre>
-    </div>
-
-    <p>
-    This means we replace lines on a 1-1 basis, preserving lint error locations and similar without having to do any complex mapping work.
-    </p>
-
-    <p>
-    In our implementation of <code>Ink.IFileHandler</code> (responsible for finding included Ink files for the compiler), we then add a check for filenames matching the include regular expression above. If it matches, we provide generated content instead of the content of an other actual file.
-    </p>
-
-    <p>
-    The actual Ink code driving the stack is simple, but very verbose. Here's the F# code for generating it:
-    </p>
-
-    <div class="org-src-container">
-    <pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">generatePluginInclude</span> (<span class="org-variable-name">StackInclude</span> (<span class="org-variable-name">label</span>, <span class="org-variable-name">size</span>, <span class="org-variable-name">nil</span>)) =
-    <span class="org-keyword">let</span> <span class="org-variable-name">last</span> = $<span class="org-string">"{label}_last"</span>
-    <span class="org-keyword">let</span> <span class="org-variable-name">content</span> = seq {
-    <span class="org-comment-delimiter">// </span><span class="org-comment">Set up storage</span>
-    <span class="org-keyword">yield</span> $<span class="org-string">"VAR {label}_size = {size}"</span>
-    <span class="org-keyword">yield</span> $<span class="org-string">"VAR {last} = 0"</span>
-    <span class="org-keyword">for</span> i <span class="org-keyword">in</span> 1 .. size <span class="org-keyword">do</span>
-    <span class="org-keyword">yield</span> $<span class="org-string">"VAR {label}_{i} = {nil}"</span>
-    <span class="org-keyword">yield</span> <span class="org-string">""</span>
-
-    <span class="org-comment-delimiter">// </span><span class="org-comment">Access via index</span>
-    <span class="org-keyword">yield</span> $<span class="org-string">"=== function {label}_index(index)"</span>
-    <span class="org-keyword">yield</span> <span class="org-string">"{ index:"</span>
-    <span class="org-keyword">for</span> i <span class="org-keyword">in</span> 1 .. size <span class="org-keyword">do</span>
-    <span class="org-keyword">yield</span> $<span class="org-string">"  - {i}:"</span>
-    <span class="org-keyword">yield</span> $<span class="org-string">"    ~return {label}_{i}"</span>
-    <span class="org-keyword">yield</span> <span class="org-string">"}"</span>
-    <span class="org-keyword">yield</span> <span class="org-string">""</span>
-
-    <span class="org-comment-delimiter">// </span><span class="org-comment">Set via index</span>
-    <span class="org-keyword">yield</span> $<span class="org-string">"=== function {label}_set(index, value)"</span>
-    <span class="org-keyword">yield</span> <span class="org-string">"{ index:"</span>
-    <span class="org-keyword">for</span> i <span class="org-keyword">in</span> 1 .. size <span class="org-keyword">do</span>
-    <span class="org-keyword">yield</span> $<span class="org-string">"  - {i}:"</span>
-    <span class="org-keyword">yield</span> $<span class="org-string">"    ~{label}_{i} = value"</span>
-    <span class="org-keyword">yield</span> <span class="org-string">"}"</span>
-    <span class="org-keyword">yield</span> <span class="org-string">""</span>
-
-    <span class="org-comment-delimiter">// </span><span class="org-comment">Push</span>
-    <span class="org-keyword">yield</span> $<span class="org-string">"=== function {label}_push(value)"</span>
-    <span class="org-keyword">yield</span> $<span class="org-string">"{{ {last} &gt;= {size}:"</span>
-    <span class="org-keyword">yield</span> <span class="org-string">"  ~return false"</span>
-    <span class="org-keyword">yield</span> <span class="org-string">"- else:"</span>
-    <span class="org-keyword">yield</span> $<span class="org-string">"  ~{last}++"</span>
-    <span class="org-keyword">yield</span> $<span class="org-string">"  ~{label}_set({last}, value)"</span>
-    <span class="org-keyword">yield</span> <span class="org-string">"  ~return true"</span>
-    <span class="org-keyword">yield</span> <span class="org-string">"}"</span>
-
-    <span class="org-comment-delimiter">// </span><span class="org-comment">Pop</span>
-    <span class="org-keyword">yield</span> $<span class="org-string">"=== function {label}_pop()"</span>
-    <span class="org-keyword">yield</span> $<span class="org-string">"{{ {last} &lt;= 0:"</span>
-    <span class="org-keyword">yield</span> $<span class="org-string">"  ~return {nil}"</span>
-    <span class="org-keyword">yield</span> <span class="org-string">"- else:"</span>
-    <span class="org-keyword">yield</span> $<span class="org-string">"  ~temp result = {label}_index({last})"</span>
-    <span class="org-keyword">yield</span> $<span class="org-string">"  ~{label}_set({last}, {nil})"</span>
-    <span class="org-keyword">yield</span> $<span class="org-string">"  ~{last}--"</span>
-    <span class="org-keyword">yield</span> <span class="org-string">"  ~return result"</span>
-    <span class="org-keyword">yield</span> <span class="org-string">"}"</span>
+    === cast_spell
+    {
+    - current_cast == fireball:
+    Kaboom!
+    - current_cast == heal:
+    Oooh. Refreshing!
+    - else:
+    Fizz, buzz
     }
-    content <span class="org-fsharp-ui-operator">|&gt;</span> String.concat <span class="org-string">"\n"</span>
+    ~current_cast = []
+    -&gt;-&gt;
+
+    === function add_rune(r) ===
+    ~current_cast += r
     </pre>
     </div>
 
     <p>
-    I think that's about it for now; at the moment I'm only really expecting this to be a VisualInk specific plugin, so it isn't independently available. If you're an Ink user and you think you'd find it hopeful, I can always package up a sharable version of it. Let me know!
-    </p>
-
-    <p>
-    Comments or thoughts? The <a href="https://bonfire.mavnn.eu/post/01KC9ABBQS9A09RQTX11XT438X#">blog announcement</a> post is a good place to leave them!
+    I'm sure that there are other uses for stacks as well; these are just the use cases that pushed me to looking into implementing them as I already had them in mind. I hope this has given you all some inspiration, and we'll see whether stacks become part of Ink beyond VisualInk in the future or not.
     </p>
     </div>
     </div>
     ]]></description>
+</item>
+<item>
+  <title>Stacks in Ink</title>
+  <link>https://blog.mavnn.co.uk/2025/12/12/stacks_in_ink.html</link>
+  <author>michael@mavnn.eu (Michael Newton)</author>
+  <guid isPermaLink="false">https://blog.mavnn.co.uk/2025/12/12/stacks_in_ink.html</guid>
+  <pubDate>Fri, 12 Dec 2025 00:00:00 +0100</pubDate>
+
+  <description><![CDATA[<p>
+  I'm currently running courses on building visual novels using Ink (with my <a href="https://visualink.mavnn.eu/">VisualInk</a> site providing both editing environment and 'runner'). Shameless plug: if you're looking for an unusual present for a 9-18 year old in your life, you could book them onto one of these courses for next term - <a href="https://www.thinkersmeetup.com/scholars/michael-newton">link to my page at the course provider</a>.
+  </p>
+
+  <p>
+  I chose Ink because it is brilliant at helping manage the complexity of branching narrative, but in working through the examples in the course there was one particular weakness we came upon. Because Ink is designed to be embedded in a larger game, it deliberately limits the options for state management within the Ink language - that's not the job it is there for. VisualInk, on the other hand, is built on the assumption that the Ink <i>is</i> the game, and it is just providing the sound and visuals.
+  </p>
+
+  <p>
+  Ink LISTs are very powerful for capturing flags, but they don't capture the order in which things are added to the list, and they can't contain duplicate values. Let's look at two examples that made us struggle, and then I'll move on to how I'm solving the problem.
+  </p>
+  <div id="outline-container-ID-C169BF76-15CA-4936-88A5-4C4A034BCEA6" class="outline-3">
+  <h3 id="ID-C169BF76-15CA-4936-88A5-4C4A034BCEA6"><span class="section-number-3">2.1.</span> What is best in life, sensei?</h3>
+  <div class="outline-text-3" id="text-2-1">
+  <p>
+  In the example visual novel Tournament you play a martial artist sent out into the world by your sensei. If you want to try it, you can play it <a href="https://visualink.mavnn.eu/published/KJtX3GyWGqeciSHmm4j33E76">here</a> (it's a couple of minutes long). The novel opens by establishing what is important to your sensei, where you flashback to your training and select what he taught you as foundational, as being important, and as final polish.
+  </p>
+
+  <p>
+  These are the qualities in question:
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-ink">LIST qualities =
+  strength, skill, control, 
+  speed, honour
+  </pre>
+  </div>
+
+  <p>
+  Ideally, it would be trivial to just add the qualities to a variable of some kind in order, at which point you'd immediately know which is which. Instead, we end up having to create multiple variables and keep track of which one it is we're filling.
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-ink">VAR most_important = honour
+  VAR important = honour
+  VAR least_important = honour
+  </pre>
+  </div>
+  </div>
+  </div>
+  <div id="outline-container-ID-E27DEDCD-90DF-438C-98DF-4DDC98335419" class="outline-3">
+  <h3 id="ID-E27DEDCD-90DF-438C-98DF-4DDC98335419"><span class="section-number-3">2.2.</span> Card battler</h3>
+  <div class="outline-text-3" id="text-2-2">
+  <p>
+  We discussed in one of the lessons the idea of a 'card battler' mechanic within our visual novels, and quickly realized that keeping track of a deck of cards within Ink that could have cards added to it during the story (especially duplicate cards) would be very hard if not impossible.
+  </p>
+  </div>
+  </div>
+  <div id="outline-container-ID-14E683BC-BCD1-4611-939A-C493B5A79E52" class="outline-3">
+  <h3 id="ID-14E683BC-BCD1-4611-939A-C493B5A79E52"><span class="section-number-3">2.3.</span> The solution</h3>
+  <div class="outline-text-3" id="text-2-3">
+  <p>
+  Fortunately, all is not lost. Ink allows compiler plugins, and VisualInk now implements one for STACKs. 
+  </p>
+
+  <p>
+  A stack definition consists of a name, a maximum size, and the "empty" value for the stack - the value you'll be given if you ask for a stack slot that isn't filled, or "pop" a value from an empty stack. It allows us to do things like this:
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-ink">LIST qualities =
+  strength, skill, control, 
+  speed, honour
+
+  STACK sensei_values 3 strength
+
+  ~sensei_values_push(strength)
+  ~sensei_values_push(skill)
+  ~sensei_values_push(honour)
+
+  // Oops, sensei had a change of heart
+  ~sensei_values_set(3, speed)
+
+  Sensei values {sensei_values_index(1)}, {sensei_values_index(2)}, &lt;&gt;
+  {sensei_values_index(3)}.
+
+  // Outputs: Sensei values strength, skill, and speed.
+  </pre>
+  </div>
+
+  <p>
+  As you can see, the stack tracks values being pushed into it, and can change and read values at specific indexes (the first value in at <code>1</code>, not <code>0</code>, for the programmers among you).
+  </p>
+
+  <p>
+  The push and pop functions also let you know if you're successfully pushing or popping if that's important. Push returns true for success, and false if the stack is full, while pop will return the "empty" value you specified if the stack has no more values.
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-ink">STACK cards 2 false
+
+  -&gt; draw_card
+
+  === draw_card
+  ~temp did_draw = cards_push(RANDOM(1, 10))
+  { did_draw:
+  You now have {cards_last} cards in your hand
+  -&gt; draw_card
+  - else:
+  Your hand is full
+  -&gt; play_card
+  }
+
+  === play_card
+  ~temp next_card = cards_pop()
+  { next_card == false:
+  You're out of cards!
+  -&gt; END
+  - else:
+  You play a {next_card}.
+  -&gt; play_card
+  }
+
+  // Draws two cards and then plays two cards
+  </pre>
+  </div>
+  </div>
+  </div>
+  <div id="outline-container-ID-DE07A20D-756E-4EB6-9D97-49D13AAC9C82" class="outline-3">
+  <h3 id="ID-DE07A20D-756E-4EB6-9D97-49D13AAC9C82"><span class="section-number-3">2.4.</span> I'm not using VisualInk and I don't want to build my own compiler plugin</h3>
+  <div class="outline-text-3" id="text-2-4">
+  <p>
+  We have you covered! The plugin is just generating Ink code to include under the hood (see below), and you can get the same code by browsing to <a href="https://visualink.mavnn.eu/inkTools/cards/2/false">https://visualink.mavnn.eu/inkTools/cards/2/false</a> and copying and pasting the code there into a file to include in your project manually. Just change the last three parts of the address to match what you need.
+  </p>
+  </div>
+  </div>
+  <div id="outline-container-ID-3FBC9C73-FB5D-4D9E-A1BE-C3E8E6E59CD9" class="outline-3">
+  <h3 id="ID-3FBC9C73-FB5D-4D9E-A1BE-C3E8E6E59CD9"><span class="section-number-3">2.5.</span> The implementation</h3>
+  <div class="outline-text-3" id="text-2-5">
+  <p>
+  Things get immediately technical from here on in, so if you just want to use stacks you can feel free to leave at this point! If, on the other hand, you're interested in extending Ink in a larger coding project, here's how I did it.
+  </p>
+
+  <p>
+  The implementation of this is two fold. Firstly, we have a <code>IPlugin</code> for the Ink compiler that does a simple search and replace on the script provided. It looks for lines in the correct format, and replaces them with <code>INCLUDE</code> lines with, er, slightly odd filenames.
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-fsharp"><span class="org-keyword">module</span> <span class="org-type">VisualInk.Server.VisualInkPlugin</span>
+
+  <span class="org-keyword">open</span> <span class="org-type">Ink</span>
+  <span class="org-keyword">open</span> <span class="org-type">System.Text.RegularExpressions</span>
+
+  <span class="org-keyword">let</span> <span class="org-keyword">private</span> <span class="org-variable-name">StackDefinitionRegex</span> =
+  Regex(
+  <span class="org-string">"^STACK\s+(?&lt;label&gt;\w+)\s+(?&lt;size&gt;\d+)\s+(?&lt;nil&gt;.*)$"</span>,
+  RegexOptions.Multiline ||| RegexOptions.Compiled
+  )
+
+  <span class="org-keyword">let</span> <span class="org-keyword">private</span> <span class="org-variable-name">StackIncludeRegex</span> =
+  Regex(
+  <span class="org-string">"^VisualInkStack (?&lt;label&gt;\w+) (?&lt;size&gt;\d+) (?&lt;nil&gt;.*)$"</span>,
+  RegexOptions.Multiline ||| RegexOptions.Compiled
+  )
+
+  <span class="org-keyword">type</span> <span class="org-type">PluginInclude</span> =
+  <span class="org-fsharp-ui-operator">|</span> StackInclude <span class="org-keyword">of</span> string * int * string
+
+  <span class="org-keyword">type</span> <span class="org-type">VisualInkPlugin</span>() =
+  <span class="org-keyword">interface</span> IPlugin <span class="org-keyword">with</span>
+  <span class="org-keyword">member</span> <span class="org-variable-name">_</span>.<span class="org-function-name">PreParse</span>(<span class="org-variable-name">storyContent</span>: <span class="org-type">byref</span><span class="org-fsharp-ui-generic">&lt;string&gt;</span>) : <span class="org-type">unit</span> =
+  storyContent &lt;-
+  StackDefinitionRegex.Replace(
+  storyContent,
+  <span class="org-string">"INCLUDE VisualInkStack ${label} ${size} ${nil}"</span>
+  )
+
+  <span class="org-keyword">member</span> <span class="org-variable-name">_</span>.<span class="org-function-name">PostExport</span>
+  (<span class="org-variable-name">parsedStory</span>: <span class="org-type">Parsed.</span><span class="org-variable-name">Story</span>, <span class="org-variable-name">runtimeStory</span>: <span class="org-type">byref</span><span class="org-fsharp-ui-generic">&lt;Runtime.Story&gt;</span>)
+  : <span class="org-type">unit</span> =
+  ()
+
+  <span class="org-keyword">member</span> <span class="org-variable-name">_</span>.<span class="org-function-name">PostParse</span>(<span class="org-variable-name">parsedStory</span>: <span class="org-type">byref</span><span class="org-fsharp-ui-generic">&lt;Parsed.Story&gt;</span>) : <span class="org-type">unit</span> = ()
+  </pre>
+  </div>
+
+  <p>
+  This means we replace lines on a 1-1 basis, preserving lint error locations and similar without having to do any complex mapping work.
+  </p>
+
+  <p>
+  In our implementation of <code>Ink.IFileHandler</code> (responsible for finding included Ink files for the compiler), we then add a check for filenames matching the include regular expression above. If it matches, we provide generated content instead of the content of an other actual file.
+  </p>
+
+  <p>
+  The actual Ink code driving the stack is simple, but very verbose. Here's the F# code for generating it:
+  </p>
+
+  <div class="org-src-container">
+  <pre class="src src-fsharp"><span class="org-keyword">let</span> <span class="org-function-name">generatePluginInclude</span> (<span class="org-variable-name">StackInclude</span> (<span class="org-variable-name">label</span>, <span class="org-variable-name">size</span>, <span class="org-variable-name">nil</span>)) =
+  <span class="org-keyword">let</span> <span class="org-variable-name">last</span> = $<span class="org-string">"{label}_last"</span>
+  <span class="org-keyword">let</span> <span class="org-variable-name">content</span> = seq {
+  <span class="org-comment-delimiter">// </span><span class="org-comment">Set up storage</span>
+  <span class="org-keyword">yield</span> $<span class="org-string">"VAR {label}_size = {size}"</span>
+  <span class="org-keyword">yield</span> $<span class="org-string">"VAR {last} = 0"</span>
+  <span class="org-keyword">for</span> i <span class="org-keyword">in</span> 1 .. size <span class="org-keyword">do</span>
+  <span class="org-keyword">yield</span> $<span class="org-string">"VAR {label}_{i} = {nil}"</span>
+  <span class="org-keyword">yield</span> <span class="org-string">""</span>
+
+  <span class="org-comment-delimiter">// </span><span class="org-comment">Access via index</span>
+  <span class="org-keyword">yield</span> $<span class="org-string">"=== function {label}_index(index)"</span>
+  <span class="org-keyword">yield</span> <span class="org-string">"{ index:"</span>
+  <span class="org-keyword">for</span> i <span class="org-keyword">in</span> 1 .. size <span class="org-keyword">do</span>
+  <span class="org-keyword">yield</span> $<span class="org-string">"  - {i}:"</span>
+  <span class="org-keyword">yield</span> $<span class="org-string">"    ~return {label}_{i}"</span>
+  <span class="org-keyword">yield</span> <span class="org-string">"}"</span>
+  <span class="org-keyword">yield</span> <span class="org-string">""</span>
+
+  <span class="org-comment-delimiter">// </span><span class="org-comment">Set via index</span>
+  <span class="org-keyword">yield</span> $<span class="org-string">"=== function {label}_set(index, value)"</span>
+  <span class="org-keyword">yield</span> <span class="org-string">"{ index:"</span>
+  <span class="org-keyword">for</span> i <span class="org-keyword">in</span> 1 .. size <span class="org-keyword">do</span>
+  <span class="org-keyword">yield</span> $<span class="org-string">"  - {i}:"</span>
+  <span class="org-keyword">yield</span> $<span class="org-string">"    ~{label}_{i} = value"</span>
+  <span class="org-keyword">yield</span> <span class="org-string">"}"</span>
+  <span class="org-keyword">yield</span> <span class="org-string">""</span>
+
+  <span class="org-comment-delimiter">// </span><span class="org-comment">Push</span>
+  <span class="org-keyword">yield</span> $<span class="org-string">"=== function {label}_push(value)"</span>
+  <span class="org-keyword">yield</span> $<span class="org-string">"{{ {last} &gt;= {size}:"</span>
+  <span class="org-keyword">yield</span> <span class="org-string">"  ~return false"</span>
+  <span class="org-keyword">yield</span> <span class="org-string">"- else:"</span>
+  <span class="org-keyword">yield</span> $<span class="org-string">"  ~{last}++"</span>
+  <span class="org-keyword">yield</span> $<span class="org-string">"  ~{label}_set({last}, value)"</span>
+  <span class="org-keyword">yield</span> <span class="org-string">"  ~return true"</span>
+  <span class="org-keyword">yield</span> <span class="org-string">"}"</span>
+
+  <span class="org-comment-delimiter">// </span><span class="org-comment">Pop</span>
+  <span class="org-keyword">yield</span> $<span class="org-string">"=== function {label}_pop()"</span>
+  <span class="org-keyword">yield</span> $<span class="org-string">"{{ {last} &lt;= 0:"</span>
+  <span class="org-keyword">yield</span> $<span class="org-string">"  ~return {nil}"</span>
+  <span class="org-keyword">yield</span> <span class="org-string">"- else:"</span>
+  <span class="org-keyword">yield</span> $<span class="org-string">"  ~temp result = {label}_index({last})"</span>
+  <span class="org-keyword">yield</span> $<span class="org-string">"  ~{label}_set({last}, {nil})"</span>
+  <span class="org-keyword">yield</span> $<span class="org-string">"  ~{last}--"</span>
+  <span class="org-keyword">yield</span> <span class="org-string">"  ~return result"</span>
+  <span class="org-keyword">yield</span> <span class="org-string">"}"</span>
+  }
+  content <span class="org-fsharp-ui-operator">|&gt;</span> String.concat <span class="org-string">"\n"</span>
+  </pre>
+  </div>
+
+  <p>
+  I think that's about it for now; at the moment I'm only really expecting this to be a VisualInk specific plugin, so it isn't independently available. If you're an Ink user and you think you'd find it hopeful, I can always package up a sharable version of it. Let me know!
+  </p>
+
+  <p>
+  Comments or thoughts? The <a href="https://bonfire.mavnn.eu/post/01KC9ABBQS9A09RQTX11XT438X#">blog announcement</a> post is a good place to leave them!
+  </p>
+  </div>
+  </div>
+  ]]></description>
 </item>
 </channel>
 </rss>

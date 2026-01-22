@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- 2026-01-22 Thu 18:56 -->
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Stacks in Ink: Deep dive edition</title>
+<meta name="author" content="Michael Newton" />
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" href="/org.css">
+<script src="/htmx.min.js"></script>
+</head>
+<body hx-boost="true">
+<div id="org-div-home-and-up"><span class="home-text"><a accesskey="H" href="/">HOME</span><img class="home-logo" src="http://blog.mavnn.co.uk/images/swirl.svg" /></a></div><div id="content" class="container">
+<header>
+<h1 class="title">Stacks in Ink: Deep dive edition</h1>
+</header><blockquote>
+<p>
+Warning! This entire blog post is about a <b>proposed</b> addition to the Ink language. It is not included in the current official builds of Ink. It may not ever become part of the language, or even if the idea does this specific implementation may not.
+</p>
+
+<p>
+To try out the stacks presented here, you can run the examples at <a href="https://visualink.mavnn.eu/script/demo">VisualInk</a> which uses a version of Ink that includes the stack functionality.
+</p>
+
+<p>
+To use the 'stack' data type in your own project right now, you would have to either build your own copy of Ink including the changes from <a href="https://github.com/inkle/ink/pull/969">the proposal pull request</a> and <a href="https://github.com/inkle/ink/pull/971">this bug fix</a> or you would need to trust me enough to download the <a href="https://github.com/mavnn/VisualInk/tree/main/external">pre-compiled versions</a> I'm using for the VisualInk server.
+</p>
+</blockquote>
+
+<p>
+Last <a href="../../../2025/12/12/stacks_in_ink.html#ID-F481A812-BAD8-47C3-A0E7-262E298ED5B5">time I was blogging</a>, I wrote about tracking 'ordered data' in Ink by using a compiler extension to generate Ink code. It works, but it doesn't have the most friendly interface in the world and it isn't great from an efficiency point of view either at runtime or in terms of the compiled Ink json output it produces.
+</p>
+
+<p>
+So over the Christmas holidays, I thought that I'd see what a fully integrated data type could look like it if were to be added to the actual language design as opposed to layered on top.
+</p>
+
+<p>
+Meet the new and improved stack.
+</p>
+<div id="outline-container-orgd94eba6" class="outline-2">
+<h2 id="orgd94eba6">The basics</h2>
+<div class="outline-text-2" id="text-orgd94eba6">
+<p>
+Stack literals are declared by wrapping a comma separated list of values in square brackets (<code>[</code> / <code>]</code>).
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ink">VAR my_stack = ["hello", "stacks"]
+</pre>
+</div>
+
+<p>
+There's no particular restrictions on what a stack can hold, except when declaring a global variable for the first time when the normal restrictions on not referencing other variables apply.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ink">VAR my_stack = ["hello", 22, false, -&gt; bananas]
+
+== bananas
+Hmmm. Bananas.
+-&gt; END
+</pre>
+</div>
+
+<p>
+Mixing types up like this in a stack is generally not recommended, but you be you if you want to deal with the headaches it would cause down the line <i>or</i> you know exactly what you're doing and why.
+</p>
+
+<p>
+Like most data in Ink, stacks are "immutable". That means if you want to add or remove something from a stack, you create a new stack with items added or removed instead. That sounds complex, but this is already exactly how things like strings and numbers work in Ink.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ink">VAR my_number = 5
+
+Who is Number 1?
+You are Number {my_number + 1}!
+
+// my_number is still 5, not 6
+
+VAR my_stack = ["strawberries"]
+You eat your {my_stack + "cream"}.
+
+// my_stack is still ["strawberries"]
+</pre>
+</div>
+
+<p>
+We say two stacks are equal if they have the same number of items, and all of the items in the two stacks are equal to each other when compared in order.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ink">VAR stack1 = ["one", "two"]
+VAR stack2 = ["one", "two"] // equal to stack1
+VAR stack3 = ["two", "one"] // not equal to stack1
+VAR stack4 = ["one"] // not equal to stack1
+</pre>
+</div>
+
+<p>
+And we can 'add' or 'substract' with stacks, although with a slightly different meaning to numerical addition and substraction. Addition concatinates the two stacks (i.e. sticks them together, in order).
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ink">VAR stack1 = ["one", "two"]
+// ["one", "two", "three", "four"]
+{stack1 + ["three", "four"]}
+</pre>
+</div>
+
+<p>
+While subtraction looks for the first time each value in the subtrahend<sup><a id="fnr.1" class="footref" href="#fn.1" role="doc-backlink">1</a></sup> (the stack on the right) appears in the minuend<sup><a id="fnr.2" class="footref" href="#fn.2" role="doc-backlink">2</a></sup> and removes it <i>if it exists</i>. It is not an error to 'subtract' a value that isn't in the original stack, it just results in an unchanged stack.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ink">VAR stack1 = ["three", "one", "one", "two"]
+// In order, we remove the first "one" (leaving the second) then the "three"
+// ["one", "two"]
+{stack1 - ["one", "three"]}
+</pre>
+</div>
+
+<p>
+For the other mathematicians in the audience: these operations are not inverses, and addition is not commutative. I apologize for the brain hurty.
+</p>
+</div>
+<div id="outline-container-org56eaa7c" class="outline-3">
+<h3 id="org56eaa7c">Example</h3>
+<div class="outline-text-3" id="text-org56eaa7c">
+<p>
+We've already got something quite nice here for situations where it is important for our story to know if things have been selected in the correct order. Let's say you want to have a runic magic system in your game similar to the one from <a href="https://crpgaddict.blogspot.com/2010/11/dungeon-master-runic-magic.html">Dungeon Master</a>. We can set up a list of valid, meaningful spells easily and add more as needed.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ink">LIST runes = fire, earth, water, air, me, target, explode, weal, woe
+
+VAR fireball = [woe, fire, target, explode]
+VAR heal = [weal, me, water]
+VAR current_cast = []
+
+Time to cast a spell. &lt;&gt;
+
+-&gt; select_rune_or_cast -&gt; END
+
+== select_rune_or_cast
+
+Add a rune, or release the magic! {current_cast}
+
++ [Fire] {add_rune(fire)}
++ [Earth] {add_rune(earth)}
++ [Water] {add_rune(water)}
++ [Air] {add_rune(air)}
++ [Internal] {add_rune(me)}
++ [External] {add_rune(target)}
++ [Explode] {add_rune(explode)}
++ [Weal] {add_rune(weal)}
++ [Woe] {add_rune(woe)}
++ [Cast the spell!] -&gt; cast_spell -&gt;-&gt;
+-
+
+-&gt; select_rune_or_cast
+
+=== cast_spell
+{
+- current_cast == fireball:
+  Kaboom!
+- current_cast == heal:
+  Oooh. Refreshing!
+- else:
+  Fizz, buzz
+}
+~current_cast = []
+-&gt;-&gt;
+
+=== function add_rune(r) ===
+~current_cast += r
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-org8a89565" class="outline-3">
+<h3 id="org8a89565">Stack functions</h3>
+<div class="outline-text-3" id="text-org8a89565">
+<p>
+We also have several functions that allow use to work through the values in a stack. 
+</p>
+
+<p>
+The simplest is <code>STACK_COUNT</code> which returns the current number of values in a stack. We then have three variations of the <code>STACK_POP</code> function; <code>STACK_POP_NEWEST</code>, <code>STACK_POP_OLDEST</code>, and <code>STACK_POP_RANDOM</code>. All three functions work in the same way: they take two parameters, which must be a stack and a variable. They will return the stack with the "popped" value removed, and they will assign the popped value to the variable. They will return a null value if the  stack doesn't contain anything.
+</p>
+
+<p>
+Example:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ink">VAR stack1 = ["oldest item", "middle item", "newest item"]
+VAR popped = ""
+
+~STACK_POP_NEWEST(stack1, popped)
+{popped} // "newest item"
+
+~stack1 = STACK_POP_NEWEST(stack1, popped)
+{popped} // still "newest item" - we didn't update stack1 last time
+{stack1} // now "oldest item, middle item"
+
+~STACK_POP_OLDEST(stack1, popped)
+{popped} // "oldest item"
+
+~stack1 = STACK_POP_RANDOM(stack1, popped)
+{popped} // might be "oldest item" or "middle item"
+{stack1} // a stack with which ever item wasn't popped at random
+</pre>
+</div>
+
+<p>
+We can combine the use of these functions to build knots that work their way through a stack in an order chosen by the player - either directly as below, or implicitly by the choices they made along the way.
+</p>
+
+<p>
+Small technical note here: if you want to add (or subtract) diverts with a stack, you'll need to wrap it in square brackets to make sure it can't be confused with other operators such as the minus sign.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ink">VAR visits = []
+
+-&gt; pick_visits
+
+== pick_visits
+
+Which patient will you visit {first|after that}?
+
+* [Critically ill guy]
+  ~visits += [-&gt; critical]
+* [Grazed child]
+  ~visits += [-&gt; grazed]
+* -&gt; do_rounds
+-
+
+-&gt; pick_visits
+
+== do_rounds
+{
+- STACK_COUNT(visits):
+  ~temp next_visit = ""
+  ~visits = STACK_POP_OLDEST(visits, next_visit)
+  -&gt; next_visit -&gt; do_rounds
+- else:
+  Well, I'm done for the day!
+}
+
+-&gt; END
+
+== critical
+Check if it is too late.
+-&gt;-&gt;
+
+== grazed
+Doesn't matter when you get here.
+-&gt;-&gt;
+</pre>
+</div>
+
+<p>
+Possibly most useful of all, is the ability to present a choice for each item in a stack by combining stacks and threads. Going back to our runic magic system, we can automate the spell casting menu system by building it from stacks rather than writing it all out by hand.
+</p>
+
+<p>
+This opens up new possibilities; in our next example, the player only has a limited number of owned runes and may need multiple copies of the same rune to activate a spell. This allows us to write narratives where runes are found over time, or can be stolen. It also allows us as game designers to add to the list of runes that exist without having to change any of the underlying mechanics that already exist.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-ink">LIST runes = fire, earth, water, air, protect, attack
+
+VAR ignite = [fire]
+VAR fireball = [fire, fire, attack]
+VAR heal = [protect, water]
+VAR current_cast = []
+VAR owned_runes =  [fire, fire, protect, attack]
+VAR available_runes = []
+
+Time to cast a spell.
+
+-&gt; select_rune_or_cast -&gt; END
+
+== select_rune_or_cast
+
+Add a rune, or release the magic!
+
+~available_runes = owned_runes
+
+-&gt; pick_available_rune(available_runes) -&gt;-&gt;
+
+=== pick_available_rune(still_available_runes)
+{
+- STACK_COUNT(still_available_runes):
+  ~temp next_rune = ""
+  ~temp remaining_runes = STACK_POP_NEWEST(still_available_runes, next_rune)
+  &lt;- pick_available_rune(remaining_runes)
+  + [Add {next_rune} to spell]
+    ~add_rune(next_rune)
+    You're currently casting: {current_cast}
+    ~available_runes -= next_rune
+    -&gt; pick_available_rune(available_runes)
+- else:
+  + [Cast the spell!] -&gt; cast_spell -&gt;-&gt;
+}
+
+=== cast_spell
+{
+- current_cast == fireball:
+  Kaboom!
+- current_cast == heal:
+  Oooh. Refreshing!
+- else:
+  Fizz, buzz
+}
+~current_cast = []
+-&gt;-&gt;
+
+=== function add_rune(r) ===
+~current_cast += r
+</pre>
+</div>
+
+<p>
+I'm sure that there are other uses for stacks as well; these are just the use cases that pushed me to looking into implementing them as I already had them in mind. I hope this has given you all some inspiration, and we'll see whether stacks become part of Ink beyond VisualInk in the future or not.
+</p>
+</div>
+</div>
+</div>
+<div id="footnotes">
+<h2 class="footnotes">Footnotes: </h2>
+<div id="text-footnotes">
+
+<div class="footdef"><sup><a id="fn.1" class="footnum" href="#fnr.1" role="doc-backlink">1</a></sup> <div class="footpara" role="doc-footnote"><p class="footpara">
+Why yes, I did have to look up the word for 'the thing on the right hand side of a subtraction operation' 
+</p></div></div>
+
+<div class="footdef"><sup><a id="fn.2" class="footnum" href="#fnr.2" role="doc-backlink">2</a></sup> <div class="footpara" role="doc-footnote"><p class="footpara">
+This one, too.
+</p></div></div>
+
+
+</div>
+</div></div>
+<div id="postamble" class="status">
+<footer id="my-contacts">
+<p hx-boost="false"><a href="https://blog.mavnn.co.uk/rss.xml">RSS</a></p>
+<p><a href="https://bonfire.mavnn.eu/@mavnn">Fediverse</a></p>
+<p>Git(<a href="https://github.com/mavnn">Hub</a>|<a href="https://gitlab.com/mavnn">Lab</a>)</p>
+</footer>
+</div>
+</body>
+</html>
